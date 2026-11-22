@@ -5,8 +5,10 @@ import {
   realpathSync,
   readFileSync,
   writeFileSync,
+  linkSync,
   renameSync,
   rmSync,
+  mkdtempSync,
   mkdirSync,
   appendFileSync,
 } from "node:fs";
@@ -133,17 +135,24 @@ export function writeRequirementsContext(
     input.required_access,
     body
   );
-  const temporary = `${path}.${process.pid}.tmp`;
+  const directory = dirname(path);
+  if (initial) mkdirSync(directory, { recursive: true, mode: 0o700 });
+  if (realpathSync(directory) !== directory) fail();
+  const staging = mkdtempSync(join(directory, ".work-item-context-"));
+  const temporary = join(staging, "context.md");
   try {
-    if (initial) {
-      const directory = dirname(path);
-      mkdirSync(directory, { recursive: true, mode: 0o700 });
-      if (realpathSync(directory) !== directory) fail();
-    }
     writeFileSync(temporary, content, { flag: "wx", mode: 0o600 });
-    renameSync(temporary, path);
+    if (initial) {
+      // Publish completed bytes only if no other owner has created the context.
+      try {
+        linkSync(temporary, path);
+      } catch (error) {
+        if (error.code === "EEXIST") fail();
+        throw error;
+      }
+    } else renameSync(temporary, path);
   } finally {
-    rmSync(temporary, { force: true });
+    rmSync(staging, { recursive: true, force: true });
   }
   return { code: "requirements-prepared", body_preserved: true };
 }

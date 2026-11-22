@@ -127,7 +127,7 @@ describe("Notion actual supported primary", () => {
     f.refresh([notionRequirement]);
     writeFileSync(
       path.join(f.env.PATH, "curl"),
-      `#!${process.execPath}\nconst fs=require('node:fs');const a=process.argv.slice(2);if(JSON.stringify(a)!==JSON.stringify(['--config','-']))process.exit(64);const s=fs.readFileSync(0,'utf8');if(!s.includes('https://api.notion.com/v1/users/me'))process.exit(64);fs.appendFileSync(${JSON.stringify(path.join(f.root, CALLS))},JSON.stringify({tool:'curl',label:'notion:unavailable',argv:a})+'\\n');process.exitCode=7;\n`,
+      `#!${process.execPath}\nconst fs=require('node:fs');const a=process.argv.slice(2);if(JSON.stringify(a)!==JSON.stringify(['-q','--config','-']))process.exit(64);const s=fs.readFileSync(0,'utf8');if(!s.includes('https://api.notion.com/v1/users/me'))process.exit(64);fs.appendFileSync(${JSON.stringify(path.join(f.root, CALLS))},JSON.stringify({tool:'curl',label:'notion:unavailable',argv:a})+'\\n');process.exitCode=7;\n`,
       { mode: 0o755 }
     );
     expect(f.runEvent(action).status).toBe(2);

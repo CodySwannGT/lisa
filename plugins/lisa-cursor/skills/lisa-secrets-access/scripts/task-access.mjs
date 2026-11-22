@@ -29,7 +29,7 @@ export const nativeOwner = layer =>
 
 /** Cheapest authenticated token/resource read, where no GitGuardian access skill exists.
  * API authority: https://api.gitguardian.com/docs (GET /v1/api_tokens/self).
- * Token is supplied only on curl stdin, never argv, diagnostics or disk.
+ * Curl skips personal defaults and reads the token only from stdin.
  */
 function gitguardianAccess(cfg, requirement, candidates) {
   const anchor = cfg.effective?.gitguardian?.workspaceId;
@@ -47,7 +47,7 @@ function gitguardianAccess(cfg, requirement, candidates) {
   let response;
   try {
     response = JSON.parse(
-      execFileSync("curl", ["--config", "-"], {
+      execFileSync("curl", ["-q", "--config", "-"], {
         input: `url = "https://api.gitguardian.com/v1/api_tokens/self"\nheader = ${JSON.stringify(`Authorization: Token ${candidate.value}`)}\nfail\nsilent\nmax-time = 5\nmax-filesize = 1048576\n`,
         encoding: "utf8",
         stdio: ["pipe", "pipe", "pipe"],

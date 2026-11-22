@@ -10,6 +10,12 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { taskFixture } from "../../helpers/task-readiness-fixture.js";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { readTaskConfig } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
+import { writeRequirementsContext } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/task-context-write.mjs";
+import {
+  REQUIREMENTS_HEADER,
+  requirementsContext,
+} from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs";
 
 const roots: string[] = [];
 const CONTEXT = ".lisa/work-item-context.md";
@@ -78,6 +84,33 @@ describe("canonical requirements-only intake transaction", () => {
     writeFileSync(path.join(f.root, ".easignore"), "node_modules\n");
     expect(f.prepare().status).not.toBe(0);
     expect(readFileSync(path.join(f.root, CONTEXT), "utf8")).toBe(f.body);
+  });
+  it("preserves a context created by another writer during first publication", () => {
+    const f = project();
+    const target = path.join(f.root, CONTEXT);
+    const cfg = readTaskConfig(f.root, {});
+    const first = requirementsContext(cfg, REF, "github", [], f.body);
+    const secondBody = "Different context body\n";
+    rmSync(target);
+
+    expect(() =>
+      writeRequirementsContext(
+        cfg,
+        REF,
+        {
+          requirements_complete: true,
+          required_access: [],
+          context_body: secondBody,
+        },
+        null,
+        () => {
+          writeFileSync(target, first, { flag: "wx", mode: 0o600 });
+          return requirementsContext(cfg, REF, "github", [], secondBody);
+        },
+        REQUIREMENTS_HEADER
+      )
+    ).toThrow("requirements-stale");
+    expect(readFileSync(target, "utf8")).toBe(first);
   });
   it("binds ref/provider while branch attachment preserves the requirements header", () => {
     const f = project();

@@ -1683,7 +1683,7 @@
     "plugins/src/base/skills/lisa-notion-access/SKILL.md":
       "713b6ffb224cf9d466a9fcbbcab852b87e2ba419b47c0a39dc90b0b6814e89eb",
     "plugins/src/base/skills/lisa-notion-access/scripts/readiness-probe.mjs":
-      "d13312cda4f4bbde4b35f2ad49e0a253827b8c0cfe626b87e503772060194495",
+      "d43e8982ab442cbd37c30c149515e95677cc3a2844c7c71153140014a10376ea",
     "plugins/src/base/skills/lisa-notion-prd-intake/SKILL.md":
       "cf94c3b78cdc6e6ddd70a5f870d4272b158b8bd39edf9a024e93df093f8f81b9",
     "plugins/src/base/skills/lisa-notion-to-tracker/SKILL.md":
@@ -1799,7 +1799,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs":
       "8c5b8e5aa775420d0778436666c9b03b67fae443809d9b5fd57ebf0f04d9a4e2",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-access.mjs":
-      "2beb4e75b79312121985ba030e3348ede03236af2cc60e8216173ad8ba71e9ee",
+      "ee88c5f1d39e11c2d7233df255bdbb2246be808baa7825173111edaa8517a490",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-action.mjs":
       "d4e73f4d45b5c9a56dea1e98dc2aea7ca458d770710125578101cf4cb9336717",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs":
@@ -1807,7 +1807,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-context-data.mjs":
       "14a1a873e92e45cc4e1f50ca6bf93484ad78315249e39c62772c6e4d2d305eed",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-context-write.mjs":
-      "de1fb8167cacefcdccdad7763ea97d13d096675906403666b8a13670ba5f0f1d",
+      "eeaa6baeb18f6a6c22cf2760f6680db957b201bc712eefd85621243a4ef5cc9a",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-github.mjs":
       "d8e2bd72294ee6b031545348c8d45e2d0d4837bb9c98b46f930d5d9bee3b8ab0",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-intake-read.mjs":

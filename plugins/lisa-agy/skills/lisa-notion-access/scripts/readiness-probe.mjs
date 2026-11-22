@@ -10,7 +10,7 @@ const denied = code => ({
 function read(token, path) {
   const input = `url = ${JSON.stringify(`https://api.notion.com/v1/${path}`)}\nheader = ${JSON.stringify(`Authorization: Bearer ${token}`)}\nheader = "Notion-Version: 2022-06-28"\nfail\nsilent\nmax-time = 5\nmax-filesize = 1048576\n`;
   return JSON.parse(
-    execFileSync("curl", ["--config", "-"], {
+    execFileSync("curl", ["-q", "--config", "-"], {
       input,
       encoding: "utf8",
       stdio: ["pipe", "pipe", "pipe"],
