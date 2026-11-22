@@ -10,6 +10,10 @@ import { lifecycleEvents, resetNativeEvent } from "./task-native-lifecycle.mjs";
 import { intakeRead } from "./task-intake.mjs";
 import { nativeContext } from "./task-native-context.mjs";
 import {
+  linearIntakeRead,
+  observeLinearIntake,
+} from "./task-tracker-intake.mjs";
+import {
   nativeAction,
   invalidateNative,
   clearNative,
@@ -144,12 +148,22 @@ export function runTaskAction(argv = process.argv) {
     const refIndex = argv.indexOf("--ref"),
       ref = refIndex >= 0 ? argv[refIndex + 1] : undefined;
     const header = readTaskRequirements(cfg, { ref });
+    if (
+      hook &&
+      !header &&
+      input.hook_event_name === "PreToolUse" &&
+      linearIntakeRead(input, cfg)
+    ) {
+      invalidateNative(input, cfg);
+      return;
+    }
     if (hook && !header && accessOwnerProbe(input, cfg)) {
       resetNativeEvent(input);
       return;
     }
     result = taskReadiness({ cfg, requirements: header, ref });
     if (observe) {
+      if (!header) observeLinearIntake(input, cfg);
       if (
         ["PostToolUse", "PostToolUseFailure"].includes(input.hook_event_name) &&
         header &&

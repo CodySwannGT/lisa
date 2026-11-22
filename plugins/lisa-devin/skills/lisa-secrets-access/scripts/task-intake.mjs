@@ -5,16 +5,12 @@ import {
   prFields,
   queries,
   reviewThreadsQuery,
-  threadCommentsQuery,
   configuredIssueRepository,
   intakeRequest,
 } from "../../lisa-github-read-issue/read-contract.mjs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  linearIntakeRead,
-  trackerIntakeRequest,
-} from "./task-tracker-intake.mjs";
+import { trackerIntakeRequest } from "./task-tracker-intake.mjs";
 import { atlassianIssueRead } from "./task-atlassian-native.mjs";
 const owner = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -137,12 +133,6 @@ function trackerRead(input, cfg) {
     )
       return true;
   }
-  const thread = `gh api graphql --paginate --slurp -f query='${threadCommentsQuery}' -F id=`;
-  if (
-    command.startsWith(thread) &&
-    /^[A-Za-z0-9_+/=-]{1,256}$/.test(command.slice(thread.length))
-  )
-    return true;
   if (!command.startsWith(prefix)) return false;
   return (
     /^[1-9]\d*(?: --jq \.comments)?$/.test(command.slice(prefix.length)) ||
@@ -158,7 +148,6 @@ export function intakeRead(input, cfg) {
   return (
     (input.tool_name === "Skill" && loadOwner(input, cfg)) ||
     (input.tool_name === "Agent" && delegate(input, cfg)) ||
-    linearIntakeRead(input, cfg) ||
     atlassianIssueRead(input, cfg) ||
     trackerRead(input, cfg) ||
     intakeOwner(input, cfg)

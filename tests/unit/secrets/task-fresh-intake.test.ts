@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { taskFixture } from "../../helpers/task-readiness-fixture.js";
 import { nativeBash } from "../../helpers/task-native-bash.js";
 import { nativeWrite } from "../../helpers/task-native-context.js";
+import { intakeOwnerCommand } from "../../helpers/task-intake-owner.js";
 import {
   intakeCommands,
   intakeRaw,
@@ -93,7 +94,10 @@ describe("realizable fresh native intake", () => {
       }).status
     ).toBe(0);
     installIntakeGh(f);
-    const outputs = intakeCommands.map(command => {
+    const outputs = [
+      ...intakeCommands,
+      intakeOwnerCommand(f, "thread-comments", "PRRT_fixture"),
+    ].map(command => {
       const r = nativeBash(f, command);
       expect(r.guard.status, command).toBe(0);
       expect(r.tool?.status, command).toBe(0);

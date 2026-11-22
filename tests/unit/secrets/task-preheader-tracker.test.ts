@@ -138,21 +138,25 @@ describe.each(["linear", "jira"] as const)("fresh %s intake", tracker => {
  * @param f - The isolated tracker and hook.
  * @param tool - The host's exact tool name.
  * @param args - Native tool arguments.
- * @param server - Connection identity when the runtime supplies it.
- * @param server.name - The configured native connection name.
- * @param server.source - How the runtime loaded the connection.
+ * @param event - Native connection identity and events from the host.
  * @returns The observed guard decision.
  */
 function nativeMcp(
   f: ReturnType<typeof fixture>,
   tool: string,
   args: Record<string, unknown>,
-  server?: { name: string; source: string }
+  event: Record<string, unknown> = {}
 ) {
+  const observe = ["PostToolUse", "PostToolUseFailure"].includes(
+    String(event.hook_event_name)
+  );
   return boundedSpawnSync({
     label: "native tracker intake read",
     command: "/bin/bash",
-    args: [path.join(f.plugin, "hooks/secrets-preflight.sh"), "--task-hook"],
+    args: [
+      path.join(f.plugin, "hooks/secrets-preflight.sh"),
+      observe ? "--observe-native" : "--task-hook",
+    ],
     cwd: f.root,
     env: f.env,
     input: JSON.stringify({
@@ -160,7 +164,8 @@ function nativeMcp(
       cwd: f.root,
       tool_name: tool,
       tool_input: args,
-      ...(server ? { mcp_server: server } : {}),
+      session_id: "native-tracker-intake",
+      ...event,
     }),
   });
 }
@@ -170,8 +175,7 @@ it("admits the native Jira issue read for the configured cloud and project only"
   const issue = { cloudId, issueIdOrKey: ref, fields: ["*all"] };
   const call = (args: Record<string, unknown>, tool = "getJiraIssue") =>
     nativeMcp(f, `mcp__plugin_atlassian_atlassian__${tool}`, args, {
-      name: "plugin:atlassian:atlassian",
-      source: "plugin",
+      mcp_server: { name: "plugin:atlassian:atlassian", source: "plugin" },
     });
   expect(call(issue).status).toBe(0);
   expect(call({ ...issue, cloudId: "other" }).status).toBe(2);
@@ -181,28 +185,82 @@ it("admits the native Jira issue read for the configured cloud and project only"
 
 it("lets the configured Linear owner use its read-only native fallback without an API key", () => {
   const f = fixture("linear");
-  const call = (tool: string, args: Record<string, unknown>) =>
+  const call = (
+    tool: string,
+    args: Record<string, unknown>,
+    event: Record<string, unknown> = {}
+  ) =>
     nativeMcp(f, `mcp__linear-server__${tool}`, args, {
-      name: "linear-server",
-      source: "user",
+      mcp_server: { name: "linear-server", source: "user" },
+      ...event,
     });
   delete f.env.LINEAR_API_KEY;
 
   expect(f.read("issue").tool?.stderr).toContain("credential-missing");
   expect(nativeMcp(f, "Skill", { skill: "lisa:linear-access" }).status).toBe(0);
   expect(call("list_teams", { query: "ENG", limit: 10 }).status).toBe(0);
-  expect(call("get_issue", { id: ref, includeRelations: true }).status).toBe(0);
-  expect(
-    call("list_comments", {
-      issueId: "834d0721-7da6-4f28-9ffd-b67e9d2c4a07",
-      cursor: "next-page",
-      limit: 100,
-    }).status
-  ).toBe(0);
+  expect(call("list_comments", { issueId: ref, limit: 100 }).status).toBe(0);
   expect(call("get_issue", { id: "OPS-123" }).status).toBe(2);
   expect(call("list_teams", { query: "OPS" }).status).toBe(2);
   expect(call("list_comments", { issueId: ref, limit: 101 }).status).toBe(2);
   expect(call("save_issue", { id: ref }).status).toBe(2);
+  expect(existsSync(path.join(f.root, contextFile))).toBe(false);
+});
+
+it("binds a Linear comment UUID only to a matching native issue response", () => {
+  const f = fixture("linear");
+  const issueId = "834d0721-7da6-4f28-9ffd-b67e9d2c4a07";
+  const issue = { id: ref, includeRelations: true };
+  const read = (
+    tool: string,
+    input: Record<string, unknown>,
+    event: Record<string, unknown> = {}
+  ) =>
+    nativeMcp(f, `mcp__linear__${tool}`, input, {
+      mcp_server: { name: "linear", source: "user" },
+      ...event,
+    });
+  const comment = (event: Record<string, unknown> = {}) =>
+    read("list_comments", { issueId, cursor: "next-page", limit: 100 }, event);
+  const observe = (call: string, workspace: string, hook = "PostToolUse") =>
+    read("get_issue", issue, {
+      hook_event_name: hook,
+      tool_use_id: call,
+      tool_response: {
+        structuredContent: {
+          id: issueId,
+          identifier: ref,
+          url: `https://linear.app/${workspace}/issue/${ref}/proof`,
+        },
+      },
+    });
+  delete f.env.LINEAR_API_KEY;
+
+  expect(comment().status).toBe(2);
+  expect(observe("unobserved", "fixture").status).toBe(0);
+  expect(comment().status).toBe(2);
+  expect(
+    read("get_issue", issue, { tool_use_id: "wrong-workspace" }).status
+  ).toBe(0);
+  expect(observe("wrong-workspace", "other").status).toBe(0);
+  expect(comment().status).toBe(2);
+  expect(
+    read("get_issue", issue, { tool_use_id: "failed-result" }).status
+  ).toBe(0);
+  expect(observe("failed-result", "fixture", "PostToolUseFailure").status).toBe(
+    0
+  );
+  expect(comment().status).toBe(2);
+  expect(
+    read("get_issue", issue, { tool_use_id: "matching-issue" }).status
+  ).toBe(0);
+  expect(observe("matching-issue", "fixture").status).toBe(0);
+  expect(comment().status).toBe(0);
+  expect(comment().status).toBe(0);
+  expect(comment({ session_id: "different-intake" }).status).toBe(2);
+  expect(
+    comment({ mcp_server: { name: "linear", source: "project" } }).status
+  ).toBe(2);
   expect(existsSync(path.join(f.root, contextFile))).toBe(false);
 });
 

@@ -10,6 +10,7 @@ import {
   queries,
   reviewThreadsQuery,
   threadCommentsQuery,
+  threadRepositoryQuery,
 } from "../../plugins/src/base/skills/lisa-github-read-issue/read-contract.mjs";
 import { taskFixture } from "./task-readiness-fixture.js";
 export const intakeCommands = [
@@ -26,8 +27,8 @@ export const intakeCommands = [
   "gh api repos/fixture/project/issues/2/comments --paginate --slurp | jq 'add // []'",
   `gh pr view 3 --repo fixture/project --json ${prFields}`,
   `gh api graphql --paginate --slurp -f query='${reviewThreadsQuery}' -F org=fixture -F repo=project -F number=3`,
-  `gh api graphql --paginate --slurp -f query='${threadCommentsQuery}' -F id=PRRT_fixture`,
 ];
+export const rawThreadComments = `gh api graphql --paginate --slurp -f query='${threadCommentsQuery}' -F id=PRRT_fixture`;
 const REPO = "fixture/project",
   PAGINATE = "--paginate";
 export { intakeRaw } from "./task-intake-data.js";
@@ -37,6 +38,20 @@ const cases = [
     argv: ["issue", "view", "1", "--repo", REPO, "--json", issueFields],
     output: intakeRaw.primary,
   },
+  ...[
+    ["PRRT_fixture", REPO],
+    ["PRRT_foreign", "other/repository"],
+  ].map(([id, nameWithOwner]) => ({
+    argv: [
+      "api",
+      "graphql",
+      "-f",
+      `query=${threadRepositoryQuery}`,
+      "-F",
+      `id=${id}`,
+    ],
+    output: { data: { node: { repository: { nameWithOwner } } } },
+  })),
   {
     argv: [
       "api",
@@ -171,6 +186,7 @@ const cases = [
       {
         data: {
           node: {
+            repository: { nameWithOwner: REPO },
             comments: {
               pageInfo: page(false, "end"),
               nodes: [

@@ -1,10 +1,15 @@
 /** Read the configured Linear or Jira issue before a readiness header exists. */
 import { execFileSync } from "node:child_process";
+import { lstatSync, unlinkSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AccessFailure, plainObject } from "./config-layers.mjs";
 import { readTaskConfig } from "./surfaces.mjs";
-import { taskBinding } from "./task-requirements.mjs";
+import { configDigest, taskBinding } from "./task-requirements.mjs";
 import { candidate, failure } from "./task-readiness.mjs";
+import { fingerprint, resultObject } from "./task-native-contract.mjs";
+import { gateDirectory } from "./task-native-lifecycle.mjs";
+import { sessionKey } from "./task-native-state.mjs";
 
 const issueKey = /^([A-Z][A-Z0-9]*)-[1-9]\d*$/u;
 const pageSize = 100;
@@ -20,31 +25,123 @@ const nativeLinearTool =
   /^mcp__(linear-server|linear)__(list_teams|get_issue|list_comments)$/u;
 const uuid = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu;
 
-/** Admit the documented Linear owner's read-only fallback. Calling it proves no work access. */
-export function linearIntakeRead(event, cfg) {
+function linearMarker(event, cfg, scope) {
+  const coordinate = fingerprint({
+    session: sessionKey(event, cfg.projectRoot),
+    config: configDigest(cfg),
+    server: event.mcp_server ?? nativeLinearTool.exec(event.tool_name)?.[1],
+    scope,
+  });
+  return join(gateDirectory(), `readiness-linear-${coordinate}.marker`);
+}
+
+function hasMarker(path) {
+  try {
+    const state = lstatSync(path);
+    return (
+      state.isFile() &&
+      state.size === 0 &&
+      !(state.mode & 0o077) &&
+      (!process.getuid || state.uid === process.getuid())
+    );
+  } catch {
+    return false;
+  }
+}
+
+function mark(path) {
+  if (hasMarker(path)) return;
+  writeFileSync(path, "", { flag: "wx", mode: 0o600 });
+}
+
+function linearCallMarker(event, cfg) {
+  if (
+    typeof event.tool_use_id !== "string" ||
+    !event.tool_use_id ||
+    event.tool_use_id.length > 512 ||
+    !event.session_id
+  )
+    return null;
+  return linearMarker(event, cfg, {
+    call: event.tool_use_id,
+    args: event.tool_input,
+  });
+}
+
+function scopedLinearRequest(event, cfg) {
   const { tracker, linear } = cfg.effective ?? {};
   const tool = nativeLinearTool.exec(event.tool_name);
   const args = event.tool_input;
+  return tracker === "linear" &&
+    linear?.workspace &&
+    linear?.teamKey &&
+    tool &&
+    plainObject(args) &&
+    (event.mcp_server === undefined || event.mcp_server?.name === tool[1])
+    ? { linear, operation: tool[2], args }
+    : null;
+}
+
+function configuredLinearIssue(ref, team) {
+  return typeof ref === "string" && issueKey.exec(ref)?.[1] === team;
+}
+
+function scopedLinearIssueResult(event, cfg) {
+  const input = scopedLinearRequest(event, cfg);
+  if (input?.operation !== "get_issue") return;
+  const call = linearCallMarker(event, cfg);
+  if (!call || !hasMarker(call)) return;
+  unlinkSync(call);
+  if (event.hook_event_name !== "PostToolUse") return;
+  const issue = resultObject(event.tool_response);
   if (
-    tracker !== "linear" ||
-    !linear?.workspace ||
-    !linear?.teamKey ||
-    !tool ||
-    !plainObject(args) ||
-    (event.mcp_server !== undefined && event.mcp_server?.name !== tool[1])
+    issue.identifier !== input.args.id ||
+    typeof issue.id !== "string" ||
+    !uuid.test(issue.id) ||
+    typeof issue.url !== "string"
   )
-    return false;
-  const configuredIssue = value =>
-    typeof value === "string" && issueKey.exec(value)?.[1] === linear.teamKey;
-  if (tool[2] === "get_issue") {
-    return (
-      configuredIssue(args.id) &&
+    return;
+  const url = new URL(issue.url);
+  const [, workspace, kind, ref] = url.pathname.split("/");
+  if (
+    url.origin !== "https://linear.app" ||
+    url.username ||
+    url.password ||
+    workspace !== input.linear.workspace ||
+    kind !== "issue" ||
+    ref !== issue.identifier
+  )
+    return;
+  mark(linearMarker(event, cfg, { uuid: issue.id.toLowerCase() }));
+}
+
+/** Bind a comment UUID only to a successful scoped result from the same native call. */
+export function observeLinearIntake(event, cfg) {
+  try {
+    scopedLinearIssueResult(event, cfg);
+  } catch {
+    // Missing, malformed, or stale native results convey no issue identity.
+  }
+}
+
+/** Admit the documented Linear owner's read-only fallback. Calling it proves no work access. */
+export function linearIntakeRead(event, cfg) {
+  const input = scopedLinearRequest(event, cfg);
+  if (!input) return false;
+  const { linear, operation, args } = input;
+  if (operation === "get_issue") {
+    const allowed =
+      configuredLinearIssue(args.id, linear.teamKey) &&
       Object.keys(args).every(key =>
         ["id", "includeRelations"].includes(key)
       ) &&
       (args.includeRelations === undefined ||
-        typeof args.includeRelations === "boolean")
-    );
+        typeof args.includeRelations === "boolean");
+    if (allowed) {
+      const call = linearCallMarker(event, cfg);
+      if (call) mark(call);
+    }
+    return allowed;
   }
   if (
     (args.limit !== undefined &&
@@ -59,7 +156,7 @@ export function linearIntakeRead(event, cfg) {
       !["createdAt", "updatedAt"].includes(args.orderBy))
   )
     return false;
-  if (tool[2] === "list_teams") {
+  if (operation === "list_teams") {
     return (
       args.query === linear.teamKey &&
       Object.keys(args).every(key =>
@@ -67,10 +164,15 @@ export function linearIntakeRead(event, cfg) {
       )
     );
   }
-  // The native API can use the issue UUID returned by its configured team read.
+  // UUIDs have no team prefix. Only a native result scoped above can bind one.
   return (
-    (configuredIssue(args.issueId) ||
-      (typeof args.issueId === "string" && uuid.test(args.issueId))) &&
+    (configuredLinearIssue(args.issueId, linear.teamKey) ||
+      (typeof args.issueId === "string" &&
+        uuid.test(args.issueId) &&
+        event.session_id &&
+        hasMarker(
+          linearMarker(event, cfg, { uuid: args.issueId.toLowerCase() })
+        ))) &&
     Object.keys(args).every(key =>
       ["issueId", "limit", "cursor", "orderBy"].includes(key)
     )

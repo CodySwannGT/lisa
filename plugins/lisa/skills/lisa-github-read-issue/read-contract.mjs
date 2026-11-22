@@ -65,4 +65,6 @@ export function intakeRequest(args, cfg) {
 export const reviewThreadsQuery =
   "query($org:String!,$repo:String!,$number:Int!,$endCursor:String){repository(owner:$org,name:$repo){pullRequest(number:$number){reviewThreads(first:100,after:$endCursor){pageInfo{hasNextPage endCursor} nodes{id isResolved isOutdated comments(first:100){pageInfo{hasNextPage endCursor} nodes{body author{login} createdAt url}}}}}}}";
 export const threadCommentsQuery =
-  "query($id:ID!,$endCursor:String){node(id:$id){...on PullRequestReviewThread{comments(first:100,after:$endCursor){pageInfo{hasNextPage endCursor} nodes{body author{login} createdAt url}}}}}";
+  "query($id:ID!,$endCursor:String){node(id:$id){...on PullRequestReviewThread{repository{nameWithOwner} comments(first:100,after:$endCursor){pageInfo{hasNextPage endCursor} nodes{body author{login} createdAt url}}}}}";
+export const threadRepositoryQuery =
+  "query($id:ID!){node(id:$id){...on PullRequestReviewThread{repository{nameWithOwner}}}}";

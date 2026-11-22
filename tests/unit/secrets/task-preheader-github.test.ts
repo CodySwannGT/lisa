@@ -14,14 +14,18 @@ import {
 import { githubRequirement } from "../../helpers/task-github-fixture.js";
 import { qualifyInstallation } from "../../helpers/task-preheader-installation.js";
 import { intakeOwnerCommand } from "../../helpers/task-intake-owner.js";
-import { intakeCommands } from "../../helpers/task-intake-gh.js";
+import {
+  intakeCommands,
+  rawThreadComments,
+} from "../../helpers/task-intake-gh.js";
 import { nativeBash } from "../../helpers/task-native-bash.js";
 import { nativeWrite } from "../../helpers/task-native-context.js";
 import { readTaskConfig as readConfig } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
 import { requirementsContext } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs";
 import { classifyReadyCandidate } from "../../../plugins/src/base/scripts/intake-blocker-reprobe.mjs";
 const roots: string[] = [],
-  CONTEXT = ".lisa/work-item-context.md";
+  CONTEXT = ".lisa/work-item-context.md",
+  THREAD_COMMENTS = "thread-comments";
 const specs = [
   ["issue", "1"],
   ["comments", "1"],
@@ -35,7 +39,7 @@ const specs = [
   ["comments", "2"],
   ["pr", "3"],
   ["review-threads", "3"],
-  ["thread-comments", "PRRT_fixture"],
+  [THREAD_COMMENTS, "PRRT_fixture"],
 ];
 afterEach(() =>
   roots
@@ -53,6 +57,25 @@ function fixture(source: string, queue?: string) {
   return f;
 }
 describe("pre-header GitHub supported source bootstrap", () => {
+  it("checks that a thread belongs to the configured queue before reading comments", () => {
+    const f = fixture("provider");
+    const read = (thread: string) =>
+      nativeBash(f, intakeOwnerCommand(f, THREAD_COMMENTS, thread));
+    f.env.FIXTURE_NATIVE_AVAILABLE = "1";
+    const foreign = read("PRRT_foreign");
+    expect(foreign.tool?.status).toBe(2);
+    expect(foreign.tool?.stdout).toBe("");
+    expect(foreign.tool?.stderr).toContain("identity-mismatch");
+    expect(
+      preheaderJournal(f).filter(row => row.argv.includes("id=PRRT_foreign"))
+    ).toHaveLength(1);
+    expect(nativeBash(f, rawThreadComments).guard.status).toBe(2);
+    const own = read("PRRT_fixture");
+    expect(own.tool?.status).toBe(0);
+    expect(
+      JSON.parse(String(own.tool?.stdout))[0].data.node.repository.nameWithOwner
+    ).toBe("fixture/project");
+  });
   it.each([
     ["intake", "fixture/intake", "native"],
     ["another-org/intake", "another-org/intake", "provider"],

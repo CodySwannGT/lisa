@@ -78,7 +78,7 @@ export function notionProbe(event, requirement) {
 }
 
 /** MCP JSON text must be one complete object, not a fragment embedded in prose. */
-function resultObject(result) {
+export function resultObject(result) {
   if (!plainObject(result) || result.isError === true || result.error)
     unsupported();
   let value = result.structuredContent;

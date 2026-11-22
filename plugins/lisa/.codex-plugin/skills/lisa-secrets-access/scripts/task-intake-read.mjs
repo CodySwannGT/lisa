@@ -14,6 +14,7 @@ import {
   pullRequestsQuery,
   reviewThreadsQuery,
   threadCommentsQuery,
+  threadRepositoryQuery,
 } from "../../lisa-github-read-issue/read-contract.mjs";
 
 /** Construct only the existing documented read argv; all remote values remain data. */
@@ -62,6 +63,35 @@ function readArguments(request) {
     ...params,
   ];
 }
+/** Read a fixed request with the already selected credential, withholding raw errors. */
+function readGithub(argv, env) {
+  let raw;
+  try {
+    raw = execFileSync("gh", argv, {
+      env,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 120000,
+      maxBuffer: 64 * 1024 * 1024,
+    });
+  } catch (error) {
+    throw new AccessFailure(
+      error.code === "ENOENT" ? "tool-missing" : "capability-unreachable"
+    );
+  }
+  if (env.GH_TOKEN && raw.includes(env.GH_TOKEN))
+    throw new AccessFailure("capability-unreachable");
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new AccessFailure("capability-unreachable");
+  }
+}
+
+function requireThreadRepository(value, repo) {
+  if (value?.data?.node?.repository?.nameWithOwner !== repo)
+    throw new AccessFailure("identity-mismatch");
+}
 /** Probe native first; only genuine unavailability may select the supported fallback. */
 function selectedAccess(cfg, repo) {
   const requirement = { operation: "repository-read", resource: repo };
@@ -103,27 +133,26 @@ export function runIntakeRead(args = process.argv.slice(2)) {
       throw new AccessFailure("requirements-stale");
     const credential = selectedAccess(cfg, request.repo),
       env = githubEnvironment(credential);
-    let raw;
-    try {
-      raw = execFileSync("gh", readArguments(request), {
-        env,
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-        timeout: 120000,
-        maxBuffer: 64 * 1024 * 1024,
-      });
-    } catch (error) {
-      throw new AccessFailure(
-        error.code === "ENOENT" ? "tool-missing" : "capability-unreachable"
+    const thread = request.operation === "thread-comments";
+    if (thread) {
+      const anchor = readGithub(
+        [
+          "api",
+          "graphql",
+          "-f",
+          `query=${threadRepositoryQuery}`,
+          "-F",
+          `id=${request.value}`,
+        ],
+        env
       );
+      requireThreadRepository(anchor, request.repo);
     }
-    if (env.GH_TOKEN && raw.includes(env.GH_TOKEN))
-      throw new AccessFailure("capability-unreachable");
-    let value;
-    try {
-      value = JSON.parse(raw);
-    } catch {
-      throw new AccessFailure("capability-unreachable");
+    let value = readGithub(readArguments(request), env);
+    if (thread) {
+      if (!Array.isArray(value) || value.length === 0)
+        throw new AccessFailure("capability-unreachable");
+      for (const page of value) requireThreadRepository(page, request.repo);
     }
     if (request.operation === "comments") {
       if (!Array.isArray(value) || !value.every(Array.isArray))

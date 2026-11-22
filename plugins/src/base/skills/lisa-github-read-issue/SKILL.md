@@ -28,6 +28,7 @@ node '<absolute installed lisa-secrets-access>/scripts/preflight-secrets.mjs' --
 Use `issue`, `comments`, `comment-count`, `graph`, `history`, `closing-prs`,
 `blocked-by`, `blocking`, `pr`, or `review-threads`. For `thread-comments` ONLY,
 replace `--number <read-number>` with `--thread <returned-thread-node-id>`.
+The installed reader verifies the thread's repository before retrieving its comments. Use the installed reader for thread comments.
 Each invocation freshly proves the configured repository scope, validates any
 observed actor, then executes only its fixed read. A selected credential is carried in child environment
 memory, never command arguments/output/files or context. Comments are returned
