@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [8.7.0](https://github.com/CodySwannGT/lisa/compare/v8.6.1...v8.7.0) (2026-11-22)
+
+
+### Features
+
+* **controls:** verify hosted and typed Level 1 proofs ([#5176](https://github.com/CodySwannGT/lisa/issues/5176)) ([8807d65](https://github.com/CodySwannGT/lisa/commit/8807d65eb4e36559d5bcbe87611b0a0f5642e301)), closes [CodySwannGT/lisa#5160](https://github.com/CodySwannGT/lisa/issues/5160) [CodySwannGT/lisa#5161](https://github.com/CodySwannGT/lisa/issues/5161)
+* **controls:** verify signed hosted proof receipts [skip ci] ([6b6abab](https://github.com/CodySwannGT/lisa/commit/6b6abab3b53c736225b608eede79f2d46554b677)), closes [CodySwannGT/lisa#5160](https://github.com/CodySwannGT/lisa/issues/5160) [CodySwannGT/lisa#5160](https://github.com/CodySwannGT/lisa/issues/5160)
+* **controls:** verify typed Level 1 artifact exercises [skip ci] ([40a3384](https://github.com/CodySwannGT/lisa/commit/40a3384a45d00dc33030eece62c2a8e98aabfea3)), closes [CodySwannGT/lisa#5161](https://github.com/CodySwannGT/lisa/issues/5161) [CodySwannGT/lisa#5161](https://github.com/CodySwannGT/lisa/issues/5161)
+
+
+### Bug Fixes
+
+* **controls:** keep the new proof checks strict [skip ci] ([1cdce07](https://github.com/CodySwannGT/lisa/commit/1cdce079b5d8521d903250dc07a73c61c139239d)), closes [CodySwannGT/lisa#5161](https://github.com/CodySwannGT/lisa/issues/5161) [CodySwannGT/lisa#5161](https://github.com/CodySwannGT/lisa/issues/5161)
+
+
+### Documentation
+
+* **controls:** explain independently verified artifact results [skip ci] ([60217f3](https://github.com/CodySwannGT/lisa/commit/60217f3d8d82e4adfecc6fc973cbc43c4fc2be60)), closes [CodySwannGT/lisa#5161](https://github.com/CodySwannGT/lisa/issues/5161) [CodySwannGT/lisa#5161](https://github.com/CodySwannGT/lisa/issues/5161)
+
 ### [8.6.1](https://github.com/CodySwannGT/lisa/compare/v8.6.0...v8.6.1) (2026-11-22)
 
 
