@@ -1,10 +1,5 @@
 /** Diagnose the fixed attribution fixture's actual source/root route, not timing guesses. */
-import {
-  copyFileSync,
-  readFileSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { copyFileSync, cpSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, expect, it } from "vitest";
 import {
@@ -18,10 +13,12 @@ afterEach(cleanupScratchRoots);
 it("keeps dispatcher attribution fixtures out of workstation task credentials and live API routes", () => {
   // Resolve the real checkout guards without inheriting its active work item.
   const project = scratchRoot();
-  symlinkSync(
-    path.join(REPO_ROOT, "plugins"),
-    path.join(project, "plugins"),
-    "dir"
+  cpSync(
+    path.join(REPO_ROOT, "plugins/lisa"),
+    path.join(project, "plugins/lisa"),
+    {
+      recursive: true,
+    }
   );
   copyFileSync(
     path.join(REPO_ROOT, ".lisa.config.json"),
