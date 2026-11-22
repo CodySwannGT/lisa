@@ -180,7 +180,7 @@ describe("a repository with nothing to check", () => {
       counts: { ready: 0, [NOT_READY]: 0, "no-proof": 0 },
     });
     expect(run.stderr).toEqual([
-      "proof-check: NOTHING TO CHECK. No check here is declared as a part of a gate with a command of its own (gates.<name>.parts in .lisa.config.json), so there is no paired proof to check. 1 check comes with the project type, and this release writes no paired proof for a check that comes with a supported project type, so those read unproved until one is declared.",
+      "proof-check: NOTHING TO CHECK. No paired proof is declared in .lisa.config.json. The project type supplies 1 check that still needs a paired proof.",
     ]);
   });
 

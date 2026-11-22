@@ -1,0 +1,14 @@
+diff --git a/src/components/LisaProofView.tsx b/src/components/LisaProofView.tsx
+new file mode 100644
+--- /dev/null
++++ b/src/components/LisaProofView.tsx
+@@ -0,0 +1,9 @@
++/**
++ * Get the text displayed by the proof fixture.
++ * @returns The fixture's text
++ */
++export function LisaProofView(): string {
++  return "fixture";
++}
++
++LisaProofView.displayName = "LisaProof";

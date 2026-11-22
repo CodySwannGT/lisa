@@ -13,6 +13,7 @@ import {
   createRepositoryReader,
   recordKeepingPlace,
 } from "./repository-reader.js";
+import type { ShippedTaskProof } from "./shipped-task-proofs.js";
 import { parseProblemWithoutExcerpt } from "./secret-scan-json.js";
 
 /** The package manifest a project declares its tasks in. */
@@ -36,6 +37,7 @@ export interface SeedingGatesModule extends GatesModule {
     readonly gates?: Record<string, unknown>;
     readonly scripts?: Record<string, string>;
     readonly runner?: string;
+    readonly proofs?: readonly ShippedTaskProof[];
   }) => {
     readonly gates: Record<string, unknown>;
     readonly seeded: readonly SeededGate[];
@@ -100,6 +102,35 @@ export interface ShippedFolder {
   readonly types: readonly string[];
   readonly scripts: Record<string, string>;
   readonly runner: string;
+}
+
+/**
+ * Read the audited folder projects before writing any declaration.
+ * @param root - Real path of the repository
+ * @param parts - The audit's scoped folders and repository root
+ * @param detect - The supported project type detector
+ * @returns The folder projects or their read errors
+ */
+export async function readFolderProjects(
+  root: string,
+  parts: readonly string[] | null,
+  detect: typeof detectSupportedTypes
+): Promise<ProjectRead<ShippedFolder[]>> {
+  const scopes = (parts ?? []).filter(
+    scope => scope !== WHOLE_REPOSITORY_SCOPE
+  );
+  const reads = await Promise.all(
+    scopes.map(scope => readShippedFolder(root, scope, detect))
+  );
+  const problems = reads.flatMap(read => read.problems ?? []);
+  return problems.length > 0
+    ? { problems }
+    : {
+        problems: null,
+        value: reads.flatMap(read =>
+          read.problems === null ? [read.value] : []
+        ),
+      };
 }
 
 /**

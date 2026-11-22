@@ -93,7 +93,7 @@ import type {
   ProofTrigger,
   ProofWorkspace,
 } from "./proof-types.js";
-import type { ControlRegisterEntry } from "./register-types.js";
+import { mechanismAt, type ControlRegisterEntry } from "./register-types.js";
 
 /** The start of a line the gate runner prints for a check that ran. */
 const RUNNER_VERDICT = /^ {2}(PASSED|FAILED) +(?:required|optional) +/u;
@@ -140,24 +140,29 @@ function isCarried(moment: string): moment is CarrierMoment {
  * Read what the gate runner's report says of one check.
  *
  * The runner prints one line per check that ran: its verdict, its level, its
- * name, then the command as a JSON list. Only a line that names exactly this
- * check counts; a check whose folder merely starts with this one's does not.
+ * name, then the command. Declared parts name the folder and render the
+ * command as a JSON list. Tasks name the gate and render the resolved command.
  * @param output - Everything the commit or push printed
  * @param name - What the gate runner calls the check
+ * @param taskCommand - The resolved command when the check is a task
  * @returns Its verdict, or `null` when the report has no single one
  */
 export function runnerVerdictOf(
   output: string | null,
-  name: string
+  name: string,
+  taskCommand?: string
 ): RunnerVerdict | null {
   const verdicts = new Set(
     (output ?? "").split("\n").flatMap(line => {
       const match = RUNNER_VERDICT.exec(line);
       if (match === null) return [];
       const rest = line.slice(match[0].length);
+      if (!rest.startsWith(`${name} `)) return [];
+      const command = rest.slice(name.length).trimStart();
       const named =
-        rest.startsWith(`${name} `) &&
-        rest.slice(name.length).trimStart().startsWith("[");
+        taskCommand === undefined
+          ? command.startsWith("[")
+          : command === taskCommand || command.startsWith(`${taskCommand} (`);
       const verdict: RunnerVerdict =
         match[1] === "PASSED" ? "PASSED" : "FAILED";
       return named ? [verdict] : [];
@@ -201,7 +206,13 @@ function momentCommand(
   moment: CarrierMoment
 ): readonly string[] {
   return moment === "commit"
-    ? ["git", "commit", "--quiet", "-m", proofCommitMessage(entry.id)]
+    ? [
+        "git",
+        "commit",
+        "--quiet",
+        "-m",
+        proofCommitMessage(entry.id, copy.source.commitTrailers),
+      ]
     : [
         "git",
         "push",
@@ -240,6 +251,7 @@ function landed(copy: ProofCopy, moment: CarrierMoment): boolean {
  * @param facts.landed - Whether the change got where the moment takes it
  * @param facts.name - What the gate runner calls the check; `null` when
  *   git alone answers and no runner's report is asked for
+ * @param facts.taskCommand - The resolved command when the check is a task
  * @returns The answer, or the same answer marked as one that says nothing
  *   about this check
  */
@@ -249,6 +261,7 @@ function attributed(
     readonly moment: CarrierMoment;
     readonly landed: boolean;
     readonly name: string | null;
+    readonly taskCommand?: string;
   }
 ): ProofAnswer {
   const { code } = answer;
@@ -258,13 +271,33 @@ function attributed(
     return { ...answer, notStarted: contradictionDetail(facts.moment, code) };
   }
   if (facts.name === null) return answer;
-  return runnerVerdictOf(answer.output, facts.name) ===
+  return runnerVerdictOf(answer.output, facts.name, facts.taskCommand) ===
     (refused ? "FAILED" : "PASSED")
     ? answer
     : {
         ...answer,
         notStarted: unattributedDetail(facts.moment, refused, facts.name),
       };
+}
+
+/**
+ * Find the name the gate runner prints for an entry at a Git hook moment.
+ * @param entry - The control being proved
+ * @param moment - The commit or push under proof
+ * @returns The gate and, for a task, its resolved command
+ */
+function carrierTarget(
+  entry: ControlRegisterEntry,
+  moment: CarrierMoment
+): { readonly name: string; readonly taskCommand?: string } {
+  const point = entry.enforcement_points.find(
+    candidate => candidate.moment === moment
+  );
+  const mechanism =
+    point === undefined ? entry.measuring_mechanism : mechanismAt(entry, point);
+  return mechanism.kind === "task"
+    ? { name: entry.gate, taskCommand: mechanism.command.trim() }
+    : { name: `${entry.gate} in ${entry.scope}` };
 }
 
 /**
@@ -311,7 +344,7 @@ function triggered(
       "commit",
       "--quiet",
       "-m",
-      proofCommitMessage(entry.id),
+      proofCommitMessage(entry.id, copy.source.commitTrailers),
     ]);
     if (committed.code !== 0) {
       return unstarted(command, notCommittedDetail(gitSaid(committed)));
@@ -334,7 +367,7 @@ function triggered(
     {
       landed: landed(copy, moment),
       moment,
-      name: byGit ? null : `${entry.gate} in ${entry.scope}`,
+      ...(byGit ? { name: null } : carrierTarget(entry, moment)),
     }
   );
 }

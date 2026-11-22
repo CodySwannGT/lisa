@@ -1,0 +1,7 @@
+diff --git a/tests/fixtures/lisa-proof-format.css b/tests/fixtures/lisa-proof-format.css
+new file mode 100644
+--- /dev/null
++++ b/tests/fixtures/lisa-proof-format.css
+@@ -0,0 +1,2 @@
++p {
++  color: red;

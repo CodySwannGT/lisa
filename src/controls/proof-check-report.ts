@@ -24,10 +24,6 @@ import {
 /** The command's name, as every line it prints begins. */
 export const PROOF_CHECK_NAME = "proof-check";
 
-/** What is said of the checks that come with a supported project type. */
-const SHIPPED_NOT_COVERED =
-  "this release writes no paired proof for a check that comes with a supported project type, so those read unproved until one is declared";
-
 /** How a part's result reads in a line. */
 const RESULT_WORDS: Readonly<Record<ProofCheckResult, string>> = {
   ready: "is ready",
@@ -58,7 +54,7 @@ function nothingToCheck(parts: number, shipped: number): string {
   }
   return shipped === 0
     ? `No check is declared in ${GATES_DECLARATION_PATH}, so there is no paired proof to check.`
-    : `No check here is declared as a part of a gate with a command of its own (gates.<name>.parts in ${GATES_DECLARATION_PATH}), so there is no paired proof to check. ${counted(shipped, "check comes", "checks come")} with the project type, and ${SHIPPED_NOT_COVERED}.`;
+    : `No paired proof is declared in ${GATES_DECLARATION_PATH}. The project type supplies ${counted(shipped, "check that still needs", "checks that still need")} a paired proof.`;
 }
 
 /**
@@ -83,7 +79,7 @@ function runReason(
   const beyond =
     shipped === 0
       ? ""
-      : ` ${counted(shipped, "more check comes", "more checks come")} with the project type and ${shipped === 1 ? "was" : "were"} not looked at: ${SHIPPED_NOT_COVERED}.`;
+      : ` ${counted(shipped, "more check still needs", "more checks still need")} a paired proof.`;
   const head =
     outcome === "ready"
       ? `${counted(withProof, "paired proof is", "paired proofs are")} ready: on each, the check failed on the violating change with its declared failure text and passed on the clean change.`

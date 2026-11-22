@@ -33,10 +33,12 @@ const SHORT_COMMIT = 7;
 /**
  * The message of the commit that carries one planted change.
  * @param entryId - The register entry being proved
+ * @param trailers - The baseline's work-item and attribution trailers
  * @returns The message
  */
-export function proofCommitMessage(entryId: string): string {
-  return `chore: control proof for ${entryId}`;
+export function proofCommitMessage(entryId: string, trailers: string): string {
+  const message = `chore: exercise the declared control\n\nControl entry ${JSON.stringify(entryId)}`;
+  return trailers === "" ? message : `${message}\n\n${trailers}`;
 }
 
 /**
