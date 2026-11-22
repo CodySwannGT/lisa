@@ -28,6 +28,7 @@ const fixture = (cwd: string, name: string, body: string): string => {
 };
 
 const ORDINARY_BODY = "Ordinary issue text.\n";
+const MISSING_DECLARATION = "this filing declares no readiness";
 
 describe("the submitted issue body path", () => {
   const bodyFile = "body.md";
@@ -73,6 +74,49 @@ describe("the submitted issue body path", () => {
     expect(runHook(bash(command), { cwd: root }).status).toBe(EXIT_ALLOWED);
   });
 
+  it.each(["-F body.md", "-F=body.md", "-Fbody.md", "--body-file=body.md"])(
+    "reads only the final body-file option when written as %s",
+    finalFlag => {
+      const root = projectWithTracker();
+      fixture(root, "earlier.md", GATE_MARKER);
+      fixture(root, bodyFile, ORDINARY_BODY);
+      const run = () =>
+        runHook(
+          bash(
+            `gh issue create --title fixture --body-file earlier.md ${finalFlag}`
+          ),
+          { cwd: root }
+        );
+
+      const plain = run();
+      expect(plain.status).toBe(EXIT_BLOCKED);
+      expect(plain.stderr).toContain(MISSING_DECLARATION);
+      fixture(root, "earlier.md", ORDINARY_BODY);
+      fixture(root, bodyFile, GATE_MARKER);
+      expect(run().status).toBe(EXIT_ALLOWED);
+    }
+  );
+
+  it("uses the body file in place of an inline body", () => {
+    const root = projectWithTracker();
+    fixture(root, bodyFile, ORDINARY_BODY);
+    const result = runHook(bash(`${create} --body '${GATE_MARKER}'`), {
+      cwd: root,
+    });
+
+    expect(result.status).toBe(EXIT_BLOCKED);
+    expect(result.stderr).toContain(MISSING_DECLARATION);
+  });
+
+  it("keeps a body-file spelling in the title from taking the real file's place", () => {
+    const root = projectWithTracker();
+    fixture(root, bodyFile, ORDINARY_BODY);
+    fixture(root, "held.md", GATE_MARKER);
+    const command = `gh issue create --body-file ${bodyFile} --title '-Fheld.md'`;
+
+    expect(runHook(bash(command), { cwd: root }).status).toBe(EXIT_BLOCKED);
+  });
+
   it("requires an inspectable script path when the working directory is unknown", () => {
     const root = projectWithTracker();
     const script = "fixture.sh";
@@ -86,6 +130,39 @@ describe("the submitted issue body path", () => {
       "could not determine the working directory"
     );
     expect(run(JSON.stringify(absolute)).status).toBe(EXIT_ALLOWED);
+    fixture(
+      root,
+      script,
+      'gh issue create --title "fixture" --body "ordinary"\n'
+    );
+    const undeclared = run(JSON.stringify(absolute));
+    expect(undeclared.status).toBe(EXIT_BLOCKED);
+    expect(undeclared.stderr).toContain(MISSING_DECLARATION);
+  });
+
+  it("checks a shared script against each invocation's own body directory", () => {
+    const root = projectWithTracker();
+    const script = fixture(root, "file-issue.sh", `${create}\n`);
+    const first = path.join(root, "first");
+    const second = path.join(root, "second");
+    mkdirSync(first);
+    mkdirSync(second);
+    fixture(first, bodyFile, GATE_MARKER);
+    fixture(second, bodyFile, ORDINARY_BODY);
+    const runScript = `bash ${JSON.stringify(script)}`;
+    const run = () =>
+      runHook(
+        bash(`cd first && ${runScript} && cd ../second && ${runScript}`),
+        {
+          cwd: root,
+        }
+      );
+
+    const plain = run();
+    expect(plain.status).toBe(EXIT_BLOCKED);
+    expect(plain.stderr).toContain(MISSING_DECLARATION);
+    fixture(second, bodyFile, GATE_MARKER);
+    expect(run().status).toBe(EXIT_ALLOWED);
   });
 
   it("reads a container declaration through the same relative path", () => {
@@ -115,7 +192,7 @@ describe("the submitted issue body path", () => {
       'The body file "body.md" could not be read'
     );
     expect(result.stderr).toContain("absolute path");
-    expect(result.stderr).not.toContain("this filing declares no readiness");
+    expect(result.stderr).not.toContain(MISSING_DECLARATION);
   });
 
   it("keeps the missing declaration refusal for a readable plain body", () => {
@@ -127,7 +204,7 @@ describe("the submitted issue body path", () => {
 
     const result = runHook({ ...bash(create), cwd: drafts }, { cwd: root });
     expect(result.status).toBe(EXIT_BLOCKED);
-    expect(result.stderr).toContain("this filing declares no readiness");
+    expect(result.stderr).toContain(MISSING_DECLARATION);
   });
 
   it("uses the final working directory after a chain of directory changes", () => {

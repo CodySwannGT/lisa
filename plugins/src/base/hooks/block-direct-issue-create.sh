@@ -761,6 +761,16 @@ UNPARSEABLE_CREATION = re.compile(
 )
 
 BODY_FILE_FLAGS = {"--body-file"}
+GITHUB_ISSUE_VALUE_FLAGS = {
+    "--assignee", "--blocked-by", "--blocking", "--body", "--body-file",
+    "--label", "--milestone", "--parent", "--project", "--recover", "--repo",
+    "--template", "--title", "--type",
+}
+GITHUB_ISSUE_SHORT_VALUES = {
+    "a": "--assignee", "b": "--body", "F": "--body-file", "l": "--label",
+    "m": "--milestone", "p": "--project", "R": "--repo", "T": "--template",
+    "t": "--title",
+}
 LABEL_FLAGS = {"--label", "--labels", "--add-label", "--status", "--state"}
 
 # ---------------------------------------------------------------------------
@@ -1658,33 +1668,57 @@ def before_end_of_options(args):
     return args[: args.index("--")] if "--" in args else args
 
 
-def body_file_paths(args, flags):
-    """Paths the command will submit as the item body.
-
-    Args:
-        args: A command's arguments.
-        flags: Accepted body-file options for this command.
-
-    Returns:
-        Candidate file paths, unverified.
-    """
-    paths = []
-    for index, token in enumerate(args):
-        if token in flags and index + 1 < len(args):
-            paths.append(args[index + 1])
-        if "=" in token:
-            head, value = token.split("=", 1)
-            if head in flags:
-                paths.append(value)
-    return paths
+def github_issue_value_flag(token):
+    """Identify a GitHub issue option that consumes a value."""
+    if token.startswith("--"):
+        name, equals, value = token.partition("=")
+        if name in GITHUB_ISSUE_VALUE_FLAGS:
+            return name, value if equals else None
+    elif token.startswith("-"):
+        # GitHub CLI's short flags can carry the value directly, including
+        # after a boolean shorthand such as -e or -w.
+        for index, shorthand in enumerate(token[1:], 1):
+            if shorthand in GITHUB_ISSUE_SHORT_VALUES:
+                suffix = token[index + 1 :]
+                value = suffix[1:] if suffix.startswith("=") else suffix or None
+                return GITHUB_ISSUE_SHORT_VALUES[shorthand], value
+            if shorthand not in {"e", "w"}:
+                break
+    return None, None
 
 
-def read_body_files(args, cwd, signature):
+def github_issue_body(args):
+    """Return declaration arguments and the only file GitHub CLI will read."""
+    remaining = iter(args)
+    effective = []
+    inline_body = None
+    body_file = None
+    for token in remaining:
+        name, attached = github_issue_value_flag(token)
+        operand = next(remaining, None) if name and attached is None else None
+        value = attached if attached is not None else operand
+        if name == "--body-file":
+            body_file = value
+        elif name == "--body":
+            inline_body = value
+        else:
+            effective.append(token)
+            if operand is not None:
+                effective.append(operand)
+    # gh uses the last value for each option and replaces the inline body
+    # when the last file option names a file or stdin.
+    if body_file:
+        return effective, [body_file]
+    if inline_body is not None:
+        effective.extend(("--body", inline_body))
+    return effective, []
+
+
+def read_body_files(paths, cwd):
     """Read the body files actually named in this command's working folder."""
-    flags = BODY_FILE_FLAGS | {"-F"} if signature == "gh issue create" else BODY_FILE_FLAGS
     texts = []
     unreadable = []
-    for path in body_file_paths(args, flags):
+    for path in paths:
         if path in STDIN_PAYLOAD_TOKENS:
             continue
         candidate = resolve_operand(path, cwd)
@@ -2313,9 +2347,9 @@ def file_operand(argv, cwd):
         unresolved = cwd is None and not os.path.isabs(token) and (script_operand or explicit_path)
         return None, unresolved
     try:
-        key = os.path.realpath(path)
+        key = (os.path.realpath(path), cwd)
     except OSError:
-        key = path
+        key = (path, cwd)
     if key in inspected_files:
         return None, False
     inspected_files.add(key)
@@ -2444,8 +2478,16 @@ def scan(text, depth, from_file=False, cwd=tool_cwd):
                 continue
             roles, target = roles_for(target_repository(args))
             state_role_ok = tracker in STATE_ROLE_TRACKERS and target is None
-            body_texts, unreadable = read_body_files(before_end_of_options(args), cwd, signature)
-            if declares_readiness(args, roles, body_texts, submitted, state_role_ok):
+            declaration_args = before_end_of_options(args)
+            if signature == "gh issue create":
+                declaration_args, body_paths = github_issue_body(declaration_args)
+                # GitHub issue creation uses the selected body, not the HTTP
+                # request options shared by other tracker commands.
+                submitted, missing_payload = "", []
+            else:
+                body_paths = flag_values(declaration_args, BODY_FILE_FLAGS)
+            body_texts, unreadable = read_body_files(body_paths, cwd)
+            if declares_readiness(declaration_args, roles, body_texts, submitted, state_role_ok):
                 continue
             # The container arm. Checked after readiness, so it adds a
             # compliant filing where none existed and takes none away where one
@@ -2453,14 +2495,14 @@ def scan(text, depth, from_file=False, cwd=tool_cwd):
             # INSIDE a file, where the declaration lives in the same file as
             # the create it answers for.
             texts = (*body_texts, submitted, text) if from_file else (*body_texts, submitted)
-            if declares_container(args, texts):
+            if declares_container(declaration_args, texts):
                 continue
             # `LIFECYCLE_ROLE=ready curl …` puts the declaration BEFORE the
             # client, which is where an inline assignment has to go, so the
             # role is read from the whole segment rather than from the client's
             # own arguments. Scoped to the segment and not the command, so a
             # declaration cannot be shouted from an unrelated pipeline stage.
-            if state_role_ok and LIFECYCLE_ROLE_READY.search(" ".join(argv)):
+            if state_role_ok and LIFECYCLE_ROLE_READY.search(" ".join(argv[:index])):
                 continue
             # A script declares once, for itself. See `scope_declaration`.
             if from_file and scope_declaration(text, state_role_ok):
