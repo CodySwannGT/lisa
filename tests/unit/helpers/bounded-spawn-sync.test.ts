@@ -19,9 +19,9 @@ import { describe, expect, it } from "vitest";
 import {
   BOUNDED_SPAWN_BASE_MS,
   boundedSpawnSync,
-  ioLatencyBudgetMs,
   useIoLatencyBudget,
 } from "../../helpers/io-latency-budget.js";
+import type { ChildBudgetObservation } from "../../helpers/fresh-child-budget.js";
 
 // Two cases here start a real child and wait for a real kill.
 useIoLatencyBudget();
@@ -70,8 +70,9 @@ describe("boundedSpawnSync", () => {
   // cannot be called without both is the control; a doc comment asking for both
   // is not.
 
-  it("derives the child budget from ioLatencyBudgetMs", () => {
+  it("uses the fresh observation inside its fixed containing window", () => {
     const recorded: SpawnSyncOptionsWithStringEncoding[] = [];
+    const readings: ChildBudgetObservation[] = [];
 
     boundedSpawnSync({
       label: "recorder",
@@ -79,22 +80,36 @@ describe("boundedSpawnSync", () => {
       args: ["-e", ""],
       baseMs: 30_000,
       spawn: recordingSpawn(recorded),
+      observeBudget: reading => readings.push(reading),
     });
 
-    expect(recorded[0]?.timeout).toBe(ioLatencyBudgetMs(30_000));
+    const reading = readings[0]!;
+    expect(recorded[0]?.timeout).toBe(reading.timeoutMs);
+    expect(reading.nominalTimeoutMs).toBe(
+      Math.round(30_000 * reading.slowdown)
+    );
+    expect(reading.calibrationMs + reading.timeoutMs).toBeLessThanOrEqual(
+      reading.operationLimitMs
+    );
   });
 
   it("defaults to the recorded fixture-child base budget", () => {
     const recorded: SpawnSyncOptionsWithStringEncoding[] = [];
+    const readings: ChildBudgetObservation[] = [];
 
     boundedSpawnSync({
       label: "recorder",
       command: process.execPath,
       args: ["-e", ""],
       spawn: recordingSpawn(recorded),
+      observeBudget: reading => readings.push(reading),
     });
 
-    expect(recorded[0]?.timeout).toBe(ioLatencyBudgetMs(BOUNDED_SPAWN_BASE_MS));
+    expect(readings[0]?.baseMs).toBe(BOUNDED_SPAWN_BASE_MS);
+    expect(recorded[0]?.timeout).toBe(readings[0]?.timeoutMs);
+    expect(readings[0]?.nominalTimeoutMs).toBeLessThanOrEqual(
+      BOUNDED_SPAWN_BASE_MS * 8
+    );
   });
 
   it("reaps with SIGKILL, because the hang it exists for was uninterruptible", () => {
