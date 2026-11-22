@@ -378,6 +378,14 @@ by never arming before something has read the diff.
 
 #### Classify before arming
 
+Read the trusted default-branch `.lisa.config.json` first. When it contains
+`review`, follow [the provider review policy](references/provider-review-policy.md)
+for the review decision and expected-head merge. Continue the ordinary check,
+conflict, and review comment cycle while the policy result is pending. The
+review verdict in the final report comes from the providers that passed.
+
+The following classifier covers repositories without that policy.
+
 **The arm decision is the prover's answer, not a judgement you make here.** It
 ships to every stack from `all/copy-overwrite/scripts/`, and it decides from
 both signals at once:
@@ -476,17 +484,16 @@ gh pr checks <pr> --json name,state,description,bucket \
 
 `<review-context>` is whatever `.github/required-checks.json` declares under
 `evidence_bearing_checks`, plus the `await` of every `.lisa.config.json` gate
-that declares `evidence.reviewer: true` — do not assume `CodeRabbit`, and if
+that declares `evidence.reviewer: true`. If
 neither declares anything, arm normally (the scope rule above). Where one IS declared, absent a
 description that positively states a review ran, treat the context as vacuous.
 Fail closed: absence of evidence is not evidence of a review.
 
 #### Vacuous, transient or standing: the response is the same
 
-The descriptions in the table below are CodeRabbit's, measured on real pull
-requests. They are examples, not the rule: what counts for your reviewer is its
-gate's `evidence.proof` and `evidence.no_work` phrases, on top of Lisa's
-shipped ones.
+The table shows examples measured on real pull requests. For the configured
+reviewer, use its gate's `evidence.proof` and `evidence.no_work` phrases and
+the adapter's defaults.
 
 A vacuous context is never something to wait out. Waiting looks like progress
 but it is a stall, and on a repository where the state never clears it waits
@@ -1147,8 +1154,8 @@ patching only here.
 ### d. Review comments — human and bot
 Delegate to the `pull-request-review` skill with the PR number. It owns the whole
 comment cycle: fetch every unresolved human + bot thread (with resolution state via
-GraphQL) and every review-body finding not yet marked as answered (CodeRabbit's
-outside-diff and nitpick comments live only there), implement valid feedback
+GraphQL) and every review-body finding not yet marked as answered, including
+outside-diff and nitpick comments, implement valid feedback
 (commit + push), answer invalid feedback, and resolve every thread via
 `resolveReviewThread` so the branch-protection thread-resolution gate clears.
 Its report counts unresolved threads and review-body findings separately.
@@ -1166,7 +1173,7 @@ nothing. A second repository sampled `success` on 50 of 50.
 
 **Read the words from the reviewer's own API object, never from the rollup.**
 A check run's title is often a generic `Finished`; its result is the **first
-line of its summary**. CodeRabbit, for example, writes
+line of its summary**. A reviewer may write
 `Result: Success - Review completed` when a review completed and
 `Result: Rate limited - Review rate limited` when it was throttled. Other
 reviewers word it differently: the checker credits a successful run whose first
@@ -1553,7 +1560,7 @@ git merge-base --is-ancestor <verify_commit> origin/<baseRefName>   # exit 0 = s
 ```
 
 Also confirm the merge commit's parent is your fixed head, not a stale one. If a
-late commit (CI auto-fix, CodeRabbit follow-up) raced past the merge, it did **not**
+late commit (CI auto-fix, reviewer follow-up) raced past the merge, it did **not**
 ship — fix forward with a new commit/PR and re-drive. Re-confirm after any commit
 that lands while auto-merge is enabled; a successful merge of an older head is a
 failed drive-to-merge outcome, not a successful closeout.

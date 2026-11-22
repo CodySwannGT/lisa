@@ -49,8 +49,16 @@ in CodySwannGT/lisa#2497.
 
 ## Step 1b: Did any review actually happen? (required before reporting)
 
+When the trusted default-branch configuration contains `review`, read the
+exact-head result with `node scripts/check-review-policy.mjs --repo <owner>/<repo>
+--pr <number> --sha <head-sha> --json` from that checkout. Report the credited
+providers and any policy blockers, then continue to Step 1c. The merge driver
+owns verification of the hosted policy receipt.
+
+For other repositories, use the configured review gates below.
+
 A required review check can post `success` having reviewed nothing. Measured on
-PRs #2483 and #2484: `CodeRabbit` reported `success — "Review rate limited"`,
+PRs #2483 and #2484, the reviewer reported `success — "Review rate limited"`,
 zero reviews, and both merged on that green carrying security-relevant changes.
 
 The project's reviewers are the gates in `.lisa.config.json` whose
@@ -79,8 +87,8 @@ so rather than reporting one as absent.
 
 **The state column passes whether the review was real or hollow — only the
 reviewer's words distinguish them.** For a commit status those words are the
-description. A real review uses a declared proof phrase, such as CodeRabbit's
-`Review approved` / `Review completed`. A no-work phrase, such as CodeRabbit's
+description. A real review uses a declared proof phrase, such as
+`Review approved` / `Review completed`. A no-work phrase, such as
 `Review rate limited` or `Review queued`, or a missing context, is not a
 review. A reviewer whose gate sets `evidence.review_by` reports through its
 own pull-request review instead of a check, which the loop above cannot see.
@@ -138,8 +146,7 @@ observed:
 ## Step 1c: Fetch every unanswered review-body finding
 
 Some findings have no thread. Reviewers often put findings in the review
-**body** (CodeRabbit, for example, puts its "outside diff range" and "nitpick"
-comments there), and Step 1 never reads a body. Fetch
+**body**, such as outside-diff and nitpick comments. Fetch
 the reviews too (GitHub; CodySwannGT/lisa#4643), skipping each review that a PR
 comment already marks as handled:
 
@@ -159,7 +166,7 @@ Do not filter on the head commit. **A push does not answer a review body**, so a
 review from an earlier head stays in scope until a marker retires it. Split each
 body into its actionable items (a summary or walkthrough with nothing to change
 is not one) and triage them in Step 2. Expand and read every collapsed `<details>`
-section before you call a body summary-only: reviewers such as CodeRabbit put
+section before you call a body summary-only. Some reviewers put
 nitpick and outside-diff items there. A body with no actionable items still needs its marker
 (Step 2), or it is re-read on every run and step (e) of `drive-pr-to-merge` waits
 on it forever. For an older review, first decide whether each item still applies

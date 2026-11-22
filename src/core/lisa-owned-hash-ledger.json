@@ -307,6 +307,12 @@
       "e61cc7ec4cdc832d406ebedded7d8b586c3f21ac4dd113c72c1aede870a60b55",
       "f4b5c85e0fa5fc8ff4266f901692ae4bbe6b727ee93a69d818ad584073631f77"
     ],
+    "scripts/check-review-policy-run.mjs": [
+      "cb6cf18eac495e7a5a26de4dbf4711765cbbd961e82f22500bd6a4d07d0a6ac2"
+    ],
+    "scripts/check-review-policy.mjs": [
+      "b3066300d29225b5c9b3d7962f4ee1b932956f0879eb2961e9f060435bedba96"
+    ],
     "scripts/check-skipped-required-checks.mjs": [
       "012cdf0a50ecf3ed8379ffb1f3caa503e5377a16d78b0ebd26904f13309cbc13",
       "0a8b14790f38e00e5abfc665d3e3d2c29e0a139a2a22c4a65e0c08547b42fb7f",
@@ -1518,6 +1524,30 @@
       "6203064d0403906016f6700b092551ff561b811fb9c02cbbdec59b85b0af81b0",
       "66fb27cc1de6baf48acf908715624c04b7738f831944a6c1c9daff50383026be",
       "b2f9b750e651c3f91bbbf2e8dbdfcb0dc23f8080085842c19cc00729a1333b30"
+    ],
+    "scripts/lib/review-policy-contract.mjs": [
+      "7ab02ea5bb12a266c74a302af62021f91c03bf1264f6c26555f91c9beb413248"
+    ],
+    "scripts/lib/review-policy-reader.mjs": [
+      "a207cebcd851d23beff91274f1f8d8bfc7ca4c94a91d5d43b00e83d265403f9a"
+    ],
+    "scripts/lib/review-policy.mjs": [
+      "9818422981188b10eed008062323ebac198c38033f3471d32d3b2d6def15c504"
+    ],
+    "scripts/lib/review-providers/agent.mjs": [
+      "a76e56cb33d2cbd2123439a77c577b04876062696857fde374c8b643df977710"
+    ],
+    "scripts/lib/review-providers/coderabbit.mjs": [
+      "1d3205be0696c4f4d5398418550509051af0512c202a7512ee45335e75826d70"
+    ],
+    "scripts/lib/review-providers/greptile.mjs": [
+      "f932084bc6c33a35d4c6034a3d6cd6ad167b4331686234ea8628ff29e59a6562"
+    ],
+    "scripts/lib/review-providers/index.mjs": [
+      "c3457f12444c34753daac6b31d675f37c6027adf284ee2259faccd7ca9a93530"
+    ],
+    "scripts/lib/review-providers/native-evidence.mjs": [
+      "74b73aa715acd784eed3352658c72fffa9fa3eced415003d4a902855e08d8df2"
     ],
     "scripts/lib/rspec-selection.mjs": [
       "1fe6c0a56a0a6dce6dc37564231a61600dc457ae503aeaac61e35b76ba54fb25",
@@ -3117,6 +3147,9 @@
       "fe96d8b0227ca76e2ee92bcc233fa60b011d0990e69c35e80fc752ca7977e6b9",
       "fe9d5afd29b0187281466822f5af4825ab467cc15189f4c486f6959419eb90a6"
     ],
+    "scripts/post-agent-review.mjs": [
+      "2cbc8e8cd8213f9c253ae722ddf045431b2005da62544aa16b20774c73e476d4"
+    ],
     "scripts/reconcile-nightly-e2e-tracking-cli.mjs": [
       "0ca6615153c300a12ac0ec08fc0bc8bc3c5b488bad4b4802f0d9a7eb81e09a49",
       "332d27d8836cda2469f67bea7269c951a46d0d3abcd299abcd288605940a73b3",
@@ -3137,6 +3170,9 @@
     "scripts/review-evidence-event.mjs": [
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c"
+    ],
+    "scripts/review-policy-event.mjs": [
+      "9cbdaa0d2667a1a4fef3e2c0eb1015fc20ca64607a68e2a1a9d6333b0885b4f5"
     ],
     "scripts/schemas/lisa-command-envelope.v1.schema.json": [
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879"
@@ -3480,6 +3516,12 @@
       "a64b5567b96706d5d7f573830cce0e623d7e4c36bb6a47c291aa02bcad79039d",
       "e61cc7ec4cdc832d406ebedded7d8b586c3f21ac4dd113c72c1aede870a60b55",
       "f4b5c85e0fa5fc8ff4266f901692ae4bbe6b727ee93a69d818ad584073631f77"
+    ],
+    "scripts/check-review-policy-run.mjs": [
+      "cb6cf18eac495e7a5a26de4dbf4711765cbbd961e82f22500bd6a4d07d0a6ac2"
+    ],
+    "scripts/check-review-policy.mjs": [
+      "b3066300d29225b5c9b3d7962f4ee1b932956f0879eb2961e9f060435bedba96"
     ],
     "scripts/check-skipped-required-checks.mjs": [
       "012cdf0a50ecf3ed8379ffb1f3caa503e5377a16d78b0ebd26904f13309cbc13",
@@ -4689,6 +4731,30 @@
       "6203064d0403906016f6700b092551ff561b811fb9c02cbbdec59b85b0af81b0",
       "66fb27cc1de6baf48acf908715624c04b7738f831944a6c1c9daff50383026be",
       "b2f9b750e651c3f91bbbf2e8dbdfcb0dc23f8080085842c19cc00729a1333b30"
+    ],
+    "scripts/lib/review-policy-contract.mjs": [
+      "7ab02ea5bb12a266c74a302af62021f91c03bf1264f6c26555f91c9beb413248"
+    ],
+    "scripts/lib/review-policy-reader.mjs": [
+      "a207cebcd851d23beff91274f1f8d8bfc7ca4c94a91d5d43b00e83d265403f9a"
+    ],
+    "scripts/lib/review-policy.mjs": [
+      "9818422981188b10eed008062323ebac198c38033f3471d32d3b2d6def15c504"
+    ],
+    "scripts/lib/review-providers/agent.mjs": [
+      "a76e56cb33d2cbd2123439a77c577b04876062696857fde374c8b643df977710"
+    ],
+    "scripts/lib/review-providers/coderabbit.mjs": [
+      "1d3205be0696c4f4d5398418550509051af0512c202a7512ee45335e75826d70"
+    ],
+    "scripts/lib/review-providers/greptile.mjs": [
+      "f932084bc6c33a35d4c6034a3d6cd6ad167b4331686234ea8628ff29e59a6562"
+    ],
+    "scripts/lib/review-providers/index.mjs": [
+      "c3457f12444c34753daac6b31d675f37c6027adf284ee2259faccd7ca9a93530"
+    ],
+    "scripts/lib/review-providers/native-evidence.mjs": [
+      "74b73aa715acd784eed3352658c72fffa9fa3eced415003d4a902855e08d8df2"
     ],
     "scripts/lib/rspec-selection.mjs": [
       "1fe6c0a56a0a6dce6dc37564231a61600dc457ae503aeaac61e35b76ba54fb25",
@@ -6218,6 +6284,9 @@
       "fe96d8b0227ca76e2ee92bcc233fa60b011d0990e69c35e80fc752ca7977e6b9",
       "fe9d5afd29b0187281466822f5af4825ab467cc15189f4c486f6959419eb90a6"
     ],
+    "scripts/post-agent-review.mjs": [
+      "2cbc8e8cd8213f9c253ae722ddf045431b2005da62544aa16b20774c73e476d4"
+    ],
     "scripts/reconcile-nightly-e2e-tracking-cli.mjs": [
       "0ca6615153c300a12ac0ec08fc0bc8bc3c5b488bad4b4802f0d9a7eb81e09a49",
       "332d27d8836cda2469f67bea7269c951a46d0d3abcd299abcd288605940a73b3",
@@ -6238,6 +6307,9 @@
     "scripts/review-evidence-event.mjs": [
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c"
+    ],
+    "scripts/review-policy-event.mjs": [
+      "9cbdaa0d2667a1a4fef3e2c0eb1015fc20ca64607a68e2a1a9d6333b0885b4f5"
     ],
     "scripts/schemas/lisa-command-envelope.v1.schema.json": [
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879"

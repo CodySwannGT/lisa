@@ -76,16 +76,11 @@ as applicable to the current repo:
    Report missing executable/browser, auth failure, wrong target, zero credits, and control-plane
    failure separately. If Kane is not enabled, report an informational `OK`/not enabled rather than
    probing or installing it.
-9. **CodeRabbit kept off Lisa's lifecycle labels** — read the repository's `.coderabbit.yml` (or
-   `.coderabbit.yaml`). `FAIL` when `issue_enrichment.labeling.auto_apply_labels` is `true` and
-   `labeling_instructions` is missing, empty, or names a protected label: any `status:`, `type:` or
-   `points:` label, or the resolved human-needed label (`github.labels.build.human_needed`, default
-   `human-needed`), matched case-insensitively. Name both remedies — set `auto_apply_labels: false`,
-   or keep an allowlist that names none of those — and say when the file is the unedited copy Lisa
-   shipped (2026-02-11 to 2026-03-01), which `lisa apply` corrects to `auto_apply_labels: false`.
-   `OK` when auto-apply is off or the allowlist is clean; with no file, `OK` noting that CodeRabbit's
-   organisation settings are not visible to the check. A file that exists but cannot be read or
-   parsed is a `FAIL` that says "Could not determine", never a pass.
+9. **Review integrations respect Lisa's lifecycle labels** — use the enabled provider’s
+   [issue-labeling guidance](https://github.com/CodySwannGT/lisa/blob/main/docs/review-policy.md#issue-labels).
+   Verify any automatic label allowlist excludes lifecycle labels and the project's human-needed
+   label. Report a failure for malformed local provider configuration. If the local configuration
+   is absent, say that organisation settings were outside the check's scope.
 
 If a check family is not applicable to the current repo, report `SKIP` with the reason.
 
@@ -569,9 +564,8 @@ Removing them requires `--prune`, and the right way to clear the list is one at 
 context is either an app to keep, or a check that belongs in `.lisa.config.json` — decide which
 before pruning anything.
 
-A context posted by an external app no longer HAS to be EXTRA. `SonarCloud Code Analysis`,
-`GitGuardian Security Checks`, and `CodeRabbit` are declarable two ways, and either one makes the
-reconciler treat them as MATCHED rather than as a permanent false alarm:
+A context posted by an external app can be declared as either a modeled gate or a repository rule.
+The reconciler matches the context through either declaration.
 
 ```json
 "gates": {

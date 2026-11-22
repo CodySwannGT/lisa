@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 339,
-  "$names": 2599,
+  "$modules": 351,
+  "$names": 2646,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -39,6 +39,13 @@
       "assertReleaseTag",
       "packAndValidateReleaseCandidate",
       "runReleasePackageIdentityCli"
+    ],
+    "all/copy-overwrite/scripts/check-review-policy-run.mjs": [
+      "main",
+      "verifyReviewPolicyRun"
+    ],
+    "all/copy-overwrite/scripts/check-review-policy.mjs": [
+      "main"
     ],
     "all/copy-overwrite/scripts/check-state-classification.mjs": [
       "DEFAULT_CONTRACT_PATH",
@@ -1095,6 +1102,63 @@
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs": [
       "scanForLoadFailures"
     ],
+    "all/copy-overwrite/scripts/lib/review-policy-contract.mjs": [
+      "REVIEW_HEAD",
+      "REVIEW_POLICY_APP",
+      "REVIEW_POLICY_CONTEXT",
+      "REVIEW_POLICY_WORKFLOW",
+      "REVIEW_REPO",
+      "nativeNumber"
+    ],
+    "all/copy-overwrite/scripts/lib/review-policy-reader.mjs": [
+      "loadReviewConfig",
+      "loadReviewDeclaration",
+      "policyReviewReport",
+      "readPolicyReview",
+      "reviewApi",
+      "reviewHeadPulls"
+    ],
+    "all/copy-overwrite/scripts/lib/review-policy.mjs": [
+      "evaluateReviewPolicy",
+      "latestReviews",
+      "resolveReviewPolicy"
+    ],
+    "all/copy-overwrite/scripts/lib/review-providers/agent.mjs": [
+      "agentEvidence",
+      "agentMarker",
+      "agentPacket"
+    ],
+    "all/copy-overwrite/scripts/lib/review-providers/coderabbit.mjs": [
+      "actor",
+      "actorId",
+      "completedRun",
+      "context",
+      "inspectEvidence",
+      "legacySettings",
+      "noWorkDescriptions",
+      "provider",
+      "readEvidence",
+      "recognizes",
+      "satisfiedDescriptions",
+      "statusEvidence"
+    ],
+    "all/copy-overwrite/scripts/lib/review-providers/greptile.mjs": [
+      "provider",
+      "reviewEvidence"
+    ],
+    "all/copy-overwrite/scripts/lib/review-providers/index.mjs": [
+      "PROVIDERS",
+      "PROVIDER_SETTINGS",
+      "legacyReviewAdapters",
+      "providerReading",
+      "readExternalEvidence",
+      "usesStatuses"
+    ],
+    "all/copy-overwrite/scripts/lib/review-providers/native-evidence.mjs": [
+      "nativeId",
+      "nativeRecord",
+      "submittedReview"
+    ],
     "all/copy-overwrite/scripts/lib/rspec-selection.mjs": [
       "ALWAYS_RUN_DIRS",
       "ARTIFACT_NAME",
@@ -1516,9 +1580,16 @@
       "main",
       "recordRemoval"
     ],
+    "all/copy-overwrite/scripts/post-agent-review.mjs": [
+      "main",
+      "postAgentReview"
+    ],
     "all/copy-overwrite/scripts/review-evidence-event.mjs": [
       "resolveReviewEvidenceEvent",
       "runReviewEvidenceEvent"
+    ],
+    "all/copy-overwrite/scripts/review-policy-event.mjs": [
+      "runReviewPolicyEvent"
     ],
     "all/copy-overwrite/scripts/threshold-ratchet-compare.mjs": [
       "applyAllowList",
