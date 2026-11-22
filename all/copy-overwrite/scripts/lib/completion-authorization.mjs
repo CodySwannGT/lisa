@@ -9,7 +9,7 @@ import {
   declaredScope,
   sha256,
   requireProof,
-  primarySpecProjection,
+  matchesPrimarySpecDigest,
   isDigest,
   isId,
   isTime,
@@ -137,7 +137,7 @@ export function evaluateAcceptedRecord(chosen, context, subject, transport) {
   requireProof(
     record.environment === context.environment &&
       record.branch === context.branch &&
-      record.spec_sha256 === sha256(primarySpecProjection(subject.body)),
+      matchesPrimarySpecDigest(subject.body, record.spec_sha256),
     "The accepted proof does not match the current full primary specification or target environment."
   );
   const scope = declaredScope(subject.body, context.environment);
@@ -258,7 +258,7 @@ export function authorizeCompletion(context) {
       PENDING_PROOF
     );
     requireProof(
-      sha256(primarySpecProjection(fresh.body)) === chosen.record.spec_sha256,
+      matchesPrimarySpecDigest(fresh.body, chosen.record.spec_sha256),
       "Work-item requirements changed before the terminal write; fresh verification proof is pending.",
       PENDING_PROOF
     );

@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.6.1](https://github.com/CodySwannGT/lisa/compare/v8.6.0...v8.6.1) (2026-11-22)
+
+
+### Bug Fixes
+
+* **ci:** restore authenticated k6 installation ([35000a0](https://github.com/CodySwannGT/lisa/commit/35000a0822e84bc57db2a0065d61bb4274ee6f8b)), closes [CodySwannGT/lisa#4525](https://github.com/CodySwannGT/lisa/issues/4525)
+* **evidence:** keep one-newline legacy work item proofs valid ([4ef1660](https://github.com/CodySwannGT/lisa/commit/4ef1660c502d98fddc27ec3ca9b0920fff4a8980)), closes [CodySwannGT/lisa#5088](https://github.com/CodySwannGT/lisa/issues/5088)
+* **evidence:** preserve the spec digest when first tallying ([6f15ac9](https://github.com/CodySwannGT/lisa/commit/6f15ac9f6d540cae8478e63e40e6c9ac9a87ec07)), closes [CodySwannGT/lisa#5088](https://github.com/CodySwannGT/lisa/issues/5088)
+* **human-gate:** treat malformed blocks as strict ([060d789](https://github.com/CodySwannGT/lisa/commit/060d7894069087d60407c81ea7f5ee16fbb1d6cf)), closes [CodySwannGT/lisa#5104](https://github.com/CodySwannGT/lisa/issues/5104)
+* restore k6 installation and proof compatibility ([#5124](https://github.com/CodySwannGT/lisa/issues/5124)) ([f71e4fe](https://github.com/CodySwannGT/lisa/commit/f71e4fe6b2cc361761d37b39a146d3efde97365e)), closes [CodySwannGT/lisa#4525](https://github.com/CodySwannGT/lisa/issues/4525) [CodySwannGT/lisa#5104](https://github.com/CodySwannGT/lisa/issues/5104) [CodySwannGT/lisa#5088](https://github.com/CodySwannGT/lisa/issues/5088)
+
 ## [8.6.0](https://github.com/CodySwannGT/lisa/compare/v8.5.0...v8.6.0) (2026-11-22)
 
 
