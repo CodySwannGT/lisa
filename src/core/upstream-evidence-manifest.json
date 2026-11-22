@@ -365,7 +365,7 @@
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "42beca1ca7830cd56f617102c61644c877a232d10a37811b8357bdb1a9c6cc29",
+      "82277a5b30d49a87509ca968806798838dc6244bdcba2f7226daecb5c810a571",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -425,7 +425,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "b206a2880f155a3ad008c5e907cecbaf6ea5dffc00c2a4bcdf7ee23ca72cccd8",
+      "790b1cf718903ca92ebde4659175f315d7a3d81cbd66af978741ef07d777b4e2",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1489,7 +1489,7 @@
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
       "6485cf919af6f1fa5f5d60209906fd954a5d45456e2149c25ad29f2567fcc981",
     "plugins/src/base/skills/lisa-configure/SKILL.md":
-      "455ab244a540d7c4c07daed65a0c8c1902c6ec651bf44496dab4e1686339d7bd",
+      "5148d623fe52f03e12b4a85ad85933e7cd7b151fc22e45b1ae990621c1a37ed4",
     "plugins/src/base/skills/lisa-configure/references/exercised-artifacts.md":
       "0f9caf8e704753069d20fa7b36ca3b687c7fa49601f62c37198e4f91781b893a",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
@@ -3269,7 +3269,7 @@
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "b9eb08110e6b150f450957881477b68f9bd0102ed1dabf6e1ecc96996609cb17"
+      "a3b1a911a3e152abf310943f6f0e9eee67a8581233c10273fd80795bb38b912d"
   },
   "UPSTREAM_SURFACE_MANIFEST": {
     ".agents/rules/never-name-downstream-projects.md": true,
@@ -11660,6 +11660,7 @@
     "src/controls/proof-copy-git.ts": true,
     "src/controls/proof-copy-preparation.ts": true,
     "src/controls/proof-copy-prepared-state.ts": true,
+    "src/controls/proof-copy-source.ts": true,
     "src/controls/proof-copy-wording.ts": true,
     "src/controls/proof-copy-workspace.ts": true,
     "src/controls/proof-copy.ts": true,
@@ -11735,6 +11736,7 @@
     "src/controls/secret-scan.ts": true,
     "src/controls/secret-shapes.ts": true,
     "src/controls/shipped-parts.ts": true,
+    "src/controls/shipped-task-proofs.ts": true,
     "src/controls/threshold-proposal.ts": true,
     "src/controls/tracker-config.ts": true,
     "src/controls/tracker-question.ts": true,
@@ -12468,6 +12470,7 @@
     "tests/integration/controls-attest-output-redaction.test.ts": true,
     "tests/integration/controls-attest-pull-request.test.ts": true,
     "tests/integration/controls-attest-skill.test.ts": true,
+    "tests/integration/controls-attest-task-proof.test.ts": true,
     "tests/integration/controls-attest-verdict.test.ts": true,
     "tests/integration/controls-attest.test.ts": true,
     "tests/integration/controls-audit-probes.test.ts": true,

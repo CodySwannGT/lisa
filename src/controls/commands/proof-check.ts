@@ -101,19 +101,19 @@ export const PROOF_CHECK_EXIT = {
 
 /** What `--help` says after the options. */
 export const PROOF_CHECK_HELP_AFTER = `
-Says, for each check declared as a part of a gate, whether its pair of test
-changes is one "lisa controls attest" can use. A pair is two patch files
-under .lisa/controls/proofs/, named in the part's proof: a change that breaks
-the check's rule (proof.violation) and one that does not (proof.clean).
+Checks whether a declared task or gate part has a pair of test changes that
+"lisa controls attest" can use. The proof names two patch files under
+.lisa/controls/proofs/ for the violating change (proof.violation) and the clean
+change (proof.clean).
 
-For each part that names a patch file it asks, in order, and stops at the
+For each check that names a patch file it asks, in order, and stops at the
 first problem:
 
   1  Are both patch files there, and do they hold different changes?
   2  Is failure text declared (proof.failure_shape)?
   3  Does each change apply to the last commit?
-  4  Does each change touch a file inside the part's own folder?
-  5  Does the part's command fail on the violating change and print the
+  4  Does each change touch a file inside the declared scope?
+  5  Does the check fail on the violating change and print the
      declared failure text, and pass on the clean change?
 
 The changes are tried in a temporary copy of the last commit, which is
@@ -121,11 +121,11 @@ removed afterwards. It works before any hook is installed.
 
   It never  writes, stages or commits anything in the repository.
 
-Prints one JSON document on standard output and one line per part on
-standard error. Each part reads "ready", "not-ready" with one sentence saying
+Prints one JSON document on standard output and one line per check on
+standard error. Each check reads "ready", "not-ready" with one sentence saying
 what to change, or "no-proof". Exit codes:
-  0  every part that declares a proof is ready, or none declares one
-  1  at least one part's proof is not ready
+  0  every declared proof is ready, or no proof is declared
+  1  at least one proof is not ready
   2  nothing could be checked`;
 
 /** The options the command reads. */

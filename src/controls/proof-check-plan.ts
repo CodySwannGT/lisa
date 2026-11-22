@@ -1,6 +1,6 @@
 /**
  * Deciding, by reading only, what `lisa controls proof-check` has to try for
- * each declared part.
+ * each declared part or task with a proof.
  *
  * Everything that can be settled without a copy of the repository is settled
  * here, in a fixed order, and the first question that settles a part is the
@@ -45,6 +45,7 @@ import { PROOF_HALVES, type ProofHalf } from "./proof-halves.js";
 import { readProofPatch, type ProofPatchRead } from "./proof-patch.js";
 import {
   declaredFailureText,
+  proofCommand,
   proofPoint,
   proofTimeLimitSeconds,
   type RunnableProof,
@@ -228,10 +229,11 @@ export async function planPart(
   const refused = declarationProblem(entry, context);
   if (refused !== null) return refused;
   const point = proofPoint(entry);
-  const mechanism =
+  const check =
     point === undefined ? entry.measuring_mechanism : mechanismAt(entry, point);
-  if (mechanism.kind !== "command") {
-    return settled(entry, "not-a-command", notACommandDetail(mechanism.kind));
+  const mechanism = proofCommand(check);
+  if (mechanism === null) {
+    return settled(entry, "not-a-command", notACommandDetail(check.kind));
   }
   return {
     check: true,
@@ -255,8 +257,7 @@ export async function planPart(
  * Tell whether a register entry was generated from one of a gate's parts.
  *
  * Every such entry names what supports it, and no other entry does: the
- * entry of a gate with no parts is a check Lisa ships for a supported
- * project type, and its proof is not something a repository writes.
+ * entry of a gate with no parts measures the repository as a whole.
  * @param entry - The register entry
  * @returns Whether it is a declared part
  */
@@ -265,11 +266,11 @@ export function isDeclaredPart(entry: ControlRegisterEntry): boolean {
 }
 
 /**
- * Decide what has to be tried for every declared part of a register. Nothing
- * is changed anywhere.
+ * Decide what has to be tried for every declared part and every task with a
+ * proof. Nothing is changed anywhere.
  * @param register - The control register
  * @param context - The repository, and whether outside effects are allowed
- * @returns One plan per declared part, in register order
+ * @returns One plan per eligible entry, in register order
  */
 export async function planProofCheck(
   register: ControlRegister,
@@ -277,7 +278,11 @@ export async function planProofCheck(
 ): Promise<readonly ProofCheckPlan[]> {
   return Promise.all(
     register.entries
-      .filter(entry => isDeclaredPart(entry))
+      .filter(
+        entry =>
+          isDeclaredPart(entry) ||
+          PROOF_HALVES.some(half => entry.proof[half] !== null)
+      )
       .map(entry => planPart(entry, context))
   );
 }

@@ -77,6 +77,7 @@
       "@vitest/coverage-v8": "^5.1.0",
       "eslint": "^9.39.5",
       "husky": "^8.0.0",
+      "lint-staged": "^16.2.7",
       "prettier": "3.8.0",
       "typescript": "^6.0.3",
       "vitest": "^5.1.0"
@@ -87,6 +88,7 @@
       "knip:check": "$npm_execpath run knip:check:lisa",
       "lint": "$npm_execpath run lint:lisa",
       "lint:slow": "$npm_execpath run lint:slow:lisa",
+      "lint:staged": "lint-staged --config .lintstagedrc.json",
       "postinstall": "[ -n \"$CI\" ] || LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-postinstall.mjs || true",
       "sg:scan": "$npm_execpath run sg:scan:lisa",
       "test": "$npm_execpath run test:lisa",
@@ -246,9 +248,6 @@
       ],
       "jscodeshift": [
         "0.15.2"
-      ],
-      "lint-staged": [
-        "^16.2.7"
       ],
       "standard-version": [
         "^9.5.0"

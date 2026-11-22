@@ -1,6 +1,10 @@
 import * as path from "node:path";
 import * as fse from "fs-extra";
 import { importGateRegistry } from "../cli/gate-registry-source.js";
+import {
+  installedShippedTaskProofs,
+  type ShippedTaskProof,
+} from "../controls/shipped-task-proofs.js";
 import { readJsonOrNull, writeJson } from "../utils/json-utils.js";
 import type {
   Migration,
@@ -10,13 +14,13 @@ import type {
 
 const LISA_CONFIG = ".lisa.config.json";
 const PACKAGE_JSON = "package.json";
-
 /** The slice of the shipped gate registry this migration calls. */
 interface GateRegistryModule {
   readonly seedGates: (options: {
     gates?: Record<string, unknown>;
     scripts?: Record<string, string>;
     runner?: string;
+    proofs?: readonly ShippedTaskProof[];
   }) => {
     gates: Record<string, unknown>;
     seeded: readonly { gate: string; moment: string; run: string | null }[];
@@ -142,9 +146,16 @@ export class EnsureSeededGatesMigration implements Migration {
     // it.
     const gates = config.gates ?? {};
     const declaredRunner = gates.runner;
+    const scripts = manifest.scripts ?? {};
     const result = registry.seedGates({
       gates,
-      scripts: manifest.scripts ?? {},
+      scripts,
+      proofs: await installedShippedTaskProofs(
+        ctx.projectDir,
+        ctx.detectedTypes,
+        scripts,
+        ctx.lisaDir
+      ),
       runner:
         typeof declaredRunner === "string"
           ? declaredRunner

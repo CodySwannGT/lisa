@@ -42,6 +42,7 @@ import {
   type CommandMechanism,
   type ControlRegisterEntry,
   type EnforcementPoint,
+  type MeasuringMechanism,
 } from "./register-types.js";
 
 /**
@@ -135,6 +136,28 @@ export function proofPoint(
 }
 
 /**
+ * Get the proof command from a checked part or a resolved task invocation.
+ * Task runners and task names are validated as unquoted words by the registry.
+ * This proof path launches the program directly, so a leading shell-style
+ * environment assignment is outside the supported task form.
+ * @param mechanism - How the register says the check runs
+ * @returns What to execute, or null when a direct program cannot be resolved
+ */
+export function proofCommand(
+  mechanism: MeasuringMechanism
+): CommandMechanism | null {
+  if (mechanism.kind === "command") return mechanism;
+  if (mechanism.kind !== "task") return null;
+  const command = mechanism.command.trim();
+  if (!/^[A-Za-z0-9:._@/= -]+$/u.test(command)) return null;
+  const argv = command.split(/ +/u);
+  const program = argv[0] ?? "";
+  return argv.length > 1 && program !== "" && !program.includes("=")
+    ? { kind: "command", argv }
+    : null;
+}
+
+/**
  * Settle an entry that is not enforced where this runner can exercise it.
  * @param entry - The entry
  * @returns The plan
@@ -178,13 +201,14 @@ function declarationVerdict(
       }),
     };
   }
-  const mechanism = mechanismAt(entry, point);
-  if (mechanism.kind !== "command") {
+  const check = mechanismAt(entry, point);
+  const mechanism = proofCommand(check);
+  if (mechanism === null) {
     return {
       settled: settled(entry, {
         outcome: "unknown",
         reason: "mechanism-not-a-command",
-        detail: notACommandDetail(moment, mechanism.kind),
+        detail: notACommandDetail(moment, check.kind),
         moment,
       }),
     };

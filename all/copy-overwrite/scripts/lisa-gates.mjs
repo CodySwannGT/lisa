@@ -2883,9 +2883,15 @@ function runnerOwnedJobs() {
  * @param {GatesBlock} [options.gates] The existing gates block; its declarations win.
  * @param {Record<string, string>} [options.scripts] The project's package.json scripts.
  * @param {string} [options.runner] Task runner to record, when none is declared.
+ * @param {readonly {gate: string, moment: string, task: string, proof: {violation: string, clean: string, failure_shape: string[]}}[]} [options.proofs] Shipped proof pairs whose installed inputs match the template.
  * @returns {{gates: GatesBlock, seeded: Array<{gate: string, moment: string, run: string|null}>, skipped: Array<{gate: string, moment: string, reason: string}>}} The merged block and what it did.
  */
-export function seedGates({ gates = {}, scripts = {}, runner } = {}) {
+export function seedGates({
+  gates = {},
+  scripts = {},
+  runner,
+  proofs = [],
+} = {}) {
   const seeded = [];
   const skipped = [];
   const next = { ...gates };
@@ -2932,9 +2938,23 @@ export function seedGates({ gates = {}, scripts = {}, runner } = {}) {
       run === REGISTRY[gate]?.taskAt?.[momentFamily(moment)] ||
       (REGISTRY[gate]?.taskAt?.[momentFamily(moment)] === undefined &&
         run === REGISTRY[gate]?.task);
+    const proof = proofs.find(
+      candidate =>
+        candidate.gate === gate &&
+        candidate.moment === moment &&
+        candidate.task === run
+    )?.proof;
+    const declaration = useDefault
+      ? { level: "required" }
+      : { level: "required", run };
     next[gate] = {
       ...next[gate],
-      [moment]: useDefault ? "required" : { level: "required", run },
+      [moment]:
+        proof === undefined
+          ? useDefault
+            ? "required"
+            : declaration
+          : { ...declaration, failure_shape: proof.failure_shape, proof },
     };
     seeded.push({ gate, moment, run: useDefault ? null : run });
   }
@@ -4450,6 +4470,7 @@ function validateGate(id, gate) {
   problems.push(...validateOwner(id, gate.owner));
   problems.push(...validateTier(id, gate.tier));
   problems.push(...validateParts(id, gate));
+  problems.push(...validateTaskProofs(id, gate));
 
   for (const [moment, value] of Object.entries(gate)) {
     // A key that is neither a known field nor a well-formed moment is a typo,
@@ -5662,6 +5683,27 @@ function validateProof(where, proof) {
       proof.external_effects
     ),
   ];
+}
+
+/**
+ * Validate a paired proof declared for a task at a local Git moment.
+ * @param {string} id Gate id.
+ * @param {object} gate Gate declaration.
+ * @returns {string[]} Problems.
+ */
+function validateTaskProofs(id, gate) {
+  return Object.entries(gate).flatMap(([moment, value]) => {
+    if (!isMoment(moment) || !isKeyed(value) || value.proof === undefined)
+      return [];
+    const where = `gates."${id}"."${moment}".proof`;
+    if (moment !== COMMIT && moment !== PUSH) {
+      return [`${where} can be declared only at commit or push.`];
+    }
+    if (gate.parts !== undefined) {
+      return [`${where} belongs on each part when the gate declares parts.`];
+    }
+    return validateProof(where, value.proof);
+  });
 }
 
 /** A well-formed place, shown in every message that refuses one. */
