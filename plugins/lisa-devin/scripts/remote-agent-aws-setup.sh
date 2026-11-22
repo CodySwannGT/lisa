@@ -270,8 +270,8 @@ legacy_profile_sections() {
 # tenant's (a different source profile) and not an operator's (who would not
 # name this project's bootstrap profile). Names this run is about to write are
 # excluded, so a bundle that genuinely names a stage `agent-x` keeps it.
-# Retire one only when this run wrote a replacement with the same role. A
-# genuine inactive stage can have the same spelling and use this bootstrap.
+# Retire one only when this run wrote a replacement with matching role and
+# declared settings. An inactive stage can share this spelling and bootstrap.
 doubled_profile_sections() {
   local file
   file="$1"
@@ -280,6 +280,9 @@ doubled_profile_sections() {
   awk -v canonical="profile ${PROFILE_NAMESPACE}-agent-" \
     -v bootstrap="$BOOTSTRAP_PROFILE" \
     -v keep="$canonical_sections" '
+    function matches_when_declared(prior, current, key) {
+      return !((prior, key) in settings) || settings[prior, key] == settings[current, key]
+    }
     BEGIN {
       doubled = canonical "agent-"
       count = split(keep, names, "|")
@@ -298,12 +301,14 @@ doubled_profile_sections() {
       seen[section]++
       next
     }
-    section != "" && /^[[:space:]]*(source_profile|role_arn)[[:space:]]*=/ {
+    section != "" && tolower($0) ~ /^[[:space:]]*(source_profile|role_arn|region|external_id)[[:space:]]*[:=]/ {
+      key = tolower($0)
+      sub(/^[[:space:]]*/, "", key)
+      sub(/[[:space:]]*[:=].*$/, "", key)
       value = $0
-      sub(/^[^=]*=[[:space:]]*/, "", value)
+      sub(/^[^:=]*[:=][[:space:]]*/, "", value)
       sub(/[[:space:]]*$/, "", value)
-      if ($0 ~ /^[[:space:]]*source_profile/) sources[section] = value
-      else roles[section] = value
+      settings[section, key] = value
     }
     END {
       for (i = 1; i <= section_count; i++) {
@@ -311,8 +316,11 @@ doubled_profile_sections() {
         replacement = canonical substr(section, length(doubled) + 1)
         if (index(section, doubled) == 1 && !(section in wanted) &&
             (replacement in wanted) && seen[section] == 1 && seen[replacement] == 1 &&
-            sources[section] == bootstrap && roles[section] != "" &&
-            roles[section] == roles[replacement]) print section
+            settings[section, "source_profile"] == bootstrap &&
+            settings[section, "role_arn"] != "" &&
+            settings[section, "role_arn"] == settings[replacement, "role_arn"] &&
+            matches_when_declared(section, replacement, "region") &&
+            matches_when_declared(section, replacement, "external_id")) print section
       }
     }
   ' "$file"
@@ -735,7 +743,7 @@ done < <(printf '%s' "$profiles_json" | jq -r 'to_entries[] | [.key, .value.role
 
 # Retire doubled names for the stages this run just wrote. Writing the
 # replacements first keeps a usable profile if a write fails. A doubled name
-# for a stage outside this bundle or for another role remains available.
+# for a stage outside this bundle or with different settings remains available.
 doubled_sections="$(doubled_profile_sections "$config_file")"
 if [ -n "$doubled_sections" ]; then
   printf '%s\n' "$doubled_sections" | while IFS= read -r section; do

@@ -635,7 +635,7 @@ export function installAwsProfiles(bundle, options = {}) {
         exists(file)
           ? adoptRemoteAgentSections(String(read(file, "utf8")), name, {
               owner: scope,
-              roles: rendered.roles,
+              profileSettings: rendered.profileSettings,
             })
           : null,
       ];
@@ -743,7 +743,7 @@ export function installAwsProfiles(bundle, options = {}) {
  *
  *   - config: `[profile <name>]` whose `source_profile` is exactly
  *     `<owner>-agent-bootstrap`, where `<name>` is a profile THIS run writes or
- *     the retired doubled spelling of one with the same role ARN;
+ *     the retired doubled spelling of one with matching role and settings;
  *   - credentials: `[<owner>-agent-bootstrap]`.
  *
  * Scoped to this run's names, so a stage the remote writer wrote that this
@@ -753,11 +753,11 @@ export function installAwsProfiles(bundle, options = {}) {
  * neither is ever touched. `[default]` is never adopted — it is one shared slot.
  * @param {string} text File contents.
  * @param {"config"|"credentials"} kind Which file this is.
- * @param {{owner: string, roles: Map<string,string>}} scope Validated owner and
- *   the profile roles this run writes.
+ * @param {{owner: string, profileSettings: Map<string,{roleArn: string, region: string, externalId: string}>}} scope
+ *   Validated owner and the profile settings this run writes.
  * @returns {string} The contents with the adopted sections removed.
  */
-function adoptRemoteAgentSections(text, kind, { owner, roles }) {
+function adoptRemoteAgentSections(text, kind, { owner, profileSettings }) {
   const source = emitSourceProfileFor(owner);
   const doubled = `${owner}-agent-agent-`;
   const adopt = (header, body) => {
@@ -767,11 +767,21 @@ function adoptRemoteAgentSections(text, kind, { owner, roles }) {
       return false;
     const name = found[1];
     // The name itself first: `agent-agent-x` can be a canonical stage.
-    if (roles.has(name)) return true;
+    if (profileSettings.has(name)) return true;
     if (!name.startsWith(doubled)) return false;
     const replacement = `${owner}-agent-${name.slice(doubled.length)}`;
-    const role = roles.get(replacement);
-    return role !== undefined && settingIn(body, "role_arn") === role;
+    const settings = profileSettings.get(replacement);
+    if (
+      settings === undefined ||
+      settingIn(body, "role_arn") !== settings.roleArn
+    )
+      return false;
+    const region = settingIn(body, "region");
+    const externalId = settingIn(body, "external_id");
+    return (
+      (region === undefined || region === settings.region) &&
+      (externalId === undefined || externalId === settings.externalId)
+    );
   };
 
   // Managed blocks are kept verbatim; only the text between them is filtered.
@@ -814,15 +824,15 @@ function dropSections(text, selects) {
 }
 
 /**
- * Read one `key = value` setting from a section body.
+ * Read one AWS INI setting, accepting both delimiters and option casing.
  * @param {string[]} body The section's lines.
  * @param {string} key Setting name.
  * @returns {string|undefined} Its value.
  */
 function settingIn(body, key) {
   for (const line of body) {
-    const found = /^\s*([^=\s]+)\s*=\s*(.*?)\s*$/.exec(line);
-    if (found !== null && found[1] === key) return found[2];
+    const found = /^\s*([^=:\s]+)\s*[:=]\s*(.*?)\s*$/.exec(line);
+    if (found !== null && found[1].toLowerCase() === key) return found[2];
   }
   return undefined;
 }

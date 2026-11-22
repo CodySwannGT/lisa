@@ -219,25 +219,32 @@ describe("the remote-agent writer", () => {
 });
 
 describe("both writers", () => {
-  it("keeps an inactive doubled-looking stage with a distinct role", () => {
-    const distinct = `[profile acme-agent-agent-dev]\n${OTHER_STAGE_ROLE}\nsource_profile = acme-agent-bootstrap\n`;
-    const { home: remoteHome, result } = remote(["dev"], distinct);
-    const secretsHome = mkdtempSync(
-      path.join(tmpdir(), "lisa-canonical-names-")
-    );
-    homes.push(secretsHome);
-    mkdirSync(path.join(secretsHome, ".aws"));
-    writeFileSync(path.join(secretsHome, CONFIG), distinct);
-    installAwsProfiles(bundle(["dev"]), { home: secretsHome, owner: ACME });
+  it.each([
+    ["role", OTHER_STAGE_ROLE],
+    ["region", `${ACME_ROLE}\nREGION: us-west-2`],
+    ["external ID", `${ACME_ROLE}\nexternal_id = other-external-id`],
+  ])(
+    "keeps an inactive doubled-looking stage with a distinct %s",
+    (_name, settings) => {
+      const distinct = `[profile acme-agent-agent-dev]\n${settings}\nsource_profile = acme-agent-bootstrap\n`;
+      const { home: remoteHome, result } = remote(["dev"], distinct);
+      const secretsHome = mkdtempSync(
+        path.join(tmpdir(), "lisa-canonical-names-")
+      );
+      homes.push(secretsHome);
+      mkdirSync(path.join(secretsHome, ".aws"));
+      writeFileSync(path.join(secretsHome, CONFIG), distinct);
+      installAwsProfiles(bundle(["dev"]), { home: secretsHome, owner: ACME });
 
-    expect(result.status).toBe(0);
-    for (const home of [remoteHome, secretsHome]) {
-      const config = readFileSync(path.join(home, CONFIG), "utf8");
-      expect(config).toContain(distinct);
-      const replacement = config.split(`[${ACME_DEV_SECTION}]\n`)[1];
-      expect(replacement?.split(/^\[/m)[0]).toContain(ACME_ROLE);
+      expect(result.status).toBe(0);
+      for (const home of [remoteHome, secretsHome]) {
+        const config = readFileSync(path.join(home, CONFIG), "utf8");
+        expect(config).toContain(distinct);
+        const replacement = config.split(`[${ACME_DEV_SECTION}]\n`)[1];
+        expect(replacement?.split(/^\[/m)[0]).toContain(ACME_ROLE);
+      }
     }
-  });
+  );
 
   it.each([
     [["agent-dev", "agent-staging", "agent-production"]],
