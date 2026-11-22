@@ -1,0 +1,15 @@
+$ node scripts/lisa-ci-failure-redispatch.mjs --head-sha aed6c26db21033d6dd465ea9cd5072ef362b2ad7 --dry-run
+# worktree head_sha=68ca1b31795ba5f0de17b1b40488bb29bfe7e02d captured_at=2026-11-08T09:50:06Z
+run 0 -> PR #4679 -> work item CodySwannGT/lisa#4676
+outcome: nothing-to-clear — every required check passed and no uncleared marker names this PR (dry run: nothing written)
+{
+  "repository": "CodySwannGT/lisa",
+  "runId": 0,
+  "pr": 4679,
+  "sha": "aed6c26db21033d6dd465ea9cd5072ef362b2ad7",
+  "item": "CodySwannGT/lisa#4676",
+  "outcome": "nothing-to-clear",
+  "reason": "every required check passed and no uncleared marker names this PR",
+  "actions": []
+}
+exit=0

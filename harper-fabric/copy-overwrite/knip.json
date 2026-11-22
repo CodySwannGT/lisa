@@ -1,5 +1,5 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "src/build/**/*.ts",
     "src/harper/**/*.ts",
@@ -7,24 +7,16 @@
     "src/web/**/*.ts",
     "tests/**/*smoke.ts"
   ],
-  "project": ["src/**/*.ts", "tests/**/*.ts"],
+  "project": [
+    "src/**/*.ts",
+    "tests/**/*.ts"
+  ],
   "ignore": [
-    "**/*.test.ts",
-    "**/dist/**",
-    "**/coverage/**",
-    "**/node_modules/**",
     "harper-app/resources.js",
     "harper-app/resource-*.js",
     "harper-app/*.js",
     "harper-app/web/**",
-    "harper-app/lib/**"
-  ],
-  "ignoreIssues": {
-    "src/types/harper-schema.ts": ["types"]
-  },
-  "ignoreDependencies": ["@types/node", "@vitest/coverage-v8"],
-  "ignoreBinaries": ["audit", "harperdb", "knip", "playwright", "printf", "tsx"],
-  "rules": {
-    "devDependencies": "off"
-  }
+    "harper-app/lib/**",
+    "src/types/harper-schema.ts"
+  ]
 }

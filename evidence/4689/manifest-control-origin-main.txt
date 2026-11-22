@@ -1,0 +1,8 @@
+# CONTROL origin/main 24d0d26b34 validateManifest
+# node v22.22.0
+$ node manifest.mjs <scratch>/main-tree/all/copy-overwrite/scripts/lib
+FAIL | empty manifest, inline-code-only body | want ACCEPT | got REFUSE A local evidence declaration is malformed; repair its type and name.
+FAIL | one top-level marker, matching manifest | want ACCEPT | got REFUSE A local evidence declaration is malformed; repair its type and name.
+PASS | control: top-level marker, empty manifest | want REFUSE | got REFUSE The local typed evidence manifest is incomplete.
+SUMMARY: 1/3 match expected
+exit=1

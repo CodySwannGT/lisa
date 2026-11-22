@@ -1,9 +1,10 @@
 /** An immutable local candidate, without claiming a public release or tag. */
 import { accessSync, constants } from "node:fs";
-import { cp, mkdir, readFile, symlink, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { boundedExecFileSync } from "../../scripts/lib/bounded-spawn.mjs";
+import { borrowNodeModules } from "./borrowed-node-modules.mjs";
 
 const GIT_CANDIDATES = [
   "/Library/Developer/CommandLineTools/usr/bin/git",
@@ -87,11 +88,7 @@ async function copyCandidateSources(source, destination, invoke) {
   await cp(path.join(source, "dist"), path.join(destination, "dist"), {
     recursive: true,
   });
-  await symlink(
-    path.join(source, "node_modules"),
-    path.join(destination, "node_modules"),
-    "dir"
-  );
+  borrowNodeModules(path.join(source, "node_modules"), destination);
   return Object.fromEntries(
     await Promise.all(
       IDENTITY_PATHS.map(async file => {

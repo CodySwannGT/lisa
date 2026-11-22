@@ -117,4 +117,32 @@ describe("OpenCode plugin support files", () => {
       expect.arrayContaining([...RAILS_HOOK_ENGINE_FILES])
     );
   });
+
+  it("installs all canonical host-name guard companions (#4540)", async () => {
+    const installer = arrayLiterals(
+      await fs.readFile(INSTALLER, "utf8"),
+      "PLUGIN_SUPPORT_FILES"
+    );
+    expect(installer).toEqual(
+      expect.arrayContaining([
+        "block-host-name-leak.sh",
+        "block-host-name-leak.mjs",
+        "host-name-command-context.mjs",
+      ])
+    );
+  });
+
+  it("stages all canonical host-name guard companions into the package (#4540)", async () => {
+    const staged = arrayLiterals(
+      await fs.readFile(COPY_SCRIPT, "utf8"),
+      "canonicalSupportFiles"
+    );
+    expect(staged).toEqual(
+      expect.arrayContaining([
+        "block-host-name-leak.sh",
+        "block-host-name-leak.mjs",
+        "host-name-command-context.mjs",
+      ])
+    );
+  });
 });

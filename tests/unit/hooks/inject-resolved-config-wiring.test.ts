@@ -16,6 +16,20 @@ import {
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import { DEFAULT_HARNESS } from "../../../src/core/config.js";
 import { DEFAULT_PROJECT_LEARNINGS_FILE } from "../../../src/core/learnings-location.js";
+import {
+  DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF,
+  DEPENDENCY_HUMAN_SIGN_OFF_VALUES,
+  STRICT_DEPENDENCY_HUMAN_SIGN_OFF,
+} from "../../../src/core/project-config-dependencies.js";
+import {
+  DEFAULT_HUMAN_GATE_MODE,
+  HUMAN_GATE_MODES,
+} from "../../../src/core/project-config-human-gate.js";
+import {
+  DEFAULT_LOW_CONFIDENCE_ROUTING,
+  LOW_CONFIDENCE_ROUTINGS,
+  STRICT_LOW_CONFIDENCE_ROUTING,
+} from "../../../src/core/project-config-learnings.js";
 import { BUILT_IN_DEFAULTS } from "../../../plugins/src/base/hooks/inject-resolved-config.mjs";
 import { shouldShipScript } from "../../../scripts/lib/per-agent-hook-filter.mjs";
 
@@ -70,7 +84,10 @@ describe("inject-resolved-config: bounded output", () => {
 
     expect(context).toContain("… (line truncated)");
     expect(context).toContain("tracker: github");
-    expect(context.length).toBeLessThan(2000);
+    // Below the 3000-character value the fixture declares, so the line cannot
+    // have survived whole. The margin above the ~1.7KB fixed text (preamble +
+    // built-in-default lines) grows by one line per new built-in default.
+    expect(context.length).toBeLessThan(2500);
   });
 
   it("summarises a wide object instead of listing every child", () => {
@@ -117,13 +134,50 @@ describe("inject-resolved-config: copied vocabularies still agree with their own
     // both suites green while every session with no declared harness was told
     // its harness was `warn`.
     expect(
-      BUILT_IN_DEFAULTS.map(({ path: key, value }) => [key, value])
+      BUILT_IN_DEFAULTS.map(({ path: key, value, strict }) => [
+        key,
+        value,
+        strict,
+      ])
     ).toEqual([
-      ["harness", DEFAULT_HARNESS],
-      ["gates.runner", DEFAULT_RUNNER],
-      ["gates.unproven", DEFAULT_UNPROVEN],
-      ["learnings.file", DEFAULT_PROJECT_LEARNINGS_FILE],
+      ["harness", DEFAULT_HARNESS, undefined],
+      ["gates.runner", DEFAULT_RUNNER, undefined],
+      ["gates.unproven", DEFAULT_UNPROVEN, undefined],
+      ["learnings.file", DEFAULT_PROJECT_LEARNINGS_FILE, undefined],
+      ["humanGate.mode", DEFAULT_HUMAN_GATE_MODE, undefined],
+      [
+        "learnings.lowConfidence",
+        DEFAULT_LOW_CONFIDENCE_ROUTING,
+        STRICT_LOW_CONFIDENCE_ROUTING,
+      ],
+      [
+        "dependencies.humanSignOff",
+        DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF,
+        STRICT_DEPENDENCY_HUMAN_SIGN_OFF,
+      ],
     ]);
+  });
+
+  it("pins the lowConfidence vocabulary against the config owner's export", () => {
+    expect(rendererSource()).toContain(
+      `const LOW_CONFIDENCE_VALUES = [${LOW_CONFIDENCE_ROUTINGS.map(value => `"${value}"`).join(", ")}];`
+    );
+  });
+
+  it("pins the humanGate.mode vocabulary against the config owner's export", () => {
+    expect(rendererSource()).toContain(
+      `const HUMAN_GATE_MODE_VALUES = [${HUMAN_GATE_MODES.map(value => `"${value}"`).join(", ")}];`
+    );
+  });
+
+  it("pins the humanSignOff vocabulary against the config owner's export", () => {
+    // The renderer decides VALID vs INVALID from its own copy, so a value added
+    // to the owner's vocabulary and not here would be announced as invalid.
+    const source = rendererSource();
+
+    expect(source).toContain(
+      `const HUMAN_SIGN_OFF_VALUES = [${DEPENDENCY_HUMAN_SIGN_OFF_VALUES.map(value => `"${value}"`).join(", ")}];`
+    );
   });
 
   it("holds both budgets at the values the gap fixes were made to respect", () => {
@@ -155,7 +209,7 @@ describe("inject-resolved-config: agent fan-out", () => {
     // agy has no SessionStart event; the gap is compensated by the shared
     // gate-runner and `lisa doctor` rungs, not by an agent-layer hook.
     ["agy", false],
-  ])("ships to %s: %s", (agent, expected) => {
+  ] as const)("ships to %s: %s", (agent, expected) => {
     expect(shouldShipScript("inject-resolved-config.sh", agent)).toBe(expected);
   });
 });

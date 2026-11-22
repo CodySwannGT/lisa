@@ -156,8 +156,9 @@ export function candidateAwsEnvironment(bundle) {
  * Captures all child output so account ids and credential metadata never reach
  * a shared log.
  * @param {{bundle: object, profiles: Array<object>}} candidate Validated bundle.
- * @param {(bin: string, args: string[], options: object) => string} [run]
- *   Injectable child runner for tests.
+ * @param {(bin: string, args: string[], options: {encoding: "utf8", env: NodeJS.ProcessEnv, stdio: string[]}) => unknown} [run]
+ *   Injectable child runner for tests. It always receives the isolated
+ *   candidate environment as `options.env`; its output is ignored.
  */
 export function verifyAwsBootstrap(candidate, run = boundedChildOutput) {
   const env = candidateAwsEnvironment(candidate.bundle);
@@ -288,7 +289,7 @@ function publicationBudgetGuard(startedAt, monotonicNow) {
  * @param {object} cfg Resolved configuration.
  * @param {{id: string, projectId: string|null}} target Target provider entry.
  * @param {object} [operations] Injectable provider operations for tests.
- * @returns {object} The winning coordination row.
+ * @returns {{id: string, key: string}} The winning coordination row: the provider's raw row, whose `id` and lock `key` were both validated.
  */
 export function acquirePublicationLock(cfg, target, operations = {}) {
   if (!target.projectId) {

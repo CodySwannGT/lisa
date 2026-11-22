@@ -1,0 +1,18 @@
+// Exported-helper consumer with an explicit manager (npm | yarn).
+import { createRequire } from "node:module";
+import { join, relative } from "node:path";
+import { pathToFileURL } from "node:url";
+
+const [, , tree, pkgRoot, manager] = process.argv;
+try {
+  const resolved = createRequire(join(tree, "package.json")).resolve("@codyswann/lisa/audit");
+  console.log(`[helper] resolved @codyswann/lisa/audit -> <package>/${relative(pkgRoot, resolved)}`);
+  const { runDependencyAudit } = await import(pathToFileURL(resolved).href);
+  const verdict = await runDependencyAudit(tree, manager);
+  for (const message of verdict.messages) console.log(message);
+  console.log(`[helper] passed=${verdict.passed}`);
+  process.exitCode = verdict.passed ? 0 : 1;
+} catch (error) {
+  console.error(`[helper] failed closed: ${error.message}`);
+  process.exitCode = 1;
+}

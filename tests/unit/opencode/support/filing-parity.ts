@@ -13,13 +13,16 @@
  * chdirs and re-imports the template with a cache-busting query.
  * @module tests/unit/opencode/support/filing-parity
  */
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { expect } from "vitest";
 
 import { boundedSpawnSync } from "../../../helpers/io-latency-budget.js";
+import { useOwnedTempDirs } from "../../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const HOOK_PATH = path.resolve(
   "plugins/src/base/hooks/block-direct-issue-create.sh"
@@ -43,7 +46,7 @@ export const project = (
   config: Record<string, unknown>,
   files: Readonly<Record<string, string>> = {}
 ): string => {
-  const dir = mkdtempSync(path.join(tmpdir(), "lisa-issue-parity-"));
+  const dir = ownedDir("lisa-issue-parity-");
   writeFileSync(
     path.join(dir, ".lisa.config.json"),
     JSON.stringify(config),

@@ -21,5 +21,6 @@ synthesis/index/log/verify/state/PR.
 
 ## Rules
 - Read-only: only `git log`/`rev-parse`/`gh pr list` against the repo; never checkout/fetch/reset/pull.
-- In wrapper/standalone mode, the registered child repos are read-only inputs and are never staged.
+- Another repository is never ingested here; it owns its own wiki. Follow the Related repositories
+  pointers on `wiki/start-here.md` instead.
 - Writes only its source note + handoff meta; the kernel advances `wiki/state/git/<slug>.json`.

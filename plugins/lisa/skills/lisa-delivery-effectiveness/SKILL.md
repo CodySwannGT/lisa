@@ -17,11 +17,11 @@ Each needs a stated numerator, denominator and window, or it is a number-shaped 
 | **Gate rejection rate** | Work the pipeline refused, over work submitted | How much effort is spent producing output the standards reject |
 | **Rework rate** | Items reopened or returned after being declared complete, over items completed | How often "done" was not done |
 | **Escape rate** | Defects reaching production, over items released | What the gates did not catch |
-| **First-pass yield** | Items reaching terminal state with no rework, over items started | The one number that moves only when the whole line works |
+| **First-pass yield** | Items reaching terminal state with no rework, over items started | Items that finished without rework; blind to planning misses resolved by a human, pre-completion gate rejections and escapes fixed in new items |
 | **Cost per delivered item** | Metered spend, over items reaching terminal state | What a unit of accepted output actually costs |
 | **Planning-miss rate** | Items carrying a `[lisa-planning-miss]` note, over items picked up for dispatch (entered the claimed role, or were held by the dispatcher at repository routing) | How often planning let through work a worker could not finish without a human |
 
-First-pass yield is the summary measure worth watching, because every other failure shows up in it. The other five exist to tell you *where* it went.
+First-pass yield is the summary measure worth watching, but it does not see every failure. First-pass yield moves on rework and on items that never finish. It does not move on planning misses a human resolved, gate rejections fixed before completion, or escapes fixed in new items; those show up only in the planning-miss rate, the gate rejection rate and the escape rate. That is why the other five are read alongside it, and they also tell you *where* it went.
 
 The planning-miss rate is the one that points upstream of the build. Its numerator is the `[lisa-planning-miss]` note `lisa-persist-learning` leaves on an item when `learning-judge` confirms that a dispatched worker had to stop for a human, or file a new ticket mid-build, because planning let a gap through. Count distinct items, not notes. The note is posted only on a confirmed miss, so outages, expired credentials, flaky tools and decisions planning flagged as human gates are already out of it. Both halves come from the tracker. Each persisted miss also becomes a planning check that PRD intake, decomposition and the ready gate read back, so better planning shows up as this number falling.
 

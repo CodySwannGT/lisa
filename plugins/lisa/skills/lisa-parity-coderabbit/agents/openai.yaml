@@ -1,4 +1,4 @@
 display_name: "Parity Coderabbit"
-short_description: "Thorough PR-style review of the full diff — bugs, security, performance, and maintainability — with concrete suggested fixes and a…"
+short_description: "Thorough PR-style review of the full diff — bugs, security, performance, maintainability — with suggested fixes and a summary"
 default_prompt:
-  - "Use $lisa-parity-coderabbit: Thorough PR-style review of the full diff — bugs, security, performance, and maintainability — with concrete suggested fixes and a…."
+  - "Use $lisa-parity-coderabbit: Thorough PR-style review of the full diff — bugs, security, performance, maintainability — with suggested fixes and a summary."

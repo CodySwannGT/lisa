@@ -1,8 +1,8 @@
 ---
 name: action-controller-best-practices
-description: "Build or Refactor large Rails…"
+description: "Slim down and organize Rails…"
 ---
-Build or Refactor large Rails controller files into clean, maintainable code. Use when a controller action exceeds ~10 lines, a controller has custom non-RESTful actions, or when the user asks to refactor, slim down, clean up, or organize a Rails controller. Applies patterns: service objects, query objects, form objects, controller concerns, presenters/decorators, and RESTful resource extraction.
+Slim down and organize Rails controllers using service, query, and form objects, concerns, presenters, and RESTful resource extraction. Use when actions are long, controllers have custom actions, or on request.
 
 
 # Rails Controller Refactoring

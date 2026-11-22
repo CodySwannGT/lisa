@@ -22,6 +22,20 @@ import {
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
+/** Doctor groups as the aggregation helpers accept them. */
+type DoctorGroups = Parameters<typeof computeDoctorVerdict>[0];
+
+/**
+ * Present groups an external caller built, outside the declared status union.
+ *
+ * The aggregators normalize statuses at runtime precisely because callers are
+ * untyped JavaScript; this is the one boundary where such input is admitted.
+ * @param groups Groups that may carry statuses the contract does not name.
+ * @returns The same groups, typed as the aggregators' input.
+ */
+const externalGroups = (groups: unknown): DoctorGroups =>
+  groups as DoctorGroups;
+
 /** Absolute git path, so the fixture does not resolve a command off `PATH`. */
 const GIT_BIN = resolveGit();
 
@@ -230,8 +244,8 @@ describe("doctor report rendering (#750)", () => {
       },
     ];
 
-    expect(computeDoctorVerdict(groups)).toBe("NOT_READY");
-    expect(countDoctorStatuses(groups)).toEqual({
+    expect(computeDoctorVerdict(externalGroups(groups))).toBe("NOT_READY");
+    expect(countDoctorStatuses(externalGroups(groups))).toEqual({
       PASS: 0,
       WARN: 0,
       FAIL: 1,

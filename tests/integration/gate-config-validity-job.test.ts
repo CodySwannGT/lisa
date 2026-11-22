@@ -23,6 +23,20 @@ import { describe, expect, it } from "vitest";
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import { source, workflow } from "./quality-gate-facade-fixture.js";
 
+/**
+ * Read one keyed entry, failing the test when it is absent.
+ * @param record Entries by name.
+ * @param name Name to read.
+ * @returns The entry under that name.
+ */
+const key = <T>(record: Readonly<Record<string, T>>, name: string): T => {
+  const entry = record[name];
+  if (entry === undefined) {
+    throw new Error(`expected an entry named ${name}`);
+  }
+  return entry;
+};
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const GATES = path.join(
@@ -51,22 +65,22 @@ describe("the gate-config validity job exists and is unconditional", () => {
   it("cannot be turned off with skip_jobs", () => {
     // Every other job honours skip_jobs. This one must not: a project able to
     // skip validation of its own gates block could declare anything at all.
-    expect(workflow.jobs[JOB].if ?? "").not.toContain("skip_jobs");
+    expect(key(workflow.jobs, JOB).if ?? "").not.toContain("skip_jobs");
   });
 
   it("has no condition at all, so it runs on every pull request", () => {
-    expect(workflow.jobs[JOB].if).toBeUndefined();
+    expect(key(workflow.jobs, JOB).if).toBeUndefined();
   });
 
   it("is not itself a configurable gate", () => {
     // A `gates` entry for this job would let .lisa.config.json declare it off,
     // which is the same circularity by another route.
-    const steps = workflow.jobs[JOB].steps ?? [];
+    const steps = key(workflow.jobs, JOB).steps ?? [];
     expect(steps.find(step => step.id === "gate")).toBeUndefined();
   });
 
   it("reports failure rather than continuing", () => {
-    const steps = workflow.jobs[JOB].steps ?? [];
+    const steps = key(workflow.jobs, JOB).steps ?? [];
     expect(
       (workflow.jobs[JOB] as Record<string, unknown>)["continue-on-error"]
     ).toBeUndefined();
@@ -80,7 +94,7 @@ describe("the gate-config validity job exists and is unconditional", () => {
 
 describe("it resolves the shipped resolver, preferring the package copy", () => {
   const body =
-    (workflow.jobs[JOB].steps ?? []).find(step =>
+    (key(workflow.jobs, JOB).steps ?? []).find(step =>
       step.name?.includes("Validate the gates block")
     )?.run ?? "";
 

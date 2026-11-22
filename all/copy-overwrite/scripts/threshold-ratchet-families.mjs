@@ -88,16 +88,12 @@ export const FAMILIES = [
     direction: "max",
   },
   {
+    // Two things live in this file, and both are compared: the
+    // `thresholdRatchet.allow` list the kind is named after, and the
+    // thresholds a repository declares for its own parts — see
+    // `extractDeclaredThresholds`.
     id: "lisa-config",
     match: /(^|\/)\.lisa\.config\.json$/,
-    kind: "allow-list",
-  },
-  {
-    // The #3811 quarantine. `allow-list` is exactly right here: the list may
-    // shrink freely, and ADDING a file — re-authorising type debt that the
-    // gate would otherwise refuse — is the change that needs a human to see it.
-    id: "typecheck-quarantine",
-    match: /(^|\/)typecheck-quarantine\.json$/,
     kind: "allow-list",
   },
   {
@@ -404,6 +400,168 @@ export function extractK6Constraints(conf) {
 }
 
 /**
+ * The two ways a declared parameter can be held: a `floor` may rise and never
+ * fall, a `ceiling` may fall and never rise.
+ *
+ * Restated from `PARAMETER_DIRECTIONS` in `lisa-gates.mjs` rather than
+ * imported. This file also runs as an agent-time hook inside a plugin payload,
+ * where the gate registry is not beside it.
+ * @type {ReadonlyArray<"floor"|"ceiling">}
+ */
+export const DECLARED_DIRECTIONS = Object.freeze(["floor", "ceiling"]);
+
+/**
+ * Whether a value is one of the two directions a threshold can be held in.
+ * @param {unknown} value A parameter's `direction` as written
+ * @returns {value is "floor"|"ceiling"} False for anything else, including a
+ *   direction that was left out
+ */
+export function isDeclaredDirection(value) {
+  return DECLARED_DIRECTIONS.some(direction => direction === value);
+}
+
+/**
+ * Whether a parsed JSON value is an object with named keys.
+ * @param {unknown} value Parsed JSON value
+ * @returns {value is Record<string, unknown>} False for a list, text, a
+ *   number, true, false and nothing
+ */
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+/**
+ * The name the ratchet gives one declared threshold.
+ *
+ * It is also the `key` of the `thresholdRatchet.allow` entry that covers the
+ * threshold, so it is built from the three things that say which threshold it
+ * is and nothing that changes when another gate, part or parameter is added.
+ * @param {string} gate Gate id
+ * @param {string} scope The part's folder; `.` is the whole repository
+ * @param {string} name Parameter name
+ * @returns {string} `gates.<gate>.parts[<scope>].parameters.<name>`
+ */
+export function declaredThresholdKey(gate, scope, name) {
+  return `gates.${gate}.parts[${scope}].parameters.${name}`;
+}
+
+/**
+ * The parts one gate of a parsed `.lisa.config.json` declares.
+ *
+ * Where two parts name one folder the first is the part and the second is not
+ * read. `validateGates` refuses that declaration; this only makes sure the
+ * same part is found on both sides of a comparison.
+ * @param {unknown} config Parsed config (may be anything)
+ * @param {string} gate Gate id
+ * @returns {Array<Record<string, unknown>> | undefined} The parts that name a
+ *   folder, or undefined when the gate is not declared at all
+ */
+function declaredParts(config, gate) {
+  const gates = isRecord(config) ? config.gates : undefined;
+  if (!isRecord(gates) || !Object.hasOwn(gates, gate)) return undefined;
+  const declared = gates[gate];
+  if (!isRecord(declared)) return undefined;
+  const parts = (Array.isArray(declared.parts) ? declared.parts : []).filter(
+    part => isRecord(part) && typeof part.scope === "string"
+  );
+  return parts.filter(
+    (part, index) =>
+      parts.findIndex(other => other.scope === part.scope) === index
+  );
+}
+
+/**
+ * Read one parameter of a part as it is written.
+ * @param {Record<string, unknown>} part A part of a gate
+ * @param {string} name Parameter name
+ * @returns {{ missing: null, value: unknown, direction: unknown } | undefined}
+ *   The parameter's value and direction, or undefined when the part does not
+ *   have it written as `{ value, direction }`
+ */
+function readParameter(part, name) {
+  const parameters = part.parameters;
+  const parameter =
+    isRecord(parameters) && Object.hasOwn(parameters, name)
+      ? parameters[name]
+      : undefined;
+  return isRecord(parameter)
+    ? { missing: null, value: parameter.value, direction: parameter.direction }
+    : undefined;
+}
+
+/**
+ * Look up one parameter of one part of one gate, or say what is missing.
+ *
+ * The three ways of being missing are kept apart because they send an operator
+ * to three different places: a gate that is no longer declared, a gate that no
+ * longer has a part for the folder, and a part that no longer has the
+ * parameter.
+ * @param {unknown} config Parsed config (may be anything)
+ * @param {string} gate Gate id
+ * @param {string} scope The part's folder
+ * @param {string} name Parameter name
+ * @returns {{ missing: "gate"|"part"|"parameter" } | { missing: null, value: unknown, direction: unknown }}
+ *   The parameter as written, or the outermost level that is not there
+ */
+export function findDeclaredParameter(config, gate, scope, name) {
+  const parts = declaredParts(config, gate);
+  if (parts === undefined) return { missing: "gate" };
+  const part = parts.find(candidate => candidate.scope === scope);
+  if (part === undefined) return { missing: "part" };
+  return readParameter(part, name) ?? { missing: "parameter" };
+}
+
+/**
+ * Every threshold a repository declares for its own parts.
+ *
+ * A repository on any stack says what it holds itself to in the `gates` block
+ * of `.lisa.config.json`: each gate may list `parts`, one per folder, and each
+ * part may name `parameters` written `{ value, direction }`. A parameter is a
+ * threshold exactly when its `direction` is `floor` or `ceiling` and its
+ * `value` is a number. One with no direction is a setting, not a threshold,
+ * and is never compared.
+ *
+ * This READS the declaration and does not validate it. `validateGates` in
+ * `lisa-gates.mjs` decides what a valid one is, and refuses a direction on a
+ * value that is not a number. A shape it would refuse yields no threshold here
+ * instead of an error, because a comparison that throws on a hand-edited file
+ * compares nothing.
+ * @param {unknown} config Parsed `.lisa.config.json` (may be anything)
+ * @returns {Array<{ key: string, gate: string, scope: string, name: string, value: number, direction: "floor"|"ceiling" }>}
+ *   The thresholds, in the order the file declares them
+ */
+export function extractDeclaredThresholds(config) {
+  const gates = isRecord(config) && isRecord(config.gates) ? config.gates : {};
+  const thresholds = [];
+  for (const gate of Object.keys(gates)) {
+    for (const part of declaredParts(config, gate) ?? []) {
+      const scope = String(part.scope);
+      const named = isRecord(part.parameters) ? part.parameters : {};
+      for (const name of Object.keys(named)) {
+        const found = readParameter(part, name);
+        // `Number.isFinite` is the test `validateGates` applies, and it is
+        // false for text, true, false and a number too large to be one.
+        if (
+          found !== undefined &&
+          isDeclaredDirection(found.direction) &&
+          Number.isFinite(found.value)
+        ) {
+          thresholds.push({
+            key: declaredThresholdKey(gate, scope, name),
+            gate,
+            scope,
+            name,
+            value: /** @type {number} */ (found.value),
+            direction: found.direction,
+          });
+        }
+      }
+    }
+  }
+  return thresholds;
+}
+
+/**
  * Extract thresholdRatchet.allow entries from parsed .lisa.config.json.
  * @param {unknown} config Parsed config (may be undefined)
  * @returns {Array<{ file: string, key: string, reason?: string, until?: unknown }>}
@@ -415,6 +573,80 @@ export function extractAllowEntries(config) {
   return raw.filter(
     e => e && typeof e.file === "string" && typeof e.key === "string"
   );
+}
+
+/** The `humanGate.mode` under which an agent records a risk acceptance. */
+export const HUMAN_GATE_ACCESS_ONLY = "access-only";
+/** The `humanGate.mode` under which a threshold exception stays a person's. */
+export const HUMAN_GATE_STRICT = "strict";
+
+/**
+ * The `humanGate.mode` a config declares, as the ratchet reads it.
+ *
+ * Same rule as `resolveHumanGateMode` in `scripts/human-gate-act.mjs`, written
+ * out here because this module ships inside a plugin payload and into host
+ * `scripts/` folders, and neither has that script beside it: only an absent
+ * mode is the default, `access-only`; a declared value is compared trimmed and
+ * lower-cased; and a value that is not a known mode fails safe, to `strict`,
+ * so a typo never loosens the gate.
+ *
+ * The caller passes the BASELINE config, the side the allow list is read from.
+ * A change therefore cannot relax the mode and add an exception in one step,
+ * and a personal `.lisa.config.local.json` — which no baseline holds — cannot
+ * relax it at all.
+ * @param {unknown} config Parsed `.lisa.config.json`, or nothing when the
+ *   baseline has none
+ * @returns {"access-only" | "strict"} The mode in force
+ */
+export function humanGateModeOf(config) {
+  if (!config || typeof config !== "object") return HUMAN_GATE_ACCESS_ONLY;
+  const block = config.humanGate;
+  if (block === undefined) return HUMAN_GATE_ACCESS_ONLY;
+  // A block that is present and is not an object declared something nobody
+  // can read. The other resolvers of this key fail safe on it, and so does
+  // this one: a malformed block must not read as "nothing declared".
+  if (block === null || typeof block !== "object" || Array.isArray(block)) {
+    return HUMAN_GATE_STRICT;
+  }
+  const declared = block.mode;
+  if (declared === undefined) return HUMAN_GATE_ACCESS_ONLY;
+  const mode =
+    typeof declared === "string" ? declared.trim().toLowerCase() : declared;
+  return mode === HUMAN_GATE_ACCESS_ONLY
+    ? HUMAN_GATE_ACCESS_ONLY
+    : HUMAN_GATE_STRICT;
+}
+
+/**
+ * The `humanGate.mode` of a `.lisa.config.json` given as text.
+ *
+ * Absent and unreadable are opposite cases and must not be conflated. A
+ * repository with no config at the baseline declared nothing, so the default
+ * applies. A config that is there and does not parse declared something
+ * nobody can read, and that fails safe like any other unreadable declaration.
+ * @param {string | null | undefined} text The file's text, or nothing when the
+ *   baseline has no such file
+ * @returns {"access-only" | "strict"} The mode in force
+ */
+export function humanGateModeOfText(text) {
+  if (text === null || text === undefined) return HUMAN_GATE_ACCESS_ONLY;
+  const config = parseJson(text);
+  const readable =
+    config !== null && typeof config === "object" && !Array.isArray(config);
+  return readable ? humanGateModeOf(config) : HUMAN_GATE_STRICT;
+}
+
+/**
+ * An allow entry's reason as one line of text.
+ *
+ * A reason is written by whoever records the entry and is printed into the
+ * check's own output. Left raw, a line break inside it starts a new line that
+ * reads as the check speaking, so every run of whitespace becomes one space.
+ * @param {unknown} reason The entry's `reason`
+ * @returns {string} The reason on one line; empty when there is none
+ */
+export function reasonInWords(reason) {
+  return typeof reason === "string" ? reason.replace(/\s+/gu, " ").trim() : "";
 }
 
 /**
@@ -512,10 +744,9 @@ export function describeAllowScope(entry) {
  */
 export function classifyAllowEntry(entry, now) {
   const scope = describeAllowScope(entry);
+  const reason = reasonInWords(entry.reason);
   const because =
-    typeof entry.reason === "string" && entry.reason.trim() !== ""
-      ? ` Reason on record: ${entry.reason.trim()}`
-      : " No reason is recorded.";
+    reason === "" ? " No reason is recorded." : ` Reason on record: ${reason}`;
   const expiresAt = allowEntryExpiry(entry.until);
   if (expiresAt === undefined) {
     const summary = `names no condition anything can evaluate (until = ${JSON.stringify(entry.until ?? null)})`;
@@ -533,7 +764,7 @@ export function classifyAllowEntry(entry, now) {
       state: ALLOW_STATE.EXPIRED,
       scope,
       summary,
-      detail: `${scope} ${summary} and no longer exempts anything. Delete it, or record a fresh human-approved entry naming the new condition.${because}`,
+      detail: `${scope} ${summary} and no longer exempts anything. Delete it, or record a fresh entry naming the new condition.${because}`,
     };
   }
   const summary = `is live until ${day}`;

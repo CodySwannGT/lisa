@@ -26,7 +26,7 @@ const opt = n => {
 const migration = argv.includes("--migration");
 const configPath = opt("--config");
 const { config } = loadConfig(configPath);
-const wikiRoot = path.resolve(opt("--wiki") ?? config?.wikiRoot ?? "wiki");
+const wikiRoot = path.resolve(opt("--wiki") ?? "wiki");
 
 const groups = { A: [], B: [], C: [], D: [], E: [], F: [], G: [] };
 const add = (g, id, status, message) => groups[g].push({ id, status, message });
@@ -76,7 +76,7 @@ add(
   config?.purpose ? "PASS" : "WARN",
   config?.purpose
     ? "purpose set"
-    : "purpose not set (asked by /setup; feeds onboarding + contract)"
+    : "purpose not set (asked by /setup; feeds the contract)"
 );
 
 // --- A/B. lint (structure -> A, everything else -> B) ---------------------
@@ -137,13 +137,13 @@ add(
   "E",
   "smoke",
   "SKIP",
-  "functional smoke tests (ingest/query/lint/onboard) performed by the lisa-wiki-doctor skill"
+  "functional smoke tests (ingest/query/lint) performed by the lisa-wiki-doctor skill"
 );
 add(
   "F",
-  "mode",
-  config?.mode ? "PASS" : "FAIL",
-  config?.mode ? `mode: ${config.mode}; wikiRoot resolves` : "mode not set"
+  "wiki-root",
+  fs.existsSync(wikiRoot) ? "PASS" : "FAIL",
+  fs.existsSync(wikiRoot) ? "wiki/ present in this repo" : "wiki/ not found"
 );
 add(
   "G",

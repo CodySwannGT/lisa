@@ -1,6 +1,6 @@
 ---
 name: lisa-linear-prd-intake
-description: "Scans a Linear workspace (or a specific team) for projects carrying the configured `ready` PRD label and runs the first eligible one through the dry-run validation pipeline. A project that passes every gate gets tickets written and the label flipped to the configured `ticketed` label; a project that fails gets clarifying-question comments (on the project itself, and on the relevant sub-issue where the failure anchors to one) and the label flipped to the configured `blocked` label. Linear counterpart of `lisa-notion-prd-intake` and `lisa-confluence-prd-intake` — the workflow is identical; only the source-of-truth tools differ. Composes existing skills (linear-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough)."
+description: "Run one cycle of Linear PRD intake: take the first ready PRD project, validate it, and either create its tickets and mark it ticketed or post clarifying questions and mark it blocked."
 allowed-tools: ["Skill", "Bash"]
 ---
 
@@ -241,7 +241,7 @@ Per-ticket gates prove each ticket is well-formed; they do NOT prove the *set* o
    | `COMPLETE` | Done. Leave label as `$TICKETED`. End the cycle. |
    | `COMPLETE_WITH_SCOPE_CREEP` | Post an advisory comment on the project naming the scope-creep tickets (so product can decide whether to close them as out-of-scope). Leave label as `$TICKETED`. |
    | `GAPS_FOUND` | The created ticket set is incomplete. (a) For each gap, post a comment using the same product-facing template as Phase 3c.3 — anchored on the relevant sub-issue when `prd_anchor` is non-null, on the project otherwise; category badge from the gap's `category` field; `What's unclear` and `Recommendation` from the audit report's `what` and `recommendation` fields. Apply the same forbidden-language rules from Phase 3c.5. (b) Post one summary comment on the project listing the tickets that *were* successfully created (so product knows what to keep vs. what to extend). (c) Transition labels from `$TICKETED` back to `$BLOCKED` via `save_project`. |
-   | `NO_TICKETS_FOUND` | Should not happen if step 2 succeeded. If it does, log it as an Error in the cycle summary and leave label as `$TICKETED` with a comment flagging the audit failure for human review. |
+   | `NO_TICKETS_FOUND` | Should not happen if step 2 succeeded. If it does, log it as an Error in the cycle summary and leave label as `$TICKETED` with a comment naming the audit failure. It means the audit or the write path is broken, so file it as one Lisa upstream ticket (`upstream-to-lisa`). The comment carries `<!-- lisa:coverage-audit-failed -->`, so rollup re-audits the PRD (3f.1a) before it can ship. |
 
 3. The created tickets remain in the destination tracker regardless of the verdict — they are valid in their own right. The audit only tells us whether *more* are needed.
 
@@ -258,6 +258,10 @@ There is no close/archive configuration at the shipped hop. Rollup sets `$SHIPPE
 ##### 3f.1 Idempotency guard (no-op if already shipped)
 
 Rollup is keyed by the PRD's current state. If the PRD project already carries `$SHIPPED`, it is a **no-op** — do not re-transition, do not archive, do not re-comment. Record it as `already shipped (no-op)` in the cycle summary and move on. This is what makes re-running intake safe.
+
+##### 3f.1a Coverage-audit guard (never ship an unaudited PRD)
+
+A PRD ships only after its coverage audit (Phase 3e) has succeeded. If the PRD's latest coverage-audit comment carries `<!-- lisa:coverage-audit-failed -->` with no later `<!-- lisa:coverage-audit-passed -->`, do not apply the terminal-state predicate yet. Re-run the audit first: invoke `lisa-prd-ticket-coverage` with the PRD URL and the generated top-level child set, read as 3f.2 describes. On `COMPLETE` or `COMPLETE_WITH_SCOPE_CREEP`, post a comment carrying `<!-- lisa:coverage-audit-passed -->` and continue to 3f.2. On `GAPS_FOUND`, handle it exactly as Phase 3e does. On `NO_TICKETS_FOUND` or an audit error, leave the PRD ticketed, add no new comment, and record `rollup held: coverage audit has not succeeded` in the cycle summary. All four intake skills share this guard.
 
 ##### 3f.2 Read the generated top-level child set
 

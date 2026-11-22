@@ -21,10 +21,11 @@ import { isAbsolute, resolve, sep } from "node:path";
 import {
   mergeConfigLayers as mergeLayers,
   parseLoopInterval,
+  sessionManagerWarnings,
   validateSessionManager,
 } from "../../lisa-secrets-access/scripts/validate-config.mjs";
 
-export { parseLoopInterval, validateSessionManager };
+export { parseLoopInterval, sessionManagerWarnings, validateSessionManager };
 export { detectRepoLayout, detectRepos, draftHints } from "./repo-detect.mjs";
 
 /**
@@ -49,12 +50,16 @@ export const SESSION_MANAGER_DEFAULTS = Object.freeze({
     noOutputMinutes: 60,
     maxAttempts: 3,
     requestionHours: 4,
+    orphanHours: 2,
   }),
   notify: Object.freeze({ provider: "none" }),
 });
 
 /** The `notify` choices `buildDefaultBlock` (and `init-config --notify`) take. */
 export const NOTIFY_CHOICES = Object.freeze(["none", "telegram"]);
+
+/** Notification level used when a project declares none. */
+export const DEFAULT_NOTIFY_LEVEL = "all";
 
 /**
  * The notification provider a resolved (or raw) block runs with.
@@ -73,8 +78,8 @@ export function notifyProvider(config) {
  * @typedef {{ maxWorkers: number, gbPerWorker: number, reserveGb: number,
  *   cpuFraction: number, maxLoadPerCore: number }} CapacityBlock
  * @typedef {{ noOutputMinutes: number, maxAttempts: number,
- *   requestionHours: number }} StallBlock
- * @typedef {{ provider: string, stateDir?: string }} NotifyBlock
+ *   requestionHours: number, orphanHours: number }} StallBlock
+ * @typedef {{ provider: string, level?: "all" | "asks-only", stateDir?: string }} NotifyBlock
  * @typedef {{
  *   name: string,
  *   interval: string,
@@ -83,6 +88,7 @@ export function notifyProvider(config) {
  *   stall: StallBlock,
  *   notify: NotifyBlock,
  *   trustedAuthorIds: string[] | null,
+ *   trustedReleaseIds?: string[] | null,
  *   operatorIds?: string[] | null,
  *   backlogPickup?: boolean,
  * }} SessionManagerConfig
@@ -139,10 +145,35 @@ export function resolveSessionManagerConfig(globalConfig, localConfig) {
     ...merged,
     repos,
     trustedAuthorIds: merged.trustedAuthorIds ?? null,
+    // Left as declared, like operatorIds: an explicit null must reach the
+    // validator and be refused, never read as "unset" and fall back (#4895).
+    trustedReleaseIds: merged.trustedReleaseIds,
     // Left as declared: absent stays undefined and an explicit null stays null,
     // so validation can refuse the null instead of reading it as "no operators".
     operatorIds: merged.operatorIds,
   };
+}
+
+/**
+ * Who may discharge a human gate: release a hold, or answer the manager's
+ * question on the item (CodySwannGT/lisa#4895).
+ *
+ * `trustedAuthorIds` answers a different question — whose item text may reach
+ * a bypass-permissions worker — and may name integrations, which are never a
+ * person. `trustedReleaseIds` separates the two; unset, it falls back to
+ * `trustedAuthorIds`, so a project that never declared it behaves exactly as
+ * before. Neither set means nobody, and a hold fails closed. A declared
+ * value that is not a list (an explicit null) also means nobody: it never
+ * falls back, so a malformed release list cannot widen who may release.
+ * @param {{ trustedAuthorIds?: string[] | null, trustedReleaseIds?: string[] | null } | null | undefined} config
+ *   - Resolved block (only its two trust lists are read)
+ * @returns {string[]} The configured release entries (unparsed)
+ */
+export function trustedReleaseEntries(config) {
+  const release = config?.trustedReleaseIds;
+  if (release !== undefined) return Array.isArray(release) ? release : [];
+  const authors = config?.trustedAuthorIds;
+  return Array.isArray(authors) ? authors : [];
 }
 
 /**

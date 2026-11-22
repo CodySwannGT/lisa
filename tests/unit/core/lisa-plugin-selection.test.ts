@@ -11,8 +11,8 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 /** Optional project config file that drives standalone plugin selection. */
 const CONFIG_FILE = ".lisa.config.json";
 
-/** Selection when nothing but the universal base plugin applies. */
-const BASE_ONLY = ["lisa"];
+/** Selection when no stack applies: base plus the default knowledge backend. */
+const BASE_ONLY = ["lisa", "lisa-wiki"];
 
 describe("core/lisa-plugin-selection", () => {
   let projectDir: string;
@@ -31,21 +31,36 @@ describe("core/lisa-plugin-selection", () => {
       "expo",
     ]);
 
-    expect([...selected]).toEqual(["lisa", "lisa-typescript", "lisa-expo"]);
+    expect([...selected]).toEqual([
+      "lisa",
+      "lisa-typescript",
+      "lisa-expo",
+      "lisa-wiki",
+    ]);
     const includes = projectPluginFilter(selected);
     expect(includes("lisa-rails")).toBe(false);
     expect(includes("lisa-harper-fabric")).toBe(false);
     expect(includes("lisa-expo-cursor")).toBe(false);
   });
 
-  it("selects standalone plugins only from explicit project state", async () => {
+  it("selects the knowledge plugin from the knowledge role and ignores retired keys", async () => {
     await fs.writeJson(path.join(projectDir, CONFIG_FILE), {
+      knowledge: "llm-wiki",
       openclaw: { defaultPlatform: "telegram" },
-      wiki: { source: { path: "wiki" } },
+      wiki: { source: { url: "git@example.com:org/wiki.git" } },
     });
 
     const selected = await selectProjectLisaPlugins(projectDir, []);
-    expect([...selected]).toEqual(["lisa", "lisa-openclaw", "lisa-wiki"]);
+    expect([...selected]).toEqual(["lisa", "lisa-wiki"]);
+  });
+
+  it("selects no knowledge plugin for an unrecognised backend", async () => {
+    await fs.writeJson(path.join(projectDir, CONFIG_FILE), {
+      knowledge: "something-else",
+    });
+
+    const selected = await selectProjectLisaPlugins(projectDir, []);
+    expect([...selected]).toEqual(["lisa"]);
   });
 
   it("degrades to no configured plugins when the config is absent or unreadable", async () => {
@@ -73,15 +88,5 @@ describe("core/lisa-plugin-selection", () => {
     expect([...(await selectProjectLisaPlugins(projectDir, []))]).toEqual(
       BASE_ONLY
     );
-  });
-
-  it("detects an existing local wiki without requiring config", async () => {
-    await fs.outputFile(
-      path.join(projectDir, "wiki", "lisa-wiki.config.json"),
-      "{}\n"
-    );
-
-    const selected = await selectProjectLisaPlugins(projectDir, []);
-    expect(selected.has("lisa-wiki")).toBe(true);
   });
 });

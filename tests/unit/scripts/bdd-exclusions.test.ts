@@ -20,7 +20,7 @@ import {
   runGate,
   runGateWrite,
   runReport,
-} from "./bdd/support";
+} from "./bdd/support.js";
 
 const UNDISCLOSED = "spec-undisclosed";
 const EXCLUSION_STALE = "exclusion-stale";

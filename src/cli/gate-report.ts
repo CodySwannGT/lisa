@@ -23,6 +23,7 @@ import * as path from "node:path";
 import { collectAgentHooks } from "./gate-report-agent-hooks.js";
 import {
   buildRow,
+  groupResolvedGates,
   invertJobTable,
   type ResolvedMoment,
 } from "./gate-report-assemble.js";
@@ -45,7 +46,6 @@ import {
 import {
   loadGateRegistry,
   type GateRegistryModule,
-  type ResolvedGate,
 } from "./gate-report-registry.js";
 import {
   buildDeclarationDrift,
@@ -141,7 +141,7 @@ async function readScripts(
  * @param gates - The gates block
  * @returns The axis, fixed moments first, then declared family moments sorted
  */
-export function momentAxis(
+function momentAxis(
   registry: GateRegistryModule,
   gates: Record<string, unknown>
 ): string[] {
@@ -176,7 +176,7 @@ function resolveOneMoment(
   runner: string,
   moment: string,
   scripts: Readonly<Record<string, string>> | null
-): { resolved: Map<string, ResolvedGate> | null; failure: string | null } {
+): Pick<ResolvedMoment, "resolved" | "failure"> {
   try {
     const entries = registry.resolveMoment({
       gates,
@@ -185,10 +185,7 @@ function resolveOneMoment(
       includeOff: true,
       scripts,
     });
-    return {
-      resolved: new Map(entries.map(entry => [entry.id, entry])),
-      failure: null,
-    };
+    return { resolved: groupResolvedGates(entries), failure: null };
   } catch (error) {
     return {
       resolved: null,

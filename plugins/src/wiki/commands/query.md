@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Answer a question from the LLM Wiki with citations. Reads the index, drills into relevant pages, and synthesizes a cited answer. Read-only by default; files new synthesis back only when explicitly asked."
 argument-hint: "<question>"
 ---

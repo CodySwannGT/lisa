@@ -332,6 +332,42 @@ describe("linear-graphql.sh sends a request without exposing the key", () => {
     expect(result.stdout).toContain("Entity not found");
     expectKeyNeverPrinted(result);
   });
+
+  it.each(['{"ok":true}', '{"data":null}'])(
+    "refuses a successful HTTP response without GraphQL data: %s",
+    response => {
+      const tree = buildTree();
+      const query = writeQuery(tree, QUERY);
+      const result = run(tree, [QUERY_FLAG, query], {
+        env: {
+          LINEAR_API_KEY: SENTINEL,
+          STUB_TEAMS: "ENG",
+          STUB_RESPONSE: response,
+        },
+      });
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("no GraphQL data");
+      expectKeyNeverPrinted(result);
+    }
+  );
+
+  it("discards a response that reflects the authorization value", () => {
+    const tree = buildTree();
+    const query = writeQuery(tree, QUERY);
+    const result = run(tree, [QUERY_FLAG, query], {
+      env: {
+        LINEAR_API_KEY: SENTINEL,
+        STUB_TEAMS: "ENG",
+        STUB_RESPONSE: JSON.stringify({ data: { echoed: SENTINEL } }),
+      },
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("Output discarded");
+    expectKeyNeverPrinted(result);
+  });
 });
 
 describe("linear-graphql.sh keeps identity-match mandatory", () => {

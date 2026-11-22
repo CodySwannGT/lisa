@@ -1,6 +1,6 @@
 ---
 name: lisa-jira-write-ticket
-description: "Creates or updates a JIRA ticket following organizational best practices. Enforces description quality (coding assistant / developer / stakeholder sections), Gherkin acceptance criteria, epic parent relationship, explicit link discovery (blocks / is blocked by / relates to / duplicates / clones), remote links (PRs, Confluence, dashboards), labels, components, fix version, priority, story points, and Validation Journey. Rejects thin tickets — use this skill any time a ticket is created or significantly edited."
+description: "Create or update a JIRA ticket to the organization's standards: description sections, Gherkin criteria, epic parent, links, labels, components, estimates, and Validation Journey. Use whenever a ticket is created or significantly edited."
 allowed-tools: ["Bash", "Skill"]
 ---
 
@@ -78,11 +78,11 @@ Resolve the active Atlassian site via `lisa-atlassian-access` `operation: list-s
 
 ## Phase 2 — Gather Required Inputs
 
-Required fields (stop and ask if missing — do not invent values):
+Required fields. Derive a missing one from config, the caller's spec and the evidence, and record any default you choose; do not invent a value nothing grounds. If one still cannot be grounded, refuse the write naming the field, so the caller's blocked exit carries it — do not stop to ask a person:
 
 | Field | Required For | Notes |
 |-------|--------------|-------|
-| Project key | CREATE | Resolve from `.lisa.config.json` (`jira.project`); ask the human if not configured |
+| Project key | CREATE | Resolve from `.lisa.config.json` (`jira.project`); if not configured, pick it from the evidence (the projects `lisa-atlassian-access` can reach, the keys this repo's history and linked tickets use) and record the choice. Stop only when Jira is unreachable, naming the missing access |
 | Issue type | CREATE | Story, Task, Bug, Epic, Spike, Sub-task, Improvement |
 | Summary | CREATE, UPDATE | One line, imperative voice, under 100 chars |
 | Description | CREATE, UPDATE | Multi-section — see Phase 3 |
@@ -152,7 +152,11 @@ h2. Target Backend Environment
  `runtime_behavior_change` is persisted, and an absent section reads as
  *underivable*, not exempt. Work that changes no runtime behavior declares the
  exemption in place of an environment: `None — no runtime behavior change:
- doc-only` (or `config-only` / `type-only`). An Epic/container declares
+ <reason>`, where `<reason>` is exactly one of the closed set
+ `doc-only | config-only | type-only | test-only`, as plain text, and is the
+ entire section content — nothing follows it in the section (the set
+ is shared with `NO_RUNTIME_REASONS` in `scripts/lib/completion-proof-shape.mjs`;
+ any other reason fails S8 and would be refused at completion). An Epic/container declares
  `None — container: state rolls up from children`. Visible prose, not an HTML
  comment, for the same reason the Branch Plan provenance line is: JIRA's ADF has
  no comment node. See the `derived-branch-plan` rule.]
@@ -160,7 +164,7 @@ h2. Target Backend Environment
 h2. Branch Plan
 [GENERATED, never hand-authored. Render only when the ticket has a Target
  Backend Environment; omit entirely when `runtime_behavior_change = false`
- (doc-only / config-only / type-only) or for an Epic/container — absence is
+ (doc-only / config-only / type-only / test-only) or for an Epic/container — absence is
  correct there. Derive per the `derived-branch-plan` rule: resolve the
  environment, map it forward through `.lisa.config.json` `deploy.branches`,
  and prove the branch exists on the remote. Do not accept caller-supplied
@@ -187,7 +191,7 @@ list multiple repos.]
 
 h2. Validation Journey
 [Delegate to /jira-add-journey if the ticket changes runtime behavior.
- Skip only for doc-only, config-only, or type-only tickets. Cross-work-item
+ Skip only for doc-only, config-only, type-only, or test-only tickets. Cross-work-item
  evidence pointers use `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]`;
  they never replace this ticket's local S14 marker.]
 ```
@@ -214,7 +218,7 @@ If the ticket is not a Bug and not an Epic, it MUST have an epic parent:
    project = <PROJECT> AND issuetype = Epic AND statusCategory != Done
    ```
    via `lisa-atlassian-access` `operation: search-issues jql: "<query>"`. Match on keywords from the summary and description.
-3. If no epic matches, stop and ask the human to create or pick one. Do NOT orphan the ticket.
+3. If no epic matches exactly, pick or create it yourself from the evidence: use the active epic the summary, description and linked work fit best, or, when none fits, create a new epic (this skill, `issue_type: Epic`) scoped to the work. Record the choice and why in the ticket description so a person can re-parent it later. Do NOT orphan the ticket.
 
 ### 4b. Related Tickets
 
@@ -311,7 +315,7 @@ Before create/update, verify each field is populated where applicable:
 
 **A filing with neither is an incomplete handoff.** A leaf that is not build-ready must carry an explicit `human_gate: "<the act a person must perform>"`; nothing in the ready status means nothing ever claims it. When `human_gate` is supplied, stamp the hold on the ticket so it is auditable — after the check below.
 
-**Validate the gate before stamping it.** A `human_gate` is for an act an agent cannot perform — a credential only a person holds, spend, an external account, a legal or compliance sign-off, naming an accountable person, acting in a system the agent cannot reach, or a decision class the project declared human-only (`humanGate.humanOnly`). A choice with a reasonable default is a decision, not a gate (`ready-role-filing`, "What a human gate is"). Run the check on the reason:
+**Validate the gate before stamping it.** A `human_gate` is for an act an agent cannot perform — an access act: `credential` (complete a login or supply a credential only a person holds), `spend`, `external-account`, `legal-signoff` (sign a legal agreement on the company's behalf), `person-only-account` (a protected deployment, a required reviewer, an account only a person holds), `unreachable-system`, or `operator-hold` (a hold the operator explicitly asked for); `human-authored-surface` (an edit to a surface declared human-authored, which no agent writes: an authorship rule, valid in both modes); `own-dependency-copy` (approve maintaining our own fork, patch or vendored copy of an open-source library, the last rung of the `lisa-security-audit-handling` ladder, valid in both modes); or a decision class the project declared human-only (`humanGate.humanOnly`). Under `humanGate.mode: "strict"` the strict-only acts `compliance-signoff`, `accountable-person` and `lisa-policy` also count. A choice with a reasonable default is a decision, not a gate (`ready-role-filing`, "What a human gate is"). Run the check on the reason:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT:-node_modules/@codyswann/lisa/plugins/lisa}/scripts/human-gate-act.mjs" check --reason "<the human_gate reason>"
@@ -356,7 +360,7 @@ The validator is the **single source of truth** for what makes a valid ticket. T
 
 If the validator reports `FAIL`:
 - Surface the failure list and the per-gate remediation to the user.
-- Do NOT proceed to Phase 6. Fix the spec (or stop and ask the human) and re-run validation.
+- Do NOT proceed to Phase 6. Fix the spec yourself from the evidence and re-run validation; stop only when a fix needs access you lack, and name that access.
 - Never invoke `lisa-atlassian-access` with `operation: write-ticket` while the validator's verdict is FAIL.
 
 If the validator reports `PASS`, continue to Phase 6.
@@ -440,7 +444,7 @@ searching the repository you happen to be standing in is the wrong search.
 - Never skip relationship discovery — both the git history search AND the JQL search must run, and their outcomes must be recorded on the ticket. "None found" is acceptable only when it's documented.
 - Never create a Bug, Task, Sub-task, or Improvement that spans multiple repos. Split it before creating.
 - Never include a runtime-behavior ticket without a target backend environment, and never include an authenticated-surface ticket without sign-in credentials in the description.
-- Never invent custom field values. If the project requires a field you don't have, stop and ask.
+- Never invent custom field values. If the project requires a field you don't have, use its configured default or the value the item's evidence grounds; otherwise refuse the write naming the field.
 - Never overwrite a description without reading the current version first.
 - Preserve an existing canonical `## Lisa Usage` section on update; never append a second usage
   section or silently drop ledger rows.

@@ -74,8 +74,33 @@ Each direct usage entry records one logical Lisa run or sub-run on one artifact.
 | `currency` | ISO currency code when `cost` is known, otherwise `null`. |
 | `pricing_status` | `observed`, `estimated`, `missing`, or `unavailable`. |
 | `pricing_source` | Runtime billing source, config/pricing snapshot ref, or `null`. |
-| `artifact_ref` | Canonical ref of the artifact carrying the entry. |
+| `artifact_ref` | Canonical ref of the artifact carrying the entry, in the per-provider grammar below. |
 | `parent_artifact_ref` | Canonical parent artifact ref when the entry is attached below a parent, otherwise empty. |
+
+### `artifact_ref` grammar
+
+The completion proof finds a work item's Verify entry by its `artifact_ref`. Writers are required
+to produce exactly one form per provider:
+
+| Provider | Form | Example |
+|---|---|---|
+| GitHub | `github:<owner>/<repo>#<N>` | `github:acme/code#42` |
+| Linear | `linear:<workspace>/<KEY-N>` | `linear:acme/ENG-11` |
+| Jira | bare `<KEY-N>` | `ENG-11` |
+
+The reader is a little more tolerant than the writer: it also accepts a bare `<KEY-N>` for Linear
+(and `<owner>/<repo>#<N>` or the issue URL for GitHub). It never accepts a short `linear:<KEY-N>`,
+and it compares case-sensitively against the uppercase issue identifier.
+
+The Linear `<workspace>` must equal the `linear.workspace` key in `.lisa.config.json` exactly,
+including case. The writer checks only the shape, not the value: it cannot see the config. The
+writer (`renderLisaUsageEntryToken`, `renderLisaUsageSection`, `upsertLisaUsageSection`) refuses a
+short `linear:<KEY-N>`, a lowercase key, a workspace containing `/` or whitespace, or any other
+`linear:` ref that is not `linear:<workspace>/<KEY-N>`, with an error naming the required form: the
+reader would otherwise reject that entry later as absent. Refs for other providers are written
+unchanged. `renderLisaUsageSection` validates every entry it is given; `upsertLisaUsageSection`
+validates only new entries, so a legacy short-form row already stored in a section is preserved on
+rewrite, and upserting the qualified entry with the same `entry_id` repairs it.
 
 `entry_id` must be stable across rewrites of the same logical run. Rewriting an existing entry with the same `entry_id` updates it in place. A different run gets a different `entry_id` and is appended as a new direct entry.
 
@@ -135,6 +160,9 @@ extension. Writers serialize an omitted value as `null` instead of `undefined`:
 ```text
 <!-- lisa:usage-entry-measured-subset entry_id=<id> measured_subset_tokens=<n|null> -->
 ```
+
+`artifact_ref=<ref>` carries the percent-encoded ref in the grammar above, for example
+`artifact_ref=linear%3Aacme%2FENG-11`.
 
 The primary field order is fixed and deliberately matches the pre-measured-subset contract so
 legacy 17-field readers continue to enumerate entries. Current readers correlate the extension by
@@ -222,10 +250,18 @@ fail loudly; it must never report success over an unreadable ledger.
   same section.
 - Every parseable direct entry in the section appears in the rollup's `direct_entry_ids`.
 - Every entry the caller just wrote is parseable from the stored surface.
+- The `artifact_ref` of every entry the caller just wrote (every entry when no ids are given)
+  uses the grammar the completion proof recognises: a Linear ref must be
+  `linear:<workspace>/<KEY-N>`. A hand-written token never passes through the writer, so read-back
+  is where a short `linear:<KEY-N>` is caught.
 
 `verifyLisaUsageSectionIntegrity` in the shared utility layer implements exactly these checks and
 returns structured issue codes (`missing-section`, `missing-entry-token`, `missing-rollup-token`,
-`unrecorded-entry`). Callers run it against the read-back body, not against the payload they sent.
+`unrecorded-entry`, `non-canonical-artifact-ref`). Callers run it against the read-back body, not
+against the payload they sent. The writer and read-back take the `artifact_ref` grammar from one
+shared module, `scripts/lib/usage-artifact-ref.mjs`. The completion proof treats
+`non-canonical-artifact-ref` as non-fatal and instead refuses the specific Verify entry by its own
+grammar.
 
 ## Rollup and dedupe behavior
 

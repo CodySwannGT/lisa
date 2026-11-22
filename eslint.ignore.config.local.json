@@ -1,0 +1,16 @@
+{
+  "//": "Lisa's own ESLint ignores, read by BOTH eslint.config.ts and eslint.slow.config.ts, and mirrored exactly by tsconfig.eslint.json's `exclude` (tests/unit/config/tsconfig-eslint-programs.test.ts fails if they diverge) (CodySwannGT/lisa#4927). In a host this file is project-owned and create-only; Lisa never applies its templates to its own root, so here it is Lisa's. all/, cdk/, expo/, harper-fabric/, nestjs/, npm-package/, phaser/ and typescript/ are stack template trees copied into host projects: their configs import host-only siblings (./eslint.config.local, ./vitest.thresholds.json), so they have no resolvable types here, and each stack's eslint.config.ts is linted in a real host layout by tests/unit/config/eslint-shipped-config-templates.test.ts. plugins/ is generated build output (a lint --fix there would desync it from plugins/src and break check:plugins). wiki/ is LLM Wiki content, not app code. src/opencode/plugin-templates/ is copied verbatim into a host's .opencode/plugin/ and runs under OpenCode's Bun runtime with Bun globals, not this repo's runtime.",
+  "ignores": [
+    "all/**",
+    "cdk/**",
+    "expo/**",
+    "harper-fabric/**",
+    "nestjs/**",
+    "npm-package/**",
+    "phaser/**",
+    "plugins/**",
+    "typescript/**",
+    "wiki/**",
+    "src/opencode/plugin-templates/**"
+  ]
+}

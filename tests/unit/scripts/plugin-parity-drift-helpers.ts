@@ -13,11 +13,7 @@ import process from "node:process";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 export const REPO_ROOT = path.resolve(__dirname, "../../..");
-export const SCRIPT = path.join(
-  REPO_ROOT,
-  "scripts",
-  "plugin-parity-drift.mjs"
-);
+const SCRIPT = path.join(REPO_ROOT, "scripts", "plugin-parity-drift.mjs");
 export const CACHE_ROOT = path.join(REPO_ROOT, "parity/fixtures/drift/cache");
 export const SKILLS_ROOT = path.join(REPO_ROOT, "parity/fixtures/drift/skills");
 export const STALE_SKILL = path.join(SKILLS_ROOT, "code-simplifier/SKILL.md");

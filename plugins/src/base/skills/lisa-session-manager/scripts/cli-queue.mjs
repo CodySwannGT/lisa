@@ -14,6 +14,16 @@
  * (open leaves in no lifecycle role) as `backlogOrdered`, under the same
  * paging rule. The manager walks it only after the whole Ready queue.
  *
+ * Both tiers leave out items routed to a repo with a recorded setup gap
+ * (#4820) and list every gap once as `setupGaps`, with the command that
+ * clears it, so the manager reports it in plain language instead of
+ * re-dispatching there every cycle. They also leave out an item owed a
+ * stale-link restore (`restore-owed`, CodySwannGT/lisa#5065): a blocker link
+ * put back after its blocker reopened, not yet read back present, so the
+ * item would otherwise look unblocked while that blocker is open. An item
+ * whose stale-link removals ran but were never read back is held the same
+ * way (`removal-unverified`): its blocker may have reopened since.
+ *
  * The GitHub fetches live in queue-github.mjs and JSON input in
  * json-input.mjs (re-exported here), to keep each module under the line
  * budget.
@@ -33,9 +43,16 @@ import {
   loadProject,
   validOrAbsent,
 } from "./cli-runtime.mjs";
+import { resolveHumanGatePolicy } from "../../../scripts/human-gate-act.mjs";
+import {
+  landedDoneRoles,
+  terminalDoneRoles,
+} from "../../../scripts/stale-blocker-edges.mjs";
 import { readJsonFile } from "./json-input.mjs";
 import { readLedger } from "./ledger.mjs";
+import { blockingGapRepo, listSetupGaps } from "./ledger-setup-gaps.mjs";
 import { fetchGithubBacklog, fetchGithubQueue } from "./queue-github.mjs";
+import { readInFlight, readRestores } from "./stale-links-state.mjs";
 
 export { parseJson, readJsonFile } from "./json-input.mjs";
 
@@ -46,15 +63,17 @@ const NORMALIZERS = { jira: normalizeJiraIssue, linear: normalizeLinearIssue };
  * @param {unknown} envelope - `{complete, pages, items}`
  * @param {string} where - Where it came from, for messages
  * @param {"jira"|"linear"} tracker - Vendor
+ * @param {readonly string[]} doneRoles - Configured terminal done names, so
+ *   a blocker there counts as finished (#5065)
  * @returns {{ items: object[], pages: unknown }} Normalized items
  */
-function normalizeEnvelope(envelope, where, tracker) {
+function normalizeEnvelope(envelope, where, tracker, judging) {
   asSetupError(() => assertPagedToCompletion(envelope));
   if (!Array.isArray(envelope.items)) {
     throw new CliError(`${where}: items must be an array.`, 2);
   }
   return {
-    items: envelope.items.map(NORMALIZERS[tracker]),
+    items: envelope.items.map(item => NORMALIZERS[tracker](item, judging)),
     pages: envelope.pages ?? null,
   };
 }
@@ -66,15 +85,21 @@ function normalizeEnvelope(envelope, where, tracker) {
  * @param {object} ctx - CLI context
  * @param {"jira"|"linear"} tracker - Vendor
  * @param {boolean} withBacklog - Whether the backlog tier is required
+ * @param {ReturnType<typeof loadProject>} project - Loaded project
  * @returns {{ items: object[], pages: unknown, backlog: { items: object[], pages: unknown } | null }} Normalized items
  */
-function readEnvelopeQueue(ctx, tracker, withBacklog) {
+function readEnvelopeQueue(ctx, tracker, withBacklog, project) {
   const file = ctx.values.input;
   if (!file) {
     throw new CliError(`queue --tracker ${tracker} needs --input <file>.`, 2);
   }
   const envelope = readJsonFile(file);
-  const ready = normalizeEnvelope(envelope, file, tracker);
+  const config = { tracker, global: project.global, local: project.local };
+  const judging = {
+    doneRoles: terminalDoneRoles(config),
+    landedRoles: landedDoneRoles(config),
+  };
+  const ready = normalizeEnvelope(envelope, file, tracker, judging);
   if (!withBacklog) return { ...ready, backlog: null };
   if (!envelope.backlog) {
     throw new CliError(
@@ -86,7 +111,12 @@ function readEnvelopeQueue(ctx, tracker, withBacklog) {
   }
   return {
     ...ready,
-    backlog: normalizeEnvelope(envelope.backlog, `${file} backlog`, tracker),
+    backlog: normalizeEnvelope(
+      envelope.backlog,
+      `${file} backlog`,
+      tracker,
+      judging
+    ),
   };
 }
 
@@ -125,6 +155,72 @@ function withoutPending(order, waiting) {
 }
 
 /**
+ * Move items held by the stale-link state out of `ordered` into `excluded`:
+ * `restore-owed` until `stale-links-restored` reads their put-back links
+ * present, and `removal-unverified` until `stale-links-verify` reads back a
+ * removal whose read-back failed. Only those items wait; every other item
+ * still dispatches.
+ * @param {{ordered: {ref: string}[], excluded: {ref: string, reason: string}[]}} order - Ordered tier
+ * @param {Map<string, string>} held - Lower-cased ref -> reason
+ * @returns {{ordered: {ref: string}[], excluded: {ref: string, reason: string}[]}} Filtered tier
+ */
+function withoutStaleLinkHolds(order, held) {
+  const reasonOf = item => held.get(String(item.ref).toLowerCase());
+  return {
+    ...order,
+    ordered: order.ordered.filter(item => reasonOf(item) === undefined),
+    excluded: [
+      ...order.excluded,
+      ...order.ordered
+        .filter(item => reasonOf(item) !== undefined)
+        .map(item => ({ ref: item.ref, reason: reasonOf(item) })),
+    ],
+  };
+}
+
+/**
+ * The items the stale-link state holds, by lower-cased ref.
+ * @param {string} root - Project root
+ * @returns {Map<string, string>} Ref -> reason
+ */
+function staleLinkHolds(root) {
+  const key = ref => ref.toLowerCase();
+  return new Map([
+    ...Object.keys(readInFlight(root)).map(ref => [
+      key(ref),
+      "removal-unverified",
+    ]),
+    ...Object.keys(readRestores(root)).map(ref => [key(ref), "restore-owed"]),
+  ]);
+}
+
+/**
+ * Move items routed to a repo with a recorded setup gap out of `ordered` into
+ * `excluded` with reason `setup-gap:<repo>` (#4820). Retrying cannot fix a
+ * setup gap, so dispatching there would only fail the same way every cycle.
+ * @param {{ordered: {ref: string, repoLabels?: string[]}[], excluded: {ref: string, reason: string}[]}} order - Ordered tier
+ * @param {Record<string, object>} gaps - `control.setupGaps`
+ * @param {boolean} multiRepo - Whether `sessionManager.repos` is set
+ * @returns {{ordered: {ref: string}[], excluded: {ref: string, reason: string}[]}} Filtered tier
+ */
+function withoutSetupGaps(order, gaps, multiRepo) {
+  const blocked = order.ordered.map(item => ({
+    item,
+    repo: blockingGapRepo(item, gaps, multiRepo),
+  }));
+  return {
+    ...order,
+    ordered: blocked.filter(row => row.repo === null).map(row => row.item),
+    excluded: [
+      ...order.excluded,
+      ...blocked
+        .filter(row => row.repo !== null)
+        .map(row => ({ ref: row.item.ref, reason: `setup-gap:${row.repo}` })),
+    ],
+  };
+}
+
+/**
  * `queue --tracker <github|jira|linear>`: the Ready queue, the operator's
  * items first (`sessionManager.operatorIds`), then mine, then unassigned.
  * @param {object} ctx - CLI context
@@ -132,7 +228,7 @@ function withoutPending(order, waiting) {
  * ordered the same way and always dispatched after every Ready item.
  * @param {object} ctx - CLI context
  * @returns {Promise<{ json: object }>}
- *   `{tracker,me,operators,total,pages,ordered,excluded,backlogPickup[,
+ *   `{tracker,me,operators,total,pages,ordered,excluded,setupGaps,backlogPickup[,
  *   backlogTotal,backlogPages,backlogOrdered,backlogExcluded]}`
  */
 export async function queue(ctx) {
@@ -149,18 +245,33 @@ export async function queue(ctx) {
           ...fetchGithubQueue(ctx, project),
           backlog: backlogPickup ? fetchGithubBacklog(ctx, project) : null,
         }
-      : readEnvelopeQueue(ctx, tracker, backlogPickup);
+      : readEnvelopeQueue(ctx, tracker, backlogPickup, project);
   const ledger = await readLedger(ctx.root);
   const me = ctx.values.me ?? ledger.control.me ?? null;
   const operators = config?.operatorIds ?? [];
+  // Resolved local-then-global like `human-gate-act.mjs policy`, so a hold
+  // the project's mode keeps is never dispatched as Ready work (#4687).
+  const gatePolicy = resolveHumanGatePolicy(project.local, project.global);
   const policy = {
     me,
     operators,
     trustedAuthorIds: config?.trustedAuthorIds ?? undefined,
     humanNeededLabel: humanNeededLabel(project, tracker),
+    humanOnly: gatePolicy.humanOnly,
+    humanGateMode: gatePolicy.mode,
   };
   const waiting = pendingRefs(ledger);
-  const order = withoutPending(orderReadyQueue(items, policy), waiting);
+  const gaps = ledger.control.setupGaps;
+  const multiRepo = Boolean(config?.repos);
+  const held = staleLinkHolds(ctx.root);
+  const order = withoutStaleLinkHolds(
+    withoutSetupGaps(
+      withoutPending(orderReadyQueue(items, policy), waiting),
+      gaps,
+      multiRepo
+    ),
+    held
+  );
   const json = {
     tracker,
     me,
@@ -168,18 +279,26 @@ export async function queue(ctx) {
     total: items.length,
     pages,
     ...order,
+    setupGaps: listSetupGaps(ledger),
     backlogPickup,
   };
   if (!backlog) return { json };
   // An item both Ready and in the backlog fetch is Ready work; never twice.
   const readyRefs = new Set(items.map(item => item.ref));
   const backlogItems = backlog.items.filter(item => !readyRefs.has(item.ref));
-  const tier = withoutPending(
-    orderBacklogQueue(backlogItems, {
-      ...policy,
-      validationFailures: ledger.validationFailures,
-    }),
-    waiting
+  const tier = withoutStaleLinkHolds(
+    withoutSetupGaps(
+      withoutPending(
+        orderBacklogQueue(backlogItems, {
+          ...policy,
+          validationFailures: ledger.validationFailures,
+        }),
+        waiting
+      ),
+      gaps,
+      multiRepo
+    ),
+    held
   );
   return {
     json: {

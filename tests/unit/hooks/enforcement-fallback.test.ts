@@ -1,8 +1,8 @@
 /**
  * Enforcement must survive a container that has no Lisa plugin.
  *
- * Every `PreToolUse` guard — `block-no-verify`, `parity-safety-net`,
- * `block-shell-json-parsing` — is declared in the Lisa plugin. A cloud session
+ * Every `PreToolUse` guard — `block-no-verify`, `block-shell-json-parsing`,
+ * `block-instruction-file-edits` and the rest — is declared in the Lisa plugin. A cloud session
  * installs plugins at session start from the marketplace the repository
  * declares, and when that does not happen the container runs with
  * `installed_plugins.json` empty and no enforcement whatsoever.

@@ -16,7 +16,7 @@ export const HOUR = 60 * MINUTE;
 export const REPO_A_DIR = "/work/repo-a";
 
 /** The session kind `claude --bg` creates. */
-export const BACKGROUND = "background";
+const BACKGROUND = "background";
 
 /** The running worker's full session id. */
 export const LIVE_SESSION_ID = "11111111-1111-4111-8111-111111111111";

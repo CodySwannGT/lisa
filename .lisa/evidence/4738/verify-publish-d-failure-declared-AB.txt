@@ -1,0 +1,18 @@
+=== d-failure-verdict-declared-AB ===
+$ cd /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738/hostAB && cat .lisa.config.json
+{"gates":{"review-a":{"pull-request":{"level":"required","await":"ReviewerA","evidence":{"reviewer":true}}},"review-b":{"pull-request":{"level":"required","await":"ReviewerB","evidence":{"reviewer":true}}}}}
+
+$ cat /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738/verdict-fail.json
+{"outcome":"unsatisfied","sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","readings":[{"context":"ReviewerA","reviewed":false,"reading":"hollow"}]}
+$ (cd /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738/hostAB && PATH=<shim>:$PATH node /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/all/copy-overwrite/scripts/check-third-party-review-evidence.mjs --publish=/Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738/verdict-fail.json --prover-exit=1 --sha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --context=ReviewerA --repo=CodySwannGT/lisa)
+UNSATISFIED at aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  NOT REVIEWED ReviewerA (hollow): ? — undefined
+    observed: undefined
+    NOTHING stands in its place
+Published "🕵️ Third-party review evidence (ReviewerA)" on aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: failure.
+Published "🕵️ Third-party review evidence (ReviewerB)" on aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: failure.
+exit=0
+--- gh shim log (every POST the prover made) ---
+gh-shim args=[api repos/CodySwannGT/lisa/check-runs --method POST --input -] body={"name":"🕵️ Third-party review evidence (ReviewerA)","conclusion":"failure","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+gh-shim args=[api repos/CodySwannGT/lisa/check-runs --method POST --input -] body={"name":"🕵️ Third-party review evidence (ReviewerB)","conclusion":"failure","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+check-run POST count: 2

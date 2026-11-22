@@ -114,9 +114,7 @@ If the type label is missing, read the body to classify and surface the missing 
 
 ### 5. Delegate to Flow
 
-Hand off to the appropriate flow by invoking its lifecycle skill via the Skill tool — `lisa-implement` for Build / Fix / Improve / Investigate-Only, `lisa-plan` for Plan (Epics) — passing the full issue context (body, acceptance criteria, credentials, reproduction steps). The lifecycle skill owns orchestration: invoked from the lead session, its preamble assembles the per-item agent team (input-resolver, Roster Decision, specialist fanout) as defined in the `intent-routing` rule.
-
-If this workflow is executing inside a spawned subagent or teammate (it should instead run in-session in the lead — see `lisa-github-build-intake` Phase 3c), do NOT run the flow inline and do NOT spawn named teammates: return a structured flow-request (flow, work type, context bundle) to your caller so the lead session can invoke the lifecycle skill with full team authority.
+Hand off to the appropriate flow by invoking its lifecycle skill via the Skill tool — `lisa-implement` for Build / Fix / Improve / Investigate-Only, `lisa-plan` for Plan (Epics) — passing the full issue context (body, acceptance criteria, credentials, reproduction steps). The lifecycle skill owns the rest of the flow.
 
 ### 6. Sync Progress at Milestones
 
@@ -129,7 +127,7 @@ Use the `github-sync` skill to update the issue at these milestones:
 ### 7. Post Evidence at Completion
 
 Use the `github-evidence` skill to:
-- Upload verification evidence to the GitHub `pr-assets` release (in the implementation repo)
+- Upload verification evidence to the configured evidence release (`node scripts/lisa-work-item.mjs evidence-release --ensure` prints it; default `pr-assets`), in the implementation repo
 - Update the PR description's `## Evidence` section
 - Post a comment on the originating issue with the evidence summary
 

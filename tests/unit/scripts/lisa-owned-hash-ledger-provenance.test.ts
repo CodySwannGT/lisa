@@ -128,23 +128,21 @@ function write(root: string, relative: string, contents: string): void {
 /**
  * Read the generated ledger out of a fixture.
  * @param root - Fixture repository path
- * @returns Module source
+ * @returns Ledger JSON text
  */
 function readLedger(root: string): string {
   return readFileSync(path.join(root, LEDGER_RELATIVE_PATH), "utf8");
 }
 
 /**
- * The entries of one exported record, as raw source.
- * @param source - Module source
- * @param name - Exported constant name
- * @returns The declaration's text
+ * One named record of the ledger, as text a case can search.
+ * @param source - Ledger JSON text
+ * @param name - Record name
+ * @returns The record's JSON, or an empty string when it is absent
  */
 function section(source: string, name: string): string {
-  const start = source.indexOf(`export const ${name}`);
-  return start === -1
-    ? ""
-    : source.slice(start, source.indexOf("\n});", start));
+  const record = (JSON.parse(source) as Record<string, unknown>)[name];
+  return record === undefined ? "" : JSON.stringify(record);
 }
 
 /**
@@ -210,33 +208,26 @@ function check(root: string): { code: number; out: string; err: string } {
 }
 
 /**
- * One `"destination": Object.freeze([...])` record, written out literally.
- * @param name - Exported constant name
+ * One `"destination": [...]` record, written out literally.
  * @param entries - Digests recorded per destination
- * @returns Declaration source
+ * @returns The record's JSON body, without its name
  */
-function recordDeclaration(
-  name: string,
+function recordJson(
   entries: readonly (readonly [string, readonly string[]])[]
 ): string {
   const body = entries
     .map(
       ([destination, hashes]) =>
-        `  ${JSON.stringify(destination)}: Object.freeze([\n${hashes
-          .map(hash => `    "${hash}",`)
-          .join("\n")}\n  ]),`
+        `    ${JSON.stringify(destination)}: [\n${hashes
+          .map(hash => `      "${hash}"`)
+          .join(",\n")}\n    ]`
     )
-    .join("\n");
-  return `export const ${name}: Readonly<
-  Record<string, readonly string[]>
-> = Object.freeze({
-${body}
-});
-`;
+    .join(",\n");
+  return entries.length === 0 ? "{}" : `{\n${body}\n  }`;
 }
 
 /**
- * A hand-built ledger module, so a case can put the file in a state the
+ * A hand-built ledger file, so a case can put the file in a state the
  * generator would never produce.
  *
  * Spelled out here rather than produced by the generator's own `render`: a
@@ -244,7 +235,7 @@ ${body}
  * and would keep agreeing with it after a change to either one.
  * @param ledger - Digests recorded per destination
  * @param historyDerived - Digests attested per destination, omitted entirely when undefined
- * @returns Module source
+ * @returns Ledger JSON text
  */
 function ledgerModule(
   ledger: readonly (readonly [string, readonly string[]])[],
@@ -254,9 +245,8 @@ function ledgerModule(
   const provenance =
     historyDerived === undefined
       ? ""
-      : `\n${recordDeclaration(HISTORY_EXPORT, historyDerived)}`;
-  return `/** Generated. Do not edit. */
-${recordDeclaration(LEDGER_EXPORT, ledger)}${provenance}`;
+      : `,\n  ${JSON.stringify(HISTORY_EXPORT)}: ${recordJson(historyDerived)}`;
+  return `{\n  ${JSON.stringify(LEDGER_EXPORT)}: ${recordJson(ledger)}${provenance}\n}\n`;
 }
 
 describe("Lisa-owned hash ledger digest provenance", () => {

@@ -130,13 +130,15 @@ describe("Jira provider protocol fidelity", () => {
       url: "https://acme.atlassian.net/rest/api/3/search/jql",
       options: { method: "POST" },
     });
-    expect(headers(calls[0])).toEqual({
+    const [first] = calls;
+    if (!first) throw new Error("expected one captured Jira request");
+    expect(headers(first)).toEqual({
       Authorization: `Basic ${Buffer.from(`ci@acme.test:${TOKEN}`).toString(
         "base64"
       )}`,
       "Content-Type": "application/json",
     });
-    expect(body(calls[0])).toEqual({
+    expect(body(first)).toEqual({
       jql: JIRA_JQL,
       fields: ["description"],
       maxResults: 100,
@@ -228,6 +230,9 @@ describe("Sentry provider protocol fidelity", () => {
       "readback",
     ]);
     const [, keys, store, event, group, groupEvent] = fixture.calls;
+    if (!keys || !store || !event || !group || !groupEvent) {
+      throw new Error("expected six captured Sentry requests");
+    }
     expect(keys.url).toBe(`${SENTRY_BASE}/keys/`);
     expect(keys.options?.method ?? "GET").toBe("GET");
     expect(keys.options).not.toHaveProperty("body");

@@ -34,7 +34,7 @@ if [ -z "${CLAUDE_PROJECT_DIR:-}" ]; then
 fi
 
 # Check if file is in a recognized source directory, excluding generated/vendored paths
-RELATIVE_PATH="${FILE_PATH#$CLAUDE_PROJECT_DIR/}"
+RELATIVE_PATH="${FILE_PATH#"$CLAUDE_PROJECT_DIR"/}"
 case "$RELATIVE_PATH" in
     db/migrate/*|db/schema.rb) exit 0 ;;
     vendor/*|bin/*|tmp/*|node_modules/*) exit 0 ;;
@@ -60,7 +60,7 @@ cd "$CLAUDE_PROJECT_DIR" || exit 0
 # would silently stop proving the others.
 # ---------------------------------------------------------------------------
 if [ -f "$LISA_HOOK_DIR/lisa-edit-gate.sh" ]; then
-    # shellcheck source=/dev/null
+    # shellcheck source=lisa-edit-gate.sh
     . "$LISA_HOOK_DIR/lisa-edit-gate.sh"
     if LISA_GATE_COMMANDS="$(lisa_edit_gate_tasks post-tool code-style format-conformance)"; then
         lisa_edit_gate_run "$FILE_PATH" "$LISA_GATE_COMMANDS"

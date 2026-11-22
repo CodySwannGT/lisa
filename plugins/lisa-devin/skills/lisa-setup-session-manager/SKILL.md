@@ -1,6 +1,6 @@
 ---
 name: lisa-setup-session-manager
-description: "Set up the local session manager for this project: writes the non-secret `sessionManager` block to `.lisa.config.json` (detecting a multi-repo layout: repos under `projects/`, or directly under the project root), optionally sets up a Telegram notification channel (the project's own bot token stored in its secrets provider, or outside the repo when none is configured, with a leftover plaintext token file migrated into the provider, the Telegram plugin installed but not enabled at user scope, pairing; skipped entirely with no channel, the default), keeps the manager's state out of git, seeds the checked-in runbook, starts the manager in tmux, and finishes with doctor's session-manager check. Idempotent."
+description: "Set up this project's local session manager: write its config, optionally connect a Telegram channel, keep its state out of git, start it in tmux, and run doctor's check. Idempotent."
 allowed-tools: ["Bash", "Read", "Write", "Skill", "AskUserQuestion"]
 ---
 
@@ -66,9 +66,16 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
    `AWS CDK`, ...). Ask the operator to correct them and add the areas that identify the repo
    (e.g. `api`: `["NestJS","migrations"]`, `web`: `["Expo","screens"]`), and whether to
    set `sessionManager.trustedAuthorIds`. Without it, any author's Ready item reaches a
-   bypass-permissions worker; say so plainly. The list holds stable tracker user ids as strings,
+   bypass-permissions worker; say so plainly. If an integration files Ready items with no person
+   behind them (Linear's Sentry integration does), add `integration:<service>` (the value `queue`
+   prints as `authorIntegration`) rather than dropping the key, which would also drop every hold
+   releaser. To let different people release holds than author work, set
+   `sessionManager.trustedReleaseIds` (people only; it defaults to `trustedAuthorIds`). The list holds stable tracker user ids as strings,
    never logins: the GitHub numeric user id (`gh api users/<login> --jq .id`), the Jira
-   `accountId`, or the Linear user id. A login matches no one and silently excludes every item.
+   `accountId`, or the Linear user id. A plain login matches no one in the queue and silently
+   excludes every item; to trust a GitHub login on purpose write it as `login:<login>`, and to say
+   outright that an entry is an id write `id:<id>`. A login GitHub frees (after a rename or a
+   deleted account) can be re-registered by someone else, so prefer `id:` for trust.
 4. Set `sessionManager.operatorIds` to a non-empty **array** holding the operator's own tracker
    user id, e.g. `"operatorIds": ["<operator-id>"]` (a bare string fails `validate`). Look up the
    OPERATOR, not the credential: `gh api user` / `viewer.id` return whoever the tracker credential
@@ -81,9 +88,16 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
    "me", spelled as the tracker API returns it: the GitHub **login** (`gh api users/<login> --jq
    .login`), the Jira `accountId`, or the Linear user id (the operator's entry in the team's member
    list, or `viewer.id` only when the operator runs the lookup with their own credential).
+   **Prefer the kind-keyed form**, which every reader (the queue, the claim and answers on the
+   item) matches the same way: `"login:<github-login>"` on GitHub, `"id:<accountId or user id>"` on
+   Jira and Linear. A plain entry still works as before, but a plain **all-digit** GitHub login is
+   read as a login by the queue and as a numeric id by the answer matcher, so the operator could
+   not answer on the item and the unrelated account whose numeric id equals it could; `validate`
+   warns about it (in `warnings`, never failing) and names both forms. An unknown prefix
+   (`user:octocat`) or an empty value (`login:`) fails `validate`, naming the entry.
    **Recommend setting it in every setup**, even a single-user one: it is also who may answer a
-   human-needed question by replying on the item. With neither `operatorIds` nor
-   `trustedAuthorIds` set, the manager reads no answer off the item at all, because the tracker
+   human-needed question by replying on the item. With none of `operatorIds`,
+   `trustedReleaseIds` and `trustedAuthorIds` set, the manager reads no answer off the item at all, because the tracker
    credential's identity is the one the workers and the manager post as, so its comments cannot be
    told apart from a human's answer. The operator then answers only at the terminal, with the
    `answerCommand` that `status` lists. Say so plainly.
@@ -91,10 +105,13 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
    is exhausted and a worker slot is still free, the manager then looks at backlog items (open
    leaves in no lifecycle role) that nobody else is assigned to, that are not human-held and have
    no unfinished blocker. Each one that passes the full tracker validation, including the
-   stateless-pickup check, is assigned to the first `operatorIds` entry, moved to Ready and
-   dispatched. Say plainly that this lets the manager start work nobody marked Ready, so it needs
+   stateless-pickup check, is moved to Ready and dispatched. One already assigned to an operator
+   keeps that assignee; an unassigned one is assigned to the manager's own tracker identity
+   ("me"), as every item the manager takes is. Say plainly that this lets the manager start work nobody marked Ready, so it needs
    `operatorIds` and should go with `trustedAuthorIds` on any tracker outsiders can write to.
 6. `node "$SM/session-manager.mjs" validate --project-root "$ROOT"` must print `valid: true`.
+   Show the operator every entry of `warnings`, when there is one, in plain words, and offer to
+   rewrite a plain all-digit operator entry in the `login:` / `id:` form it names.
 
 ## Step 3: Store the bot token
 

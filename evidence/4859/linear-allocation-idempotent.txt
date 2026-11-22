@@ -1,0 +1,39 @@
+$ bun evidence/4859/allocate-evidence.ts linear
+--- allocation run 1: workItem=ENG-1 claimCommentId=comment-1-1
+  LisaNpmIssues
+  LisaNpmMember
+  LisaNpmIssues
+  LisaNpmTeam
+  LisaNpmIssueCreate
+  LisaNpmIssue
+  LisaNpmComments
+  LisaNpmIssue
+  LisaNpmComments
+  LisaNpmIssueUpdate
+  LisaNpmIssue
+  LisaNpmComments
+  LisaNpmCommentCreate
+  LisaNpmIssue
+  LisaNpmComments
+  LisaNpmViewer
+  LisaNpmCommentCreate
+  creates so far: 1
+--- allocation run 2: workItem=ENG-1 claimCommentId=comment-1-1
+  LisaNpmIssues
+  LisaNpmIssue
+  LisaNpmComments
+  LisaNpmMember
+  LisaNpmIssues
+  LisaNpmIssue
+  LisaNpmComments
+  LisaNpmIssue
+  LisaNpmComments
+  LisaNpmIssue
+  LisaNpmComments
+  LisaNpmIssue
+  LisaNpmComments
+  LisaNpmIssue
+  LisaNpmComments
+  creates so far: 1
+TOTAL work items created across both runs: 1
+exit=0

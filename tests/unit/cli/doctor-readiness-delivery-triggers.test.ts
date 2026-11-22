@@ -133,10 +133,11 @@ describe("assessDeliveryAuthorityDimension — B2 never manufactures RED from ab
     // offline — absence of an in-file validating job proves nothing here.
     expect(record.status).toBe(SKIP);
     expect(assessReadiness([record]).blockers).toEqual([]);
-    const findings = asFindings(record.findings);
-    expect(typeof findings[0].reason).toBe("string");
-    expect(findings[0].reason).not.toBe("");
-    expect(Object.hasOwn(findings[0], "blocker")).toBe(false);
+    const [finding] = asFindings(record.findings);
+    if (finding === undefined) throw new Error("expected a finding");
+    expect(typeof finding.reason).toBe("string");
+    expect(finding.reason).not.toBe("");
+    expect(Object.hasOwn(finding, "blocker")).toBe(false);
   });
 
   it("SKIPs a workflow_run-triggered deploy instead of failing it", async () => {
@@ -284,9 +285,10 @@ describe("assessDeliveryAuthorityDimension — B2 never manufactures RED from ab
     // A repository that ships nothing has not proved that what ships equals what
     // was validated — it has proved nothing at all. PASS here is a false green.
     expect(record.status).toBe(SKIP);
-    const findings = asFindings(record.findings);
-    expect(typeof findings[0].reason).toBe("string");
-    expect(findings[0].reason).not.toBe("");
+    const [finding] = asFindings(record.findings);
+    if (finding === undefined) throw new Error("expected a finding");
+    expect(typeof finding.reason).toBe("string");
+    expect(finding.reason).not.toBe("");
     expect(JSON.stringify(record.findings)).not.toContain(
       "every publishing job is preceded by validation"
     );

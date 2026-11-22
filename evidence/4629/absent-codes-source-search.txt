@@ -1,0 +1,14 @@
+$ grep -rn ABSENT_CODES src/cli
+exit=1
+$ grep -rn 'function errnoCode' src
+src/utils/fs-absence.ts:34:export function errnoCode(error: unknown): string | undefined {
+exit=0
+$ grep -n 'utils/fs-absence' <five checks>
+src/cli/doctor-config-shadowing.ts:27:import { errnoCode, isDefinitiveAbsence } from "../utils/fs-absence.js";
+src/cli/doctor-rails-deploy-intent.ts:31:import { errnoCode, isDefinitiveAbsence } from "../utils/fs-absence.js";
+src/cli/doctor-stale-banner-scan.ts:18:import { errnoCode, isDefinitiveAbsence } from "../utils/fs-absence.js";
+src/cli/doctor-cdk-preset-adoption.ts:37:import { errnoCode, isDefinitiveAbsence } from "../utils/fs-absence.js";
+src/cli/doctor-third-party-evidence-seed.ts:52:import { errnoCode, isDefinitiveAbsence } from "../utils/fs-absence.js";
+exit=0
+$ grep -rnE '"ENAMETOOLONG" *[],)]' src/cli src/utils   # errno set literal still listing it
+exit=1

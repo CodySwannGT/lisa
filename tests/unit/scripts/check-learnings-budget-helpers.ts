@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { type SpawnSyncReturns, spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import {
@@ -22,6 +22,43 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const CHECKER_BUDGET_MS = 10_000;
 const COMPILER_BUDGET_MS = 30_000;
 
+/**
+ * Spawn one child under a scaled timeout and fail with the full diagnostic.
+ *
+ * Times the call so a kill reports its elapsed time against its timeout, and
+ * hands the outcome — streams included — to {@link assertChildCompleted}, which
+ * reports what the child printed before it stopped. Four CI kills of this
+ * suite's 30-60ms `bun` children reported only `ETIMEDOUT`, which could not
+ * say whether a child hung before or after its work (CodySwannGT/lisa#4896).
+ * @param spec - Label, command, arguments, working directory and quiet budget
+ * @param spec.label - Human-readable name of the command, for the diagnostic
+ * @param spec.command - Absolute executable path
+ * @param spec.args - Arguments, excluding the executable
+ * @param spec.cwd - Working directory, when not the repository root
+ * @param spec.baseMs - Quiet-box budget scaled by the measured slowdown
+ * @returns The completed child, streams decoded as UTF-8
+ */
+export function spawnCompleted(spec: {
+  readonly label: string;
+  readonly command: string;
+  readonly args: readonly string[];
+  readonly cwd?: string;
+  readonly baseMs: number;
+}): SpawnSyncReturns<string> {
+  const timeoutMs = ioLatencyBudgetMs(spec.baseMs);
+  const started = Date.now();
+  const result = spawnSync(spec.command, [...spec.args], {
+    cwd: spec.cwd,
+    encoding: "utf8",
+    timeout: timeoutMs,
+  });
+  assertChildCompleted(result, spec.label, undefined, {
+    timeoutMs,
+    elapsedMs: Date.now() - started,
+  });
+  return result;
+}
+
 /** Observable process result used by the CLI assertions. */
 export interface CommandResult {
   readonly output: string;
@@ -38,20 +75,17 @@ export function runCheckWithBun(
   bunExecutable: string,
   ...filePaths: readonly string[]
 ): CommandResult {
-  const result = spawnSync(
-    bunExecutable,
-    [
+  const result = spawnCompleted({
+    label: "bun run check:learnings-budget",
+    command: bunExecutable,
+    args: [
       "run",
       "check:learnings-budget",
       ...(filePaths.length === 0 ? [] : ["--", ...filePaths]),
     ],
-    {
-      cwd: REPO_ROOT,
-      encoding: "utf8",
-      timeout: ioLatencyBudgetMs(CHECKER_BUDGET_MS),
-    }
-  );
-  assertChildCompleted(result, "bun run check:learnings-budget");
+    cwd: REPO_ROOT,
+    baseMs: CHECKER_BUDGET_MS,
+  });
   return {
     output: `${result.stdout}${result.stderr}`,
     status: result.status,
@@ -68,19 +102,16 @@ export function runCheckerDirectWithBun(
   bunExecutable: string,
   ...filePaths: readonly string[]
 ): CommandResult {
-  const result = spawnSync(
-    bunExecutable,
-    [
+  const result = spawnCompleted({
+    label: "check-learnings-budget.ts",
+    command: bunExecutable,
+    args: [
       path.join(REPO_ROOT, "scripts", "check-learnings-budget.ts"),
       ...filePaths,
     ],
-    {
-      cwd: REPO_ROOT,
-      encoding: "utf8",
-      timeout: ioLatencyBudgetMs(CHECKER_BUDGET_MS),
-    }
-  );
-  assertChildCompleted(result, "check-learnings-budget.ts");
+    cwd: REPO_ROOT,
+    baseMs: CHECKER_BUDGET_MS,
+  });
   return {
     output: `${result.stdout}${result.stderr}`,
     status: result.status,
@@ -157,16 +188,13 @@ function runCompiler(
   compiler: string,
   compilerConfig: string
 ): CommandResult {
-  const result = spawnSync(
-    bunExecutable,
-    [compiler, "--project", compilerConfig],
-    {
-      cwd: REPO_ROOT,
-      encoding: "utf8",
-      timeout: ioLatencyBudgetMs(COMPILER_BUDGET_MS),
-    }
-  );
-  assertChildCompleted(result, "tsc --project (staged closure)");
+  const result = spawnCompleted({
+    label: "tsc --project (staged closure)",
+    command: bunExecutable,
+    args: [compiler, "--project", compilerConfig],
+    cwd: REPO_ROOT,
+    baseMs: COMPILER_BUDGET_MS,
+  });
   return {
     output: `${result.stdout}${result.stderr}`,
     status: result.status,

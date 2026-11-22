@@ -68,6 +68,8 @@ Each dimension is **in scope** (`●`) or **out of scope** (`–`) per profile, 
 | DB / query analytics | recommended | – | ● | ● | slow-query logging, RDS/Aurora Performance Insights, query-timing middleware |
 | Synthetic / smoke UAT | recommended | ● | ● | – | Playwright/Cypress e2e, k6/Artillery load scripts, synthetic canaries |
 
+**The tools named in this table are examples, not a closed list.** A project may send the same signal to several destinations, or to one Lisa has never heard of; it has whatever its code wires up. Find each destination from the instrumentation itself — the SDK it initializes, the exporter or transport it configures, the environment variables it reads — and probe it with its `*-access` skill when one exists, otherwise its CLI or API with credentials from `lisa-secrets-access`. A destination the run cannot reach is a missing-access finding, never an absent dimension.
+
 **Detection is read-then-probe, never assume.** For each in-scope dimension: read `package.json` deps + scripts (and `Gemfile`, `serverless.yml`, `docker-compose.yml`, `config/initializers/*`, `.env*`, `.sentryclirc`, `cdk.json`), then — only when credentials/tooling are already available — probe the live source (`command -v sentry-cli`, `aws sts get-caller-identity` before any `aws` call). Mirror the `ops-specialist` "Project Discovery" table where the stack overlay exists. **Absence of every signal for an in-scope dimension is the gap finding.** A dimension that is present but unreachable this run (e.g. PostHog wired but no API key available) is reported `PRESENT (unverified)`, **not** a gap.
 
 ### Tools Lisa does not wire

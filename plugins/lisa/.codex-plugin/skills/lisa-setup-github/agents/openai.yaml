@@ -1,4 +1,4 @@
 display_name: "Setup Github"
-short_description: "Configure GitHub Issues as the…"
+short_description: "Configure GitHub Issues as this…"
 default_prompt:
-  - "Use $lisa-setup-github: Configure GitHub Issues as the…."
+  - "Use $lisa-setup-github: Configure GitHub Issues as this…."

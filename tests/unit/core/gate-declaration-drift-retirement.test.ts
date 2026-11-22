@@ -18,6 +18,7 @@
 import { describe, expect, it } from "vitest";
 
 import { classifyDeclarationDrift } from "../../../src/core/gate-declaration-drift.js";
+import type { ContextOwner } from "../../../src/core/gate-context-owners.js";
 import {
   AST_GREP,
   CODERABBIT,

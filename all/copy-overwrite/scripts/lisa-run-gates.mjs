@@ -32,17 +32,95 @@
  *   UNPROVABLE rather than FAILED: it blocks, and it stops claiming a
  *   measurement that never happened.
  *
+ * ## A gate with parts
+ *
+ * A gate may declare `parts`: one command per folder, each written as a list
+ * of arguments. Every part is started, judged and reported on its own, by the
+ * same rules as any other gate. Two things differ, and both are about what
+ * the declaration is — a committed file that names commands to run:
+ *
+ * - The list is started as written, with no shell at any point, so nothing
+ *   in it can be read as an instruction. See `spawnArgv`.
+ * - It starts in the part's folder, and only once that folder has been
+ *   resolved on disk and found to be inside the repository. See
+ *   `partDirectory`.
+ *
+ * A gate with no parts takes none of this path.
+ *
+ * ## A part the change does not touch
+ *
+ * In a repository with two parts, a change to one should not run the other's
+ * check — and must not be reported as having passed it. At commit and at
+ * push the runner learns which paths the change touches (`lib/changed-paths`)
+ * and leaves out a part whose folder holds none of them. That part prints as
+ * NOT APPLICABLE with its folder, its command is never started, and it is
+ * counted among the gates that were not applicable here, never among the
+ * ones that were proved.
+ *
+ * The mistake that matters is the other one: a part left out that the change
+ * did touch is a folder nothing checked. So a part is left out only when the
+ * runner is sure, and everything else runs it — a change that is not known,
+ * a moment other than commit and push, a part for the whole repository, a
+ * part that could not have started anyway.
+ *
+ * The same care is owed in the other direction, to a caller that stands a
+ * check of its own down on this runner's word. A part that ran says nothing
+ * about a changed path outside its folder, so a gate with parts is reported
+ * as proved for a change only when the parts that ran reached every path the
+ * change touches. See `provenFloor`.
+ *
  * ## Exit codes are the hook's control flow
  *
  * The hooks fall back to their hardcoded steps unless this runner positively
  * reports a verdict, so "the runner could not run" must never look like "all
  * gates passed". Hence `NO_GATES` and `RUNNER_FAILED` are distinct from
  * `PROVED`, and the hook routes each one deliberately.
+ *
+ * ## A caller with no built-in checks
+ *
+ * `NO_GATES` means "run your own checks instead", and it is only an answer
+ * for a caller that has some. The hooks a stack template ships do: a secret
+ * scan, lint-staged, a test run. A repository on no supported project type
+ * has no such hook, and a caller there that was sent away with 78 would let
+ * the commit through having checked nothing.
+ *
+ * That caller passes `--builtins=none`, and gets a verdict every time:
+ *
+ * - `0` — let it through. Every required gate declared at this moment was
+ *   proved; or nothing is declared at this moment; or every part declared at
+ *   this moment is for a folder the change does not touch, so no command ran.
+ *   The runner says which.
+ * - `1` — stop it. A required gate was not proved, or the declaration is one
+ *   the validator refuses.
+ * - `70` — stop it. The runner could not run, so nothing was proved.
+ *
+ * It never gets 78. A half-written gates block is simply run, because there
+ * is no built-in check for its silence to delete; and a gate the registry
+ * leaves to a built-in check is reported as not proved, because nothing is
+ * left to check it. Without the flag every exit code means what it always has.
  * @module lisa-run-gates
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import {
+  accessSync,
+  constants,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import {
+  delimiter,
+  dirname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+  sep,
+} from "node:path";
+import { performance } from "node:perf_hooks";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -57,7 +135,33 @@ import {
   recordKillMark,
 } from "./lib/kill-marks.mjs";
 import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
+import { openGatePassCache } from "./lib/gate-pass-cache.mjs";
+import {
+  PARTIAL_COVERAGE_SKIP_REASON,
+  coverageLeftToCi,
+  openSelectionReports,
+} from "./lib/affected-tests.mjs";
+import { BUILD_ONCE_ID, runBuildOnce } from "./lib/build-marker.mjs";
+import {
+  changeAt,
+  pathsOutside,
+  PUSH_REFS_STDIN,
+  readPushRefs,
+  touchesFolder,
+} from "./lib/changed-paths.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+import { runStartOfRunSweep } from "./lib/lisa-cleanup-sweep.mjs";
+import {
+  admissionEnabled,
+  PUSH_CONTEXT,
+  withAdmission,
+} from "./lib/push-admission.mjs";
+import { withPushGateDefaults } from "./lib/push-gate-defaults.mjs";
+import {
+  failingTestFiles,
+  hostReading,
+  recordPushTiming,
+} from "./lib/push-timing.mjs";
 import { worktreeDependencyProblem } from "./lib/worktree-dependencies.mjs";
 import {
   interruptionReason,
@@ -67,7 +171,6 @@ import {
   compareCodeUnits,
   configurationProblems,
   declarationsAt,
-  digest,
   formatIdentityLine,
   lisaIdentity,
   momentsExecutedBy,
@@ -75,6 +178,7 @@ import {
   projectScripts,
   readGates,
   resolveMoment,
+  WHOLE_REPOSITORY,
 } from "./lisa-gates.mjs";
 
 // Re-exported rather than dropped. `compareCodeUnits` was this module's public
@@ -90,13 +194,20 @@ export { compareCodeUnits };
  * send the hook to its hardcoded path. They are separate because one is a
  * project that has not migrated and the other is a broken tool, and an
  * operator reading a hook transcript needs to be able to tell them apart.
+ *
+ * A caller that passed `--builtins=none` has no hardcoded path, and is never
+ * answered with `NO_GATES`: see "A caller with no built-in checks" above.
  */
 export const EXIT = Object.freeze({
   /** Every required gate at this moment was proved. */
   PROVED: 0,
   /** At least one required gate failed. Stop the commit or push. */
   BLOCKED: 1,
-  /** No gates block in config: this project has not migrated. Fall back. */
+  /**
+   * Fall back to the built-in checks. No gates block in config (this project
+   * has not migrated), a half-written one, or — for a caller that did not
+   * pass `--coverage` — parts that did not reach every path of the change.
+   */
   NO_GATES: 78,
   /** The runner itself could not run. Nothing was proved. Fall back. */
   RUNNER_FAILED: 70,
@@ -219,6 +330,28 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  *   `ATTRIBUTION`; absent unless a diagnosis attributed it.
  * @property {string|null} provedBy The gate whose run proved this one, when
  *   they share a command. Always set: `runMoment` stamps it on every outcome.
+ * @property {string|null} [startedAt] When this gate's verdict began,
+ *   ISO-8601; null when the run never reached it (#4591).
+ * @property {number} [durationMs] Time spent on this gate; 0 when a sibling's
+ *   run proved it or it was never reached (#4591).
+ * @property {boolean} [cached] True when the verdict is a remembered pass for
+ *   this exact content and the gate did not run (CodySwannGT/lisa#4594).
+ * @property {{files: string[], truncated: boolean}} [failingTests] Test files
+ *   a nonzero run's output named as failing, for the push timing report only
+ *   (CodySwannGT/lisa#4896). Absent on a pass; never read into a verdict.
+ * @property {string} [scope] The folder one PART of a gate covers, written
+ *   from the repository root. Present only on an entry resolved from a gate's
+ *   `parts`; such a gate has one entry per part, all sharing one `id`.
+ * @property {string[]|null} [argv] The argument list that checks that part.
+ *   Present only beside `scope`. `task` and `command` are null on a part: its
+ *   command is started directly and is never joined into one line of text.
+ * @property {boolean} [untouched] True on a part that was left out because
+ *   the change touches nothing in its folder (CodySwannGT/lisa#4988). Its
+ *   state is SKIPPED and its command never started. Absent everywhere else.
+ * @property {string} [resolved] Where a part's folder really is, written from
+ *   the repository root the way git writes a path; empty for the root itself.
+ *   It differs from `scope` only when the declared name is a link. Present on
+ *   a part whose folder was found, and read by `unreachedFloor`.
  */
 
 /**
@@ -230,15 +363,22 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  * @property {string|null} blockedBy The first required gate that went unproved.
  * @property {string|null} interrupted Why the run stopped early, when the
  *   caller it was proving for went away; `null` on a run that ran to the end.
- * @property {number} total Gates declared at this moment.
+ * @property {number} total Gates declared at this moment. A gate with parts
+ *   counts once per part, because each part is checked and reported on its own.
  * @property {GateOutcome[]} results Every gate, in execution order.
  * @property {GateOutcome[]} passed Gates that ran and exited zero.
  * @property {GateOutcome[]} failed Gates that failed or could not be proved.
  * @property {GateOutcome[]} unprovable Gates that ran and proved nothing.
  * @property {GateOutcome[]} killed Gates whose command was terminated by a
  *   signal, so it never reached a verdict.
- * @property {GateOutcome[]} skipped Gates with nothing to run locally.
+ * @property {GateOutcome[]} skipped Gates with nothing to run locally, and
+ *   parts the change does not touch (those carry `untouched: true`).
  * @property {GateOutcome[]} notRun Gates queued behind a blocking failure.
+ * @property {{paths: string[]|null}} [change] The paths this run was told the
+ *   change touches. `null` when they are not known, which includes a run
+ *   that never had to ask because no part for a folder was reached.
+ *   `runGates` always sets it. A result put together by hand may leave it
+ *   out, and is then read as a change that is not known.
  */
 
 /** Per-gate outcomes, in the order an operator reads them. */
@@ -292,20 +432,72 @@ function skipReason(gate) {
 }
 
 /**
+ * Whether a resolved entry is one PART of a gate.
+ *
+ * A gate that declares `parts` resolves to one entry per part, each carrying
+ * the folder it covers (`scope`) and the argument list that checks it
+ * (`argv`). An entry with neither key is a gate as it has always been, and
+ * nothing below treats it differently from before parts existed.
+ *
+ * EITHER key marks a part, not both. An entry carrying a folder and no
+ * argument list is a part whose command is missing, and it has to be reported
+ * as that — read as an ordinary gate it would say "resolves to no task" about
+ * a declaration that named one.
+ * @param {GateOutcome} gate A gate from `resolveMoment`.
+ * @returns {boolean} True for one part of a gate.
+ */
+function isPart(gate) {
+  return gate.argv !== undefined || gate.scope !== undefined;
+}
+
+/**
+ * What an operator calls one line of the report.
+ *
+ * A gate's id, and for a part the folder as well: every part of a gate shares
+ * the gate's id, so the id alone cannot say which folder passed and which did
+ * not.
+ * @param {GateOutcome} gate A resolved gate, or one of its results.
+ * @returns {string} The gate id, or `<gate id> in <folder>` for a part.
+ */
+function nameOf(gate) {
+  return isPart(gate) ? `${gate.id} in ${gate.scope}` : gate.id;
+}
+
+/**
+ * A part's argument list as the report prints it.
+ *
+ * As a JSON list rather than joined with spaces, so the report shows where
+ * each argument starts and ends: `["sh", "a b"]` and `["sh", "a", "b"]` are
+ * different commands, and `; rm -rf x` inside quotes is visibly one argument
+ * that nothing will act on.
+ * @param {unknown} argv The part's argument list.
+ * @returns {string} The list, as text.
+ */
+function shownArgv(argv) {
+  return JSON.stringify(argv) ?? "(no command)";
+}
+
+/**
  * One aligned line per gate, so a transcript can be read at a glance.
  *
  * A gate resolved through `shippedAs` says so on its own line, naming both
  * scripts. Two scripts can now back one gate, so "what proved this" stops
  * being answerable from the gate id alone — and a reader who has to open the
  * registry to find out is back where #2916 started.
- * @param {string} state A `STATE` value.
+ * @param {string} state A `STATE` value, or the words `shownState` gives a
+ *   part the change does not touch.
  * @param {GateOutcome} gate The resolved gate.
  * @param {string} detail Command, reason, or failure note.
  * @returns {string} The formatted line.
  */
 function formatLine(state, gate, detail) {
-  const token = `${state.toUpperCase()}`.padEnd(STATE_WIDTH);
-  const id = gate.id.padEnd(ID_WIDTH);
+  // The space is for a token as wide as the column, which would otherwise
+  // run into the level beside it. It changes nothing for a shorter one.
+  const token = `${state.toUpperCase()} `.padEnd(STATE_WIDTH);
+  // A name has no fixed width: a part's carries its folder, and a gate id may
+  // be longer than the column. The space keeps a long one from running into
+  // the detail beside it, and changes nothing for a name that fits.
+  const id = `${nameOf(gate)} `.padEnd(ID_WIDTH);
   const alias = gate.alias
     ? ` (no "${gate.alias.from}" script here; this project ships "${gate.alias.to}")`
     : "";
@@ -351,7 +543,7 @@ function normaliseExec(raw) {
  * code says so — the transcript it leaves behind is truncated and reads like
  * an ordinary failure.
  * @param {GateOutcome} gate The resolved gate.
- * @param {function(string, GateOutcome): (number|null|object)} exec Executor.
+ * @param {(command: string, gate: GateOutcome) => (number|null|object)} exec Executor.
  * @returns {{state: string, detail: string, code: number|null,
  *   diagnosis: string|null, evidence: string[]}} The outcome.
  */
@@ -433,7 +625,105 @@ function stateFor(kind) {
 }
 
 function execute(gate, exec, declarations) {
-  const { code, output, signal } = normaliseExec(exec(gate.command, gate));
+  return judge(
+    gate.command,
+    normaliseExec(exec(gate.command, gate)),
+    declarations
+  );
+}
+
+/**
+ * Start one part's argument list in its folder and classify the result.
+ *
+ * The judgement is {@link judge}, the one every gate gets: a part that exits 0
+ * while saying it ran nothing is not proved, a killed one is not failed, and a
+ * failure says which failure it was. Only the start differs — an argument
+ * list handed to `execArgv` with the folder to start it in, never one line of
+ * text handed to a shell.
+ *
+ * `notStarted` is the one answer an ordinary gate has no equivalent of. A
+ * shell that cannot find a program still runs and exits 127; with no shell
+ * between this runner and the program, nothing runs at all, so the executor
+ * says so in words and the part reports that nothing checked it. That is
+ * never a pass, and it is not a kill either: a kill asks an operator to look
+ * at the machine, and this asks them to install a program or fix a name.
+ * @param {GateOutcome} gate One part of a gate, already cleared to start.
+ * @param {(argv: string[], context: {cwd: string, gate: GateOutcome}) => (number|null|undefined|{code: number|null, output: string|null, signal?: string, notStarted?: string})} execArgv
+ *   Executor for an argument list.
+ * @param {string} directory The folder to start in, from `partStart`.
+ * @param {Array<{gate: string, shape: string[]}>} declarations Declared
+ *   failure shapes for this part's command.
+ * @returns {{state: string, detail: string, code: number|null,
+ *   diagnosis: string|null, evidence: string[]}} The outcome.
+ */
+function executePart(gate, execArgv, directory, declarations) {
+  // A copy, so no executor can change what the report goes on to print.
+  const raw = execArgv([...gate.argv], { cwd: directory, gate });
+  return judgePart(gate.argv, raw, declarations, directory);
+}
+
+/**
+ * Classify what one part's argument list answered, without starting it.
+ *
+ * The second half of {@link executePart}, on its own so that something other
+ * than this runner can ask the same question of an answer it obtained itself.
+ * The paired-proof runner is that something (CodySwannGT/lisa#4995): it plants
+ * a change, starts the part's command, and has to read the answer by exactly
+ * the rules a gate is read by — exit 0 from a run that says it ran nothing is
+ * not a pass, a kill is not a failure, and a failure says which failure it
+ * was. Two readings of one answer would let a proof say a control works when
+ * the gate itself would not have been believed.
+ *
+ * It decides nothing new and starts nothing. `detail` and `evidence` are
+ * written for a person and may quote this machine's load; `state`, `code` and
+ * `diagnosis` are what a caller should act on.
+ * @param {readonly string[]} argv The argument list, as the report prints it.
+ * @param {number|null|undefined|{code: number|null, output: string|null, signal?: string, notStarted?: string}} raw
+ *   What an executor answered, in any shape `runGates` accepts from one.
+ * @param {Array<{gate: string, shape: string[]}>} [declarations] Declared
+ *   failure shapes for this command.
+ * @param {string} [cwd] The folder the command ran in.
+ * @returns {{state: string, detail: string, code: number|null,
+ *   diagnosis: string|null, evidence: string[]}} The outcome.
+ */
+export function judgePart(argv, raw, declarations = [], cwd = process.cwd()) {
+  const shown = shownArgv(argv);
+  const notStarted =
+    raw !== null && typeof raw === "object" ? raw.notStarted : undefined;
+  if (typeof notStarted === "string" && notStarted !== "") {
+    return {
+      state: STATE.UNPROVABLE,
+      detail: `${shown} — ${NOTHING_RAN}: ${notStarted}`,
+      code: null,
+      diagnosis: null,
+      evidence: [],
+    };
+  }
+  return judge(shown, normaliseExec(raw), declarations, cwd);
+}
+
+/**
+ * Classify what one command answered. The one judgement every gate gets.
+ *
+ * Split from the two functions that START a command so that a gate's command
+ * line and a part's argument list cannot be judged by different rules: there
+ * is one place that decides what exit 0 proves, and both reach it.
+ * @param {string} command The command as the report prints it.
+ * @param {{code: number|null, output: string|null, signal?: string}} answer
+ *   The executor's answer, from `normaliseExec`.
+ * @param {Array<{gate: string, shape: string[]}>} declarations Declared
+ *   failure shapes for this command.
+ * @param {string} [cwd] The folder the command ran in. Read only to explain a
+ *   verdict already reached — a root quoted back, a failing file named.
+ * @returns {{state: string, detail: string, code: number|null,
+ *   diagnosis: string|null, evidence: string[]}} The outcome.
+ */
+function judge(
+  command,
+  { code, output, signal },
+  declarations,
+  cwd = process.cwd()
+) {
   if (code === 0) {
     // Exit 0 is ADJACENT to "the property holds"; it is not the observation.
     // A command that exited 0 while its own output says it collected zero
@@ -445,11 +735,11 @@ function execute(gate, exec, declarations) {
     //
     // Silence still passes. The verdict requires the tool to have SAID it ran
     // nothing, so a gate whose command reports no count at all is untouched.
-    const hollow = diagnoseHollowSuccess(output);
+    const hollow = diagnoseHollowSuccess(output, cwd);
     if (!hollow) {
       return {
         state: STATE.PASSED,
-        detail: gate.command,
+        detail: command,
         code: 0,
         diagnosis: null,
         evidence: [],
@@ -457,7 +747,7 @@ function execute(gate, exec, declarations) {
     }
     return {
       state: stateFor(hollow.kind),
-      detail: `${gate.command} (exit 0) — ${hollow.summary}`,
+      detail: `${command} (exit 0) — ${hollow.summary}`,
       code: 0,
       diagnosis: hollow.kind,
       evidence: hollow.evidence,
@@ -478,11 +768,16 @@ function execute(gate, exec, declarations) {
   );
   return {
     state: stateFor(diagnosis.kind),
-    detail: `${gate.command} (exit ${shown}) — ${diagnosis.summary}`,
+    detail: `${command} (exit ${shown}) — ${diagnosis.summary}`,
     code: typeof code === "number" ? code : null,
     diagnosis: diagnosis.kind,
     evidence: diagnosis.evidence,
     proves: diagnosis.proves,
+    // Which test files the output names as failing, for the push timing report
+    // (CodySwannGT/lisa#4896). Read only on this failure branch, so a passing
+    // gate never carries a list. Diagnostics only: the parser never throws and
+    // nothing above or below reads it into a verdict.
+    failingTests: failingTestFiles(output, { root: cwd }),
   };
 }
 
@@ -572,14 +867,39 @@ function attributed(gate, outcome, siblings) {
 }
 
 /**
+ * What a gate left to a built-in check says when the caller has none.
+ *
+ * `builtin` is the registry's word for "the hook that called this runner
+ * proves this property itself, with a step of its own". That is true of the
+ * hooks a stack template ships and of nothing else. Reported as not
+ * applicable to a caller with no such step, the gate would read as settled
+ * while nothing anywhere had checked it — so it is reported as what it is.
+ */
+const NO_BUILTIN_TO_DEFER_TO =
+  "left to a check built in to the caller, and this caller has no built-in " +
+  "checks, so nothing ran and nothing was proved. Name a command for this " +
+  'gate under "parts", or declare it "off"';
+
+/**
  * Classify a gate without running it, when there is nothing to run.
  * @param {GateOutcome} gate The resolved gate.
+ * @param {boolean} [builtins] Whether the caller of this run has built-in
+ *   checks of its own. See `runGates`.
  * @returns {{state: string, detail: string, code: null}|null} Outcome or null.
  */
-function classifyStatic(gate) {
+function classifyStatic(gate, builtins = true) {
+  if (!builtins && gate.mode === "builtin") {
+    return {
+      state: STATE.UNPROVABLE,
+      detail: NO_BUILTIN_TO_DEFER_TO,
+      code: null,
+    };
+  }
   const skip = skipReason(gate);
   if (skip) return { state: STATE.SKIPPED, detail: skip, code: null };
-  if (!gate.command) {
+  // A part has no command LINE by design — it has an argument list, and
+  // `partStart` decides whether that can start.
+  if (!gate.command && !isPart(gate)) {
     return {
       state: STATE.UNPROVABLE,
       detail: "resolves to no task, so nothing ran and nothing was proved",
@@ -587,6 +907,290 @@ function classifyStatic(gate) {
     };
   }
   return null;
+}
+
+/**
+ * How every part that was never started begins its explanation.
+ *
+ * Said the same way whatever the reason, so the two facts an operator needs
+ * come first and in one order: no command ran, and the folder is unchecked.
+ * The reason follows the colon.
+ */
+const NOTHING_RAN = "nothing ran, so this part was not checked";
+
+/** The most arguments one part's command may hold. */
+const PART_ARGUMENT_LIMIT = 500;
+
+/** The most bytes one argument of a part's command may hold. */
+const PART_ARGUMENT_BYTES = 65_536;
+
+/** The most bytes a part's whole command may hold, written as JSON. */
+const PART_COMMAND_BYTES = 250_000;
+
+/**
+ * Why a value cannot be started as a part's command, or null when it can.
+ *
+ * `validateGates` already refuses a `command` that is not a list, and
+ * `resolveMoment` refuses to resolve a block that would not validate. This is
+ * the same question asked again at the last moment before a process starts,
+ * because the answer is what keeps a shell out: a string has to be split into
+ * a program and its arguments by something, and whatever splits it is a shell
+ * or an imitation of one. So anything that is not a list of text naming a
+ * program is refused here, whoever handed it over.
+ *
+ * The size limits sit just inside what the process supervisor accepts for a
+ * literal argument list, so an oversized command is refused here in a
+ * sentence rather than by the supervisor in a stack trace.
+ * @param {unknown} argv What a resolved entry carries as its argument list.
+ * @returns {string|null} The reason, finishing `NOTHING_RAN`, or null.
+ */
+function argvProblem(argv) {
+  if (!Array.isArray(argv)) {
+    return "its command is not a list of arguments";
+  }
+  if (argv.length === 0) return "its command is an empty list";
+  if (argv.some(item => typeof item !== "string")) {
+    return "its command holds an item that is not text";
+  }
+  if (argv[0].trim() === "") return "its command names no program";
+  if (argv.some(item => item.includes("\0"))) {
+    return "its command holds a NUL character, which no program can be handed";
+  }
+  if (
+    argv.length > PART_ARGUMENT_LIMIT ||
+    argv.some(item => Buffer.byteLength(item) > PART_ARGUMENT_BYTES) ||
+    Buffer.byteLength(JSON.stringify(argv)) > PART_COMMAND_BYTES
+  ) {
+    return "its command is too long to start";
+  }
+  return null;
+}
+
+/**
+ * The folder a part's command starts in, or why there is none.
+ *
+ * The declaration is a committed file, and so is any link it points at. A
+ * scope that reads `api` is only inside the repository if what `api` IS on
+ * disk is inside the repository: a link named `api` leading to another
+ * directory would start the command there, with whatever that command does
+ * to the folder it is started in. So the folder is resolved through every
+ * link first, and the command starts in the RESOLVED folder — the one that
+ * was checked — rather than in the name that was declared.
+ *
+ * That one comparison is the whole test. `..`, a path from the top of the
+ * disk and a link all fail it for the same reason, so there is no list of
+ * spellings to keep complete.
+ *
+ * Exported for the paired-proof runner (CodySwannGT/lisa#4995), which starts
+ * a part's command in a copy of the repository and must hold the folder to
+ * the same test there.
+ * @param {string} root The repository root.
+ * @param {unknown} scope The part's folder, written from the root.
+ * @returns {{directory: string, resolved: string}|{problem: string}} The
+ *   folder and its own path from the repository root, or the reason,
+ *   finishing `NOTHING_RAN`.
+ */
+export function partDirectory(root, scope) {
+  if (typeof scope !== "string" || scope === "") {
+    return { problem: "it names no folder" };
+  }
+  const named = JSON.stringify(scope);
+  let top;
+  try {
+    top = realpathSync(root);
+  } catch {
+    return { problem: "the repository folder could not be read" };
+  }
+  let directory;
+  try {
+    directory = realpathSync(resolve(top, scope));
+  } catch (error) {
+    const code = /** @type {{code?: unknown}} */ (error)?.code;
+    return {
+      problem:
+        code === "ENOENT" || code === "ENOTDIR"
+          ? `the folder ${named} does not exist in this repository`
+          : `the folder ${named} could not be opened (${String(code)})`,
+    };
+  }
+  const path = relative(top, directory);
+  const inside =
+    path === "" ||
+    (!isAbsolute(path) && path !== ".." && !path.startsWith(`..${sep}`));
+  if (!inside) {
+    return {
+      problem: `the folder ${named} leads outside this repository`,
+    };
+  }
+  if (!isFolder(directory)) return { problem: `${named} is not a folder` };
+  // Where the folder really is, written the way git writes a path. It
+  // differs from the declared name only when that name is a link.
+  return { directory, resolved: path.split(sep).join("/") };
+}
+
+/**
+ * Whether a path is a folder that is there.
+ * @param {string} path The path to ask about.
+ * @returns {boolean} True for an existing folder; false for anything else,
+ *   including a path that cannot be read.
+ */
+function isFolder(path) {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether one part's command may start, and where.
+ *
+ * Asked before anything else is decided about the part, for the reason a
+ * gate's own skip is: these are facts about THIS part — its command is not a
+ * list, its folder is not there — and a part that cannot start must say so
+ * itself rather than wait behind another gate or borrow a sibling's result.
+ * @param {GateOutcome} gate One part of a gate.
+ * @param {string} root The repository root.
+ * @returns {{directory: string, resolved: string}|{problem: string}} Where to
+ *   start, or why not.
+ */
+function partStart(gate, root) {
+  const problem = argvProblem(gate.argv);
+  return problem === null ? partDirectory(root, gate.scope) : { problem };
+}
+
+/**
+ * The outcome of a part that was never started.
+ *
+ * UNPROVABLE, not FAILED: nothing measured the folder, so nothing found it
+ * wanting. It blocks exactly as a failure does — a required part nobody
+ * checked is not a pass.
+ * @param {string} problem The reason, from `partStart`.
+ * @returns {{state: string, detail: string, code: null}} The outcome.
+ */
+function partNotStarted(problem) {
+  return {
+    state: STATE.UNPROVABLE,
+    detail: `${NOTHING_RAN}: ${problem}`,
+    code: null,
+  };
+}
+
+/** What an operator reads in place of the state on a part left out. */
+const NOT_APPLICABLE = "not applicable";
+
+/**
+ * The words a result's line starts with.
+ *
+ * A state's own name, except for a part the change does not touch. That part
+ * is SKIPPED to everything that counts results, and says NOT APPLICABLE to
+ * the person reading, because "skipped" does not say why and the reason is
+ * the whole point: nothing in that folder changed.
+ * @param {{state: string, untouched?: boolean}} outcome A verdict.
+ * @returns {string} What `formatLine` prints as the state.
+ */
+function shownState(outcome) {
+  return outcome.untouched === true ? NOT_APPLICABLE : outcome.state;
+}
+
+/**
+ * What the runner was told about the change, read strictly.
+ *
+ * A list is believed only when it is a list of text. Anything else — a
+ * caller that answered with nothing, a list holding something that is not a
+ * path — is "not known", which runs every part.
+ * @param {unknown} told What the `change` function answered.
+ * @returns {{paths: string[]|null, note: string|null}} The change.
+ */
+function readChange(told) {
+  const paths = /** @type {{paths?: unknown}|null|undefined} */ (told)?.paths;
+  const note = /** @type {{note?: unknown}|null|undefined} */ (told)?.note;
+  return {
+    paths:
+      Array.isArray(paths) && paths.every(path => typeof path === "string")
+        ? paths
+        : null,
+    note: typeof note === "string" && note !== "" ? note : null,
+  };
+}
+
+/**
+ * Ask what the change touches, and treat any failure to answer as "not
+ * known".
+ *
+ * Working out the change is there to save time, and it must never cost a
+ * verdict. If the question itself breaks, the run goes on with every part,
+ * and says why: stopping here would refuse every commit over a fault in the
+ * narrowing, and guessing would leave a part out.
+ * @param {() => unknown} change The `change` function `runGates` was given.
+ * @param {string} moment The moment being run.
+ * @returns {{paths: string[]|null, note: string|null}} The change.
+ */
+function askChange(change, moment) {
+  try {
+    return readChange(change());
+  } catch (error) {
+    // probe-direction: fail-closed — a change that could not be worked out,
+    // for whatever reason, is not known, and every part runs.
+    return {
+      paths: null,
+      note:
+        `Every part runs at ${moment}: what the change touches could not ` +
+        `be worked out (${error instanceof Error ? error.message : String(error)}).`,
+    };
+  }
+}
+
+/**
+ * The verdict of a part the change does not touch, or null to run it.
+ *
+ * Asked only of a part that could start: one that could not says so itself,
+ * whatever the change touches, so a broken declaration is not hidden until
+ * somebody edits that folder.
+ *
+ * A part for the whole repository always applies, and is answered without
+ * asking what changed at all. A folder that resolves to the repository root
+ * is the same thing under another name.
+ *
+ * The folder is matched under both of its spellings — the one declared, and
+ * the one it resolves to on disk. They differ only when the declared name is
+ * a link, and a change made where the link leads is a change to that part.
+ * @param {GateOutcome} gate One part of a gate.
+ * @param {{directory: string, resolved: string}} start Where it would start.
+ * @param {() => {paths: string[]|null, note: string|null}} change Asks what
+ *   the change touches. Called at most once per run, by `runGates`.
+ * @returns {{state: string, untouched: true, detail: string, code: null}|null}
+ *   The verdict, or null when the part must run.
+ */
+function untouchedOutcome(gate, start, change) {
+  if (gate.scope === WHOLE_REPOSITORY || start.resolved === "") return null;
+  const { paths } = change();
+  if (paths === null) return null;
+  if (touchesFolder(paths, [gate.scope, start.resolved])) return null;
+  return {
+    state: STATE.SKIPPED,
+    untouched: true,
+    detail:
+      `the change touches nothing inside ${JSON.stringify(gate.scope)}, so ` +
+      `${shownArgv(gate.argv)} was not run. Not counted as proved`,
+    code: null,
+  };
+}
+
+/**
+ * What a run is shared and explained under: the thing that actually ran.
+ *
+ * For a gate, its command line, exactly as before. For a part, its folder
+ * together with its argument list — the same list in two folders is two
+ * different checks, and two gates naming one list in one folder are one. The
+ * leading NUL keeps a part's key apart from every command line, which cannot
+ * hold one.
+ * @param {GateOutcome} gate The resolved gate.
+ * @returns {string|null} The key, or null when the gate runs nothing.
+ */
+function proverKey(gate) {
+  if (!isPart(gate)) return gate.command;
+  return `\0part\0${JSON.stringify([gate.scope ?? null, gate.argv ?? null])}`;
 }
 
 /**
@@ -609,11 +1213,11 @@ function summarise(result, priorKills = []) {
   const failedOptional = byLevel("optional");
 
   for (const entry of byLevel("required")) {
-    lines.push(`❌ required gate FAILED: ${entry.id} — ${entry.detail}`);
+    lines.push(`❌ required gate FAILED: ${nameOf(entry)} — ${entry.detail}`);
   }
   for (const entry of failedOptional) {
     lines.push(
-      `⚠️  optional gate FAILED: ${entry.id} — ${entry.detail} ` +
+      `⚠️  optional gate FAILED: ${nameOf(entry)} — ${entry.detail} ` +
         `(reported, not blocking)`
     );
   }
@@ -624,7 +1228,7 @@ function summarise(result, priorKills = []) {
   // block; neither is the word "failed".
   for (const entry of result.killed) {
     lines.push(
-      `🛑 ${entry.level} gate NOT PROVED — KILLED: ${entry.id} — ${entry.detail}`
+      `🛑 ${entry.level} gate NOT PROVED — KILLED: ${nameOf(entry)} — ${entry.detail}`
     );
   }
   // Its own headline, and deliberately not the word "failed". A property
@@ -633,7 +1237,7 @@ function summarise(result, priorKills = []) {
   // sightings of a starved suite each cost.
   for (const entry of result.unprovable) {
     lines.push(
-      `❓ ${entry.level} gate NOT PROVED: ${entry.id} — ${entry.detail}`
+      `❓ ${entry.level} gate NOT PROVED: ${nameOf(entry)} — ${entry.detail}`
     );
   }
 
@@ -649,11 +1253,20 @@ function summarise(result, priorKills = []) {
   if (result.notRun.length) {
     lines.push(
       `❓ ${result.notRun.length} gate(s) UNKNOWN — never ran, verdict not ` +
-        `established: ${result.notRun.map(entry => entry.id).join(", ")}`
+        `established: ${result.notRun.map(nameOf).join(", ")}`
+    );
+    // `blockedBy` is a gate id, and every part of a gate shares it. The first
+    // required result of that gate to go unproved is the one that stopped the
+    // rest, and for a part its name says which folder that was.
+    const blocker = result.results.find(
+      entry =>
+        entry.id === result.blockedBy &&
+        entry.level === "required" &&
+        result.failed.includes(entry)
     );
     const whyStopped = result.interrupted
       ? "The run was interrupted before it reached them."
-      : `${result.blockedBy} failed first and stopped them.`;
+      : `${blocker ? nameOf(blocker) : result.blockedBy} failed first and stopped them.`;
     lines.push(
       `   Each of those may pass or fail; this run does not say which. ${whyStopped}`
     );
@@ -663,7 +1276,7 @@ function summarise(result, priorKills = []) {
       lines.push(
         `⏭️  ${result.skipped.length} gate(s) NOT APPLICABLE here — their ` +
           `verdict IS established, there was nothing to run: ` +
-          `${result.skipped.map(entry => entry.id).join(", ")}`
+          `${result.skipped.map(nameOf).join(", ")}`
       );
     }
     // The headline an interrupted run gets INSTEAD of the completion one
@@ -698,6 +1311,7 @@ function summarise(result, priorKills = []) {
   // These five are exhaustive on this path, so they sum to `total`: a required
   // FAILED/UNPROVABLE/KILLED gate would have blocked and returned above, and
   // `notRun` is populated only once something has blocked.
+  const untouched = result.skipped.filter(entry => entry.untouched).length;
   const counts =
     `${result.passed.length} proved, ${failedOptional.length} failed ` +
     `(optional), ${result.unprovable.length} not proved, ` +
@@ -707,6 +1321,20 @@ function summarise(result, priorKills = []) {
     `${failedOptional.length ? "⚠️ " : "✅"} ${result.moment}: ${counts}, ` +
       `of ${result.total} gate(s) declared.${
         failedOptional.length ? " See the optional failure(s) above." : ""
+      }${
+        // The tally counts lines of this report. Without the sentence, a gate
+        // with three parts reads as three gates to anyone who knows how many
+        // the project declared.
+        result.results.some(isPart)
+          ? " Each part of a gate is counted on its own."
+          : ""
+      }${
+        // Said in the tally itself, because the tally is what gets quoted: a
+        // part left out is in the last number, and never in the first.
+        untouched
+          ? ` ${untouched} part(s) this change does not touch were not run, ` +
+            `and are counted as not applicable, never as proved.`
+          : ""
       }`
   );
   return lines;
@@ -725,15 +1353,66 @@ function summarise(result, priorKills = []) {
  * The command genuinely ran and its answer is known, so reporting NOT-RUN there
  * would understate what was proved — the mirror image of overstating it, and
  * just as untrue.
+ *
+ * A part adds two questions in front of all of that. May its command start at
+ * all, and where: see `partStart`. And does the change touch its folder: see
+ * `untouchedOutcome`. A part left out is settled there, before the pass cache
+ * and before any shared result are looked at, so it is never read from either
+ * and never written to either.
  * @param {GateOutcome} gate The resolved gate.
- * @param {{proved: Map<string, object>, blockedBy: string|null, exec: Function}} ctx Run state.
+ * @param {{proved: Map<string, object>, blockedBy: string|null, exec: Function, execArgv: Function, start: {directory: string, resolved: string}|{problem: string}|null, builtins: boolean, change: Function}} ctx
+ *   Run state. `start` is `partStart`'s answer for a part, and null for a
+ *   gate with no parts; the caller asks, because it records where the part's
+ *   folder really is beside the verdict.
  * @returns {{outcome: object, shared: object|undefined, ran: boolean}} The verdict.
  */
-function verdictFor(gate, { proved, blockedBy, exec, siblings, declarations }) {
-  const own = classifyStatic(gate);
+function verdictFor(
+  gate,
+  {
+    proved,
+    blockedBy,
+    exec,
+    execArgv,
+    start,
+    builtins,
+    siblings,
+    declarations,
+    cache,
+    change,
+  }
+) {
+  const own =
+    classifyStatic(gate, builtins) ??
+    (start !== null && "problem" in start
+      ? partNotStarted(start.problem)
+      : null);
   if (own) return { outcome: own, shared: undefined, ran: false };
 
-  const shared = gate.command ? proved.get(gate.command) : undefined;
+  const leftOut = start === null ? null : untouchedOutcome(gate, start, change);
+  if (leftOut) return { outcome: leftOut, shared: undefined, ran: false };
+
+  // A remembered pass for this exact content (CodySwannGT/lisa#4594). It is a
+  // known verdict, so it is honoured even once the run is blocked, exactly as
+  // a shared result is. It is never shared onward: a sibling computes its own
+  // key, and a sibling marked `"cache": false` must run the command itself.
+  const hit = cache?.lookup(gate) ?? null;
+  if (hit) {
+    return {
+      outcome: {
+        state: STATE.PASSED,
+        detail: `CACHED PASS (${hit.key.slice(0, 12)}) ${gate.command}`,
+        code: 0,
+        diagnosis: null,
+        evidence: [],
+        cached: true,
+      },
+      shared: undefined,
+      ran: false,
+    };
+  }
+
+  const key = proverKey(gate);
+  const shared = key ? proved.get(key) : undefined;
   if (shared) {
     // The RAW outcome is what is shared, and each gate reads it for itself.
     // Sharing the already-attributed view would hand the second gate the first
@@ -743,7 +1422,7 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings, declarations }) {
     return {
       outcome: {
         ...view,
-        detail: `${view.detail} (proved by the ${shared.id} run)`,
+        detail: `${view.detail} (proved by the ${shared.name} run)`,
       },
       shared,
       ran: false,
@@ -775,7 +1454,10 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings, declarations }) {
       ran: false,
     };
   }
-  const raw = execute(gate, exec, declarations);
+  const raw =
+    start === null
+      ? execute(gate, exec, declarations)
+      : executePart(gate, execArgv, start.directory, declarations);
   return {
     outcome: attributed(gate, raw, siblings),
     raw,
@@ -794,7 +1476,7 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings, declarations }) {
  * @param {object} options.gates The gates block from `.lisa.config.json`.
  * @param {string} options.moment The moment to run.
  * @param {string} [options.runner] Task-runner prefix, e.g. `bun run`.
- * @param {function(string, GateOutcome): (number|null|undefined|{code: number|null, output: string|null})} options.exec
+ * @param {(command: string, gate: GateOutcome) => (number|null|undefined|{code: number|null, output: string|null})} options.exec
  *   Executor. BOTH shapes, because `normaliseExec` accepts both and the shipped
  *   default executor returns the object one. Declaring only `number|null` here
  *   was not merely narrow, it was wrong about the case this runner exists to
@@ -802,7 +1484,17 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings, declarations }) {
  *   transcript, and a number-only type can express the null while silently
  *   erasing the transcript that says what the run was doing when it died.
  *   A type that cannot describe `spawnExec` is a type no caller can trust.
- * @param {function(string): void} [options.out] Line sink; defaults to stdout.
+ * @param {(argv: string[], context: {cwd: string, gate: GateOutcome}) => (number|null|undefined|{code: number|null, output: string|null, signal?: string, notStarted?: string})} [options.execArgv]
+ *   Executor for one PART of a gate: an argument list, and the folder to start
+ *   it in. Separate from `exec` because the two take different things on
+ *   purpose — `exec` takes one line of text for a shell, and a part's command
+ *   must never become one. Defaults to `spawnArgv`; injected by tests for the
+ *   reason `exec` is. An answer carrying `notStarted` says the program could
+ *   not be started at all, and why.
+ * @param {string} [options.root] The repository root, which every part's
+ *   folder is resolved inside. Defaults to the working directory, where the
+ *   hooks start this runner.
+ * @param {(line: string) => void} [options.out] Line sink; defaults to stdout.
  * @param {Record<string, string>|null} [options.scripts] The project's package
  *   scripts, from `projectScripts`. `null` means unknown, and an unknown
  *   manifest resolves exactly as it did before `shippedAs` was consulted.
@@ -811,13 +1503,37 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings, declarations }) {
  *   history instead of having to terminate a real run an hour ago. Defaults to
  *   reading them, and the default is evaluated HERE — before any gate runs —
  *   so a run cannot read back the mark it is about to write.
- * @param {function({kind: string, gateId: string}): boolean} [options.recordKill]
+ * @param {(kill: {kind: string, gateId: string}) => boolean} [options.recordKill]
  *   Kill-marker writer, injectable so marker cardinality can be proved without
  *   writing to the host's shared marker directory.
- * @param {function(): (string|null)} [options.interrupted] Asks, between gates and before returning,
+ * @param {() => (string|null)} [options.interrupted] Asks, between gates and before returning,
  *   whether the run this chain serves is still there. Injectable for the same
  *   reason `exec` is: a test states that the caller went away instead of having
  *   to kill a real hook mid-chain.
+ * @param {() => number} [options.clock] Epoch-ms clock used to time each gate
+ *   for the push timing report (CodySwannGT/lisa#4591). Injectable so a test
+ *   states durations instead of racing a real clock.
+ * @param {{lookup: (gate: GateOutcome) => ({key: string}|null), remember: (gate: GateOutcome, durationMs: number|null) => void, commit: () => void}|null} [options.cache]
+ *   The push-gate pass cache from `openGatePassCache`, or null for none. A
+ *   lookup hit reports `CACHED PASS` without running; only full passes are
+ *   handed to `remember`, and `commit` writes them once the run is over.
+ * @param {{read: (command: string) => ({selection?: string, coverage?: string}|null)}|null} [options.selection]
+ *   What each command reported about the tests it selected, from
+ *   `openSelectionReports` (CodySwannGT/lisa#4600), or null for none. A
+ *   partial selection is never remembered by the cache, and one run with
+ *   coverage off reports coverage-adequacy SKIPPED.
+ * @param {boolean} [options.builtins] Whether the caller of this run has
+ *   built-in checks of its own to prove what the registry leaves to them.
+ *   True by default, which is every hook a stack template ships. False for a
+ *   caller with none (`--builtins=none`): a gate resolved to `builtin` is then
+ *   reported as not proved, because nothing is left to prove it.
+ * @param {boolean} [options.completeParts] Keep running costly parts after a required part fails.
+ * @param {() => ({paths: string[]|null, note: string|null})} [options.change]
+ *   Says which paths the change touches (CodySwannGT/lisa#4988), as
+ *   `changeAt` in `lib/changed-paths` answers it. `paths: null` means "not
+ *   known", and is the default: every part runs. Called at most once, and
+ *   only when the moment has a part for a folder, so a gates block with no
+ *   parts never asks. `note` is printed once, before the first such part.
  * @returns {GateRun} What every declared gate at this moment produced.
  */
 export function runGates({
@@ -825,18 +1541,39 @@ export function runGates({
   moment,
   runner = "npm run",
   exec,
+  execArgv = spawnArgv,
+  root = process.cwd(),
   out = line => console.log(line),
   scripts = null,
   priorKills = recentKillMarks(),
   recordKill = recordKillMark,
   interrupted = runInterruption,
+  clock = Date.now,
+  cache = null,
+  selection = null,
+  builtins = true,
+  completeParts = false,
+  change = () => ({ paths: null, note: null }),
 }) {
   const resolved = resolveMoment({ gates, moment, runner, scripts });
+  // What the change touches, asked for when the first part for a folder is
+  // reached and never again. Said once, where it is first used, so the
+  // reader of a NOT APPLICABLE line has already been told what the change is.
+  let known = null;
+  const changeOnce = () => {
+    if (known === null) {
+      known = askChange(change, moment);
+      if (known.note !== null) out(`  🔎 ${known.note}`);
+    }
+    return known;
+  };
   const results = [];
   // The id of the first required gate to go unproved, not merely a boolean:
   // every gate queued behind it has to be able to say WHAT stopped it, or its
   // line is indistinguishable from a gate that had nothing to run.
   let blockedBy = null;
+  // The same gate as an operator reads it: for a part, with its folder.
+  let blocker = null;
 
   // Which gates name each command, built before anything runs. Attribution
   // needs the answer on the FIRST execution: gates run alphabetically, so the
@@ -849,16 +1586,14 @@ export function runGates({
   // declared by a gate other than the one that happened to run it.
   const declaredShapes = new Map();
   for (const gate of resolved) {
-    if (!gate.command) continue;
-    sharers.set(
-      gate.command,
-      (sharers.get(gate.command) ?? new Set()).add(gate.id)
-    );
+    const key = proverKey(gate);
+    if (!key) continue;
+    sharers.set(key, (sharers.get(key) ?? new Set()).add(gate.id));
     if (!Array.isArray(gate.failureShape) || gate.failureShape.length === 0) {
       continue;
     }
-    declaredShapes.set(gate.command, [
-      ...(declaredShapes.get(gate.command) ?? []),
+    declaredShapes.set(key, [
+      ...(declaredShapes.get(key) ?? []),
       { gate: gate.id, shape: gate.failureShape },
     ]);
   }
@@ -901,17 +1636,48 @@ export function runGates({
         diagnosis: null,
         evidence: [],
         provedBy: null,
+        startedAt: null,
+        durationMs: 0,
       });
       out(formatLine(STATE.NOT_RUN, gate, detail));
       continue;
     }
-    const { outcome, shared, ran, raw } = verdictFor(gate, {
+    const began = clock();
+    const key = proverKey(gate);
+    const start = isPart(gate) ? partStart(gate, root) : null;
+    const verdict = verdictFor(gate, {
       proved,
-      blockedBy,
+      blockedBy: completeParts && isPart(gate) ? null : blocker,
       exec,
-      siblings: sharers.get(gate.command) ?? new Set(),
-      declarations: declaredShapes.get(gate.command) ?? [],
+      execArgv,
+      start,
+      builtins,
+      siblings: sharers.get(key) ?? new Set(),
+      declarations: declaredShapes.get(key) ?? [],
+      cache,
+      change: changeOnce,
     });
+    const { shared, ran, raw } = verdict;
+    // What the command said it selected (CodySwannGT/lisa#4600). A partial
+    // selection is never remembered as a pass, and with coverage switched off
+    // coverage-adequacy reports SKIPPED: its property was not measured here,
+    // and CI's full run enforces it before merge.
+    const report =
+      gate.command && !verdict.outcome.cached
+        ? (selection?.read(gate.command) ?? null)
+        : null;
+    const outcome = coverageLeftToCi(gate, report)
+      ? {
+          state: STATE.SKIPPED,
+          detail: `${PARTIAL_COVERAGE_SKIP_REASON} (${gate.command})`,
+          code: null,
+          diagnosis: null,
+          evidence: [],
+        }
+      : verdict.outcome;
+    // One end reading per gate: the timing report and the pass cache share it.
+    const elapsedMs = Math.max(0, clock() - began);
+    const durationMs = ran ? elapsedMs : shared?.durationMs;
 
     // Only what this iteration actually executed is shareable, and `ran` says
     // so explicitly rather than being inferred from the exit code. `execute`
@@ -919,12 +1685,43 @@ export function runGates({
     // test would treat a terminated run as never having happened and send the
     // next gate to run it again — re-running a whole suite an operator has
     // just interrupted.
-    if (ran && gate.command) {
-      proved.set(gate.command, { id: gate.id, outcome: raw ?? outcome });
+    if (ran && key) {
+      proved.set(key, {
+        id: gate.id,
+        name: nameOf(gate),
+        outcome: raw ?? outcome,
+        durationMs,
+      });
+    }
+    // Only a FULL pass is remembered: this gate's own verdict passed, and so
+    // did the run that produced it — never a pass read off a shared prover
+    // whose own outcome was anything else. Written after the run, by `commit`.
+    const source = ran ? raw : shared?.outcome;
+    if (
+      cache &&
+      report?.selection !== "partial" &&
+      outcome.state === STATE.PASSED &&
+      !outcome.cached &&
+      source?.state === STATE.PASSED
+    ) {
+      cache.remember(gate, durationMs ?? null);
     }
 
-    results.push({ ...gate, ...outcome, provedBy: shared?.id ?? null });
-    out(formatLine(outcome.state, gate, outcome.detail));
+    // A gate proved by a sibling's run takes no time of its own.
+    results.push({
+      ...gate,
+      ...outcome,
+      // Where the part's folder really is, kept beside its verdict: whether
+      // the parts that ran reached the whole change is worked out from the
+      // rows afterwards (`unreachedFloor`), under both of a folder's names.
+      ...(start !== null && "resolved" in start
+        ? { resolved: start.resolved }
+        : {}),
+      provedBy: shared?.id ?? null,
+      startedAt: new Date(began).toISOString(),
+      durationMs: shared ? 0 : elapsedMs,
+    });
+    out(formatLine(shownState(outcome), gate, outcome.detail));
     for (const line of outcome.evidence ?? []) out(`${" ".repeat(6)}↳ ${line}`);
     const unproved =
       outcome.state === STATE.FAILED ||
@@ -934,14 +1731,17 @@ export function runGates({
     // gate inherit only the pass, or letting a failure count only against the
     // optional gate that ran first, would be the original defect again: a
     // required gate satisfied by a run that failed.
-    if (unproved && gate.level === "required" && !blockedBy)
+    if (unproved && gate.level === "required" && !blockedBy) {
       blockedBy = gate.id;
+      blocker = nameOf(gate);
+    }
   }
 
   // The caller may disappear while the FINAL gate executes. There is then no
   // next iteration to observe it, and an optional gate cannot block on its own.
   // Record the interruption before this result can claim completion.
   interruption ??= interrupted();
+  cache?.commit();
 
   const bucket = state => results.filter(entry => entry.state === state);
   const result = {
@@ -968,6 +1768,10 @@ export function runGates({
     killed: bucket(STATE.KILLED),
     skipped: bucket(STATE.SKIPPED),
     notRun: bucket(STATE.NOT_RUN),
+    // What this run was told the change touches, kept for whoever decides
+    // afterwards what the run covered. Never asked is "not known": a run
+    // with no part for a folder had no reason to find out.
+    change: { paths: known?.paths ?? null },
   };
   // Left for a LATER run, because this one already knows. The note only ever
   // helps a different run whose own output carries no trace of the machine.
@@ -975,6 +1779,12 @@ export function runGates({
     recordKill({ kind: STATE.KILLED, gateId: entry.id });
   }
   for (const line of summarise(result, priorKills)) out(line);
+  const cached = result.passed.filter(entry => entry.cached).length;
+  if (cached) {
+    out(
+      `   ${cached} of those proved by a remembered pass for this exact tree.`
+    );
+  }
   return result;
 }
 
@@ -1071,6 +1881,18 @@ const UNPROVED_STATES = new Set([
  * function and is deliberately left alone here — it is a design question about
  * whether a CI signal may retire a local step, not the errored-leg defect.)
  *
+ * ## A gate with parts is covered only when they reached the whole change
+ *
+ * The hook stands its check down for the WHOLE commit or push, and a part
+ * looks at one folder. So a gate with parts is named here only when every
+ * path the change touches is inside the folder of a part that ran. A change
+ * to `api/a.go` and `tools/b.js`, with parts for `api` and `web`, runs the
+ * `api` part and leaves `tools/b.js` to nobody: the caller's built-in check
+ * is the only thing left that can look at it, so the gate is withheld and
+ * that check runs. The same holds when no part ran at all, and when the
+ * change is not known and no part covers the whole repository
+ * (CodySwannGT/lisa#4988). See `unreachedFloor`, which says why for each.
+ *
  * Fail-safe on the input: no result means no run, and no run proves nothing.
  * @param {object} options Inputs.
  * @param {object} options.gates The gates block.
@@ -1091,7 +1913,123 @@ export function provenFloor({ gates, moment, wired = [], result = null }) {
       )
       .map(entry => entry.id)
   );
-  return declared.filter(id => !unproved.has(id));
+  const unreached = new Set(
+    unreachedFloor({ gates, moment, wired, result }).map(entry => entry.id)
+  );
+  return declared.filter(id => !unproved.has(id) && !unreached.has(id));
+}
+
+/** How every reason `unreachedFloor` gives ends: what the caller does next. */
+const BUILT_IN_STILL_RUNS = "so the built-in check for it still runs.";
+
+/** The most changed paths one reason names before it counts the rest. */
+const PATHS_NAMED = 3;
+
+/**
+ * Changed paths as an operator reads them in one line: the first few, each
+ * quoted so a space or an odd character in a name cannot be misread, and a
+ * count of the rest.
+ * @param {string[]} paths Changed paths; at least one.
+ * @returns {string} The paths, for the middle of a sentence.
+ */
+function namedPaths(paths) {
+  const named = paths
+    .slice(0, PATHS_NAMED)
+    .map(path => JSON.stringify(path))
+    .join(", ");
+  const rest = paths.length - PATHS_NAMED;
+  return rest > 0 ? `${named} and ${rest} more` : named;
+}
+
+/**
+ * Why the parts of one gate did not reach the whole change, or null when
+ * they did.
+ *
+ * Three answers keep the caller's built-in check, and each is the same fact
+ * seen from a different side — some path of this change was looked at by no
+ * part:
+ *
+ * - No part ran. The change touches none of the gate's folders.
+ * - A changed path is inside no part that ran.
+ * - The change is not known, and no part that ran covers the whole
+ *   repository. Every part ran, and nothing says their folders are all of
+ *   the change: a commit that edits `.lisa.config.json` is "not known", and
+ *   that file is outside every folder a part can name except `.`.
+ *
+ * A part for the whole repository that ran reaches every path there is, so
+ * with one the answer is null whatever the change touches, known or not.
+ *
+ * A path is covered only when it is a part's folder or lies inside it —
+ * `pathsOutside`, read strictly and compared exactly (`API` is not `api`),
+ * and under both names a linked folder has.
+ * A row that does not say where its folder really is (one a caller wrote by
+ * hand) is matched under its declared name alone, which can only keep a
+ * built-in check that could have stood down.
+ * @param {string} id The gate id.
+ * @param {GateOutcome[]} parts The gate's rows, one per part.
+ * @param {string[]|null} paths The changed paths, or null when not known.
+ * @returns {string|null} The reason, finishing `BUILT_IN_STILL_RUNS`, or null.
+ */
+function unreachedReason(id, parts, paths) {
+  const ran = parts.filter(part => part.untouched !== true);
+  if (ran.length === 0) {
+    return `No part of ${id} applies to this change, ${BUILT_IN_STILL_RUNS}`;
+  }
+  const whole = ran.some(
+    part => part.scope === WHOLE_REPOSITORY || part.resolved === ""
+  );
+  if (whole) return null;
+  if (paths === null) {
+    return (
+      `What this change touches is not known and ${id} has no part for the ` +
+      `whole repository, ${BUILT_IN_STILL_RUNS}`
+    );
+  }
+  const folders = ran.flatMap(part =>
+    [part.scope, part.resolved].filter(folder => typeof folder === "string")
+  );
+  const outside = pathsOutside(paths, folders);
+  return outside.length === 0
+    ? null
+    : `${id} has no part for ${outside.length} path(s) this change touches ` +
+        `(${namedPaths(outside)}), ${BUILT_IN_STILL_RUNS}`;
+}
+
+/**
+ * Floor properties whose parts did not reach every path of this change, and
+ * why.
+ *
+ * Each of these is declared and was not found wanting by the parts that ran,
+ * and still proved nothing about some path the change touches. `provenFloor`
+ * withholds them, and `main` prints each reason so the operator knows why a
+ * built-in check still ran. A gate with no parts is never listed: its one
+ * command is the project's check for the whole repository.
+ *
+ * A gate that failed or went unproved may be listed too. `provenFloor`
+ * withholds it on either count, and `main` blocks before it prints these.
+ * @param {object} options Inputs.
+ * @param {object} options.gates The gates block.
+ * @param {string} options.moment The moment being run.
+ * @param {string[]} [options.wired] Conditional floor ids this project wired.
+ * @param {GateRun|null} [options.result] What `runGates` produced. Read for
+ *   its rows and for `change.paths`; a result with no `change` is read as a
+ *   change that is not known.
+ * @returns {Array<{id: string, reason: string}>} One entry per floor gate
+ *   whose built-in check is kept, in floor order.
+ */
+export function unreachedFloor({ gates, moment, wired = [], result = null }) {
+  const results = result?.results ?? [];
+  const told = result?.change?.paths;
+  const paths =
+    Array.isArray(told) && told.every(path => typeof path === "string")
+      ? told
+      : null;
+  return coveredFloor({ gates, moment, wired }).flatMap(id => {
+    const parts = results.filter(entry => entry.id === id && isPart(entry));
+    if (parts.length === 0) return [];
+    const reason = unreachedReason(id, parts, paths);
+    return reason === null ? [] : [{ id, reason }];
+  });
 }
 
 /**
@@ -1311,19 +2249,352 @@ export function spawnExec(command) {
 }
 
 /**
+ * Hang-detector deadline for one part's command, in milliseconds.
+ *
+ * Thirty minutes, where a gate's command line gets two hours. The process
+ * supervisor accepts a literal argument list only with a deadline of thirty
+ * minutes or less, and a part's command goes through that mode because it is
+ * the one that starts a program with no shell. Like `GATE_COMMAND_BUDGET_MS`
+ * this is a ceiling on "has stopped making progress", not a budget: a part
+ * still running at the deadline is reported KILLED, never failed and never
+ * passed.
+ */
+const PART_COMMAND_BUDGET_MS = 30 * 60 * 1000;
+
+/** The most output a quiet start with no supervisor collects, in bytes. */
+const QUIET_OUTPUT_BYTES = 64 * 1024 * 1024;
+
+/** Where a program is looked for when the environment sets no `PATH`. */
+const DEFAULT_SEARCH_PATH = "/usr/bin:/bin";
+
+/**
+ * Whether a path names a file this user may run.
+ * @param {string} path An absolute path.
+ * @returns {boolean} True for a regular file with the execute permission.
+ */
+function isRunnableFile(path) {
+  try {
+    if (!statSync(path).isFile()) return false;
+    accessSync(path, constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Why the system would find no program to start, on Linux and macOS.
+ *
+ * The same search the system makes: a name holding a `/` is a path from the
+ * folder the command starts in, and any other name is looked for in each
+ * folder of `PATH`, in order.
+ *
+ * Asked BEFORE starting, because of where the answer would otherwise come
+ * from. A shell that cannot find a program still runs, prints `command not
+ * found` and exits 127. With no shell, a missing program means nothing runs,
+ * and the supervisor can only report that as its own failure — a stack trace
+ * and exit 1, which reads as the program having run and failed. Asking first
+ * turns that into one sentence naming the program.
+ *
+ * It only ever makes the report clearer. A program this misses is reported as
+ * not found and blocks; a program it wrongly finds fails to start under the
+ * supervisor and blocks there. Neither is a pass.
+ * @param {string} program The first item of a part's argument list.
+ * @param {string} cwd The folder the command starts in.
+ * @param {string} [searchPath] The command environment’s executable search path.
+ * @returns {string|null} Why the program cannot be started, finishing
+ *   `NOTHING_RAN`, or null when a runnable file answers to that name.
+ */
+function programProblem(program, cwd, searchPath = DEFAULT_SEARCH_PATH) {
+  if (!program.includes("/")) {
+    const found = searchPath
+      .split(delimiter)
+      .some(folder => isRunnableFile(resolve(cwd, folder, program)));
+    return found ? null : programMissing(program);
+  }
+  const path = resolve(cwd, program);
+  if (isRunnableFile(path)) return null;
+  // There, and not runnable, is a different fix from not there: the file
+  // needs its execute permission, not installing.
+  return existsSync(path)
+    ? `${JSON.stringify(program)} is there but may not be run as a program. ` +
+        `Give the file its execute permission, or name the program that ` +
+        `runs it as the first item of this part's command`
+    : programMissing(program);
+}
+
+/**
+ * The sentence for a program that is not there to start.
+ * @param {string} program The first item of a part's argument list.
+ * @returns {string} The reason, finishing `NOTHING_RAN`.
+ */
+function programMissing(program) {
+  return (
+    `the program ${JSON.stringify(program)} was not found. Install it, or ` +
+    `correct the first item of this part's command in .lisa.config.json`
+  );
+}
+
+/**
+ * Start an argument list under the process supervisor's literal mode.
+ *
+ * The same supervisor every gate command runs under, so a part keeps what a
+ * gate has: output shown as it is printed, a captured tail to diagnose from,
+ * a deadline that takes the whole process tree with it, and a stop when the
+ * hook that started this run goes away. `--direct-argv` is the mode that
+ * hands the list to the system as written; there is no `/bin/sh -c` on this
+ * path, and `shell: false` says so for the one hop this file owns.
+ *
+ * A quiet start shows nothing while the command runs: the command reads from
+ * nothing and what it prints goes only to the captured tail. Only the
+ * supervisor's own messages still reach this process's error output.
+ * @param {readonly string[]} argv The program and its arguments.
+ * @param {string} cwd The folder to start in.
+ * @param {{capture: boolean, quiet: boolean, budgetMs: number, env?: NodeJS.ProcessEnv}} how How to supervise and capture the command.
+ * @returns {import("node:child_process").SpawnSyncReturns<string>} Result.
+ */
+function superviseArgv(argv, cwd, { capture, quiet, budgetMs, env }) {
+  const watch = isWatchablePid(LAUNCH_PARENT_PID)
+    ? [`--watch-pid=${LAUNCH_PARENT_PID}`]
+    : [];
+  const shown = quiet ? "ignore" : "inherit";
+  return boundedSpawnSync(
+    process.execPath,
+    [
+      PROCESS_TREE_RUNNER,
+      `--timeout-ms=${budgetMs}`,
+      ...watch,
+      ...(capture ? ["--capture-fd=3"] : []),
+      "--direct-argv",
+      "--",
+      ...argv,
+    ],
+    {
+      cwd,
+      shell: false,
+      stdio: capture ? [shown, shown, "inherit", "pipe"] : "inherit",
+      timeout: budgetMs + PROCESS_TREE_REAP_BUDGET_MS,
+      ...(env === undefined ? {} : { env }),
+    }
+  );
+}
+
+/**
+ * The deadline one start of a part's command is held to, in milliseconds.
+ *
+ * A gate never passes one and gets {@link PART_COMMAND_BUDGET_MS}. A proof
+ * passes the limit its declaration gives one half (CodySwannGT/lisa#4995).
+ * The supervisor's literal mode accepts a whole number of milliseconds up to
+ * thirty minutes and nothing else, so anything else is refused here in a
+ * sentence instead of by the supervisor in a stack trace that would read as
+ * the command having run and failed.
+ * @param {unknown} timeoutMs What the caller asked for, if anything.
+ * @returns {number} The deadline.
+ * @throws {TypeError} When a limit was given and is not one the supervisor
+ *   accepts.
+ */
+function partBudget(timeoutMs) {
+  if (timeoutMs === undefined) return PART_COMMAND_BUDGET_MS;
+  if (
+    Number.isInteger(timeoutMs) &&
+    timeoutMs >= 1 &&
+    timeoutMs <= PART_COMMAND_BUDGET_MS
+  ) {
+    return timeoutMs;
+  }
+  throw new TypeError(
+    `A part's command was not started: its time limit is ` +
+      `${JSON.stringify(timeoutMs)}, and a limit is a whole number of ` +
+      `milliseconds from 1 to ${PART_COMMAND_BUDGET_MS}.`
+  );
+}
+
+/**
+ * Start an argument list with no supervisor in between.
+ *
+ * The route for Windows, where the supervisor has no literal mode. The
+ * program is started directly with its output inherited, so nothing is
+ * captured — the same thing Windows gets for a gate's command line — and a
+ * failure is reported from its exit code alone.
+ *
+ * Here the system itself says when a program is not there (`ENOENT`), so
+ * nothing is looked up first.
+ *
+ * A quiet start is the one case that keeps the output here: the command
+ * reads from nothing and what it prints is collected instead of shown.
+ * @param {readonly string[]} argv The program and its arguments.
+ * @param {string} cwd The folder to start in.
+ * @param {{quiet: boolean, budgetMs: number, env?: NodeJS.ProcessEnv}} how Whether to collect the
+ *   output instead of showing it, and the deadline.
+ * @returns {{code: number|null, output: string|null, signal?: string, notStarted?: string}}
+ *   Exit code; null with `notStarted` when the program could not be started.
+ * @throws {Error} When the program was killed at its deadline.
+ */
+function startArgv(argv, cwd, { quiet, budgetMs, env }) {
+  const [program, ...rest] = argv;
+  const child = boundedSpawnSync(program, rest, {
+    cwd,
+    shell: false,
+    stdio: quiet ? ["ignore", "pipe", "pipe"] : "inherit",
+    timeout: budgetMs,
+    ...(env === undefined ? {} : { env }),
+    // Only a quiet start collects anything, and a check that prints a great
+    // deal must still be read rather than cut off as if it could not start.
+    ...(quiet ? { maxBuffer: QUIET_OUTPUT_BYTES } : {}),
+  });
+  if (child.error) {
+    const code = /** @type {{code?: unknown}} */ (child.error).code;
+    return {
+      code: null,
+      output: null,
+      notStarted:
+        code === "ENOENT"
+          ? programMissing(program)
+          : `the program ${JSON.stringify(program)} could not be started ` +
+            `(${String(code ?? child.error.message)})`,
+    };
+  }
+  return {
+    code: child.status,
+    output: quiet ? `${child.stdout ?? ""}${child.stderr ?? ""}` : null,
+    ...(child.signal ? { signal: child.signal } : {}),
+  };
+}
+
+/**
+ * Start one part's argument list in its folder, with no shell.
+ *
+ * The default `execArgv` of `runGates`, and the counterpart of `spawnExec`.
+ * The two differ in exactly the way the declaration does: `spawnExec` is
+ * given one line of text and hands it to a shell, and this is given a list
+ * and hands each item to the program as one argument. Nothing reads `;`,
+ * `&&`, `$(…)`, a quote or a space as anything but a character.
+ *
+ * It starts in `cwd` and nowhere else, so `cwd` is required: a part's command
+ * must never run in whatever folder the runner happened to be started in.
+ *
+ * Gate commands inherit this process's environment. Proof preparation can
+ * supply a copy without repository-selection variables from Git hooks.
+ *
+ * ## What it refuses, and how
+ *
+ * A command that is not a list of text is a programming error by this point —
+ * validation and `runGates` have both already refused it — so it THROWS
+ * rather than answering, and nothing is started. Everything that can go wrong
+ * with a well-formed list is an answer instead: `{code: null}` with
+ * `notStarted` for a folder or a program that is not there, and `{code:
+ * null}` alone for a command killed at its deadline.
+ *
+ * ## What a proof asks for that a gate does not
+ *
+ * A gate passes neither `timeoutMs` nor `quiet`, and nothing above changes
+ * for it. The paired-proof runner (CodySwannGT/lisa#4995) passes both.
+ *
+ * `timeoutMs` is the limit its declaration gives one half of a proof. A
+ * command still running at that limit is stopped with its whole process
+ * tree, exactly as at the gate's own deadline, and the answer says so with
+ * `timedOut: true` — the one thing an exit code cannot say, and the
+ * difference between "this check is too slow for its limit" and "this
+ * machine killed it". The key is only ever present, and only ever true, on a
+ * start that was given a limit and was stopped no earlier than it.
+ *
+ * `quiet` shows nothing while the command runs. A proof's report is one
+ * document, and a command printing into the middle of it would make that
+ * document unreadable by the program it was written for. The command reads
+ * from nothing, and what it prints is kept for the answer whatever
+ * `LISA_GATES_CAPTURE` says, because the output is what the proof is read
+ * from.
+ * @param {readonly string[]} argv The program, then its arguments.
+ * @param {object} options How to start it.
+ * @param {string} options.cwd The folder to start in.
+ * @param {string} [options.platform] The platform, for the route Windows
+ *   takes. Injectable so that route can be run where it is not the default.
+ * @param {number} [options.timeoutMs] The deadline, in whole milliseconds
+ *   from 1 to thirty minutes. Thirty minutes when left out.
+ * @param {boolean} [options.quiet] Show nothing while the command runs, and
+ *   always keep what it printed.
+ * @param {NodeJS.ProcessEnv} [options.env] Environment for this start.
+ * @returns {{code: number|null, output: string|null, signal?: string, notStarted?: string, timedOut?: true}}
+ *   OS status and diagnostic tail, or why nothing started.
+ * @throws {TypeError} When `argv` is not a list of text naming a program,
+ *   `cwd` is not given, or `timeoutMs` is not a limit the supervisor accepts.
+ */
+export function spawnArgv(
+  argv,
+  { cwd, platform = process.platform, timeoutMs, quiet = false, env } = {}
+) {
+  const problem = argvProblem(argv);
+  if (problem !== null) {
+    throw new TypeError(
+      `A part's command was not started: ${problem}. A command is a list ` +
+        `with one item per argument, the program first, and is never split ` +
+        `from one string.`
+    );
+  }
+  if (typeof cwd !== "string" || cwd === "") {
+    throw new TypeError(
+      "A part's command was not started: no folder to start it in was given."
+    );
+  }
+  const budgetMs = partBudget(timeoutMs);
+  // Asked here as well as in `partDirectory`, for a caller that is not
+  // `runGates`: the system reports a missing folder as the PROGRAM not being
+  // found, which would send an operator to install something they have.
+  if (!isFolder(cwd)) {
+    return {
+      code: null,
+      output: null,
+      notStarted: `the folder ${JSON.stringify(cwd)} does not exist`,
+    };
+  }
+  const limited = timeoutMs !== undefined;
+  const began = performance.now();
+  // Read off a clock that cannot be set back, and only to name a stop that
+  // has already happened: the supervisor ends a tree at its deadline with the
+  // same signal anything else on the machine would use, so the elapsed time
+  // is the only thing that tells the two apart.
+  const atDeadline = answer =>
+    limited && answer.code === null && performance.now() - began >= budgetMs
+      ? { ...answer, timedOut: true }
+      : answer;
+  if (platform === "win32") {
+    try {
+      return startArgv(argv, cwd, { quiet, budgetMs, env });
+    } catch (error) {
+      // A gate keeps what it always had here. Only a start that was given a
+      // limit of its own is answered instead.
+      if (!limited) throw error;
+      return atDeadline(killedOrRethrow(error));
+    }
+  }
+  const searchPath = env === undefined ? process.env.PATH : env.PATH;
+  const notStarted = programProblem(argv[0], cwd, searchPath);
+  if (notStarted !== null) return { code: null, output: null, notStarted };
+  const capture = quiet || process.env.LISA_GATES_CAPTURE !== "0";
+  try {
+    const child = superviseArgv(argv, cwd, { capture, quiet, budgetMs, env });
+    // A non-timeout `spawnSync` failure arrives on the result, and it means
+    // the supervisor itself never ran: nothing checked this part.
+    if (child.error) return { code: null, output: null };
+    const captured = capture ? child.output?.[3] : null;
+    return atDeadline({
+      code: child.status,
+      ...(child.signal ? { signal: child.signal } : {}),
+      output:
+        captured === null || captured === undefined ? null : String(captured),
+    });
+  } catch (error) {
+    return atDeadline(killedOrRethrow(error));
+  }
+}
+
+/**
  * The one schema token, which a reader REFUSES to best-effort parse past.
  *
  * A reader that parsed any JSON it was handed would credit a file that happens
  * to have a `gates` array, which is how evidence of one thing becomes evidence
  * of another. This token is also what a caller greps for to find out whether
  * the runner it resolved is old enough to ignore `--evidence` entirely.
- *
- * Shared verbatim with the release verifier in CodySwannGT/lisa#3013. Two
- * producers — this one at the deploy moments, that one at `pull-request` — and
- * ONE schema, because two evidence formats for one property is this
- * repository's recurring defect. The verifier keys on `contract.moment` and
- * refuses to satisfy a `pre-deploy:*` gate with a `pull-request` envelope
- * regardless of tree match, so the two producers never compete.
  */
 export const EVIDENCE_SCHEMA = "lisa.gate-evidence/v1";
 
@@ -1344,7 +2615,12 @@ export const EVIDENCE_VERDICT = Object.freeze({
   REFUSED: "refused",
   /** The project has no gates block; the registry governs nothing here. */
   NO_GATES: "no-gates",
-  /** The block is half-written, so the caller's built-in steps still run. */
+  /**
+   * The caller's built-in steps still run: the block is half-written, or the
+   * parts that ran did not reach every path of the change and the caller
+   * cannot keep one step on its own. In the second case the rows of what did
+   * run are recorded beside it.
+   */
   FELL_BACK: "fell-back",
   /** The runner could not run. Nothing was proved. */
   RUNNER_FAILED: "runner-failed",
@@ -1398,14 +2674,11 @@ function gitRev(spec) {
 }
 
 /**
- * WHAT this evidence is about: the tree, and nothing that varies with it.
+ * WHAT this evidence is about.
  *
- * `tree` is the identity; `commit` is evidentiary only. Both are recorded
- * deliberately, because two commits legitimately share a tree after a rebase
- * and that is exactly the case where reusing the evidence is sound — a reader
- * keyed on the commit would rerun everything a rebase touched for no reason,
- * and one keyed on nothing at all would credit a tree that never shipped.
- * @returns {object} The subject binding.
+ * `tree` is the identity and `commit` is evidentiary: two commits share a tree
+ * after a rebase, and the tree is what the gates actually examined.
+ * @returns {{repository: string|null, tree: string|null, commit: string|null, ref: string|null}} The subject binding.
  */
 function evidenceSubject() {
   return {
@@ -1417,196 +2690,44 @@ function evidenceSubject() {
 }
 
 /**
- * Digest the inputs the caller stated, or refuse to claim unreadable input.
- * @returns {string|null} The stable digest, or null when none was established.
- */
-function inputsDigest() {
-  const inputs = process.env.LISA_GATE_EVIDENCE_INPUTS ?? null;
-  if (!inputs) return null;
-  try {
-    return digest(JSON.parse(inputs));
-  } catch {
-    // A caller that stated unreadable inputs established nothing about them.
-    // Null makes a verifier rerun; throwing here would replace the gate's real
-    // verdict with an uncaught exit and prevent the evidence write entirely.
-    return null;
-  }
-}
-
-/**
- * UNDER WHICH CONTRACT it was proved — the half a tree hash cannot carry.
+ * One gate's outcome, as small as a reader needs.
  *
- * `workflow_ref` and `workflow_sha` are not redundant with `subject.tree`, and
- * this is the load-bearing argument for keeping them: consumers call the
- * reusable workflow at `@main`, so its contents can change with NO change to
- * the caller's tree. Tree identity alone would let evidence produced by an
- * older, weaker workflow satisfy a stricter one.
+ * The envelope used to carry `work`, `measures`, `prover` and freshness fields
+ * for a release-reuse checker that nothing called; every one of them was null
+ * or restated the exit code, so they were removed with the checker
+ * (CodySwannGT/lisa#4794). `status` stays three-valued: only PASSED becomes
+ * `pass`, FAILED becomes `fail`, and everything else is `unknown`.
  *
- * `inputs_digest` covers the same hole one level down — the same workflow at
- * the same sha proves different things when handed a different
- * `working_directory` or `install_dependencies`. The caller states its own
- * normalised inputs, because only the caller knows them; unstated means null,
- * which a verifier reads as "not established" rather than "no inputs".
- * @param {object} options Inputs.
- * @param {string} options.moment The moment that was run.
- * @param {object|null} options.gates The gates block that was executed.
- * @param {string} [options.runner] The task-runner prefix.
- * @param {Record<string,string>|null} [options.scripts] Project scripts.
- * @param {object} options.identity Lisa artifact identity captured at run start.
- * @returns {object} The contract binding.
- */
-function evidenceContract({ moment, gates, runner, scripts = null, identity }) {
-  return {
-    moment,
-    runner: runner ?? null,
-    gates_digest: planDigest({ gates, moment, runner, scripts }),
-    // SPREAD, not three hand-copied fields. The printed header and this
-    // document have to be the same claim: a reader comparing a pasted gate
-    // line against a stored envelope and finding them disagree learns nothing
-    // except that Lisa has two answers. `surface` and `artifacts` ride along,
-    // and they are the half that says WHICH COPY of the enforcement script
-    // produced the verdict — a fact a workflow ref cannot carry, because the
-    // wrapper's identity and the enforcement's identity are independent when
-    // the enforcement is a file living in the consuming repository.
-    ...identity,
-    inputs_digest: inputsDigest(),
-  };
-}
-
-/**
- * A caller chain the CALLER derived, or null. Never a literal written here.
+ * One PART of a gate adds `scope`, the folder it covers. A gate with parts
+ * records one row per part, all under one `gate`, and without the folder a
+ * reader could not tell the row that failed from the row that passed. A gate
+ * with no parts records exactly the four keys it always has.
  *
- * Depth is a property of how a consumer wired its workflows, not of the gates
- * block: a pull-request path posts one level and a release path posts two, and
- * a consumer's release job is not even named uniformly across the fleet. The
- * only truthful derivation is `postedCallerChains` over a completed run's
- * check-run names, which needs API scope this runner does not have — so a
- * caller that CAN read them states the answer here, and everything else
- * records null. A verifier treats a null chain as ineligible and reruns, which
- * is the safe direction; a guessed literal would not be.
- * @returns {string[]|null} The chain, shallowest element first.
- */
-function callerChain() {
-  const stated = process.env.LISA_GATE_EVIDENCE_CALLER_CHAIN ?? null;
-  if (!stated) return null;
-  try {
-    const parsed = JSON.parse(stated);
-    return Array.isArray(parsed) && parsed.every(el => typeof el === "string")
-      ? parsed
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * WHO produced it, so an auditor can go and read the run.
- *
- * `reused_gates` is emitted from day one, empty, even though nothing reuses
- * yet. An absent field and an empty one must not be the same thing to a
- * reader: adding it later would leave every envelope written before the
- * addition indistinguishable from one that reused everything. It exists to
- * close circular reuse — a run that reuses evidence and then emits its own
- * envelope could otherwise be reused in turn, and the chain of proof bottoms
- * out on nothing. A verifier refuses any envelope with a non-empty
- * `reused_gates` as a source. Primary proof only.
- * @returns {object} The originating run, with nulls off CI.
- */
-function evidenceProducer() {
-  const id = process.env.GITHUB_RUN_ID ?? null;
-  const server = process.env.GITHUB_SERVER_URL ?? null;
-  const repository = process.env.GITHUB_REPOSITORY ?? null;
-  return {
-    run_id: id,
-    run_attempt: process.env.GITHUB_RUN_ATTEMPT ?? null,
-    run_url:
-      id && server && repository
-        ? `${server}/${repository}/actions/runs/${id}`
-        : null,
-    workflow: process.env.GITHUB_WORKFLOW ?? null,
-    event: process.env.GITHUB_EVENT_NAME ?? null,
-    actor: process.env.GITHUB_ACTOR ?? null,
-    caller_chain: callerChain(),
-    // This runner never reuses. It executes every gate it records, so the list
-    // is empty by construction rather than by omission.
-    reused_gates: [],
-  };
-}
-
-/**
- * One gate's outcome: `EVIDENCE_FIELDS` verbatim, plus exactly two additions.
- *
- * All seven `EVIDENCE_FIELDS` keys are spelled exactly as that module declares
- * them, so `readEvidence` reads a row with no adapter. The two additions are
- * the release verifier's requirements and this producer's too:
- *
- * - `level` — without a per-row level, a required gate can be "covered" by
- *   evidence that was OPTIONAL when it ran, which is a silent downgrade. Here
- *   it is also the only thing that tells a reader whether a failing gate was
- *   allowed to fail.
- * - `label` — the registry label, which ties the row to the branch-protection
- *   context `contextsFor` derives, so an audit can name the context and not
- *   only the gate id.
- *
- * Nothing else. `task` and `command` deliberately do NOT get their own row
- * keys: they are inside `contract.gates_digest`, and a second copy on the row
- * is a second place to drift. The command still appears once, as
- * `prover.tool`, which is an `EVIDENCE_FIELDS` key.
- *
- * `prover.version` is null rather than `"unknown"` when unresolvable. A string
- * that looks like a version and is a placeholder is worse than an absent
- * field, because a placeholder defeats the check that reads it.
- *
- * NARROWED for #3013, and the narrowing matters. This comment used to say
- * flatly that the verifier treats a null-version row as uncoverable. Read
- * literally that makes NOTHING reusable, because the pull-request producer
- * cannot resolve a version for every hand-written job. The rule is right for
- * the case it was written about and too broad for the rest, so `reusePlan` in
- * lisa-gates.mjs applies it by reuse class: for a TIME-SENSITIVE gate the
- * prover is an external scanner whose version decides what it can find, and a
- * null version is disqualifying; for a DETERMINISTIC gate the binding that
- * matters is `subject.tree` + `contract.gates_digest` + `contract.workflow_sha`,
- * all non-null by construction, and a null `prover.version` weakens nothing.
- *
- * `work` is null and stays null until a prover-output parser exists. That is
- * not a shortcut: `readEvidence` demotes a `pass` with no work count to
- * `unknown` for any gate whose registry entry names one, so the conservative
- * value fails SAFE. A fabricated count would fail the other way.
+ * A part the change does not touch adds `applicable: false`. Its `status` is
+ * `unknown`, as it is for everything that was not measured, so a reader that
+ * knows only the three statuses still cannot take it for a pass; the extra
+ * key is what tells it apart from a part that ran and proved nothing.
  * @param {GateOutcome} outcome One resolved gate and its verdict.
- * @param {string} observedAt When the run that produced it began.
- * @returns {object} The gate's evidence record.
+ * @returns {{gate: string, status: string, level: string, label: string, scope?: string|null, applicable?: false}} The gate's record.
  */
-function gateEvidence(outcome, observedAt) {
+function gateEvidence(outcome) {
   return {
     gate: outcome.id,
     status: EVIDENCE_STATUS_FOR[outcome.state] ?? "unknown",
-    work: null,
-    measures: {
-      exit_code: outcome.code ?? null,
-      state: outcome.state,
-      detail: outcome.detail ?? null,
-      diagnosis: outcome.diagnosis ?? null,
-    },
-    prover: { tool: outcome.command ?? null, version: null },
-    observed_at: observedAt,
-    max_age_minutes: null,
     level: outcome.level,
     label: outcome.label ?? outcome.id,
+    ...(isPart(outcome) ? { scope: outcome.scope ?? null } : {}),
+    ...(outcome.untouched === true ? { applicable: false } : {}),
   };
 }
 
 /**
  * The whole document one run of one moment records.
  *
- * `observed_at` is the run's START, not its end, and that is the conservative
- * direction on purpose: a freshness bound computed against it can only ever
- * judge the evidence OLDER than it truly is, so a bound errs toward `unknown`
- * rather than toward crediting a stale observation.
- * `verdict` is this producer's one addition to the shared header, and it is
- * what makes the zero-gate case legible ON DISK rather than only as an exit
- * code. An envelope recording nothing and an envelope recording a clean run
- * must not be byte-similar: `"no-gates"` beside an empty `gates` array says
- * which one this is, where a bare empty array would read as either.
+ * `observed_at` is the run's START. `verdict` makes the zero-gate case legible
+ * on disk: `"no-gates"` beside an empty `gates` array says which of "ran and
+ * declared nothing" or "recorded nothing" this is. `contract.gates_digest`
+ * names the declared rule set the run was held to.
  * @param {object} options Inputs.
  * @param {string} options.moment The moment that was run.
  * @param {object|null} [options.gates] The gates block that was executed.
@@ -1615,8 +2736,7 @@ function gateEvidence(outcome, observedAt) {
  * @param {string} [options.runner] The task-runner prefix.
  * @param {Record<string,string>|null} [options.scripts] Project scripts.
  * @param {string} options.observedAt When the run began, ISO-8601.
- * @param {object} [options.identity] Lisa identity captured for this run.
- * @returns {object} The evidence envelope.
+ * @returns {{schema: string, verdict: string, subject: {repository: string|null, tree: string|null, commit: string|null, ref: string|null}, contract: {moment: string, gates_digest: string|null}, observed_at: string, gates: Array<{gate: string, status: string, level: string, label: string}>}} The evidence envelope.
  */
 export function evidenceDocument({
   moment,
@@ -1626,19 +2746,17 @@ export function evidenceDocument({
   runner = undefined,
   scripts = null,
   observedAt,
-  identity = lisaIdentity(),
 }) {
-  const observations = (result?.results ?? []).map(outcome =>
-    gateEvidence(outcome, observedAt)
-  );
   return {
     schema: EVIDENCE_SCHEMA,
     verdict,
     subject: evidenceSubject(),
-    contract: evidenceContract({ gates, moment, runner, scripts, identity }),
-    producer: evidenceProducer(),
+    contract: {
+      moment,
+      gates_digest: planDigest({ gates, moment, runner, scripts }),
+    },
     observed_at: observedAt,
-    gates: observations,
+    gates: (result?.results ?? []).map(gateEvidence),
   };
 }
 
@@ -1675,6 +2793,90 @@ function writeEvidence(path, document) {
 function readFlag(argv, name) {
   const hit = argv.find(arg => arg.startsWith(`--${name}=`));
   return hit ? hit.slice(name.length + 3) : null;
+}
+
+/** How the command line is written. */
+const USAGE =
+  "usage: lisa-run-gates.mjs --moment=<moment> [--coverage=<file>] " +
+  "[--evidence=<file>] [--builtins=none] [--push-refs=<file>|-] [--parts=all] [--gate=<id>]";
+
+/** The gate id a standalone pull-request job is responsible for. */
+const GATE_FLAG = "gate";
+
+/**
+ * The flag a push hook uses to hand over what git told it is being pushed.
+ *
+ * Its value is a file holding the hook's standard input exactly as git wrote
+ * it — one `<local ref> <local object> <remote ref> <remote object>` line per
+ * ref — or `-` to have this runner read its own standard input. Read only at
+ * push. Without it (and without the file the shipped push hook names in
+ * `LISA_PUSHED_REFS_FILE`) the runner does not know what is being pushed, and
+ * runs every part.
+ *
+ * With `-`, standard input is read to its end before any gate starts, so a
+ * gate's command then finds it empty. A caller whose gates read the pushed
+ * refs themselves hands over a file instead.
+ */
+const PUSH_REFS_FLAG = "push-refs";
+
+/** The flag that runs every part, whatever the change touches. */
+const PARTS_FLAG = "parts";
+
+/** The one value that flag takes. */
+const ALL_PARTS = "all";
+
+/**
+ * Why the `--parts` flag cannot be honoured as given, or null when it can.
+ *
+ * Refused rather than guessed at, for the reason `--builtins` is: a caller
+ * that wrote `--parts=api` meant something, and running a different set of
+ * parts than it asked for is not a favour.
+ * @param {string|null} value The flag's value, or null when it was not given.
+ * @returns {string|null} The problem, in a sentence, or null.
+ */
+function partsFlagProblem(value) {
+  if (value === null || value === ALL_PARTS) return null;
+  return (
+    `--${PARTS_FLAG}=${JSON.stringify(value)} is not something this runner ` +
+    `understands. The only value is --${PARTS_FLAG}=${ALL_PARTS}, which runs ` +
+    `every part whatever the change touches.`
+  );
+}
+
+/** The flag a caller uses to say what checks of its own it has. */
+const BUILTINS_FLAG = "builtins";
+
+/** The one value that flag takes: the caller has no checks of its own. */
+const NO_BUILTINS = "none";
+
+/**
+ * Why the `--builtins` flag cannot be honoured as given, or null when it can.
+ *
+ * `--coverage` and `--builtins=none` are refused together because they say
+ * opposite things about the caller. The first asks which of its built-in
+ * checks it may skip; the second says it has none. Honouring either one would
+ * mean ignoring the other, and the caller would not learn which.
+ * @param {string|null} value The flag's value, or null when it was not given.
+ * @param {string|null} coveragePath The `--coverage` file, if one was given.
+ * @returns {string|null} The problem, in a sentence, or null.
+ */
+function builtinsFlagProblem(value, coveragePath) {
+  if (value === null) return null;
+  if (value !== NO_BUILTINS) {
+    return (
+      `--${BUILTINS_FLAG}=${JSON.stringify(value)} is not something this ` +
+      `runner understands. The only value is --${BUILTINS_FLAG}=${NO_BUILTINS}, ` +
+      `for a caller that has no built-in checks of its own.`
+    );
+  }
+  if (coveragePath) {
+    return (
+      `--coverage and --${BUILTINS_FLAG}=${NO_BUILTINS} cannot be used ` +
+      `together: the first asks which built-in checks to skip, and the ` +
+      `second says there are none.`
+    );
+  }
+  return null;
 }
 
 /**
@@ -1723,7 +2925,7 @@ function validateCommand() {
  * says when the problem is gone.
  * @param {string} moment The moment that was asked for.
  * @param {string[]} problems Blocking problems, from `configurationProblems`.
- * @param {function(string): void} out Line sink.
+ * @param {(line: string) => void} out Line sink.
  */
 function reportRefusal(moment, problems, out) {
   const many = problems.length !== 1;
@@ -1762,14 +2964,53 @@ export function main(argv = process.argv.slice(2)) {
   // Taken before anything runs. See `evidenceDocument`: a start stamp makes a
   // freshness bound err toward `unknown` rather than toward crediting a stale
   // observation, which is the only direction a gate may err in.
-  const observedAt = new Date().toISOString();
+  const startedAtMs = Date.now();
+  const observedAt = new Date(startedAtMs).toISOString();
+  // Host load at the START of the run, for the push timing report (#4591).
+  const startReading = hostReading();
   if (!moment) {
-    console.error(
-      "usage: lisa-run-gates.mjs --moment=<moment> [--coverage=<file>] " +
-        "[--evidence=<file>]"
-    );
+    console.error(USAGE);
     return EXIT.RUNNER_FAILED;
   }
+  // Read before anything runs, and refused rather than guessed at. This flag
+  // decides whether "go and run your own checks" is an answer the caller can
+  // act on, so a value this runner does not know must not quietly become
+  // either answer.
+  const builtinsFlag = argv.includes(`--${BUILTINS_FLAG}`)
+    ? ""
+    : readFlag(argv, BUILTINS_FLAG);
+  const partsFlag = argv.includes(`--${PARTS_FLAG}`)
+    ? ""
+    : readFlag(argv, PARTS_FLAG);
+  const onlyGate = argv.includes(`--${GATE_FLAG}`)
+    ? ""
+    : readFlag(argv, GATE_FLAG);
+  const standalone = builtinsFlag === NO_BUILTINS;
+  const gateFlagProblem =
+    onlyGate !== null &&
+    (onlyGate === "" || !standalone || moment !== "pull-request")
+      ? "Use --gate=<id> with --moment=pull-request and --builtins=none."
+      : null;
+  const flagProblem =
+    builtinsFlagProblem(builtinsFlag, coveragePath) ??
+    partsFlagProblem(partsFlag) ??
+    gateFlagProblem;
+  if (flagProblem) {
+    console.error(`⚠️  ${flagProblem}`);
+    console.error(USAGE);
+    console.error("   Nothing ran, so nothing was proved. This is NOT a pass.");
+    return EXIT.RUNNER_FAILED;
+  }
+  // Standard input is read NOW, before anything else is started. Every gate
+  // command inherits it, and git writes the pushed refs there exactly once:
+  // read lazily, whichever of the runner and a gate got there first would
+  // leave the other nothing, and the answer would depend on the order the
+  // gates happen to run in.
+  const pushRefsFlag = readFlag(argv, PUSH_REFS_FLAG);
+  const stdinRefs =
+    moment === "push" && pushRefsFlag === PUSH_REFS_STDIN
+      ? readPushRefs(PUSH_REFS_STDIN)
+      : undefined;
 
   // PRINTED BEFORE ANY GATE RUNS, so it is present whether they pass, fail,
   // are optional, or never run at all. Every early return below is a report an
@@ -1811,7 +3052,6 @@ export function main(argv = process.argv.slice(2)) {
         runner: parts.runner,
         scripts: parts.scripts ?? null,
         verdict,
-        identity,
       })
     );
     if (written) return code;
@@ -1840,6 +3080,25 @@ export function main(argv = process.argv.slice(2)) {
   // has not adopted the registry, so the caller must run its hardcoded steps.
   if (!config.gates || Object.keys(config.gates).length === 0) {
     if (coveragePath) writeCoverage(coveragePath, []);
+    if (onlyGate !== null) {
+      reportRefusal(
+        moment,
+        [`No gate ${JSON.stringify(onlyGate)} is declared.`],
+        line => console.error(line)
+      );
+      return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.REFUSED);
+    }
+    // A caller with no built-in checks has no hardcoded steps to run instead,
+    // so 78 would be an instruction it cannot follow. What is true is that
+    // nothing is declared and so nothing was checked: the same answer a gates
+    // block that is silent at this moment gets further down, said out loud.
+    if (standalone) {
+      console.log(
+        `ℹ️  No gates are declared in .lisa.config.json, so nothing was ` +
+          `checked at ${moment}.`
+      );
+      return settle(EXIT.PROVED, EVIDENCE_VERDICT.NO_GATES);
+    }
     return settle(EXIT.NO_GATES, EVIDENCE_VERDICT.NO_GATES);
   }
 
@@ -1893,9 +3152,68 @@ export function main(argv = process.argv.slice(2)) {
         `to see them.`
     );
   }
+  const gatesToRun =
+    onlyGate === null ? config.gates : { [onlyGate]: config.gates[onlyGate] };
+  if (
+    onlyGate !== null &&
+    (!Object.hasOwn(config.gates, onlyGate) ||
+      !resolveMoment({
+        gates: gatesToRun,
+        moment,
+        runner: config.runner,
+        scripts,
+      }).some(gate => gate.mode === "run"))
+  ) {
+    reportRefusal(
+      moment,
+      [
+        `Gate ${JSON.stringify(onlyGate)} has no runnable declaration at this moment.`,
+      ],
+      line => console.error(line)
+    );
+    return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.REFUSED, {
+      gates: config.gates,
+      runner: config.runner,
+      scripts,
+    });
+  }
 
-  const wired = wiredConditionalFloor({ moment });
-  const missing = undeclaredFloor({ gates: config.gates, moment, wired });
+  // The stack's push-gate defaults (CodySwannGT/lisa#4611): a TypeScript host
+  // gets the pass cache, admission and affected tests without declaring them,
+  // and anything it does declare, `false` included, wins.
+  const pushConfig = withPushGateDefaults(config.config, process.cwd());
+
+  // The floor is the list of properties the caller's built-in checks prove.
+  // A caller with none has no floor: there is nothing for a half-written
+  // block to delete by omission, and nothing to fall back to if it did.
+  const wired = standalone ? [] : wiredConditionalFloor({ moment });
+  const missing = standalone
+    ? []
+    : undeclaredFloor({ gates: config.gates, moment, wired });
+
+  // One cleanup sweep per push (CodySwannGT/lisa#4597), before the first gate
+  // and before the built-in fallback below, which runs tests too. It never
+  // fails the run: whatever goes wrong is printed and the gates run.
+  // Opened before the sweep, and only at push. Off unless the project set
+  // `pushGate.cache: true`, and then silent and inert (CodySwannGT/lisa#4594).
+  const cache =
+    moment === "push"
+      ? openGatePassCache({
+          config: pushConfig,
+          gates: config.gates,
+          moment,
+          out: line => console.log(line),
+        })
+      : null;
+  if (moment === "push") {
+    try {
+      runStartOfRunSweep();
+    } catch (err) {
+      console.log(
+        `🧹 cleanup sweep did not finish (${err.message}); continuing`
+      );
+    }
+  }
 
   // `--coverage` is how a caller says "I skip my built-in steps ONE AT A TIME,
   // against the names in this file". Such a caller does not need the moment
@@ -1931,12 +3249,110 @@ export function main(argv = process.argv.slice(2)) {
     });
   }
 
+  // Heavy push steps go through headroom admission when the project opted in
+  // with `pushGate.admission` (CodySwannGT/lisa#4596). Off, `exec` is
+  // `spawnExec` itself and every step starts immediately as before.
+  let exec = spawnExec;
+  if (moment === "push") {
+    // Inherited by every gate, so `lisa admit` and `lisa-test-run` apply the
+    // short in-push wait bound rather than the standalone one.
+    process.env.LISA_ADMISSION_CONTEXT = PUSH_CONTEXT;
+    try {
+      exec = withAdmission(spawnExec, {
+        enabled: admissionEnabled(pushConfig),
+      });
+    } catch (err) {
+      console.error(`🚫 Nothing ran at "push": ${err.message}`);
+      console.error(
+        "   Fix pushGate in .lisa.config.json. This is NOT a pass."
+      );
+      return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.REFUSED, {
+        gates: config.gates,
+        runner: config.runner,
+        scripts,
+      });
+    }
+  }
+
+  // Build once, before the first push gate, when the project opted in with
+  // `pushGate.buildOnce` (CodySwannGT/lisa#4595). `buildOnceStep` is the entry
+  // for the push timing report; null means the push builds exactly as before.
+  let buildOnceStep = null;
+  if (moment === "push") {
+    try {
+      buildOnceStep = runBuildOnce({
+        config: pushConfig,
+        runner: config.runner,
+        scripts,
+        exec: command => exec(command, { id: BUILD_ONCE_ID }),
+      });
+    } catch (err) {
+      console.error(`🚫 Nothing ran at "push": ${err.message}`);
+      console.error(
+        "   Fix pushGate in .lisa.config.json. This is NOT a pass."
+      );
+      return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.REFUSED, {
+        gates: config.gates,
+        runner: config.runner,
+        scripts,
+      });
+    }
+    if (buildOnceStep) {
+      const seconds = (buildOnceStep.durationMs / 1000).toFixed(1);
+      if (buildOnceStep.state !== STATE.PASSED) {
+        console.error(
+          `❌ build-once: \`${buildOnceStep.command}\` failed (exit ` +
+            `${buildOnceStep.code}) after ${seconds}s; no push gate ran.`
+        );
+        return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.BLOCKED, {
+          gates: config.gates,
+          runner: config.runner,
+          scripts,
+        });
+      }
+      console.log(
+        `🔨 build-once: \`${buildOnceStep.command}\` built in ${seconds}s; ` +
+          `later steps skip their build while the tree matches.`
+      );
+    }
+  }
+
   console.log(`🚦 Gates at ${moment}:`);
+  // At push a test command may narrow itself to the affected tests
+  // (CodySwannGT/lisa#4600) and says so through this channel.
+  const selection = moment === "push" ? openSelectionReports() : null;
   const result = runGates({
-    gates: config.gates,
+    gates: gatesToRun,
     moment,
     runner: config.runner,
-    exec: spawnExec,
+    // Selection reporting wraps the admission-aware `exec`, so a narrowed
+    // test command is still admitted like any other heavy step.
+    exec: selection
+      ? (command, gate) => {
+          selection.before(command);
+          return exec(command, gate);
+        }
+      : exec,
+    cache,
+    selection,
+    builtins: !standalone,
+    completeParts: onlyGate !== null,
+    // What the change touches is read HERE and handed down, for the reason
+    // the manifest is: `runGates` stays a function of its inputs. It is asked
+    // only if this moment has a part for a folder, so a gates block with no
+    // parts starts no git and prints nothing new.
+    change: () =>
+      partsFlag === ALL_PARTS
+        ? {
+            paths: null,
+            note: `Every part runs at ${moment}: --${PARTS_FLAG}=${ALL_PARTS} was given.`,
+          }
+        : changeAt({
+            moment,
+            root: process.cwd(),
+            pushRefs: pushRefsFlag,
+            ...(stdinRefs === undefined ? {} : { read: () => stdinRefs }),
+          }),
     // The manifest is read HERE and handed down, rather than read inside the
     // resolver, so that `runGates` stays a pure function of its inputs and
     // every test above can state what this project ships instead of writing a
@@ -1944,11 +3360,23 @@ export function main(argv = process.argv.slice(2)) {
     // check and the run cannot disagree about what this project ships.
     scripts,
   });
+  selection?.close();
   // A gates block that declares nothing at this moment is a deliberate
   // statement, not an unmigrated project: the registry governs the moment and
   // says there is nothing to prove. Say so rather than silently passing.
   if (result.total === 0) {
     console.log(`   (the gates block declares nothing at ${moment})`);
+  }
+  // Per-gate push timing report (CodySwannGT/lisa#4591). A measurement only:
+  // it never throws and never changes the exit code below.
+  if (moment === "push" && result.total > 0) {
+    recordPushTiming({
+      moment,
+      startedAtMs,
+      start: startReading,
+      result,
+      preGates: buildOnceStep ? [buildOnceStep] : [],
+    });
   }
 
   // WRITTEN AFTER THE RUN, because it reports the run. Written before it, the
@@ -1957,6 +3385,33 @@ export function main(argv = process.argv.slice(2)) {
   // errored retired the fallback that would have caught the error. See
   // `provenFloor`. A write failure keeps its old meaning: the record the caller
   // asked for does not exist, so no verdict may be reported off it.
+  //
+  // A gate whose parts did not reach every path of the change is withheld
+  // from that file, and the operator is told which and why. Asked only of a
+  // caller with built-in checks to keep, and said only on a run that is about
+  // to report success: a blocked run stops the commit whatever this says.
+  const unreached =
+    standalone || result.blocked
+      ? []
+      : unreachedFloor({ gates: config.gates, moment, wired, result });
+  for (const { reason } of unreached) console.log(`ℹ️  ${reason}`);
+  // A caller that did not pass `--coverage` cannot keep ONE built-in check:
+  // exit 0 makes it skip them all. So the answer it gets is the one a
+  // half-written block gets, for the same reason — some path of this change
+  // would otherwise be checked by nothing. The parts that ran stay on the
+  // record; only the verdict says the caller's own checks still have to run.
+  if (!coveragePath && unreached.length) {
+    console.log(
+      `   This caller did not pass --coverage, so it cannot keep one ` +
+        `built-in check on its own: every built-in check runs.`
+    );
+    return settle(EXIT.NO_GATES, EVIDENCE_VERDICT.FELL_BACK, {
+      gates: config.gates,
+      result,
+      runner: config.runner,
+      scripts,
+    });
+  }
   if (
     coveragePath &&
     !writeCoverage(
@@ -1974,7 +3429,7 @@ export function main(argv = process.argv.slice(2)) {
   return settle(
     result.blocked ? EXIT.BLOCKED : EXIT.PROVED,
     result.blocked ? EVIDENCE_VERDICT.BLOCKED : EVIDENCE_VERDICT.PROVED,
-    { gates: config.gates, result, runner: config.runner, scripts }
+    { gates: gatesToRun, result, runner: config.runner, scripts }
   );
 }
 

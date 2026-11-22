@@ -1,0 +1,173 @@
+name: 🔁 CI Failure Re-dispatch
+
+# Wakes the agent that owns a pull request when one of its required checks
+# fails (CodySwannGT/lisa#4607).
+#
+# The gap: CI is the only place the full suite runs, and when a required check
+# fails on an agent's PR nothing tells the agent. The work item sits in the
+# claimed lane and the PR stalls until a human notices. Agent work is not
+# complete until CI is green, so a failed required check moves the item back to
+# the ready lane with a `[lisa-ci-failed]` marker, and build intake sends the
+# agent back to the EXISTING PR (`lisa-drive-pr-to-merge`) instead of starting
+# over. A later all-green run on the same head clears the marker and, when the
+# marker is the only reason the item is unclaimed, restores the claimed lane.
+#
+# Trigger: the workflows that carry the required status checks on `main`
+# (`gh api repos/CodySwannGT/lisa/rules/branches/main`), AND every check run
+# or commit status that completes (CodySwannGT/lisa#4678). Two required
+# contexts, CodeRabbit and GitGuardian Security Checks, are not workflows in
+# this repository and finish on their own schedule: without `check_run` and
+# `status`, a late third-party failure was never re-dispatched and a late pass
+# never cleared the marker. GitHub delivers both events only to this file on
+# the default branch. The job drops pending statuses before it starts, and
+# defensively drops any check run GitHub Actions created (GitHub does not
+# deliver `check_run` for Actions-created suites, and `workflow_run` covers
+# CI jobs anyway); the script then acts
+# only when the context is a required one, read from the ruleset — no context
+# is hard-coded here.
+#
+# Safety: `workflow_run` runs in the base repository with a write-capable
+# token, even for a run a PR triggered. This job therefore reads metadata only:
+# it checks out the DEFAULT branch (no `ref`), installs nothing, never fetches
+# or runs the PR's code, and hands event data to the script through `env:` and
+# the event file rather than interpolating it into a shell script. Markers
+# count only when `github-actions[bot]` (this job's GITHUB_TOKEN identity)
+# authored them, so a forged marker comment is ignored.
+#
+# Stale traceability (CodySwannGT/lisa#5111): the documented order opens the
+# PR and only then posts the `[lisa-pr-link]` backlink, so Work-Item
+# Traceability can fail gate 5 against a tracker that changed seconds later.
+# When that is the only failing required check and the backlink is newer than
+# the check, the script re-runs that one job rather than bouncing the item —
+# the reason for `actions: write`. A re-run executes the PR's job under that
+# workflow's own event and permissions, never this job's token, and nothing
+# from the PR runs here.
+#
+# Dedupe: a third-party context and a CI workflow can complete for the same
+# head at nearly the same moment, so runs serialise per head SHA. The
+# per-PR-and-SHA marker stays the idempotency guarantee: a replayed or
+# concurrent event posts at most one comment and moves the lane at most once.
+# All of the decision logic lives in `scripts/lisa-ci-failure-redispatch.mjs`, which is
+# unit-tested over recorded payloads.
+#
+# NOTE: repo-specific to the Lisa monorepo, NOT a Lisa template — shipping this
+# to host projects is a separate decision (#4607 Out of Scope).
+
+on:
+  workflow_run:
+    workflows: ['🔍 CI Quality Checks', '🧩 Plugins Sync']
+    types: [completed]
+  check_run:
+    types: [completed]
+  status:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Actions run id to evaluate (for verification against a past run). Give exactly one of run_id or head_sha.'
+        required: false
+        type: string
+      head_sha:
+        description: 'PR head commit to re-evaluate (for verification after a past third-party check completed). Give exactly one of run_id or head_sha.'
+        required: false
+        type: string
+      dry_run:
+        description: 'Print the planned comment and label moves without writing anything'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# Any two triggers (both CI workflows, or a CI workflow and a third-party
+# context) can complete for the same head at nearly the same moment. Serialise
+# per head so the second run sees the first run's marker. A cancelled run is a
+# decision nobody made, so cancel neither the running run
+# (`cancel-in-progress: false`) nor a waiting one: with the default
+# `queue: single`, GitHub cancels an already-PENDING run when a newer run joins
+# the group, so a later pending status or non-required check would silently
+# drop a queued late failure. `queue: max` keeps up to 100 pending runs in
+# FIFO order; only a 101st waiting run for one head would be cancelled.
+concurrency:
+  group: lisa-ci-failure-redispatch-${{ github.event.workflow_run.head_sha || github.event.check_run.head_sha || github.event.sha || inputs.head_sha || inputs.run_id }}
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  redispatch:
+    name: 🔁 Re-dispatch the owning agent
+    # A pending status has not finished. The check-run clause is a defensive
+    # guard: GitHub does not deliver `check_run` for Actions-created suites,
+    # and if it ever did, `workflow_run` already covers CI jobs.
+    if: >-
+      ${{
+        github.repository == 'CodySwannGT/lisa' &&
+        !(github.event_name == 'status' && github.event.state == 'pending') &&
+        !(github.event_name == 'check_run' && github.event.check_run.app.slug == 'github-actions')
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+      checks: read
+      # write only to re-run a stale Work-Item Traceability job (#5111).
+      actions: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: '24.21.0'
+      - name: Decide and act on the completed run or check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_ID: ${{ inputs.run_id }}
+          HEAD_SHA: ${{ inputs.head_sha }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: |
+          set -o pipefail
+          args=()
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            # The script refuses anything but exactly one of the two.
+            if [ -n "$RUN_ID" ]; then
+              args+=(--run-id "$RUN_ID")
+            fi
+            if [ -n "$HEAD_SHA" ]; then
+              args+=(--head-sha "$HEAD_SHA")
+            fi
+          else
+            args+=(--payload "$GITHUB_EVENT_PATH")
+          fi
+          if [ "$DRY_RUN" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          node scripts/lisa-ci-failure-redispatch.mjs "${args[@]}" | tee redispatch.txt
+      - name: Publish what happened
+        if: always()
+        run: |
+          {
+            echo '## CI failure re-dispatch'
+            echo
+            echo '```'
+            cat redispatch.txt 2>/dev/null || echo 'the script produced no output'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # A red run files a deduplicated issue: a re-dispatch that silently failed is
+  # exactly the stall this workflow exists to end.
+  create_issue_on_failure:
+    if: ${{ failure() && github.repository == 'CodySwannGT/lisa' }}
+    needs: redispatch
+    uses: ./.github/workflows/create-github-issue-on-failure.yml
+    permissions:
+      contents: read
+      issues: write
+    with:
+      workflow_name: 'CI failure re-dispatch'
+      failed_job: 'redispatch'
+      package_manager: 'bun'

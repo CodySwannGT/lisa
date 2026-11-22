@@ -141,7 +141,7 @@ An ancestor alone teaches nothing — "B relates to A" is trivia. The learning l
 
 1. **Reconstruct what the ancestor shipped**, through the access layers: its merged PR (diff, description), the review threads on that PR, and the evidence comments on the ancestor issue.
 2. **Derive ONE candidate learning citing the delta** — **what was done** versus **what this issue proves was needed**. The shape is "A shipped X; B proves Y was required; the mistake was assuming X sufficed" — never "A had a bug". A **vague summary** that does not name the specific mistake is worthless and must be rejected (produce nothing rather than noise).
-3. **Route it to `lisa-persist-learning`** exactly like the rejection-reflection path: candidate fields (rule, why, provenance linking the ancestor issue + its PR + this issue, evidence links, scope hint, triggering issue) with fingerprint `sll4-sha1(rule\ntriggering_issue)[:12]`.
+3. **Route it to `lisa-persist-learning`** exactly like the rejection-reflection path: candidate fields (rule, why, provenance linking the ancestor issue + its PR + this issue, evidence links, scope hint, triggering issue). Pass no fingerprint: `lisa-persist-learning` computes its own after the judge.
 
 ### Graceful degrade — `lisa-persist-learning` unavailable
 

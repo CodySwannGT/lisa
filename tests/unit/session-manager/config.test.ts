@@ -48,7 +48,12 @@ describe("SESSION_MANAGER_DEFAULTS", () => {
         cpuFraction: 0.75,
         maxLoadPerCore: 1.5,
       },
-      stall: { noOutputMinutes: 60, maxAttempts: 3, requestionHours: 4 },
+      stall: {
+        noOutputMinutes: 60,
+        maxAttempts: 3,
+        requestionHours: 4,
+        orphanHours: 2,
+      },
       notify: { provider: "none" },
     });
   });
@@ -87,9 +92,15 @@ describe("resolveSessionManagerConfig", () => {
         cpuFraction: 0.75,
         maxLoadPerCore: 1.5,
       },
-      stall: { noOutputMinutes: 60, maxAttempts: 3, requestionHours: 4 },
+      stall: {
+        noOutputMinutes: 60,
+        maxAttempts: 3,
+        requestionHours: 4,
+        orphanHours: 2,
+      },
       notify: NOTIFY,
       trustedAuthorIds: null,
+      trustedReleaseIds: undefined,
     });
   });
 
@@ -115,6 +126,7 @@ describe("resolveSessionManagerConfig", () => {
       noOutputMinutes: 60,
       maxAttempts: 5,
       requestionHours: 4,
+      orphanHours: 2,
     });
   });
 

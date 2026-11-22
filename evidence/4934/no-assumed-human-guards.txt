@@ -1,0 +1,6 @@
+# related suites (strategies, docs, codex, plugin generators)
+ Test Files  257 passed (257)
+      Tests  4299 passed (4299)
+# parity/projection suites (after .claude-pr copy fix)
+ Test Files  7 passed (7)
+      Tests  104 passed (104)

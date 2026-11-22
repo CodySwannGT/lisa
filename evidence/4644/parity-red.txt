@@ -1,0 +1,74 @@
+# PARITY-RED (bite control): deliberately diverge one numbered step heading in the .agents copy, run the test, restore.
+# base: branch HEAD f33bd37a9699243a6d508f6c95c41c2bac661dbb
+# mutation: sed 's/^12. Migrate the back-sync chain/12. Migrate the back-sync CHAIN/' .agents/skills/lisa-update-projects/SKILL.md
+# command: bunx vitest run tests/unit/core/update-skill-references.test.ts
+# captured_at: 2026-11-12T15:37:21Z (mutated) / 2026-11-12T15:37:28Z (restored)
+# expected: exactly the .agents parity case fails and names step 12; after restoring the file, 15/15 pass
+
+## Mutation diff
+diff --git a/.agents/skills/lisa-update-projects/SKILL.md b/.agents/skills/lisa-update-projects/SKILL.md
+index 5ba78e6194..3e544df634 100644
+--- a/.agents/skills/lisa-update-projects/SKILL.md
++++ b/.agents/skills/lisa-update-projects/SKILL.md
+@@ -64 +64 @@ The rollout is **canary-first** (CodySwannGT/lisa#4604): one designated canary h
+-12. Migrate the back-sync chain to config-driven form. Lisa's back-sync (the `lisa-sync-down` skill) derives its source→target chain from `.lisa.config.json` `deploy.order` + `deploy.branches`, so a project with several environments needs `deploy.order`. For this project, using `jq` only:
++12. Migrate the back-sync CHAIN to config-driven form. Lisa's back-sync (the `lisa-sync-down` skill) derives its source→target chain from `.lisa.config.json` `deploy.order` + `deploy.branches`, so a project with several environments needs `deploy.order`. For this project, using `jq` only:
+
+## Test run with the mutation (expect 1 failed, exit=1)
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4644-update-projects-skill
+
+ ❯ |lisa| tests/unit/core/update-skill-references.test.ts (15 tests | 1 failed) 13ms
+     × .agents/skills/lisa-update-projects/SKILL.md has the same numbered steps and headings as the .claude copy 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md has the same numbered steps and headings as the .claude copy
+AssertionError: expected [ '# Lisa Update Projects', …(31) ] to deeply equal [ '# Lisa Update Projects', …(31) ]
+
+- Expected
++ Received
+
+@@ -10,11 +10,11 @@
+    "7. After updating, check if `@codyswann/lisa` appears in the project's `dependencies` (not `devDependencies`). If so, move it: remove from `dependencies` and ensure it's in `devDependencies`. Use `jq` to check and the package manager to reinstall correctly.",
+    "8. Check for legacy inline workflows that need migration. For each file in `.github/workflows/` matching `claude*.yml`, `claude*.yaml`, `ci.yml`, `ci.yaml`, `deploy.yml`, and `deploy.yaml`:",
+    "9. Remove stale `file:` references to bundled ESLint plugins from the project's `package.json`. Previous Lisa versions copied plugin directories and added `file:./` dependencies; current Lisa deletes the directories but the `package.json` references remain. Use `jq` to remove these keys from both `dependencies` and `devDependencies` if they exist:",
+    "10. Remove stale `$CLAUDE_PROJECT_DIR/.claude/hooks/` references from the project's `.claude/settings.json`. Previous Lisa versions installed hook scripts into the project's `.claude/hooks/` directory and registered them in `.claude/settings.json`. Current Lisa deletes these scripts via `all/deletions.json` and provides them through the plugin system (`${CLAUDE_PLUGIN_ROOT}/hooks/` in `plugin.json`) instead. The settings.json references to the deleted scripts cause \"No such file or directory\" errors. Use `jq` to:",
+    "11. Update create-only workflow schedules that have drifted from the current templates. For each create-only workflow in `.github/workflows/` that has a corresponding template, compare the `cron` schedule against the corresponding template in `typescript/create-only/.github/workflows/` (or `rails/create-only/` for Rails projects) in the Lisa repo. If the project's schedule differs from the template, update it to match. For example, if the template uses `0 */2 * * *` but the project still has `0 6 * * 1-5`, update the project file.",
+-   "12. Migrate the back-sync chain to config-driven form. Lisa's back-sync (the `lisa-sync-down` skill) derives its source→target chain from `.lisa.config.json` `deploy.order` + `deploy.branches`, so a project with several environments needs `deploy.order`. For this project, using `jq` only:",
++   "12. Migrate the back-sync CHAIN to config-driven form. Lisa's back-sync (the `lisa-sync-down` skill) derives its source→target chain from `.lisa.config.json` `deploy.order` + `deploy.branches`, so a project with several environments needs `deploy.order`. For this project, using `jq` only:",
+    "13. Check `git diff` to see if the project changed any Lisa-managed files. If so, examine them to see if any changes need to be upstreamed back to Lisa and do so if necessary.",
+    "14. Commit, push, and open a PR from the worktree's update branch targeting the project's configured target branch (its `branch` from step 1's plan; the PR base must be that branch — not assumed `main`). Do not arm auto-merge at open. Arm it only through `lisa-drive-pr-to-merge`'s arm gate: hand the PR to that skill, which runs `node scripts/check-third-party-review-evidence.mjs --sha <head-sha> --repo <owner>/<repo> --arm --json` from the project checkout and turns auto-merge on only when it answers `arm: true` — a reviewer gate declared in the project's `.lisa.config.json` (`evidence.reviewer: true`) must have reviewed this head or have a substitute posted for it. That holds on every stack, Rails included, where no `.github/required-checks.json` exists (#4653). The canary is additionally held until the canary decision is `proceed` (see Rollout Order), so a halted canary cannot merge on its own. If the repository has auto-merge disabled, note it and leave the PR open for manual merge — do not treat the absence of auto-merge as a failure.",
+    "15. If you hit any pre-push blockers, fix them and upstream anything that needs to. Do not lower any thresholds to get around a pre-push block. Instead, fix the code.",
+    "16. After the PR is open, drive it to a mergeable state. Poll the PR's checks and mergeability and auto-fix any blockers: failing CI checks, merge conflicts with the target branch, lint/typecheck/test failures, and required-check gates. When the root cause of a blocker is a Lisa template or postinstall bug (not project-specific code), fix it upstream in the Lisa source per \"Fixing Upstream Bugs\" below and propagate the fix down, rather than patching only the downstream project. Never lower thresholds or disable checks to force mergeability — fix the underlying code. Continue until the PR is mergeable (and auto-merge can complete) or you hit a blocker that genuinely requires human input, in which case stop and ask.",
+    "17. As the final step, have Lisa upgrade itself: run this same update flow against the Lisa monorepo (the current working directory) — bump `@codyswann/lisa` to latest where Lisa consumes its own templates, apply templates, and commit/push/PR a self-update branch with auto-merge armed only through the drive skill's arm gate, following the same worktree (rule 3), auto-merge (step 14), and blocker-fixing (step 16) rules. Skip this step if the Lisa repo has no pending self-update changes after running the flow, **and always skip it when the canary halted the rollout** (see Rollout Order).",
+
+ ❯ tests/unit/core/update-skill-references.test.ts:195:37
+    193|     "%s has the same numbered steps and headings as the .claude copy",
+    194|     copy => {
+    195|       expect(procedure(read(copy))).toEqual(procedure(read(SKILL_COPIE…
+       |                                     ^
+    196|     }
+    197|   );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 14 passed (15)
+   Start at  10:37:21
+   Duration  330ms (transform 97ms, setup 154ms, import 5ms, tests 13ms, environment 0ms)
+
+exit=1
+
+## After restoring the file from HEAD (expect 15 passed, exit=0)
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4644-update-projects-skill
+
+
+ Test Files  1 passed (1)
+      Tests  15 passed (15)
+   Start at  10:37:28
+   Duration  287ms (transform 69ms, setup 117ms, import 4ms, tests 9ms, environment 0ms)
+
+exit=0

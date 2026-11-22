@@ -1,0 +1,14 @@
+# Fixture: a caller naming a Lisa reusable workflow on a `uses:` line the
+# parser cannot read (no `@<ref>`). Issue #4641: the detector must report it
+# as `unparsed` and exit 1 rather than count zero callers as a pass.
+name: Example Agent
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  agent:
+    uses: CodySwannGT/lisa/.github/workflows/reusable-example.yml
+    with:
+      event_name: ${{ github.event_name }}

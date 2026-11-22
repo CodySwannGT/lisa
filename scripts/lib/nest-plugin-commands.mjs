@@ -30,3 +30,50 @@ export function nestCommandsUnderLisa(pluginDir) {
   fs.mkdirSync(commandsDir, { recursive: true });
   fs.renameSync(stagingDir, path.join(commandsDir, "lisa"));
 }
+
+/**
+ * Frontmatter keys that only Claude Code honours on commands.
+ *
+ * `disable-model-invocation: true` keeps a command typeable by a person while
+ * removing its description from Claude's context, so the model's listing is not
+ * a second copy of the skills the commands pass through to. Cursor, Agy, and
+ * Copilot have no documented equivalent, so their variants drop the key rather
+ * than ship a field whose meaning on that agent is unknown. Parity gap: on
+ * those agents the commands stay visible to the model, as they were before.
+ */
+const CLAUDE_ONLY_COMMAND_KEYS = ["disable-model-invocation"];
+
+/**
+ * Remove Claude-only frontmatter keys from every command file in a built
+ * per-agent variant. No-op when the variant ships no commands.
+ * @param {string} pluginDir Built per-agent variant directory.
+ */
+export function stripClaudeOnlyCommandKeys(pluginDir) {
+  const commandsDir = path.join(pluginDir, "commands");
+  if (!fs.existsSync(commandsDir)) return;
+  const keyLine = new RegExp(
+    `^(?:${CLAUDE_ONLY_COMMAND_KEYS.join("|")}):.*\\n`,
+    "gm"
+  );
+  const walk = dir => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+      } else if (entry.name.endsWith(".md")) {
+        const text = fs.readFileSync(full, "utf8");
+        const match = text.match(/^---\n[\s\S]*?\n---/);
+        if (!match) continue;
+        const stripped = match[0].replace(keyLine, "");
+        if (stripped !== match[0]) {
+          // A function replacement keeps `$&`-style patterns in frontmatter literal.
+          fs.writeFileSync(
+            full,
+            text.replace(match[0], () => stripped)
+          );
+        }
+      }
+    }
+  };
+  walk(commandsDir);
+}

@@ -121,10 +121,10 @@ describe("queue-status PRD readers (#824)", () => {
       ref: "#826",
       summary: "Oldest blocked PRD",
     });
-    expect(snapshot.highlights[0].nextStep).toBe(
+    expect(snapshot.highlights[0]?.nextStep).toBe(
       "Run /lisa:repair-intake github intake_mode=prd after clarifying the blocker."
     );
-    expect(snapshot.highlights[2].nextStep).toBe(
+    expect(snapshot.highlights[2]?.nextStep).toBe(
       "Run /lisa:verify-prd https://github.com/CodySwannGT/lisa/issues/828 to close the shipped loop."
     );
     expect(snapshot.health).toMatchObject({
@@ -239,7 +239,7 @@ describe("queue-status PRD readers (#824)", () => {
         "ready",
         "ticketed",
       ]);
-      expect(snapshot.highlights[0].title).toBe(
+      expect(snapshot.highlights[0]?.title).toBe(
         "Blocked PRD needs clarification"
       );
       expect(snapshot.health.verdict).toBe("ATTENTION_NEEDED");

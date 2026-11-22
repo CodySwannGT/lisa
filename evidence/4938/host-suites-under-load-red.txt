@@ -1,0 +1,71 @@
+=== outer admission: lisa admission: admitted `vitest run tests/integration/typescript-host-cleanup-sweep.test.ts tests/integration/typescript-host-smart-push.test.ts` with 9 worker(s)
+=== load started 08:47:53: 18 yes processes;  8:47  up 25 days, 15:04, 8 users, load averages: 15.70 18.15 21.51
+08:47:53 load averages: 15.70 18.15 21.51
+08:48:13 load averages: 57.06 27.30 24.70
+08:48:33 load averages: 85.63 35.63 27.74
+08:48:53 load averages: 111.45 44.57 31.12
+08:49:13 load averages: 97.60 45.70 31.84
+08:49:33 load averages: 100.72 49.79 33.63
+08:49:53 load averages: 121.49 57.62 36.80
+08:50:13 load averages: 99.42 56.71 36.95
+08:50:33 load averages: 124.12 65.06 40.40
+08:50:53 load averages: 151.48 75.01 44.54
+08:51:13 load averages: 163.60 82.81 48.05
+08:51:33 load averages: 154.94 86.29 50.12
+08:51:53 load averages: 134.06 85.92 50.82
+08:52:13 load averages: 126.88 87.45 52.19
+08:52:33 load averages: 123.01 89.30 53.68
+08:52:53 load averages: 97.63 85.66 53.20
+08:53:13 load averages: 82.51 82.93 52.97
+08:53:33 load averages: 68.30 79.67 52.50
+08:53:53 load averages: 58.50 76.71 52.07
+08:54:13 load averages: 62.14 76.34 52.51
+08:54:33 load averages: 70.53 77.21 53.36
+08:54:53 load averages: 69.25 76.56 53.69
+08:55:13 load averages: 67.80 75.86 53.97
+08:55:33 load averages: 67.05 75.28 54.28
+08:55:53 load averages: 69.07 75.07 54.68
+08:56:13 load averages: 86.88 78.75 56.48
+08:56:33 load averages: 88.31 79.89 57.42
+08:56:53 load averages: 71.04 76.49 56.72
+08:57:13 load averages: 58.67 73.31 56.04
+08:57:33 load averages: 51.83 70.80 55.54
+08:57:53 load averages: 46.66 68.38 55.03
+08:58:14 load averages: 44.83 66.57 54.69
+08:58:34 load averages: 60.40 69.00 55.85
+08:58:54 load averages: 70.93 70.63 56.72
+08:59:14 load averages: 98.00 76.52 59.14
+08:59:34 load averages: 92.81 76.74 59.63
+08:59:54 load averages: 83.28 75.61 59.62
+09:00:14 load averages: 75.87 74.42 59.56
+=== load stopped 09:00:14; suite exit 1
+ FAIL  |lisa| tests/integration/typescript-host-smart-push.test.ts [ tests/integration/typescript-host-smart-push.test.ts ]
+ FAIL  |lisa| tests/integration/typescript-host-cleanup-sweep.test.ts > a TypeScript host built from this branch's templates > runs its suite with one sweep line, and leaves no growing residue over five runs
+Error: host lisa-test-run did not complete: spawnSync /Users/cody/.local/share/mise/installs/node/22.22.0/bin/node ETIMEDOUT after 45,086ms against a 45,080ms timeout. Its budget was scaled by a measured 1.50x spawn slowdown, so this is a real hang or a machine past 8x — not ordinary variance. See tests/helpers/io-latency-budget.ts.
+lisa admission: waiting for headroom for `/Users/cody/.local/share/mise/installs/node/22.22.0/bin/node /Users/cody/workspace/lisa-4938/node_modules/vitest/vitest.mjs run` — needs 2 worker(s) but the headroom is 0 (load 15.7 on 18 cores, 9 worker(s) just admitted). Held by: pid 18183: `vitest run --coverage --exclude=**/integration/** --exclude=**/*.integration.* --exclude=**/measure-tmpdir-growth-
+ FAIL  |lisa| tests/integration/typescript-host-smart-push.test.ts > a TypeScript host's smart push gate > escalates to the full suite, and passes, when one changed file is short but the whole repo is not
+Error: typescript host: run test:cov:unit did not complete: spawnSync bun ETIMEDOUT after 91,843ms against a 91,840ms timeout. Its budget was scaled by a measured 1.53x spawn slowdown, so this is a real hang or a machine past 8x — not ordinary variance. See tests/helpers/io-latency-budget.ts.
+lisa admission: waiting for headroom for `vitest run --coverage --exclude=**/integration/**` — needs 2 worker(s) but the headroom is 0 (load 18.4 on 18 cores, 0 worker(s) just admitted). Held by: no Lisa run holds a reservation; the load comes from other work on this machine. Gives up in 1800s.
+ FAIL  |lisa| tests/integration/typescript-host-smart-push.test.ts > a TypeScript host's smart push gate > re-pushes an unchanged tree from the pass cache
+Error: typescript host: scripts/lisa-run-gates.mjs --moment=push --coverage=/private/tmp/lisa-ts-push-87arzz/host-IZbjTV-coverage.txt did not complete: spawnSync /Users/cody/.local/share/mise/installs/node/22.22.0/bin/node ETIMEDOUT after 91,845ms against a 91,840ms timeout. Its budget was scaled by a measured 1.53x spawn slowdown, so this is a real hang or a machine past 8x — not ordinary varianc
+lisa admission: waiting for headroom for `vitest run --coverage --exclude=**/integration/**` — needs 2 worker(s) but the headroom is 0 (load 101.9 on 18 cores, 0 worker(s) just admitted). Held by: no Lisa run holds a reservation; the load comes from other work on this machine. Gives up in 300s.
+ FAIL  |lisa| tests/integration/typescript-host-smart-push.test.ts > a TypeScript host's smart push gate > runs the full suite and names the trigger when vitest.config.ts changes
+Error: typescript host: run test:cov:unit did not complete: spawnSync bun ETIMEDOUT after 91,844ms against a 91,840ms timeout. Its budget was scaled by a measured 1.53x spawn slowdown, so this is a real hang or a machine past 8x — not ordinary variance. See tests/helpers/io-latency-budget.ts.
+lisa admission: waiting for headroom for `vitest run --coverage --exclude=**/integration/**` — needs 2 worker(s) but the headroom is 0 (load 157.2 on 18 cores, 0 worker(s) just admitted). Held by: no Lisa run holds a reservation; the load comes from other work on this machine. Gives up in 1800s.
+ FAIL  |lisa| tests/integration/typescript-host-smart-push.test.ts > a TypeScript host's smart push gate > runs the full suite and names the trigger when package.json changes
+Error: typescript host: run test:cov:unit did not complete: spawnSync bun ETIMEDOUT after 91,842ms against a 91,840ms timeout. Its budget was scaled by a measured 1.53x spawn slowdown, so this is a real hang or a machine past 8x — not ordinary variance. See tests/helpers/io-latency-budget.ts.
+lisa admission: waiting for headroom for `vitest run --coverage --exclude=**/integration/**` — needs 2 worker(s) but the headroom is 0 (load 123.0 on 18 cores, 0 worker(s) just admitted). Held by: no Lisa run holds a reservation; the load comes from other work on this machine. Gives up in 1800s.
+ FAIL  |lisa| tests/integration/typescript-host-smart-push.test.ts > a TypeScript host's smart push gate > pushes with the full suite and a plain reason when there is no map yet
+Error: typescript host: scripts/lisa-run-gates.mjs --moment=push --coverage=/private/tmp/lisa-ts-push-87arzz/host-NDC4wM-coverage.txt did not complete: spawnSync /Users/cody/.local/share/mise/installs/node/22.22.0/bin/node ETIMEDOUT after 91,846ms against a 91,840ms timeout. Its budget was scaled by a measured 1.53x spawn slowdown, so this is a real hang or a machine past 8x — not ordinary varianc
+lisa admission: waiting for headroom for `vitest run --coverage --exclude=**/integration/**` — needs 2 worker(s) but the headroom is 0 (load 60.7 on 18 cores, 0 worker(s) just admitted). Held by: no Lisa run holds a reservation; the load comes from other work on this machine. Gives up in 300s.
+ FAIL  |lisa| tests/integration/typescript-host-smart-push.test.ts > a TypeScript host's smart push gate > holds its heavy test run for headroom instead of starting it
+Error: typescript host: run test:cov:unit did not complete: spawnSync bun ETIMEDOUT after 91,843ms against a 91,840ms timeout. Its budget was scaled by a measured 1.53x spawn slowdown, so this is a real hang or a machine past 8x — not ordinary variance. See tests/helpers/io-latency-budget.ts.
+lisa admission: waiting for headroom for `vitest run --coverage --exclude=**/integration/**` — needs 2 worker(s) but the headroom is 0 (load 66.1 on 18 cores, 0 worker(s) just admitted). Held by: no Lisa run holds a reservation; the load comes from other work on this machine. Gives up in 1800s.
+ FAIL  |lisa| tests/integration/typescript-host-smart-push.test.ts > a TypeScript host's smart push gate > never narrows in CI, so CI still runs every test
+Error: typescript host: run test:cov:unit did not complete: spawnSync bun ETIMEDOUT after 91,844ms against a 91,840ms timeout. Its budget was scaled by a measured 1.53x spawn slowdown, so this is a real hang or a machine past 8x — not ordinary variance. See tests/helpers/io-latency-budget.ts.
+lisa admission: waiting for headroom for `vitest run --coverage --exclude=**/integration/**` — needs 2 worker(s) but the headroom is 0 (load 61.8 on 18 cores, 0 worker(s) just admitted). Held by: no Lisa run holds a reservation; the load comes from other work on this machine. Gives up in 1800s.
+ FAIL  |lisa| tests/integration/typescript-host-smart-push.test.ts > a TypeScript host's smart push gate > runs the full suite, silently, for a host that sets affectedTests to false
+Error: typescript host: run test:cov:unit did not complete: spawnSync bun ETIMEDOUT after 91,843ms against a 91,840ms timeout. Its budget was scaled by a measured 1.53x spawn slowdown, so this is a real hang or a machine past 8x — not ordinary variance. See tests/helpers/io-latency-budget.ts.
+lisa admission: waiting for headroom for `vitest run --coverage --exclude=**/integration/**` — needs 2 worker(s) but the headroom is 0 (load 60.0 on 18 cores, 0 worker(s) just admitted). Held by: no Lisa run holds a reservation; the load comes from other work on this machine. Gives up in 1800s.
+ Test Files  2 failed (2)
+      Tests  9 failed | 4 passed (13)

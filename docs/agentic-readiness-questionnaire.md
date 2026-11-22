@@ -1,175 +1,127 @@
+<!--
+  GENERATED FILE. Do not edit it by hand: the next regeneration overwrites it.
+  It is rendered from the `question` of every in-scope criterion in
+  spec/tasc-criteria.json, under the section titles of
+  spec/tasc-0.1-draft.md.
+  To change a question, edit the catalogue, then run:
+    bun run build:readiness-questionnaire
+-->
+
 # Agentic Readiness Questionnaire
 
 This is intended for operators, teams, and stakeholders
 who want to understand what an autonomous software factory needs without reading
 the formal control specification first.
 
-## The bottom line
+## Governance and Accountability
 
-1. What fraction of work ships with zero human touches?
-2. Besides autonomy rate, do you measure whether the delivered work was any good?
+1. Is every action an agent takes recorded under the agent's own account rather than a person's?
+2. Can any shipped line of code be followed back, step by step, to the request that asked for it?
+3. Is every change reviewed, verified and approved for release by someone or something other than the agent that wrote it?
+4. Are the accounts and permissions your agents hold reviewed on a set schedule?
+5. Are records of agent sessions kept for a stated length of time, with a stated limit on who may read them?
+6. Is agent spending capped for every run and checked against the provider's own usage records?
+7. Is there a named person, with a named backup, who answers for what the agents do?
+8. Is every decision to accept a risk instead of fixing it made and recorded by a named person who is allowed to make it?
+9. Does someone independent regularly re-check a sample of the approvals your agents give?
 
-## Credentials & access
+## Communication and Operator Legibility
 
-3. Where do your agents' secrets live?
-4. What sits between the agent and the network?
-5. Do agents authenticate as themselves, or borrow a human login?
-6. How often are static credentials rotated?
+10. Can someone who is not an engineer understand every message the agents send out, such as rejections, questions and results?
+11. Does every scheduled agent run end by stating one outcome from a fixed list, with a one-line summary anyone can read?
+12. Does every scheduled agent job have a written guide in the repository saying what it is for, what starts it and what an operator should do?
+13. When the agents ask a person for help, does the request say what is broken or what must be decided, and what to do about it?
 
-## Where agents run
+## Risk Assessment: the Agent Threat Model
 
-7. What sandbox do unattended agents run in?
-8. What durable scheduler keeps agents moving when nobody prompts them?
-9. Which coding agents operate this project?
-10. Do all of those agents get the same guardrails?
-11. Is agent network egress restricted?
+14. Is there a written list of the ways your agents could be attacked or misled, with a safeguard named for each one?
+15. Is content that agents fetch from outside treated as information to read, never as instructions to follow?
+16. Is a trust decision made before agents act on instruction files that arrive with outside code?
+17. Is every lesson an agent saves for later checked before it is kept, labelled with where it came from, and removable?
+18. Is it written down what an agent could reach if it were taken over, with that reach kept to what the agent needs?
+19. Is it recorded which agents can ask which other agents to act, so that no agent can get another to do what it may not do itself?
 
-## The agent's program
+## Monitoring, Sensors, and Finding Integrity
 
-12. Is production work driven by pre-vetted skills, or free-form prompts?
-13. Do prompt and skill changes go through the same gates as code?
-14. How is a model upgrade qualified before agents use it?
-15. How are model, effort, and tool configuration assigned by task class?
-16. Do agent-program and model qualifications report repeated-run distributions?
-17. When an agent makes a mistake, what stops the next agent repeating it?
-18. Is the reasoning / effort level pinned alongside the model version?
-19. Do you have your own task suite for judging agents — and can the agents see it?
-20. When a new agent joins the roster, how does it earn trust?
+20. Do errors, logs, performance figures and problems reported by users all reach the agents as signals to act on?
+21. Would you find out if a monitor stopped working, rather than mistaking its silence for good news?
+22. When monitoring spots a problem, does it become a tracked work item that passes the same entry checks as any other work?
+23. When an agent makes a mistake, is the lesson recorded and turned into a rule or check that stops the next agent repeating it?
+24. Is every automatic source of findings filtered before its findings become work, with its rate of false alarms measured?
+25. Are the numbers your decisions rest on produced by something other than the agents being judged, and checked against an independent record?
+26. Is a defect closed only when its underlying cause is fixed, or when a named person has accepted the risk on the record?
+27. Do you regularly re-test your agents against your own set of tasks, so you would notice if they got worse?
 
-## Work intake
+## Enforcement Integrity
 
-21. Where do product requirements (PRDs) live?
-22. What tracks work items?
-23. Is there a knowledge source agents read for project context?
-24. Is that knowledge source maintained, or rotting?
-25. Is incoming work validated before agents build it?
-26. Is there a definition of ready, enforced per work-item type?
-27. Are requirements written as testable atoms?
+28. Are the required checks enforced in a place the agents cannot skip, switch off or work around?
+29. Are the local copies of your checks generated from the same source as the required ones, with any difference caught automatically?
+30. Does every kind of agent you use face the same checks, with any gap written down and covered elsewhere?
+31. Is a change that lowers a quality bar refused unless it is made on its own and separately approved?
+32. Has every required check been shown to stop a change that deliberately breaks its rule?
+33. When the agents' instructions change, is any new risk the change brings written down and reviewed before it takes effect?
+34. Are the rules that exist only as instructions to agents listed, with a measurement of how often they are broken?
+35. Is every rule you hold yourselves to kept in a versioned file a program can read, with the checks produced from that file?
+36. Is there one list of every rule, where it is enforced, what measures it and who answers for it, kept in step with what actually runs?
 
-## Correctness gates
+## Identity, Credentials, and Access
 
-28. Is unit behaviour proven on every change?
-29. Minimum unit-test coverage you enforce?
-30. What drives end-to-end journeys?
-31. Does every user-facing requirement and critical state map to an executable end-to-end journey?
-32. How is end-to-end proof tiered without weakening the release gate?
-33. Do you run mutation testing?
-34. Do escaped defects become replayable efficacy tests?
-35. Is the system load-tested against SLOs before release?
-36. Are generated tests and synthetic user findings measured before intake?
-37. Can a quality threshold be quietly lowered?
-38. Does anything generate new test inputs, or do you only re-run the same suite?
-39. Can your tests still catch the bugs you have already fixed?
+37. Do agents sign in to every outside system as themselves, with only the access they need, rather than with a person's login?
+38. When an agent acts with a person's permissions, is that explicit, limited in time and reach, and logged?
+39. Are passwords, keys and tokens kept in a dedicated store, out of the repository and out of the text agents read?
+40. For every place agents run, is each sign-in they need written down and shown to work from that place?
+41. Is what agents can reach over the network limited to what the work needs?
 
-## Security gates
+## System Operations and Recovery
 
-40. What blocks a committed secret?
-41. What does static security analysis?
-42. What audits dependency vulnerabilities?
-43. What scans your infrastructure code?
-44. Do you produce an SBOM and sign released artifacts?
-45. Are dependency licenses checked against an allowlist?
-46. What catches licensed or proprietary code reproduced directly into your source?
+42. Is every scheduled agent job registered, with what starts it and what happens when a run is missed written down?
+43. If an agent's change breaks production, is there a set way to undo it that has actually been tried?
+44. When the agents cannot carry on, do they stop and tell a person exactly what is needed instead of stalling in silence?
+45. Do you measure, and report internally, how much work is finished with no person stepping in?
+46. Do you measure how good the delivered work is, including how much is rejected, redone or found faulty after release?
 
-## Agent attack surface
+## Change Management
 
-47. Is there a written threat model for your agents?
-48. What stops fetched content from becoming instructions?
-49. What can agents read on the open internet?
-50. Which codebases may an agent draw from — and what stops one client's source reaching another's?
-51. When an agent crosses repositories, how are the destination repository's controls activated?
-52. Can an agent add a new dependency unreviewed?
-53. Are destructive operations blocked at the tool layer?
-54. How are MCP servers and connectors vetted?
-55. Are instruction files from cloned repos trusted automatically?
-56. Can a bad learning persist and steer future runs?
-57. Does the threat model cover agent misreporting and fabricated evidence?
-58. If an agent escapes its sandbox, what can it reach?
-59. Can one agent get another to do what it is not allowed to do itself?
-60. Does every threat in your model map to a control, and every control to a threat?
+47. Must every change be independently reviewed, pass the required checks and have its review findings resolved before it can be merged?
+48. Are the agents' instructions kept under version control and put through the same checks as the code?
+49. Are the model version and its settings fixed, with any change to them tested on your own tasks before use and able to be undone?
+50. Is work turned away before agents start it when the request is unclear or the tools and access it needs cannot be shown to work?
+51. Is a release to production blocked until someone or something other than the releasing agent approves it?
+52. Is each work item checked automatically against a definition of ready for its type before agents may build it?
+53. Do you keep your own set of test tasks for judging agents, reviewed on a schedule and hidden from the agents it judges?
+54. Are the riskier parts of the system marked, with automatic limits on what agents may do there without a person?
+55. Before a new agent's work is relied on, is it run on trial beside the existing checks and tested with deliberately faulty work?
 
-## Code health
+## Third Parties and Supply Chain
 
-61. Are file and function size limits enforced?
-62. What is your per-function complexity ceiling?
-63. Is project and module structure enforced?
-64. Is your house coding style enforced automatically?
-65. Is dead code detected and removed?
-66. With the author hidden, could a reviewer tell who — or what — wrote a change?
+56. For each company that supplies a model, are its availability, data retention and training-use terms written down, with a plan for an outage?
+57. Is a new outside package refused unless it passes a review or an automatic safety scan?
+58. Is a change refused when it brings in an outside package whose licence is not on your approved list?
+59. Is every connector that gives agents access to outside tools fixed to a version, checked before use and listed?
+60. Was each vendor-hosted service your agents run on assessed for isolation, network access, secret storage and scheduling before real work ran there?
 
-## Design & UI
+## Software Integrity
 
-67. Do agents build UI from a design system, or style ad-hoc?
-68. Are design tokens the source of truth for style?
-69. Is your design tool connected for agents to read?
-70. Are design components mapped to code components?
-71. Is every implemented screen mechanically compared with its source design?
+61. Is a change refused when the automated tests of individual pieces of code fail?
+62. Is a change refused when the share of code exercised by tests falls below a minimum you have set?
+63. Do you measure whether your tests would actually catch a mistake, including the defects you have already fixed?
+64. Is a release blocked unless every user-facing requirement has an automated walk-through that passed against a running build?
+65. After a change ships, does someone or something other than its author use the software and record whether it does what was asked?
+66. Is every check that passed after release turned into a permanent automated test?
+67. Is a change refused when it breaks your limits on code size, complexity, structure, unused code or house style?
+68. Before release, is the software tested under load against response-time and capacity targets you have stated?
+69. Are automatically generated inputs, not only hand-written examples, used to test the rules your software must always obey?
+70. Is a change refused when it contains code copied from elsewhere whose licence has not been identified and honoured?
 
-## Review & merge
+## Data Protection
 
-72. What reviews every diff before merge?
-73. Must review findings be resolved before merge?
-74. What happens when review capacity is saturated?
-75. When CI or another gate rejects agent output, what happens next?
-76. Which authoritative gates run before work reaches CI?
-77. Are your quality gates unskippable server-side?
-78. When did a gate last actually block a change?
-79. Which of your rules live only in agent instructions — and how often are they broken?
-80. Where do your control obligations live — and do the gates come from there?
-81. Can you enumerate every control, where it is enforced, and when it last fired?
-82. Is autonomy the same everywhere, or tiered by risk?
+71. Is it defined which kinds of data agents may see, with production and personal data kept out or masked automatically?
+72. Are records of agent sessions protected as carefully as the most sensitive data that could appear in them?
+73. For every outside company that receives what agents read, is its data retention and training use written down and acceptable under your data duties?
 
-## Ship & rollback
+## User-Facing Integrity
 
-83. What stands between a merged PR and production?
-84. Is production deploy gated by a protected environment?
-85. Can you roll back a bad deploy?
-86. When a deployment fails before reaching users, what heals it?
-87. How do changes reach users?
-88. What promotes a canary or staged rollout — observed signal, or a timer?
-
-## Verify & acceptance
-
-89. After a change ships, does anything use the product?
-90. Is shipped work checked against its original spec?
-91. Who adjudicates evidence produced by the ADS itself?
-92. Does each passing verification become a regression test?
-93. When an agent proves a bug or a fix, where does the proof run?
-
-## Observe
-
-94. What captures production errors?
-95. What holds your logs and metrics?
-96. Does a production threshold crossing become a work item automatically?
-97. Do user-reported problems enter the same signal pipeline?
-98. Are finding sources measured for false positives or rejection rate?
-99. What tells you what users actually do?
-100. Are cost and governance metrics reconciled against an independent source?
-101. Would you notice if your agents got worse without you changing anything?
-
-## Operate & recover
-
-102. How would you learn a scheduled loop died?
-103. An agent breaks production — what happens?
-104. Do monitoring findings close on root cause instead of symptom silence?
-105. When the pipeline itself cannot proceed, does it escalate?
-106. Could a non-technical operator understand what the system tells them?
-107. Does every scheduled loop end each run in a named outcome?
-108. When an agent breaks production, does the incident record say who answers for it — and which gate should have caught it?
-
-## Governance & accountability
-
-109. Is every agent action attributable to the agent?
-110. Can you answer why any given line of code was written?
-111. Can you trace an artifact to the prompt and model that produced it?
-112. Does the agent that wrote a change approve its own work?
-113. Are agent permissions periodically reviewed?
-114. Are models pinned, with a plan for vendor outage?
-115. Are there spend caps and runaway-loop protection?
-116. Can production data or PII enter an agent's context?
-117. Are agent transcripts retained, with an access boundary?
-118. Who computes the numbers your gates and dashboards depend on?
-119. Are instruction-level residual risks reviewed before promotion?
-120. Who is accountable when an agent breaks something?
-121. Who can accept a risk the system decided not to fix?
-122. Does anyone re-examine a sample of the approvals your agents make?
+74. Are screens built by agents put together from an approved set of components rather than styled one by one?
+75. Do colours, spacing and type come from one defined set of values, so that anything outside it is caught automatically?
+76. Is every finished screen compared automatically with its approved design, within a difference limit you have set?
+77. Are the intended user journeys, including small screens and accessibility, run automatically against the working interface?

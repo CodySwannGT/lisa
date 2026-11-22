@@ -1,6 +1,6 @@
 ---
 name: lisa-use-the-product
-description: Shared methodology for actually USING a project's product the way its real end user would — across product types (DOM web app, HTTP/API backend, canvas game, CLI/library, IaC/CDK). Detects the product's consumer-facing interface, drives it as that consumer, gated by a per-environment mutation policy read from .lisa.config.json (so the agent never mutates production data by accident), and lensed through the project's personas/subagents when it defines them. Invoked by exploratory-qa (files defect/UX tickets) and product-walkthrough (grounds planning in the live product); rarely run standalone.
+description: "How to use a project's product the way its real user would — web app, API, game, CLI, or infrastructure — within the environment's mutation policy so production data is never changed by accident. Used by exploratory-qa and product-walkthrough."
 ---
 
 # Use the Product

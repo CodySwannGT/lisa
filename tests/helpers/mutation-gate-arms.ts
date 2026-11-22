@@ -18,7 +18,7 @@
 import {
   suitesByGuard,
   suitesReachingGuards,
-} from "../../vitest.config.mutation";
+} from "../../vitest.config.mutation.js";
 
 /**
  * The guards whose suites are withheld to weaken the gate.
@@ -113,13 +113,13 @@ export const WITHHELD_GUARDS: readonly string[] = [
  * Every suite the intact arm is allowed to run.
  * @returns Repo-relative suite paths
  */
-export const intactSuites = (): readonly string[] => suitesReachingGuards();
+const intactSuites = (): readonly string[] => suitesReachingGuards();
 
 /**
  * The suites reaching {@link WITHHELD_GUARDS}, which the weakened arm drops.
  * @returns Repo-relative suite paths, as a set for membership tests
  */
-export const withheldSuites = (): ReadonlySet<string> => {
+const withheldSuites = (): ReadonlySet<string> => {
   const byGuard = suitesByGuard();
   return new Set(WITHHELD_GUARDS.flatMap(guard => byGuard.get(guard) ?? []));
 };

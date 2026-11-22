@@ -30,6 +30,7 @@ const repoRoot = path.resolve(".");
 const LEDGER_COMMAND = "bun run build:lisa-owned-hash-ledger";
 const MANIFEST_COMMAND = "bun run build:upstream-evidence-manifest";
 const CERTIFICATE_COMMAND = "bun run build:nightly-guard-certificate";
+const QUESTIONNAIRE_COMMAND = "bun run build:readiness-questionnaire";
 const LISA_OWNED_SOURCE =
   "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh";
 const PACKAGED_EVIDENCE_SOURCE = "scripts/build-plugins.sh";
@@ -81,6 +82,7 @@ describe("derived-artifact staleness gate: which checks a commit owes", () => {
       "package.json",
       "scripts/generate-nightly-e2e-guard-certificate.mjs",
       "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs",
+      "rails/copy-overwrite/scripts/check-nightly-e2e-health.mjs",
       "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs",
     ]) {
       expect(requiresNightlyGuardCertificateCheck([source])).toBe(true);
@@ -177,7 +179,7 @@ describe("derived-artifact staleness gate: prefix list stays in step", () => {
     );
     const declared = [
       ...(block?.groups?.body ?? "").matchAll(/"([^"]+)"/gu),
-    ].map(match => match[1]);
+    ].flatMap(match => match[1] ?? []);
 
     const byCodePoint = (left: string, right: string) =>
       left < right ? -1 : Number(left > right);
@@ -211,6 +213,7 @@ describe("derived-artifact staleness gate: end to end", () => {
     expect(source).toContain(LEDGER_COMMAND);
     expect(source).toContain(MANIFEST_COMMAND);
     expect(source).toContain(CERTIFICATE_COMMAND);
+    expect(source).toContain(QUESTIONNAIRE_COMMAND);
   });
 });
 
@@ -248,32 +251,8 @@ describe("derived-artifact staleness gate: wired into pre-commit", () => {
   }
 });
 
-describe("derived-artifact staleness gate: the procedure is written down", () => {
+describe("derived-artifact staleness gate: the gate names its procedure", () => {
   const RULE = ".agents/rules/regenerating-derived-artifacts.md";
-
-  it("ships a durable note stating stage-before-regenerate", () => {
-    const rule = readFileSync(path.join(repoRoot, RULE), "utf8");
-
-    expect(rule).toContain("git add");
-    expect(rule).toContain(LEDGER_COMMAND);
-    expect(rule).toContain(MANIFEST_COMMAND);
-  });
-
-  it("records that lint-staged is why a hand-verified artifact fails at commit", () => {
-    const rule = readFileSync(path.join(repoRoot, RULE), "utf8");
-
-    expect(rule).toContain("lint-staged");
-  });
-
-  it("records that the manifest does not hash the ledger", () => {
-    // The folklore this rule replaces. Measured false in #2852: the ledger sits
-    // outside every packaged-evidence prefix, so the manifest records its path
-    // and never its bytes. Believing otherwise sends an author to regenerate
-    // the file that is not the cause, which is what cost the cycle.
-    const rule = readFileSync(path.join(repoRoot, RULE), "utf8");
-
-    expect(rule).toMatch(/does not hash the ledger/u);
-  });
 
   it("is pointed at from the gate that blocks the commit", () => {
     // A note nobody is sent to is a note nobody reads. The person who needs it
@@ -310,7 +289,7 @@ describe("local test command covers the same files as CI", () => {
     // delegating — is unchanged and now strictly stronger; only the literal
     // moved.
     expect(scripts["lisa-test-run"]).toBe(
-      "node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa"
+      "node scripts/lib/worktree-dependencies.mjs && node scripts/build-unless-marked.mjs && node dist/cli/lisa-test-run.js --profile lisa"
     );
   });
 
@@ -327,6 +306,9 @@ describe("local test command covers the same files as CI", () => {
     // A path argument or --include/--dir here is exactly how the two sets would
     // silently come apart again; --coverage cannot change file discovery.
     for (const script of [scripts.test, scripts["test:cov"]]) {
+      if (script === undefined) {
+        throw new Error("package.json is missing a test script");
+      }
       expect(script).not.toMatch(/--(?:include|dir|project)\b/u);
 
       const words = script.split(/\s+/u);

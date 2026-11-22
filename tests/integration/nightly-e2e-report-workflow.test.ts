@@ -1,6 +1,7 @@
 /**
  * Contract tests for the nightly e2e gate's REPORTING half (§10 of
- * `docs/nightly-e2e-gate.md`).
+ * `docs/nightly-e2e-gate.md`). The doc's prose is not pinned (#4867); these
+ * tests read the workflows, the ruleset, the caller templates and the guard.
  *
  * The decision logic — what to file, refresh and close — is proven in
  * `tests/unit/scripts/nightly-e2e-health-issues.test.ts`. This file proves the
@@ -21,6 +22,20 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
+/**
+ * Read one keyed entry, failing the test when it is absent.
+ * @param record Entries by name.
+ * @param name Name to read.
+ * @returns The entry under that name.
+ */
+const key = <T>(record: Readonly<Record<string, T>>, name: string): T => {
+  const entry = record[name];
+  if (entry === undefined) {
+    throw new Error(`expected an entry named ${name}`);
+  }
+  return entry;
+};
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
@@ -33,7 +48,6 @@ const REPORT_CALLER_REL =
 const RULESET_REL = "expo/github-rulesets/nightly-e2e-health.json";
 const GUARD_REL =
   "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs";
-const DOC_REL = "docs/nightly-e2e-gate.md";
 
 /** The flag that is the ONLY entry point to any write in the guard. */
 const REPORT_FLAG = "--report-issues";
@@ -126,7 +140,9 @@ describe("the reporting half cannot fail the merge gate (§10.4)", () => {
       ruleset.rules.find(rule => rule.type === "required_status_checks")
         ?.parameters?.required_status_checks ?? [];
     for (const check of required) {
-      expect(check.context).not.toContain(reportCaller.jobs.report.name);
+      expect(check.context).not.toContain(
+        key(reportCaller.jobs, "report").name
+      );
     }
     expect(read(REPORT_CALLER_REL)).toContain("never make it a required check");
   });
@@ -148,7 +164,7 @@ describe("the reporting half cannot fail the merge gate (§10.4)", () => {
     // the gate moved on, producing exactly the divergence it was meant to
     // prevent. What actually detects a mismatch is the contract-version
     // assertion below, not the ref.
-    const uses = reportCaller.jobs.report.uses ?? "";
+    const uses = key(reportCaller.jobs, "report").uses ?? "";
     expect(uses).toContain(
       "CodySwannGT/lisa/.github/workflows/nightly-e2e-report.yml@"
     );
@@ -156,7 +172,7 @@ describe("the reporting half cannot fail the merge gate (§10.4)", () => {
   });
 
   it("the reporter asserts the guard's contract major, like the gate", () => {
-    const assertion = (report.jobs.report.steps ?? []).find(step =>
+    const assertion = (key(report.jobs, "report").steps ?? []).find(step =>
       step.run?.includes("--contract-version")
     );
     expect(assertion?.run).toContain("contract mismatch");
@@ -173,10 +189,12 @@ describe("cancel a read, queue a write", () => {
     // Two overlapping reports would both read "no open issue for this suite"
     // and both file one. Cancelling the older one would be worse still: it can
     // be half way through updating an issue set.
-    expect(report.jobs.report.concurrency?.["cancel-in-progress"]).toBe(false);
+    expect(key(report.jobs, "report").concurrency?.["cancel-in-progress"]).toBe(
+      false
+    );
     // Repository-wide, not per-ref: two runs on different refs still write to
     // the same issues.
-    expect(report.jobs.report.concurrency?.group).toContain(
+    expect(key(report.jobs, "report").concurrency?.group).toContain(
       "github.repository"
     );
   });
@@ -185,7 +203,7 @@ describe("cancel a read, queue a write", () => {
     // A forgotten concurrency group produces exactly the duplicates that "one
     // issue per suite" exists to prevent, so it is not left to the caller.
     expect(reportCaller.concurrency).toBeUndefined();
-    expect(reportCaller.jobs.report.concurrency).toBeUndefined();
+    expect(key(reportCaller.jobs, "report").concurrency).toBeUndefined();
   });
 
   it("the GATE caller keeps its per-PR CANCELLING group", () => {
@@ -195,28 +213,10 @@ describe("cancel a read, queue a write", () => {
   });
 });
 
-describe("the contract document and the reporting code stay together", () => {
-  const doc = read(DOC_REL);
+describe("the reporting code keeps its contract", () => {
   const guard = read(GUARD_REL);
 
-  it("rows 27-31 are stated as a table, not left to the code", () => {
-    expect(doc).toContain("## 10. The tracking issue");
-    for (const row of ["| 27 |", "| 28 |", "| 29 |", "| 30 |", "| 31 |"]) {
-      expect(doc).toContain(row);
-    }
-  });
-
-  it("states the two properties that make this a state mirror, not a mailbox", () => {
-    expect(doc).toContain("One issue per SUITE, not per red night");
-    expect(doc).toContain(
-      "Closing an issue is a stronger claim than letting a pull request through"
-    );
-  });
-
-  it("records that completeness is REUSED from row 26, never re-derived", () => {
-    expect(doc).toContain(
-      "Completeness is not re-derived here; row 26's `incomplete_run` token *is* the"
-    );
+  it("the guard reuses row 26's completeness predicate, never re-derives it", () => {
     // The guard asks the question through the named predicate rather than
     // testing the state alone, which is what survives a future loosening of
     // row 26.
@@ -224,15 +224,13 @@ describe("the contract document and the reporting code stay together", () => {
     expect(guard).toContain("INCOMPLETE_EVIDENCE_REASON");
   });
 
-  it("records the reporting half as a MINOR contract bump", () => {
+  it("the reporting half shipped inside contract major 1", () => {
     // The claim is "this shipped inside major 1", not "the guard is pinned at
     // the version this half shipped as". Asserting the exact current version
     // would make every LATER minor — rows 32-35 shipped the next one — fail a
-    // case about a bump that already happened, so the durable assertions are
-    // the MAJOR plus the history the doc records.
+    // case about a bump that already happened, so the durable assertion is
+    // the MAJOR.
     expect(guard).toMatch(/NIGHTLY_E2E_CONTRACT_VERSION = "1\.\d+\.\d+"/);
-    expect(doc).toContain("adding a surface that gates nothing");
-    expect(doc).toContain("1.1.0 → 1.2.0");
   });
 
   it("the bypass report no longer promises an artefact Lisa never creates", () => {
@@ -241,17 +239,10 @@ describe("the contract document and the reporting code stay together", () => {
     expect(guard).toContain("the tracking issue");
     expect(guard).toContain("nightly-e2e-report");
   });
-
-  it("names the seams the neighbouring work units attach to", () => {
-    // Scope discipline in writing: the next unit should find its attachment
-    // point rather than re-litigating this design.
-    expect(doc).toContain("Seams left open on purpose");
-  });
 });
 
 describe("the blocking claim is wired end to end (§10.7)", () => {
   const reusable = workflow(REPORT_REUSABLE_REL);
-  const doc = read(DOC_REL);
   const guard = read(GUARD_REL);
 
   /**
@@ -338,23 +329,6 @@ describe("the blocking claim is wired end to end (§10.7)", () => {
       issues: "write",
       "pull-requests": "read",
     });
-  });
-
-  it("the doc states all three states and the 404 rule", () => {
-    expect(doc).toContain("The blocking claim is MEASURED");
-    for (const state of ["`required`", "`not_required`", "`unknown`"]) {
-      expect(doc).toContain(state);
-    }
-    expect(doc).toContain("A `404` is `unknown`, never `not_required`");
-    expect(doc).toContain("Pinning is opt-in");
-  });
-
-  it("the doc records the measured falsehood this replaced", () => {
-    // The reason has to travel with the change. Without it, the next person to
-    // read a `not_required` issue concludes the reporter is broken and
-    // hardcodes the sentence back.
-    expect(doc).toContain("measurably false");
-    expect(doc).toContain("AcmeOrgB/frontend");
   });
 
   it("the guard reads the EFFECTIVE rules endpoint, never one ruleset by id", () => {

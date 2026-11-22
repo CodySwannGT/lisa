@@ -44,12 +44,16 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import type { Readable } from "node:stream";
 
 import {
   PINS,
   VERSION,
   qualifyScanner,
 } from "../../all/copy-overwrite/scripts/lib/history-secret-scanner.mjs";
+import { latch } from "./latch.js";
+import { errorMessage, writeStderrSync } from "./stderr-sync.js";
+import { inheritedEnvironment } from "../support/process-environment.js";
 
 /** Repository root, resolved from this module. */
 const REPO_ROOT = resolve(import.meta.dirname, "..", "..");
@@ -251,63 +255,96 @@ export function qualificationFailure(path: string): string | undefined {
  * @param limits - The containing deadline and the child's environment
  * @param limits.deadlineMs - Kill the child with SIGKILL at this age
  * @param limits.env - Complete environment for the child
- * @param live - Holds the running child so a dispose can stop it
- * @param live.child - The running child, while it runs
+ * @param live - Holds the running child so a dispose can stop it. The one
+ *   cell kept here on purpose: the process-exit dispose must reach a child
+ *   that is still running, so the handle cannot travel by return value.
+ * @param live.current - The running child, while it runs
  * @returns What the child did
  */
-function runBounded(
+async function runBounded(
   argv: readonly [string, ...string[]],
   limits: { readonly deadlineMs: number; readonly env: NodeJS.ProcessEnv },
-  live: { child?: ChildProcess | undefined }
+  live: { current?: ChildProcess | undefined }
 ): Promise<ChildRun> {
-  return new Promise(settle => {
-    const started = performance.now();
-    const [command, ...args] = argv;
-    const child = spawn(command, args, {
-      cwd: REPO_ROOT,
-      env: limits.env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    /* eslint-disable functional/no-let, functional/immutable-data -- live child streams and outcome accumulate until the real process closes */
-    const captured = { stdout: "", stderr: "" };
-    let errorCode: string | null = null;
-    const timer = setTimeout(() => {
-      if (child.exitCode !== null || child.signalCode !== null) return;
-      errorCode = TIMED_OUT;
-      child.kill("SIGKILL");
-    }, limits.deadlineMs);
-    const finish = (
-      status: number | null,
-      signal: NodeJS.Signals | null
-    ): void => {
+  const started = performance.now();
+  const [command, ...args] = argv;
+  const child = spawn(command, args, {
+    cwd: REPO_ROOT,
+    env: limits.env,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  // The first cause recorded wins: the deadline, or the spawn error.
+  const errorCode = latch<string | null>();
+  const timer = setTimeout(() => {
+    if (child.exitCode !== null || child.signalCode !== null) return;
+    errorCode.set(TIMED_OUT);
+    child.kill("SIGKILL");
+  }, limits.deadlineMs);
+  const ended = new Promise<{
+    readonly status: number | null;
+    readonly signal: NodeJS.Signals | null;
+    readonly spawned: boolean;
+  }>(resolve => {
+    /**
+     * Stop the deadline, release the handle, and report how the child ended.
+     * @param outcome - Exit status and signal, and whether it ever spawned
+     * @param outcome.status - Exit status, if it exited
+     * @param outcome.signal - Terminating signal, if one killed it
+     * @param outcome.spawned - Whether the process ever started
+     */
+    const end = (outcome: {
+      readonly status: number | null;
+      readonly signal: NodeJS.Signals | null;
+      readonly spawned: boolean;
+    }): void => {
       clearTimeout(timer);
-      live.child = undefined;
-      settle({
-        status,
-        signal,
-        // The deadline explains only a death it caused. A child that exited on
-        // its own in the turn the timer fired keeps its own outcome.
-        errorCode:
-          errorCode === TIMED_OUT && signal !== "SIGKILL" ? null : errorCode,
-        ...captured,
-        elapsedMs: Math.round(performance.now() - started),
-      });
+      live.current = undefined;
+      resolve(outcome);
     };
     // Listen for a spawn failure before touching the streams: when the spawn
     // itself fails (EMFILE, ENOENT) they can be absent.
     child.once("error", (error: NodeJS.ErrnoException) => {
-      errorCode ??= error.code ?? "ERROR";
-      if (child.pid === undefined) finish(null, null);
+      errorCode.set(error.code ?? "ERROR");
+      if (child.pid === undefined)
+        end({ status: null, signal: null, spawned: false });
     });
-    live.child = child;
-    for (const name of ["stdout", "stderr"] as const)
-      child[name]?.on("data", (chunk: Buffer) => {
-        if (captured[name].length < MAX_CAPTURE)
-          captured[name] += chunk.toString("utf8");
-      });
-    /* eslint-enable functional/no-let, functional/immutable-data -- capture ends with the close event below */
-    child.once("close", finish);
+    child.once("close", (status, signal) =>
+      end({ status, signal, spawned: true })
+    );
+    live.current = child;
   });
+  const streams = Promise.all([
+    boundedText(child.stdout),
+    boundedText(child.stderr),
+  ]);
+  const { status, signal, spawned } = await ended;
+  // A child that never spawned has no streams that will ever end.
+  const [stdout, stderr] = spawned ? await streams : ["", ""];
+  const cause = await errorCode.read(null);
+  return {
+    status,
+    signal,
+    // The deadline explains only a death it caused. A child that exited on
+    // its own in the turn the timer fired keeps its own outcome.
+    errorCode: cause === TIMED_OUT && signal !== "SIGKILL" ? null : cause,
+    stdout,
+    stderr,
+    elapsedMs: Math.round(performance.now() - started),
+  };
+}
+
+/**
+ * A child stream's text, keeping chunks only while under {@link MAX_CAPTURE}.
+ * @param stream - The stream, absent when the spawn itself failed
+ * @returns The bounded text once the stream ends
+ */
+async function boundedText(stream: Readable | null): Promise<string> {
+  if (stream === null) return "";
+  return stream.reduce(
+    (text: string, chunk: Buffer) =>
+      text.length < MAX_CAPTURE ? text + chunk.toString("utf8") : text,
+    ""
+  );
 }
 
 /**
@@ -360,6 +397,21 @@ function artifactJudgement(
 }
 
 /**
+ * Run one cleanup step, reporting a failure on stderr instead of throwing.
+ * @param what - What failed, for the report
+ * @param step - The cleanup step
+ */
+function reportFailure(what: string, step: () => unknown): void {
+  try {
+    step();
+  } catch (error) {
+    writeStderrSync(
+      `history-scanner preparation: ${what} (${errorMessage(error)}); the scratch reaper reclaims what is left.\n`
+    );
+  }
+}
+
+/**
  * Create a private scope, released on process exit if nothing releases it first.
  *
  * Vitest answers SIGINT and SIGTERM by calling `process.exit`, so the exit
@@ -367,24 +419,40 @@ function artifactJudgement(
  * provision child is still downloading: dispose kills that child too. The
  * scope holds a private `tmp` directory that the child uses as its TMPDIR, so
  * the provisioner's own archive scratch is removed with the scope.
+ *
+ * The exit listener is prepended, so it runs ahead of any listener armed
+ * earlier, such as the global setup's release of this scope's parent: at exit
+ * the child is stopped and the scope removed before the parent goes, as in the
+ * normal teardown (CodySwannGT/lisa#4621).
+ *
+ * Dispose never throws, whoever calls it: the exit listener, the failure path
+ * or a teardown. A throw from an exit listener crashes the process and skips
+ * every later listener, and a throw from a teardown skips the parent's
+ * release. A failure is reported on stderr synchronously instead, and the
+ * scratch reaper reclaims what is left.
  * @param parent - Directory to create the scope in
  * @returns The scope, the slot for its live child, and its idempotent dispose
  */
 function ownedScope(parent: string): {
   readonly scope: string;
-  readonly live: { child?: ChildProcess | undefined };
+  readonly live: { current?: ChildProcess | undefined };
   readonly dispose: () => void;
 } {
   const scope = mkdtempSync(join(parent, "lisa-history-scanner-preparation-"));
-  const live: { child?: ChildProcess | undefined } = {};
+  // Owner: the process "exit" listener `dispose`, which kills the running child.
+  const live: { current?: ChildProcess | undefined } = {};
   const dispose = (): void => {
     process.off("exit", dispose);
-    live.child?.kill("SIGKILL");
-    rmSync(scope, { recursive: true, force: true });
+    reportFailure("its provision child could not be stopped", () =>
+      live.current?.kill("SIGKILL")
+    );
+    reportFailure("its preparation scope could not be removed", () => {
+      rmSync(scope, { recursive: true, force: true });
+    });
   };
   chmodSync(scope, 0o700);
   mkdirSync(join(scope, "tmp"), { mode: 0o700 });
-  process.once("exit", dispose);
+  process.prependOnceListener("exit", dispose);
   return { scope, live, dispose };
 }
 
@@ -409,8 +477,7 @@ export async function prepareHistoryScanner(
     "provision",
     executable,
   ];
-  // eslint-disable-next-line no-restricted-syntax -- the provision child inherits the real environment, as each suite's provision child did; only its TMPDIR moves into the owned scope
-  const env = { ...process.env, TMPDIR: join(scope, "tmp") };
+  const env = { ...inheritedEnvironment(), TMPDIR: join(scope, "tmp") };
   const run = await runBounded(argv, { deadlineMs, env }, live);
   const pin = platformPin();
   const failure = childFailure(run, deadlineMs);

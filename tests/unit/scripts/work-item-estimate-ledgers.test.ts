@@ -1,0 +1,258 @@
+/**
+ * How the done tally counts runs across an item's usage ledgers
+ * (CodySwannGT/lisa#4956): each run once by its identity, child work by its
+ * ledger aggregate, and an unknown total only when a run behind it is unknown
+ * or the ledgers' child work cannot be told apart.
+ * @module tests/unit/scripts/work-item-estimate-ledgers
+ */
+import { describe, expect, it } from "vitest";
+
+import { itemRatio } from "../../../all/copy-overwrite/scripts/lib/work-item-estimate-calibration.mjs";
+import {
+  doneProblems,
+  ledgerActual,
+  tallyEstimate,
+} from "../../../all/copy-overwrite/scripts/lib/work-item-estimate-tally.mjs";
+import {
+  type LisaUsageEntry,
+  upsertLisaUsageSection,
+} from "../../../src/utils/usage-accounting.js";
+import {
+  finishedItem,
+  usageEntry,
+} from "../../support/work-item-estimate-fixtures.js";
+
+const CHILD_REF = "github:acme/code#43";
+
+/**
+ * A usage entry recorded on the child item.
+ * @param id - Stable entry id.
+ * @param totalTokens - Token total, or null when unknown.
+ * @param cost - Cost in dollars, or null when unpriced.
+ * @returns The child's entry.
+ */
+const childRun = (
+  id: string,
+  totalTokens: number | null,
+  cost: number | null
+): LisaUsageEntry => ({
+  ...usageEntry(id, totalTokens, cost),
+  artifactRef: CHILD_REF,
+  // A run can be measured but unpriced: keep the tokens' own source.
+  source: totalTokens === null ? "unavailable" : "observed",
+});
+
+/**
+ * A body ledger with one direct run plus the given child runs.
+ * @param children - The child item's runs.
+ * @returns Item body.
+ */
+const withChildren = (children: readonly LisaUsageEntry[]): string =>
+  upsertLisaUsageSection(finishedItem(1000, 2000, []), {
+    entries: [usageEntry("implement", 4_000, 3)],
+    childArtifacts: [{ artifactRef: CHILD_REF, entries: children }],
+  });
+
+const comment = (entries: readonly LisaUsageEntry[]): string =>
+  upsertLisaUsageSection("", { entries });
+
+describe("runs across ledgers", () => {
+  it("counts a comment that repeats the body's runs plus its own Verify run", () => {
+    const body = finishedItem(1000, 2000, [usageEntry("implement", 4_000, 3)]);
+    const evidence = comment([
+      usageEntry("implement", 4_000, 3),
+      usageEntry("verify", 1_000, 1),
+    ]);
+    expect(ledgerActual([body, evidence])).toMatchObject({
+      tokens: 5_000,
+      cost: 4,
+      entries: 2,
+    });
+  });
+
+  it("keeps the total unknown when two ledgers share only some child runs", () => {
+    const body = withChildren([
+      childRun("child-a", 100, 1),
+      childRun("child-b", 100, 1),
+    ]);
+    const other = upsertLisaUsageSection("", {
+      entries: [usageEntry("verify", 1_000, 1)],
+      childArtifacts: [
+        {
+          artifactRef: CHILD_REF,
+          entries: [childRun("child-b", 100, 1), childRun("child-c", 100, 1)],
+        },
+      ],
+    });
+    expect(ledgerActual([body, other])).toMatchObject({
+      tokens: null,
+      cost: null,
+    });
+  });
+
+  it("counts child work once when a comment repeats all of it", () => {
+    const body = withChildren([childRun("child-a", 100, 1)]);
+    const copy = body.slice(body.indexOf("## Lisa Usage"));
+    expect(ledgerActual([body, copy])).toEqual(ledgerActual([body]));
+    expect(ledgerActual([body])).toMatchObject({ tokens: 4_100, cost: 4 });
+  });
+});
+
+describe("child runs", () => {
+  it("keeps the tokens unknown when a child run has no token total", () => {
+    const actual = ledgerActual([
+      withChildren([
+        childRun("child-a", 100, 1),
+        childRun("child-b", null, null),
+      ]),
+    ]);
+    expect(actual).toMatchObject({ tokens: null, cost: null });
+  });
+
+  it("keeps the cost unknown when one child run is priced and another is not", () => {
+    const actual = ledgerActual([
+      withChildren([
+        childRun("child-a", 100, 1),
+        childRun("child-b", 100, null),
+      ]),
+    ]);
+    expect(actual).toMatchObject({ tokens: 4_200, cost: null });
+  });
+
+  it("adds fully known child runs to the direct runs", () => {
+    expect(
+      ledgerActual([
+        withChildren([
+          childRun("child-a", 100, 0.5),
+          childRun("child-b", 200, 0.25),
+        ]),
+      ])
+    ).toMatchObject({ tokens: 4_300, cost: 3.75, currency: "USD" });
+  });
+});
+
+describe("calibration reads the recorded tally", () => {
+  it("counts the comment's Verify run the tally recorded", () => {
+    // Estimate midpoint 1500; Implement 1500 in the body, Verify 1500 in a
+    // comment. The body ledger alone would say 1x; the tally says 2x.
+    const body = finishedItem(1000, 2000, [usageEntry("implement", 1_500, 1)]);
+    const evidence = comment([usageEntry("verify", 1_500, 1)]);
+    const tallied = tallyEstimate(body, [body, evidence]);
+    expect(itemRatio(tallied)).toBe(2);
+    expect(itemRatio(body)).toBe(1);
+  });
+
+  it("skips an item whose recorded tally is unknown", () => {
+    const body = finishedItem(1000, 2000, [usageEntry("implement", 1_500, 1)]);
+    const evidence = comment([usageEntry("verify", null)]);
+    expect(itemRatio(tallyEstimate(body, [body, evidence]))).toBe(null);
+  });
+});
+
+describe("a ledger whose only runs are its children's", () => {
+  const childOnly = upsertLisaUsageSection(finishedItem(1000, 2000, []), {
+    entries: [],
+    childArtifacts: [
+      { artifactRef: CHILD_REF, entries: [childRun("child-a", 300, 0.5)] },
+    ],
+  });
+
+  it("counts the child totals instead of reporting no ledger", () => {
+    expect(ledgerActual([childOnly])).toMatchObject({
+      tokens: 300,
+      cost: 0.5,
+      entries: 1,
+    });
+    expect(doneProblems(tallyEstimate(childOnly))).toEqual([]);
+  });
+
+  it("still reports no ledger when there are neither direct nor child runs", () => {
+    const empty = upsertLisaUsageSection(finishedItem(1000, 2000, []), {
+      entries: [],
+    });
+    expect(ledgerActual([empty])).toBeNull();
+    expect(doneProblems(empty)[0]).toMatch(/No Lisa Usage entry/);
+  });
+});
+
+describe("done-time staleness", () => {
+  const oneUnknown = finishedItem(1000, 2000, [usageEntry("implement", null)]);
+
+  it("fails a tally that records one unavailable run when there are now two", () => {
+    const later = comment([usageEntry("verify", null)]);
+    expect(
+      doneProblems(tallyEstimate(oneUnknown), [
+        tallyEstimate(oneUnknown),
+        later,
+      ])[0]
+    ).toMatch(/tally is stale.*over 1 usage entries.*over 2/);
+  });
+
+  it("passes when a comment repeats the same ledger", () => {
+    const tallied = tallyEstimate(oneUnknown);
+    const copy = tallied.slice(tallied.indexOf("## Lisa Usage"));
+    expect(doneProblems(tallied, [tallied, copy])).toEqual([]);
+  });
+});
+
+describe("a usage section without a rollup token", () => {
+  /**
+   * A comment ledger whose rollup token was lost, keeping its entry rows.
+   * @param entries - The comment's runs.
+   * @returns Comment text with the entries and no rollup token.
+   */
+  const rollupLess = (entries: readonly LisaUsageEntry[]): string =>
+    comment(entries).replace(/<!-- lisa:usage-rollup [^\n]*-->\n?/, "");
+  const body = finishedItem(1000, 2000, [usageEntry("implement", 4_000, 3)]);
+
+  it("adds the comment's runs to the total", () => {
+    const verify = rollupLess([usageEntry("verify", 1_000, 1)]);
+    expect(verify).not.toContain("lisa:usage-rollup ");
+    expect(ledgerActual([body, verify])).toMatchObject({
+      tokens: 5_000,
+      cost: 4,
+      entries: 2,
+    });
+  });
+
+  it("keeps the total unknown when one of its runs is unavailable", () => {
+    expect(
+      ledgerActual([body, rollupLess([usageEntry("verify", null)])])
+    ).toMatchObject({ tokens: null, cost: null, entries: 2 });
+  });
+});
+
+describe("a usage section that cannot be read in full", () => {
+  const body = finishedItem(1000, 2000, [usageEntry("implement", 1_000, 1)]);
+  const verify = comment([usageEntry("verify", 2_000, 2)]);
+  /** A comment whose entry token the parser refuses. */
+  const refused = verify.replace(" flow=", " flaw=");
+  /** A comment whose entry token is too damaged for the parser to match. */
+  const skipped = verify.replace(
+    /(<!-- lisa:usage-entry [^\n]*?) -->/,
+    "$1 --"
+  );
+
+  it.each([
+    ["refuses", refused],
+    ["would skip", skipped],
+  ])(
+    "makes the actual unknown when the parser %s a comment's entry",
+    (_label, damaged) => {
+      expect(ledgerActual([body, damaged])).toMatchObject({
+        tokens: null,
+        cost: null,
+        currency: null,
+        sources: ["observed", "unreadable-ledger"],
+      });
+    }
+  );
+
+  it("refuses at done a known total recorded without the damaged comment", () => {
+    const tallied = tallyEstimate(body);
+    expect(doneProblems(tallied, [tallied])).toEqual([]);
+    expect(doneProblems(tallied, [tallied, refused])[0]).toMatch(
+      /tally is stale: it records 1000 tokens.*now totals null tokens/
+    );
+  });
+});

@@ -1,0 +1,1963 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+# -----------------------------------------------------------------------------
+# Rails Quality Checks Workflow (Reusable)
+# -----------------------------------------------------------------------------
+# Runs quality checks for Rails projects including:
+# - Linting (RuboCop)
+# - Security scanning (Brakeman, Bundler Audit)
+# - Tests (RSpec with PostgreSQL or MySQL)
+# - Code quality (Reek, Flog, Flay)
+# - Secret detection (GitGuardian)
+# - AST pattern scanning (ast-grep)
+# - License compliance (FOSSA)
+#
+# Example usage in another workflow:
+# ```yaml
+# quality:
+#   uses: ./.github/workflows/quality-rails.yml
+#   with:
+#     database_type: 'postgres'
+#     database_name: 'test'
+#     # Optional: a full postgres image ref, e.g. for pgvector.
+#     database_image: 'pgvector/pgvector:pg17'
+#     skip_jobs: 'code_quality,secret_scanning'
+#   secrets:
+#     GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+#     FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+# ```
+
+name: 🔍 Rails Quality Checks
+
+on:
+  workflow_call:
+    inputs:
+      expected_workflow_contract_major:
+        description: >-
+          The contract major of THIS workflow the caller was written against.
+          Consumers track `@main`, so quality-rails.yml changes under them with no pull
+          request in their repository; comparing this value against the major
+          the workflow declares is the only way a run can tell a compatible
+          change from a breaking one — or from nothing having been looked at.
+          A caller that omits it is told so loudly and never quietly passed.
+          Seeded beside the `uses:` line in every Lisa caller template and
+          enforced by Lisa's `check-workflow-contract-assertions.mjs` gate.
+        required: false
+        default: ''
+        type: string
+      database_type:
+        description: 'Database type to use for tests (postgres or mysql)'
+        required: false
+        type: string
+        default: 'postgres'
+      database_name:
+        description: 'Database name for the test database'
+        required: false
+        type: string
+        default: 'test'
+      database_version:
+        description: 'Database image tag for tests (e.g. "8.4" for MySQL or "17" for Postgres). Empty keeps the pinned default.'
+        required: false
+        type: string
+        default: ''
+      database_image:
+        description: >-
+          Full image ref for every postgres service (the RSpec test jobs, their
+          shards and mutation), e.g. "pgvector/pgvector:pg17" or a digest pin
+          "pgvector/pgvector@sha256:...". Use it when the schema enables an
+          extension the official postgres image does not ship. Overrides
+          database_version for postgres; MySQL services ignore it. Empty keeps
+          postgres:<database_version || 16> (CodySwannGT/lisa#4671).
+        required: false
+        type: string
+        default: ''
+      runner:
+        description: >-
+          Runner image for the jobs that install the caller's Ruby (lint,
+          security, code quality, mutation and the RSpec test jobs). Newer
+          images get ruby/setup-ruby builds of only each Ruby series' latest
+          patch, so a `.ruby-version` pinned to an older patch (for example
+          4.0.2 on ubuntu-26.04) fails at setup; pin `ubuntu-24.04` for it
+          (CodySwannGT/lisa#4517).
+        required: false
+        type: string
+        default: 'ubuntu-latest'
+      test_shards:
+        description: 'Run the RSpec suite as this many parallel shards (1-20), then merge their SimpleCov coverage and check the thresholds once. Needs simplecov 1.x and the Lisa-managed scripts/lisa-rspec-shards.mjs, lisa_rspec_shard_recorder.rb and lisa_simplecov_collate.rb. The default, 1, runs one unsharded job.'
+        required: false
+        default: 1
+        type: number
+      expected_work_item_contract:
+        # The work-item gate's two halves travel by different routes — this
+        # workflow by git ref, `scripts/lisa-work-item.mjs` by `lisa apply` — so
+        # they WILL drift, exactly as `scripts/two-channel-couplings.json`
+        # records of this very pair. This is the version THIS workflow revision
+        # was authored against; the traceability job reads the script's own
+        # `contract-version` and compares.
+        #
+        # MAJOR mismatch fails closed. An older MINOR is reported and enforced
+        # normally — the contract holds, only the logic behind it moved. A copy
+        # too old to answer at all is WARNED about, never failed: this workflow
+        # is consumed `@main` and would otherwise redden every consumer who has
+        # not applied since the handshake shipped. See the job for the full
+        # argument.
+        description: 'Work-item gate contract version this workflow speaks. A MAJOR mismatch against scripts/lisa-work-item.mjs fails the traceability gate closed; an older minor is reported. Bump in lockstep with WORK_ITEM_CONTRACT_VERSION.'
+        required: false
+        type: string
+        default: '1.2.0'
+      skip_jobs:
+        # ⚠️ NO SPACES. Each token is matched exactly, as `,<token>,` inside
+        # `format(',{0},', inputs.skip_jobs)`. GitHub Actions expression syntax
+        # has no string-replace function — the available string functions are
+        # contains/startsWith/endsWith/format/join/toJSON/fromJSON/hashFiles —
+        # so this workflow cannot trim for you. `'test, mutation'` yields the
+        # token `" mutation"`, which matches nothing, and the job RUNS. That
+        # fails closed, so nothing unverified ships; it just silently does not
+        # do what you asked.
+        #
+        # The list below was itself written with spaces until #2427, which is
+        # how easy this is to get wrong. Rails projects do not ship
+        # `scripts/check-skipped-required-checks.mjs` (it is a TypeScript-stack
+        # copy-overwrite file), so unlike quality.yml there is no
+        # `🔒 Skipped Required Checks` job here to report a spaced token — on
+        # this workflow the constraint is documentation only.
+        description: 'Comma-separated list of jobs to skip, with NO SPACES — tokens are matched exactly, so `test, mutation` silently skips nothing. (lint,security,test,mutation,code_quality,secret_scanning,sg_scan,learnings_budget,threshold_ratchet,work_item_traceability,license_compliance)'
+        required: false
+        type: string
+        default: ''
+    secrets:
+      GITGUARDIAN_API_KEY:
+        required: false
+      FOSSA_API_KEY:
+        required: false
+      # Work-item traceability reads the configured tracker to verify the PR's
+      # backlink. `tracker: github` needs nothing beyond github.token; jira and
+      # linear need their API credentials, and without them the job reports
+      # not-enforceable rather than a false traceability failure.
+      JIRA_API_TOKEN:
+        description: 'Atlassian/Jira API token (only when tracker is jira)'
+        required: false
+      JIRA_LOGIN:
+        description: 'Atlassian account email for the Jira API token (only when tracker is jira)'
+        required: false
+      LINEAR_API_KEY:
+        description: 'Linear API key (only when tracker is linear)'
+        required: false
+
+jobs:
+  history_secrets:
+    name: History Secrets
+    permissions:
+      contents: read
+    uses: ./.github/workflows/history-secrets.yml
+    with:
+      expected_workflow_contract_major: '1'
+  workflow_contract:
+    # The caller-facing half of the staleness handshake (CodySwannGT/lisa#3698).
+    # `.github/reusable-workflow-contracts.json` records the major, every shipped
+    # caller template is seeded with it, and
+    # `check-workflow-contract-assertions.mjs` in Lisa refuses a template that
+    # takes the `uses:` reference and drops the assertion — the two are one unit.
+    name: 🔖 Workflow Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: 🔖 Assert the caller still understands this workflow
+        env:
+          # The contract major THIS revision speaks. Bump it here and in
+          # .github/reusable-workflow-contracts.json in the same commit, and
+          # reseed every caller template in that commit too.
+          DECLARED_MAJOR: '1'
+          EXPECTED_MAJOR: ${{ inputs.expected_workflow_contract_major }}
+          WORKFLOW_FILE: quality-rails.yml
+        # Byte-identical to workflow-contract-assertion.sh in Lisa across every
+        # reusable workflow; the gate proves it rather than trusting it.
+        run: |
+          set -eu
+
+          # The consumer-side half of a two-party contract (CodySwannGT/lisa#3698).
+          #
+          # Every consumer reference to a Lisa reusable workflow tracks `@main` by ruling,
+          # not by accident. So this workflow changes under a consumer between two runs of
+          # one pull request, with no PR, no review and no record in their repository.
+          # That is intended. What was missing is any way for them to TELL: an unchanged
+          # workflow and a rewritten one produced the same silence, and an investigation
+          # that fetched `@main` afterwards was reading a different artifact than the run
+          # it was investigating and could not know it.
+          #
+          # This step is the signal, and it deliberately asserts the CONTRACT rather than
+          # the ref. Asserting the ref — a tag, a SHA, a tree hash — goes red on every
+          # legitimate upstream change and is deleted within a week, which is how a
+          # staleness check becomes a staleness problem. The major asserts the property a
+          # caller actually depends on: "the inputs and behaviour you were seeded against
+          # still hold". A compatible change stays green, because receiving compatible
+          # changes is the entire point of tracking `@main`; only a declared break speaks.
+          echo "workflow:                                  ${WORKFLOW_FILE}"
+          echo "contract major declared by this revision:  ${DECLARED_MAJOR}"
+          echo "contract major the caller was seeded with: ${EXPECTED_MAJOR:-<none passed>}"
+
+          # NOT DETERMINED, said out loud.
+          #
+          # A caller that passes nothing is not failed. Caller workflows ship create-only
+          # and are never overwritten, so every consumer seeded before this shipped passes
+          # nothing — while this workflow is live in all of them on their next run.
+          # Failing closed here would redden the entire fleet over a file Lisa cannot
+          # update on their behalf: the two-channel mistake this handshake exists to
+          # catch, committed in the other direction.
+          #
+          # It must not be SILENT either. Silence is the defect. So the run says plainly
+          # that it measured nothing, and says what to add.
+          case "${EXPECTED_MAJOR}" in
+            '' | *[!0-9]*)
+              echo "::warning title=Workflow contract NOT DETERMINED::This run cannot tell whether ${WORKFLOW_FILE} changed under you. Its caller passed expected_workflow_contract_major='${EXPECTED_MAJOR}', which is not a whole number, so there is nothing to compare against the major ${DECLARED_MAJOR} this revision declares. Add 'expected_workflow_contract_major: ${DECLARED_MAJOR}' to the 'with:' block beside your 'uses: ...@main' line. Until you do, this check is measuring nothing and its green means only that."
+              exit 0
+              ;;
+          esac
+
+          if [ "${EXPECTED_MAJOR}" != "${DECLARED_MAJOR}" ]; then
+            echo "::error title=Workflow contract mismatch::${WORKFLOW_FILE} on @main declares contract major ${DECLARED_MAJOR}; this caller was seeded against major ${EXPECTED_MAJOR}. A major bump is Lisa stating that an input or a behaviour you depend on changed in a way you must react to. Read the workflow header for what moved, update this caller, then set expected_workflow_contract_major: ${DECLARED_MAJOR}."
+            exit 1
+          fi
+
+          echo "contract major ${DECLARED_MAJOR} agreed: ${WORKFLOW_FILE} has not declared a break under this caller."
+
+  # ─── Which Lisa ran this ─────────────────────────────────────────────────
+  # A CONSUMER RUNS TWO LISAS AT ONCE. Its `package.json` pins
+  # `@codyswann/lisa` at a version and that pinned copy governs the local
+  # pre-push gate; its CI calls this reusable workflow at a floating ref and
+  # THAT governs everything below. So a push-gate observation and a CI
+  # observation are claims about different code at different versions, and
+  # knowing the pin says nothing about what CI ran.
+  #
+  # The consequence that made this a job rather than a note: a floating ref
+  # means CI behaviour changes with NO COMMIT IN THE CONSUMING REPOSITORY, so a
+  # true, well-evidenced warning about gate behaviour can go stale with nothing
+  # in either repository able to notice. One such warning circulated for a day
+  # after the behaviour it described had been repaired upstream. Nothing was
+  # wrong with it except elapsed time, and no artifact carried a version the
+  # claim could have been checked against.
+  #
+  # ITS OWN JOB, NOT A STEP INSIDE A GATE. Every gate job below can be skipped
+  # by a plan, fail early, or stand down; a stamp inside one is present exactly
+  # when that gate ran. This job has no `needs` and no `if`, so the identity is
+  # on the run whether the gates passed, failed, or were optional.
+  #
+  # REPORT ONLY. It cannot fail a run and is not a branch-protection context:
+  # a stamp that could redden CI would be a new gate nobody declared, shipped
+  # to a fleet where every project reports.
+  lisa_identity:
+    permissions:
+      contents: read
+    name: 🔖 Which Lisa Ran This
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔖 Report which Lisa is running
+        # Resolved through the same three-candidate search every gate job
+        # below uses, in the same order, and against the same filesystem,
+        # deliberately: the point of the stamp is to name the copy that will
+        # actually produce the verdicts, and a different search order, or the
+        # same order over a different directory tree, would name a different
+        # file.
+        #
+        # NO DEPENDENCY INSTALL HERE, UNLIKE quality.yml AND playwright-e2e.yml.
+        # Those two install before every gate job, so a stamp that skipped the
+        # install searched a filesystem with no `node_modules` and digested a
+        # different copy than the gates ran. This workflow installs no JS
+        # dependencies anywhere — a Rails project legitimately has no Node
+        # toolchain, and `🎛️ Resolve the learnings-budget gate` below records
+        # why installing one to read a declaration was refused — so its gate
+        # jobs and this stamp already search the same tree, and adding an
+        # install would be the thing that made them differ.
+        #
+        # The remaining asymmetry is the fetched-tarball fallback that job
+        # reaches when no on-disk candidate exists. This stamp does not follow
+        # it there: it warns that no registry is on disk, which is a report a
+        # reader can act on, rather than a digest of a copy fetched here and
+        # possibly not the one fetched there. `registry path` in the stamp
+        # names whichever copy was measured whenever one was.
+        #
+        # `|| true` and `set -uo pipefail` without `-e`: the registry this
+        # resolves is whatever copy the project happens to have installed, and
+        # an older one exits non-zero on a subcommand it has never heard of.
+        # A reporter that failed on that would be a required-looking red on
+        # every project mid-upgrade.
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -uo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then
+            # The wrapper's identity is all this path can honestly claim. It
+            # deliberately does NOT render the full stamp with `unknown` in
+            # every field, because that reads like a stamp that resolved and
+            # found nothing rather than one that could not be produced.
+            echo "::warning title=Lisa identity unavailable::This project ships no gate registry, so nothing can name the enforcement bytes that produced the reports below. The workflow that ran them is ${WORKFLOW_REF}@${WORKFLOW_SHA}."
+            exit 0
+          fi
+          node "$RESOLVER" identity --format=github || true
+
+  lint:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    name: Lint
+    # The caller's choice: see the runner input (#4517).
+    runs-on: ${{ inputs.runner }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',lint,') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          bundler-cache: true
+
+      - name: 🔍 Run RuboCop
+        run: bundle exec rubocop --format github
+
+  # Threshold ratchet: quality thresholds (simplecov minimums, rubocop Metrics
+  # maximums) may tighten, never weaken. Same deterministic comparator as the
+  # agent-time hooks and the lefthook pre-commit layer; this is the
+  # non-bypassable layer. Human-approved exceptions live in .lisa.config.json
+  # (thresholdRatchet.allow) and are honored only once merged into the base.
+  threshold_ratchet:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    name: 📐 Threshold Ratchet
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',threshold_ratchet,') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # fetch-depth 0 brings all branches, so the base ref is available
+          # without a credentialed fetch later in the job.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: 📐 Compare thresholds against merge-base
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [ -z "$BASE_REF" ]; then
+            echo "Not a pull request — nothing to ratchet against."
+            exit 0
+          fi
+          script=scripts/check-threshold-ratchet.mjs
+          upstream=rails/copy-overwrite/scripts/check-threshold-ratchet.mjs
+          # Lisa's own repository ships this script as a template and does not
+          # keep a second copy under scripts/ — only 2 of the 11 copy-overwrite
+          # scripts are mirrored there, and a mirror is a surface that drifts
+          # out of band from the thing it mirrors. So the upstream path is a
+          # legitimate second place to find the SAME file, not a bypass: when
+          # neither exists the job still fails below.
+          if [ ! -f "$script" ] && [ -f "$upstream" ]; then
+            echo "Using the in-repo template at $upstream; no installed copy under scripts/."
+            script="$upstream"
+          fi
+          if [ ! -f "$script" ]; then
+            echo "::error title=Threshold ratchet gate missing::scripts/check-threshold-ratchet.mjs does not exist, so no quality threshold was compared. The gate's absence is a FAILURE, never a skip — a check that passes because it found nothing is worse than no check, and the PostToolUse hook fails open on the stated grounds that this layer guarantees the gate. Run 'lisa apply' to install the Lisa-managed script, or add 'threshold_ratchet' to skip_jobs to decline the gate deliberately, which at least records the decision in the caller."
+            exit 1
+          fi
+          if ! git rev-parse --verify "origin/$BASE_REF" >/dev/null 2>&1; then
+            echo "Base ref origin/$BASE_REF is not available in this checkout — cannot evaluate the ratchet."
+            exit 1
+          fi
+          # The head branch NAME, so the ratchet can tell a promotion between
+          # deploy-chain branches from an ordinary PR (#2531). Passed only when
+          # the branch resolves in this checkout — a fork PR's head ref does
+          # not, and an unresolvable head must leave the gate strict, never
+          # relax it. Omitting the flag is the pre-#2531 behavior exactly.
+          if git rev-parse --verify "origin/$HEAD_REF" >/dev/null 2>&1; then
+            node "$script" --base "origin/$BASE_REF" --head "origin/$HEAD_REF"
+          else
+            node "$script" --base "origin/$BASE_REF"
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Server-side backstop for work-item traceability (#1978, fleet rollout #2046)
+  # ---------------------------------------------------------------------------
+  # Rails counterpart of the quality.yml job — same validator, same rationale:
+  # the client-side lefthook gates (`validate-commit`, `validate-push`) are
+  # locally bypassable because an agent owns its `.git` and can repoint
+  # `refs/remotes/origin/HEAD` to empty the branch-authored range (#1956).
+  # `validate-pr` recomputes the range from event-payload SHAs and never reads a
+  # symref, so nothing local can shrink it. An EMPTY range is a failure.
+  work_item_traceability:
+    name: 🔗 Work-Item Traceability
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ github.event_name == 'pull_request' && !contains(format(',{0},', inputs.skip_jobs), ',work_item_traceability,') }}
+    # KNOWN GAP (#2680): this condition keys on `skip_jobs` and on nothing
+    # else, so `gates.traceability` in .lisa.config.json does NOT govern this
+    # job. Declaring it `off` still reddens the pull request; declaring it
+    # `required` changes nothing, because the job already ran. The quality.yml
+    # counterpart resolves the gate through the shared façade; this workflow
+    # carries no façade at all — it has neither the `moment` nor the
+    # `package_manager` input the byte-identical resolve block reads, so
+    # closing the gap here means bringing the whole façade to this workflow,
+    # not bolting a second on/off mechanism onto one job. `skip_jobs` remains
+    # the only control for a Rails consumer until then.
+    #
+    # DELIBERATELY no `permissions:` block — see the quality.yml counterpart.
+    # Requesting a scope the caller never held is a startup_failure for the
+    # ENTIRE run, and these workflows are consumed @main by repos whose ci.yml
+    # is create-only and can never self-heal.
+    #
+    # That inheritance only works because this workflow declares no
+    # workflow-level `permissions:` block. It used to, and a workflow-level
+    # block is a CEILING that zeroes every scope it omits for any job without
+    # its own — so this job was capped at the top-level set regardless of the
+    # caller. Here the omitted scope was `issues: read`, so the `gh issue view`
+    # arm could never have worked on `tracker: github` even though
+    # `pull-requests: write` was present and the PR arm looked healthy. Each job
+    # now carries its own copy of the old floor; this one is blank on purpose.
+
+    steps:
+      # Proof is workflow-owned and precedes any PR-head executable content.
+      - name: 🔗 Authenticate the Dependabot PR record
+        id: dependabot_record
+        uses: actions/github-script@v8
+        with:
+          script: |
+            core.setOutput('qualified', 'false');
+            const event = context.payload.pull_request;
+            const bot = user => user?.id === 49699333 && user?.type === 'Bot' && user?.login === 'dependabot[bot]';
+            if (!bot(event?.user)) return;
+            try {
+              const { owner, repo } = context.repo;
+              const repository = context.payload.repository;
+              const number = event.number;
+              const fullName = `${owner}/${repo}`;
+              const sameRepo = value => value?.id === repository?.id && value?.full_name === fullName;
+              const sha = value => typeof value === 'string' && /^[a-f0-9]{40}$/.test(value);
+              if (context.eventName !== 'pull_request' || context.serverUrl !== 'https://github.com' || context.apiUrl !== 'https://api.github.com' ||
+                  !Number.isSafeInteger(repository?.id) || repository.id <= 0 || repository.full_name !== fullName ||
+                  !Number.isSafeInteger(number) || number <= 0 || context.payload.number !== number ||
+                  !sameRepo(event.base?.repo) || !sameRepo(event.head?.repo) || !sha(event.base?.sha) || !sha(event.head?.sha)) throw new Error('Unbound event');
+              let file;
+              try {
+                ({ data: file } = await github.rest.repos.getContent({ owner, repo, path: '.lisa.config.json', ref: event.base.sha }));
+              } catch (error) {
+                if (error.status === 404) return;
+                throw error;
+              }
+              if (file?.type !== 'file' || file.encoding !== 'base64' || typeof file.content !== 'string' ||
+                  !Number.isSafeInteger(file.size) || file.size > 1048576) throw new Error('Unreadable base policy');
+              const bytes = Buffer.from(file.content, 'base64');
+              if (bytes.length !== file.size || bytes.length > 1048576 || bytes.toString('base64') !== file.content.replace(/[\r\n]/g, '')) throw new Error('Invalid base policy');
+              const config = JSON.parse(bytes.toString('utf8'));
+              if (!config || typeof config !== 'object' || Array.isArray(config)) throw new Error('Invalid base policy');
+              const option = config.workItem?.dependabotTracking;
+              if (option === undefined || option === 'issue') return;
+              if (option !== 'pull-request') throw new Error('Invalid tracking option');
+              const url = `https://github.com/${fullName}/pull/${number}`;
+              const matches = pr => pr?.number === number && pr.state === 'open' && pr.merged === false && pr.html_url === url && bot(pr.user) &&
+                sameRepo(pr.base?.repo) && sameRepo(pr.head?.repo) && pr.base.sha === event.base.sha && pr.head.sha === event.head.sha;
+              const request = { owner, repo, pull_number: number };
+              if (!matches((await github.rest.pulls.get(request)).data)) throw new Error('Unbound PR');
+              if (!matches((await github.rest.pulls.get(request)).data)) throw new Error('Stale PR');
+              core.info(`WORK_ITEM_PR_RECORD ${url} number=${number} head=${event.head.sha}`);
+              core.setOutput('qualified', 'true');
+            } catch {
+              core.warning('Dependabot PR record not authenticated; original traceability validation remains required.');
+            }
+
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # `rev-list base..head` needs both endpoints and everything between
+          # them; a shallow clone would void the gate.
+          fetch-depth: 0
+          persist-credentials: false
+          # The PR head itself, not refs/pull/N/merge: that ref does not exist
+          # while the PR has conflicts and can lag head.sha after a push.
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: 🔗 Resolve the branch-authored commit range
+        id: range
+        env:
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # Prefer the base branch's CURRENT tip when it descends from base.sha:
+          # a merge-synced PR carries the base's own commits (referencing other,
+          # often closed, work items) inside base.sha..head. Starting at the tip
+          # drops them by plain set subtraction — nothing for a pusher to steer.
+          base="$PR_BASE_SHA"
+          tip="$(git rev-parse -q --verify "refs/remotes/origin/${PR_BASE_REF}" || true)"
+          if [ -n "$tip" ] && git merge-base --is-ancestor "$base" "$tip"; then
+            base="$tip"
+          fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "Validating ${base}..${PR_HEAD_SHA}"
+
+      - name: 🔗 Validate Work-Item traceability
+        if: steps.dependabot_record.outputs.qualified != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LISA_PR_BASE_SHA: ${{ steps.range.outputs.base }}
+          LISA_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          LISA_PR_NUMBER: ${{ github.event.pull_request.number }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_LOGIN: ${{ secrets.JIRA_LOGIN }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          EXPECTED_WORK_ITEM_CONTRACT: ${{ inputs.expected_work_item_contract }}
+        run: |
+          if [ ! -f scripts/lisa-work-item.mjs ]; then
+            echo "scripts/lisa-work-item.mjs not present — project not yet on the work-item template; skipping."
+            exit 0
+          fi
+          # A project mid-onboarding has no tracker configured yet; the
+          # validator hard-fails on a missing `tracker`, and a gate nobody can
+          # satisfy teaches people to ignore red checks.
+          if [ ! -f .lisa.config.json ] || \
+             ! node -e 'const c=require("./.lisa.config.json");process.exit(typeof c.tracker==="string"&&c.tracker?0:1)' 2>/dev/null; then
+            echo "No tracker configured in .lisa.config.json — work-item traceability is not enforceable here; skipping."
+            exit 0
+          fi
+          tracker="$(node -p 'require("./.lisa.config.json").tracker' 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+          # Token-scope readiness — see the quality.yml counterpart. Checked
+          # first because every arm of this gate goes through the GitHub API,
+          # and it FAILS rather than exits 0: a check that cannot verify must
+          # not report success (#2476, #2497). The repair is always in the
+          # CALLER's ci.yml, which is the only place the grant can come from.
+          # Two different faults print here, and they used to share one line:
+          # a caller genuinely missing the grant, and a run that resolved a STALE
+          # upstream. `rerun` replays the reusable-workflow SHA the original run
+          # resolved, so a fresh attempt can execute old code with no sign of it
+          # anywhere in the UI. Four separate misdiagnoses traced to that
+          # ambiguity, so the message now names both and hands over the command
+          # that tells them apart. This job cannot resolve its own SHA itself:
+          # that needs `actions: read`, and requesting a scope the caller may not
+          # hold is a startup_failure for the caller's whole run.
+          scope_gap() {
+            echo "::error::Work-Item Traceability could verify NOTHING: the token reached this job without '$1', so the gate refused rather than report a success it had not earned."
+            echo "::error::Cause A — this repo's caller does not grant it. Add contents/issues/pull-requests read to the quality job's permissions in .github/workflows/ci.yml, or run 'lisa apply' to have Lisa add the block."
+            echo "::error::Cause B — this run resolved a STALE upstream. A re-run replays the reusable-workflow SHA the original run resolved; only a NEW push re-resolves @main."
+            echo "::error::Tell them apart: gh api repos/${GITHUB_REPOSITORY:-<owner>/<repo>}/actions/runs/${GITHUB_RUN_ID:-<run-id>} --jq '.referenced_workflows[]|\"\(.path)@\(.ref) \(.sha)\"' — if that sha predates the fix you want, it is Cause B and no caller edit will help."
+            echo "::error::The scopes this job actually received are listed above under 'GITHUB_TOKEN Permissions'. If '$1' is absent there, the grant never arrived; the group is the ground truth, not this message."
+            exit 1
+          }
+          pr_probe="repos/${GITHUB_REPOSITORY}/pulls?per_page=1"
+          if [ -n "${LISA_PR_NUMBER:-}" ]; then
+            pr_probe="repos/${GITHUB_REPOSITORY}/pulls/${LISA_PR_NUMBER}"
+          fi
+          if ! gh api "$pr_probe" >/dev/null 2>&1; then
+            scope_gap "pull-requests: read"
+          fi
+          # How much of the contract this project asked to have proved. The
+          # validator owns the precedence rules (config key, environment
+          # override, default); re-deriving them here in shell would be a
+          # second parser of the same declaration, which is the drift #2721
+          # removed elsewhere in this gate.
+          #
+          # A repository's COPY of the validator updates on its own schedule
+          # while this workflow is consumed @main, so the copy here may predate
+          # the subcommand. That copy can only ever prove the full contract, so
+          # it is reported as `full` and the degrade path below refuses to
+          # pretend otherwise.
+          #
+          # CONTRACT HANDSHAKE (#3477), immediately below and deliberately
+          # adjacent, because the probe that follows is why it is needed.
+          #
+          # Probing for `verify-level` detects staleness at exactly ONE point:
+          # the #2721 subcommand boundary. Below it a copy is caught; above it a
+          # copy is indistinguishable from current no matter how old — measured,
+          # a copy from 2026-08-18 sitting a major behind satisfied that probe in
+          # silence while running superseded trailer logic behind a REQUIRED
+          # check. A capability probe can only ever answer "older than the one
+          # thing I know to ask for". A version answers "how old", which is the
+          # question, and it is the same handshake the nightly-e2e gate already
+          # performs on its own two-channel pair.
+          #
+          # NOT fatal when the subcommand is ABSENT, and that asymmetry is the
+          # whole design. The nightly gate fails closed on a missing guard
+          # because consumers PIN it to a tag — its header says `@main` is not a
+          # supported pin. This workflow is consumed AT `@main`: it is live in
+          # every consumer on their next run, while the script it reads arrives
+          # only on the `lisa apply` channel. Failing closed on absence would
+          # redden the entire fleet the moment this merges — the same
+          # two-channel mistake this gate exists to catch, committed in the
+          # other direction. A MAJOR mismatch does fail closed, because that
+          # state is only reachable once a consumer already has the subcommand.
+          contract_err="$(mktemp)"
+          expected_contract="${EXPECTED_WORK_ITEM_CONTRACT}"
+          # The workflow's OWN half of the handshake gets the same validity
+          # check the script's half already gets. `expected_work_item_contract`
+          # is an optional input, and Actions treats an explicitly-passed empty
+          # string as a value that WAS provided — so a caller writing
+          # `${{ inputs.something }}` that resolves to empty silently overrides
+          # the declared default rather than falling back to it. The comparison
+          # below would then read an empty `expected_major`, and a perfectly
+          # well-formed reply from the script would fail this REQUIRED gate on
+          # a mismatch that is not a real major mismatch.
+          #
+          # Skipped rather than failed, for exactly the reason the absent
+          # subcommand is skipped above: this workflow is consumed at `@main`,
+          # so failing closed on a caller's empty string would redden the whole
+          # fleet for a misconfiguration each consumer's own script is innocent
+          # of. The warning names the value actually received, because a
+          # required gate that changes behaviour for a reason the operator
+          # cannot see is the failure this pair keeps producing.
+          if ! printf '%s\n' "$expected_contract" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::warning::Work-item contract handshake skipped: this workflow's expected_work_item_contract is not a major.minor.patch version (received '${expected_contract}'). Pass a full version, or omit the input entirely to take its default — passing an empty value overrides the default rather than falling back to it. This run cannot tell how old scripts/lisa-work-item.mjs is, so any failure it reports may be superseded logic."
+            expected_contract=""
+          fi
+          expected_major="${expected_contract%%.*}"
+          expected_minor="$(printf '%s.' "$expected_contract" | cut -d. -f2)"
+          if [ -z "$expected_contract" ]; then
+            : # Handshake skipped; the warning above already said why.
+          elif contract_raw="$(node scripts/lisa-work-item.mjs contract-version 2>"$contract_err")"; then
+            script_contract="$(printf '%s\n' "$contract_raw" | head -1)"
+            # Only a well-formed version is treated as an ANSWER to the
+            # handshake. Anything else means the script at this path is not
+            # speaking this contract — a host-authored replacement, a wrapper
+            # that echoes, a copy whose unknown-subcommand path prints to stdout
+            # and exits 0. That is "I do not understand the reply", which is NOT
+            # evidence of a known incompatibility, and on a workflow delivered
+            # `@main` the safe reading of unknown is to say so and carry on.
+            # Only a real, DIFFERENT major is failed on.
+            if printf '%s\n' "$script_contract" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              script_major="${script_contract%%.*}"
+              script_minor="$(printf '%s.' "$script_contract" | cut -d. -f2)"
+              echo "Work-item gate contract: script $script_contract, workflow expects $expected_contract"
+              if [ "$script_major" != "$expected_major" ]; then
+                echo "::error title=Work-Item gate contract mismatch::This workflow speaks work-item contract major $expected_major but scripts/lisa-work-item.mjs is $script_contract. The workflow travels by git ref and the script travels by 'lisa apply', so they drift. Run 'lisa apply' to update the copied script, or pin this workflow to a matching Lisa tag. Failing closed rather than running a contract neither half agrees on."
+                rm -f "$contract_err"
+                exit 1
+              fi
+              # Same major, older minor: the contract still holds, so this must
+              # not fail — but the LOGIC behind the verdict is superseded, and
+              # that is precisely the state that cost #3477 its diagnosis.
+              # Naming both versions makes a stale-logic red diagnosable from
+              # the run output alone, which is the whole remedy for "a required
+              # check goes red on logic Lisa fixed months ago and nothing
+              # anywhere says so".
+              if [ -n "$script_minor" ] && [ -n "$expected_minor" ] && \
+                 [ "$script_minor" -lt "$expected_minor" ] 2>/dev/null; then
+                echo "::warning::scripts/lisa-work-item.mjs is at work-item contract $script_contract but this workflow was authored against $expected_contract. The contract still holds, so this gate is enforced normally — but the copied script is running superseded logic, and a failure it reports may already be fixed upstream. Run 'lisa apply' to update it."
+              fi
+            else
+              echo "::warning::scripts/lisa-work-item.mjs answered the work-item contract handshake with something that is not a version, so this run cannot tell how old it is. That is expected of a host-authored replacement at this path and of copies predating the handshake (#3477). Any failure it reports may be superseded logic rather than a real traceability problem."
+            fi
+          elif grep -q "Usage: lisa-work-item.mjs" "$contract_err"; then
+            echo "::warning::scripts/lisa-work-item.mjs predates the work-item contract handshake (#3477), so this run cannot tell how old it is. Any failure it reports may be superseded logic rather than a real traceability problem. Run 'lisa apply' to update the copied script."
+          else
+            cat "$contract_err"
+            echo "::error::Work-Item Traceability could not read its script's contract version. The refusal is printed above; it is a broken or unreadable scripts/lisa-work-item.mjs, not a missing trailer."
+            rm -f "$contract_err"
+            exit 1
+          fi
+          rm -f "$contract_err"
+          verify_err="$(mktemp)"
+          if verify="$(node scripts/lisa-work-item.mjs verify-level 2>"$verify_err")"; then
+            levelled=1
+          elif grep -q "Usage: lisa-work-item.mjs" "$verify_err"; then
+            # The validator's own usage text is what an UNKNOWN SUBCOMMAND
+            # produces, and it is the only signature that means "this copy is
+            # older than the subcommand". Reading every failure as staleness
+            # would swallow a broken config into a silent `full`.
+            levelled=0
+            verify=full
+            echo "::warning::scripts/lisa-work-item.mjs predates workItem.verify (#2721), so this run proves the FULL contract regardless of what .lisa.config.json declares. Run 'lisa apply' to update the copied script."
+          else
+            # Anything else is a real refusal — an unrecognised level, an
+            # unreadable config — and it is reported as one. A typo quietly
+            # resolving to a level is exactly what the validator refuses to do,
+            # and re-introducing that here would undo it.
+            cat "$verify_err"
+            echo "::error::Work-Item Traceability could not resolve its verification level. The validator's refusal is printed above; it is a configuration fault, not a missing trailer."
+            rm -f "$verify_err"
+            exit 1
+          fi
+          rm -f "$verify_err"
+          echo "Work-item verification level: $verify"
+          # Needed only when the tracker item is actually READ, which is only
+          # under `full`. A trailer-only project proves its reference from the
+          # commits and the body alone, so demanding issues:read of it would
+          # fail a gate over a scope nothing in the run consumes.
+          if [ "$verify" = "full" ] && [ "$tracker" = "github" ] && \
+             ! gh api "repos/${GITHUB_REPOSITORY}/issues?per_page=1" >/dev/null 2>&1; then
+            scope_gap "issues: read"
+          fi
+          # Credential readiness for the non-GitHub trackers, under `full` only.
+          #
+          # This used to `exit 0` with a warning, and #2476 knowingly left it as
+          # the last fail-open in this gate: a jira or linear repository whose
+          # secret was unmapped got a GREEN required check having verified
+          # nothing — no trailer, no body line, no backlink. One consumer maps
+          # a secret that resolves to the EMPTY STRING, which lands in exactly
+          # this branch.
+          #
+          # A missing credential is now what it always was — an inability to
+          # prove requirements 2-4 — and it degrades to the level that needs no
+          # credential rather than to nothing. The reference checks still run
+          # and a missing trailer still fails the job. The warning stays loud,
+          # because a project that declared `full` and is getting `trailer` has
+          # a gap to close.
+          credential_gap=""
+          if [ "$verify" = "full" ] && [ "$tracker" = "jira" ] && { [ -z "${JIRA_API_TOKEN:-}" ] || [ -z "${JIRA_LOGIN:-}" ]; }; then
+            credential_gap="JIRA_API_TOKEN/JIRA_LOGIN"
+          fi
+          if [ "$verify" = "full" ] && [ "$tracker" = "linear" ] && [ -z "${LINEAR_API_KEY:-}" ]; then
+            credential_gap="LINEAR_API_KEY"
+          fi
+          if [ -n "$credential_gap" ]; then
+            echo "::warning::tracker is $tracker and workItem.verify is \"full\", but $credential_gap is not mapped to this workflow. The tracker checks (repo scope, claimed state, PR backlink) CANNOT run; the Work-Item reference itself is still enforced. Map the secret in the caller's ci.yml to restore them, or declare workItem.verify=\"trailer\" if that is the intent."
+            if [ "$levelled" = "1" ]; then
+              verify=trailer
+            else
+              # The one place this job still reports success without proving
+              # anything, and it is bounded to a repository whose COPIED
+              # validator predates #2721: that copy has no trailer-only level to
+              # fall back to, and hard-failing it would redden every pull
+              # request in a repository that did nothing wrong on a schedule it
+              # did not choose. It self-heals on the next `lisa apply`.
+              echo "::warning::This repository's copied validator predates the trailer-only level, so there is nothing to degrade to and the gate is NOT enforced on this run. Run 'lisa apply' to update scripts/lisa-work-item.mjs."
+              exit 0
+            fi
+          fi
+          LISA_WORK_ITEM_VERIFY="$verify" node scripts/lisa-work-item.mjs validate-pr
+
+  security:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    name: Security
+    # The caller's choice: see the runner input (#4517).
+    runs-on: ${{ inputs.runner }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',security,') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          bundler-cache: true
+
+      - name: 🔒 Run Brakeman
+        run: bundle exec brakeman --no-pager --quiet
+
+      - name: 🔒 Run Bundler Audit
+        run: bundle exec bundler-audit check --update
+
+  # ─── RSpec shards (test_shards > 1 only, CodySwannGT/lisa#4560) ─────────
+  # The Rails counterpart of quality.yml's `unit_test_shards`, with the same
+  # shape: a plan job lays out the matrix and mints the per-call nonce that
+  # names the shard artifacts, one matrix leg per shard runs its slice, and the
+  # existing `Test (PostgreSQL)` / `Test (MySQL)` job becomes the aggregate. At
+  # the default of 1 the plan and both matrices are skipped and the test job
+  # runs exactly as it always has.
+  #
+  # The aggregate keeps its id and its static name at every shard count,
+  # because branch rulesets require `Quality Checks / Test (MySQL)` (or
+  # PostgreSQL) by that exact context. Neither the plan nor a leg may post a
+  # name containing the aggregate's: a skipped or idle context can show green
+  # and satisfy a ruleset that requires it.
+  #
+  # The plan splits spec files with scripts/lisa-rspec-shards.mjs, balanced by
+  # the previous run's per-file timings (restored from the Actions cache) and
+  # by file size where there are none, and proves the split is a partition of
+  # the suite before any leg starts. Pull-request caches are scoped to their
+  # pull request, so a new pull request's first run balances by size.
+  test-shard-plan:
+    permissions:
+      contents: read
+    name: 🧮 Plan RSpec Shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ inputs.test_shards != 1 && !contains(format(',{0},', inputs.skip_jobs), ',test,') && (inputs.database_type == 'postgres' || inputs.database_type == 'mysql') }}
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+      nonce: ${{ steps.plan.outputs.nonce }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🧹 Assert the RSpec shard tooling is installed
+        # The same two-channel window the scratch supervisor's assertion
+        # describes: this workflow is live at `@main` before `lisa apply` has
+        # delivered the scripts it runs. Sharding without them would run the
+        # whole suite in every leg, or not merge coverage, so their absence is
+        # a failure with a named remedy.
+        env:
+          SHARDS: ${{ inputs.test_shards }}
+        run: |
+          missing=""
+          for script in scripts/lisa-rspec-shards.mjs scripts/lisa_rspec_shard_recorder.rb scripts/lisa_simplecov_collate.rb; do
+            [ -f "$script" ] || missing="$missing $script"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error title=RSpec shard tooling missing::test_shards is $SHARDS, but${missing} not installed. Run 'lisa' to install the Lisa-managed scripts, or leave test_shards at 1."
+            exit 1
+          fi
+
+      - name: ⏱️ Restore the previous run's spec timings
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ runner.temp }}/lisa-rspec-timings.json
+          key: lisa-rspec-timings-v1-${{ inputs.database_type }}-${{ github.run_id }}
+          restore-keys: |
+            lisa-rspec-timings-v1-${{ inputs.database_type }}-
+
+      - name: 🧮 Compute the RSpec shard plan
+        id: plan
+        env:
+          SHARDS: ${{ inputs.test_shards }}
+        run: |
+          set -euo pipefail
+          PLAN_DIR="$RUNNER_TEMP/lisa-rspec-shard-plan"
+          node scripts/lisa-rspec-shards.mjs plan \
+            --shards "$SHARDS" \
+            --timings "$RUNNER_TEMP/lisa-rspec-timings.json" \
+            --out "$PLAN_DIR/plan.json"
+          SHARD_LIST="$(node -e 'process.stdout.write(JSON.stringify(Array.from({ length: Number(process.argv[1]) }, (_, i) => i + 1)))' "$SHARDS")"
+          NONCE="$(node -p 'crypto.randomUUID()')"
+          {
+            echo "shards=$SHARD_LIST"
+            echo "nonce=$NONCE"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 📤 Upload the RSpec shard plan
+        uses: actions/upload-artifact@v7
+        with:
+          name: rspec-shard-plan-${{ steps.plan.outputs.nonce }}
+          path: ${{ runner.temp }}/lisa-rspec-shard-plan
+          if-no-files-found: error
+          retention-days: 1
+
+  # One leg per shard. It prepares its own database outside the supervisor,
+  # as the unsharded route does, and runs only its planned files through
+  # scripts/lisa-scratch-run.sh under a suite label unique to the leg.
+  # lisa_rspec_shard_recorder.rb tells SimpleCov to store this leg's
+  # resultset without checking the project's minimums against a slice of the
+  # suite, and records which files RSpec loaded; the aggregate does the rest.
+  test-postgres-shard:
+    permissions:
+      contents: read
+    name: 🧪 RSpec shard ${{ matrix.shard }}/${{ inputs.test_shards }} (PostgreSQL)
+    # The caller's choice: see the runner input (#4517).
+    runs-on: ${{ inputs.runner }}
+    needs: [test-shard-plan]
+    if: ${{ always() && !cancelled() && needs.test-shard-plan.result == 'success' && inputs.database_type == 'postgres' }}
+    strategy:
+      # Every leg finishes, so one failing shard does not hide another's.
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.test-shard-plan.outputs.shards || '[1]') }}
+    services:
+      postgres:
+        image: ${{ inputs.database_imag || format('postgres:{0}', inputs.database_version || '16') }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ${{ inputs.database_name }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/${{ inputs.database_name }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          bundler-cache: true
+
+      - name: 🗄️ Prepare database
+        # Kept OUTSIDE the supervisor on purpose: a database-preparation
+        # failure must stay a database-preparation failure, not be relabelled
+        # as a test failure or a cleanup failure.
+        run: bin/rails db:prepare
+
+      - name: 🧹 Assert the scratch supervisor is installed
+        # Every Rails test and mutation route enters the supervisor, and it is
+        # the only boundary on that route.
+        #
+        # This workflow is consumed at `@main`, so it goes live in a caller the
+        # moment it merges, while `scripts/lisa-scratch-run.sh` arrives on the
+        # `lisa apply` channel — the two halves land in that order, and there is
+        # a window where a caller has this step and not that file. The window
+        # closes on the caller's next apply, and the same argument the threshold
+        # ratchet gate makes above applies here: a gate that passes because it
+        # found nothing is worse than no gate. Running the payload unsupervised
+        # is exactly the abandoned-scratch behavior this step exists to end, so
+        # the absence is a failure with a named remedy.
+        run: |
+          if [ ! -f scripts/lisa-scratch-run.sh ]; then
+            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so this suite has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'test' (or 'mutation') to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
+            exit 1
+          fi
+
+      - name: 📥 Download the RSpec shard plan
+        uses: actions/download-artifact@v8
+        with:
+          name: rspec-shard-plan-${{ needs.test-shard-plan.outputs.nonce }}
+          path: ${{ runner.temp }}/lisa-rspec-shard-plan
+
+      - name: 🧩 Arm this RSpec shard
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          OUTPUT="$RUNNER_TEMP/lisa-rspec-shard"
+          mkdir -p "$OUTPUT"
+          node scripts/lisa-rspec-shards.mjs files \
+            --plan "$RUNNER_TEMP/lisa-rspec-shard-plan/plan.json" \
+            --shard "$SHARD" \
+            --out "$OUTPUT/files.txt"
+          # Required from OUTSIDE the project root: loaded from scripts/, the
+          # recorder would be measured as application code and move the merged
+          # coverage. It refuses to run from inside the root.
+          cp scripts/lisa_rspec_shard_recorder.rb "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb"
+
+      - name: 🧪 Run this shard's tests
+        id: shard_run
+        env:
+          LISA_RSPEC_SHARD: ${{ matrix.shard }}/${{ inputs.test_shards }}
+          LISA_RSPEC_SHARD_RECORD: ${{ runner.temp }}/lisa-rspec-shard/record.json
+          SUITE: rspec-postgres-shard-${{ matrix.shard }}-of-${{ inputs.test_shards }}
+        run: |
+          set -euo pipefail
+          SPEC_FILES=()
+          while IFS= read -r spec_file; do
+            if [ -n "$spec_file" ]; then SPEC_FILES+=("$spec_file"); fi
+          done < "$RUNNER_TEMP/lisa-rspec-shard/files.txt"
+          # An empty list would make a bare rspec run the WHOLE suite here.
+          if [ "${#SPEC_FILES[@]}" -eq 0 ]; then
+            echo "::error title=RSpec shard has no files::Shard $LISA_RSPEC_SHARD was planned no spec files; refusing rather than running the whole suite."
+            exit 1
+          fi
+          echo "Running ${#SPEC_FILES[@]} spec files as shard $LISA_RSPEC_SHARD."
+          bash scripts/lisa-scratch-run.sh --suite "$SUITE" -- bundle exec rspec --require "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb" "${SPEC_FILES[@]}"
+
+      - name: 📦 Stage this shard's coverage
+        if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
+        run: |
+          set -euo pipefail
+          RECORD="$RUNNER_TEMP/lisa-rspec-shard/record.json"
+          if [ ! -f "$RECORD" ]; then
+            echo "::error title=RSpec shard left no run record::$RECORD is missing, so RSpec did not finish this shard. The aggregate cannot prove which files ran."
+            exit 1
+          fi
+          node scripts/lisa-rspec-shards.mjs stage --record "$RECORD" --out "$RUNNER_TEMP/lisa-rspec-shard"
+
+      - name: 📤 Upload this shard's results
+        if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
+        uses: actions/upload-artifact@v7
+        with:
+          name: rspec-shard-${{ needs.test-shard-plan.outputs.nonce }}-${{ matrix.shard }}
+          path: ${{ runner.temp }}/lisa-rspec-shard
+          if-no-files-found: error
+          # A failed-jobs rerun does not rerun the plan, so it keeps the nonce
+          # and a rerun leg uploads under its first attempt's name. Replacing
+          # that artifact keeps the aggregate's download to one copy per shard.
+          overwrite: true
+          retention-days: 1
+
+  test-postgres:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    name: Test (PostgreSQL)
+    # The caller's choice: see the runner input (#4517).
+    runs-on: ${{ inputs.runner }}
+    # With test_shards > 1 this job is the aggregate: the shard legs run the
+    # suite and this job proves they ran it exactly once, merges their
+    # coverage and enforces the project's thresholds once. It keeps its id and
+    # static name at every shard count, because rulesets require this context.
+    needs: [test-shard-plan, test-postgres-shard]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test,') && inputs.database_type == 'postgres' }}
+    services:
+      postgres:
+        image: ${{ inputs.database_imag || format('postgres:{0}', inputs.database_version || '16') }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ${{ inputs.database_name }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/${{ inputs.database_name }}
+    steps:
+      # First, before any install: with shards, this job is the one
+      # `Test (PostgreSQL)` context, so a partial run must not reach the merge.
+      # A plan that refused fails and its matrix is skipped; a leg that failed,
+      # timed out or was cancelled leaves the matrix not `success`. Every one
+      # of those is red here.
+      - name: 🚨 Fail if the RSpec shards did not pass
+        if: inputs.test_shards != 1 && (needs.test-shard-plan.result != 'success' || needs.test-postgres-shard.result != 'success')
+        env:
+          PLAN_RESULT: ${{ needs.test-shard-plan.result }}
+          SHARD_RESULT: ${{ needs.test-postgres-shard.result }}
+          SHARDS: ${{ inputs.test_shards }}
+        run: |
+          echo "::error title=RSpec shards did not pass::test_shards: $SHARDS, but the shard plan: '$PLAN_RESULT' and the shard matrix: '$SHARD_RESULT'. A shard failed, was cancelled, or never ran, so the suite did not run in full and Test (PostgreSQL) cannot pass."
+          exit 1
+
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          bundler-cache: true
+
+      - name: 🗄️ Prepare database
+        if: inputs.test_shards == 1
+        # Kept OUTSIDE the supervisor on purpose: a database-preparation
+        # failure must stay a database-preparation failure, not be relabelled
+        # as a test failure or a cleanup failure.
+        run: bin/rails db:prepare
+
+      - name: 🧹 Assert the scratch supervisor is installed
+        # Every Rails test and mutation route enters the supervisor, and it is
+        # the only boundary on that route.
+        #
+        # This workflow is consumed at `@main`, so it goes live in a caller the
+        # moment it merges, while `scripts/lisa-scratch-run.sh` arrives on the
+        # `lisa apply` channel — the two halves land in that order, and there is
+        # a window where a caller has this step and not that file. The window
+        # closes on the caller's next apply, and the same argument the threshold
+        # ratchet gate makes above applies here: a gate that passes because it
+        # found nothing is worse than no gate. Running the payload unsupervised
+        # is exactly the abandoned-scratch behavior this step exists to end, so
+        # the absence is a failure with a named remedy.
+        if: inputs.test_shards == 1
+        run: |
+          if [ ! -f scripts/lisa-scratch-run.sh ]; then
+            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so this suite has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'test' (or 'mutation') to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
+            exit 1
+          fi
+
+      - name: 🧪 Run tests
+        if: inputs.test_shards == 1
+        run: bash scripts/lisa-scratch-run.sh --suite rspec-postgres -- bundle exec rspec
+
+      - name: 📥 Download the RSpec shard plan
+        if: inputs.test_shards != 1
+        uses: actions/download-artifact@v8
+        with:
+          name: rspec-shard-plan-${{ needs.test-shard-plan.outputs.nonce }}
+          path: ${{ runner.temp }}/lisa-rspec-shard-plan
+
+      - name: 📥 Download every RSpec shard
+        if: inputs.test_shards != 1
+        uses: actions/download-artifact@v8
+        with:
+          pattern: rspec-shard-${{ needs.test-shard-plan.outputs.nonce }}-*
+          path: ${{ runner.temp }}/lisa-rspec-shards
+
+      # From each leg's run record, written from RSpec's own `files_to_run`:
+      # every planned file ran, in exactly one shard, and the plan still
+      # matches this checkout. A dropped or duplicated file fails here.
+      - name: 🧾 Prove every spec file ran exactly once
+        id: shard_verify
+        if: inputs.test_shards != 1
+        run: |
+          set -euo pipefail
+          node scripts/lisa-rspec-shards.mjs verify \
+            --plan "$RUNNER_TEMP/lisa-rspec-shard-plan/plan.json" \
+            --shards-dir "$RUNNER_TEMP/lisa-rspec-shards" \
+            --resultsets "$RUNNER_TEMP/lisa-rspec-resultsets.txt"
+          node scripts/lisa-rspec-shards.mjs timings \
+            --shards-dir "$RUNNER_TEMP/lisa-rspec-shards" \
+            --out "$RUNNER_TEMP/lisa-rspec-timings.json"
+
+      - name: ⏱️ Save spec timings for the next plan
+        if: always() && steps.shard_verify.outcome == 'success'
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ runner.temp }}/lisa-rspec-timings.json
+          key: lisa-rspec-timings-v1-${{ inputs.database_type }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      # `require 'simplecov'` loads the project's own `.simplecov`, so the merged
+      # result is checked against exactly the thresholds an unsharded run
+      # checks. This job sets none of its own.
+      - name: 📊 Collate coverage and enforce the thresholds
+        if: inputs.test_shards != 1
+        run: |
+          set -euo pipefail
+          RESULTSETS=()
+          while IFS= read -r resultset; do
+            if [ -n "$resultset" ]; then RESULTSETS+=("$resultset"); fi
+          done < "$RUNNER_TEMP/lisa-rspec-resultsets.txt"
+          if [ "${#RESULTSETS[@]}" -eq 0 ]; then
+            echo "No shard measured SimpleCov coverage, so there is nothing to collate; an unsharded run would check none either."
+            exit 0
+          fi
+          bundle exec ruby scripts/lisa_simplecov_collate.rb "${RESULTSETS[@]}"
+
+  # One leg per shard. It prepares its own database outside the supervisor,
+  # as the unsharded route does, and runs only its planned files through
+  # scripts/lisa-scratch-run.sh under a suite label unique to the leg.
+  # lisa_rspec_shard_recorder.rb tells SimpleCov to store this leg's
+  # resultset without checking the project's minimums against a slice of the
+  # suite, and records which files RSpec loaded; the aggregate does the rest.
+  test-mysql-shard:
+    permissions:
+      contents: read
+    name: 🧪 RSpec shard ${{ matrix.shard }}/${{ inputs.test_shards }} (MySQL)
+    # The caller's choice: see the runner input (#4517).
+    runs-on: ${{ inputs.runner }}
+    needs: [test-shard-plan]
+    if: ${{ always() && !cancelled() && needs.test-shard-plan.result == 'success' && inputs.database_type == 'mysql' }}
+    strategy:
+      # Every leg finishes, so one failing shard does not hide another's.
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.test-shard-plan.outputs.shards || '[1]') }}
+    services:
+      mysql:
+        image: mysql:${{ inputs.database_version || '8.0' }}
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: ${{ inputs.database_name }}
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAILS_ENV: test
+      PRIMARY_DB_HOST: 127.0.0.1
+      DATABASE_NAME: ${{ inputs.database_name }}
+      DATABASE_PASSWORD: password
+      DATABASE_USER: root
+      DATABASE_PORT: 3306
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          bundler-cache: true
+
+      - name: 🗄️ Prepare database
+        # Outside the supervisor for the same reason as the PostgreSQL route.
+        run: bin/rails db:prepare
+
+      - name: 🧹 Assert the scratch supervisor is installed
+        # Every Rails test and mutation route enters the supervisor, and it is
+        # the only boundary on that route.
+        #
+        # This workflow is consumed at `@main`, so it goes live in a caller the
+        # moment it merges, while `scripts/lisa-scratch-run.sh` arrives on the
+        # `lisa apply` channel — the two halves land in that order, and there is
+        # a window where a caller has this step and not that file. The window
+        # closes on the caller's next apply, and the same argument the threshold
+        # ratchet gate makes above applies here: a gate that passes because it
+        # found nothing is worse than no gate. Running the payload unsupervised
+        # is exactly the abandoned-scratch behavior this step exists to end, so
+        # the absence is a failure with a named remedy.
+        run: |
+          if [ ! -f scripts/lisa-scratch-run.sh ]; then
+            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so this suite has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'test' (or 'mutation') to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
+            exit 1
+          fi
+
+      - name: 📥 Download the RSpec shard plan
+        uses: actions/download-artifact@v8
+        with:
+          name: rspec-shard-plan-${{ needs.test-shard-plan.outputs.nonce }}
+          path: ${{ runner.temp }}/lisa-rspec-shard-plan
+
+      - name: 🧩 Arm this RSpec shard
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          OUTPUT="$RUNNER_TEMP/lisa-rspec-shard"
+          mkdir -p "$OUTPUT"
+          node scripts/lisa-rspec-shards.mjs files \
+            --plan "$RUNNER_TEMP/lisa-rspec-shard-plan/plan.json" \
+            --shard "$SHARD" \
+            --out "$OUTPUT/files.txt"
+          # Required from OUTSIDE the project root: loaded from scripts/, the
+          # recorder would be measured as application code and move the merged
+          # coverage. It refuses to run from inside the root.
+          cp scripts/lisa_rspec_shard_recorder.rb "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb"
+
+      - name: 🧪 Run this shard's tests
+        id: shard_run
+        env:
+          LISA_RSPEC_SHARD: ${{ matrix.shard }}/${{ inputs.test_shards }}
+          LISA_RSPEC_SHARD_RECORD: ${{ runner.temp }}/lisa-rspec-shard/record.json
+          SUITE: rspec-mysql-shard-${{ matrix.shard }}-of-${{ inputs.test_shards }}
+        run: |
+          set -euo pipefail
+          SPEC_FILES=()
+          while IFS= read -r spec_file; do
+            if [ -n "$spec_file" ]; then SPEC_FILES+=("$spec_file"); fi
+          done < "$RUNNER_TEMP/lisa-rspec-shard/files.txt"
+          # An empty list would make a bare rspec run the WHOLE suite here.
+          if [ "${#SPEC_FILES[@]}" -eq 0 ]; then
+            echo "::error title=RSpec shard has no files::Shard $LISA_RSPEC_SHARD was planned no spec files; refusing rather than running the whole suite."
+            exit 1
+          fi
+          echo "Running ${#SPEC_FILES[@]} spec files as shard $LISA_RSPEC_SHARD."
+          bash scripts/lisa-scratch-run.sh --suite "$SUITE" -- bundle exec rspec --require "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb" "${SPEC_FILES[@]}"
+
+      - name: 📦 Stage this shard's coverage
+        if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
+        run: |
+          set -euo pipefail
+          RECORD="$RUNNER_TEMP/lisa-rspec-shard/record.json"
+          if [ ! -f "$RECORD" ]; then
+            echo "::error title=RSpec shard left no run record::$RECORD is missing, so RSpec did not finish this shard. The aggregate cannot prove which files ran."
+            exit 1
+          fi
+          node scripts/lisa-rspec-shards.mjs stage --record "$RECORD" --out "$RUNNER_TEMP/lisa-rspec-shard"
+
+      - name: 📤 Upload this shard's results
+        if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
+        uses: actions/upload-artifact@v7
+        with:
+          name: rspec-shard-${{ needs.test-shard-plan.outputs.nonce }}-${{ matrix.shard }}
+          path: ${{ runner.temp }}/lisa-rspec-shard
+          if-no-files-found: error
+          # A failed-jobs rerun does not rerun the plan, so it keeps the nonce
+          # and a rerun leg uploads under its first attempt's name. Replacing
+          # that artifact keeps the aggregate's download to one copy per shard.
+          overwrite: true
+          retention-days: 1
+
+  test-mysql:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    name: Test (MySQL)
+    # The caller's choice: see the runner input (#4517).
+    runs-on: ${{ inputs.runner }}
+    # With test_shards > 1 this job is the aggregate: the shard legs run the
+    # suite and this job proves they ran it exactly once, merges their
+    # coverage and enforces the project's thresholds once. It keeps its id and
+    # static name at every shard count, because rulesets require this context.
+    needs: [test-shard-plan, test-mysql-shard]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test,') && inputs.database_type == 'mysql' }}
+    services:
+      mysql:
+        image: mysql:${{ inputs.database_version || '8.0' }}
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: ${{ inputs.database_name }}
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAILS_ENV: test
+      PRIMARY_DB_HOST: 127.0.0.1
+      DATABASE_NAME: ${{ inputs.database_name }}
+      DATABASE_PASSWORD: password
+      DATABASE_USER: root
+      DATABASE_PORT: 3306
+    steps:
+      # First, before any install: with shards, this job is the one
+      # `Test (MySQL)` context, so a partial run must not reach the merge.
+      # A plan that refused fails and its matrix is skipped; a leg that failed,
+      # timed out or was cancelled leaves the matrix not `success`. Every one
+      # of those is red here.
+      - name: 🚨 Fail if the RSpec shards did not pass
+        if: inputs.test_shards != 1 && (needs.test-shard-plan.result != 'success' || needs.test-mysql-shard.result != 'success')
+        env:
+          PLAN_RESULT: ${{ needs.test-shard-plan.result }}
+          SHARD_RESULT: ${{ needs.test-mysql-shard.result }}
+          SHARDS: ${{ inputs.test_shards }}
+        run: |
+          echo "::error title=RSpec shards did not pass::test_shards: $SHARDS, but the shard plan: '$PLAN_RESULT' and the shard matrix: '$SHARD_RESULT'. A shard failed, was cancelled, or never ran, so the suite did not run in full and Test (MySQL) cannot pass."
+          exit 1
+
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          bundler-cache: true
+
+      - name: 🗄️ Prepare database
+        if: inputs.test_shards == 1
+        # Outside the supervisor for the same reason as the PostgreSQL route.
+        run: bin/rails db:prepare
+
+      - name: 🧹 Assert the scratch supervisor is installed
+        # Every Rails test and mutation route enters the supervisor, and it is
+        # the only boundary on that route.
+        #
+        # This workflow is consumed at `@main`, so it goes live in a caller the
+        # moment it merges, while `scripts/lisa-scratch-run.sh` arrives on the
+        # `lisa apply` channel — the two halves land in that order, and there is
+        # a window where a caller has this step and not that file. The window
+        # closes on the caller's next apply, and the same argument the threshold
+        # ratchet gate makes above applies here: a gate that passes because it
+        # found nothing is worse than no gate. Running the payload unsupervised
+        # is exactly the abandoned-scratch behavior this step exists to end, so
+        # the absence is a failure with a named remedy.
+        if: inputs.test_shards == 1
+        run: |
+          if [ ! -f scripts/lisa-scratch-run.sh ]; then
+            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so this suite has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'test' (or 'mutation') to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
+            exit 1
+          fi
+
+      - name: 🧪 Run tests
+        if: inputs.test_shards == 1
+        run: bash scripts/lisa-scratch-run.sh --suite rspec-mysql -- bundle exec rspec
+
+      - name: 📥 Download the RSpec shard plan
+        if: inputs.test_shards != 1
+        uses: actions/download-artifact@v8
+        with:
+          name: rspec-shard-plan-${{ needs.test-shard-plan.outputs.nonce }}
+          path: ${{ runner.temp }}/lisa-rspec-shard-plan
+
+      - name: 📥 Download every RSpec shard
+        if: inputs.test_shards != 1
+        uses: actions/download-artifact@v8
+        with:
+          pattern: rspec-shard-${{ needs.test-shard-plan.outputs.nonce }}-*
+          path: ${{ runner.temp }}/lisa-rspec-shards
+
+      # From each leg's run record, written from RSpec's own `files_to_run`:
+      # every planned file ran, in exactly one shard, and the plan still
+      # matches this checkout. A dropped or duplicated file fails here.
+      - name: 🧾 Prove every spec file ran exactly once
+        id: shard_verify
+        if: inputs.test_shards != 1
+        run: |
+          set -euo pipefail
+          node scripts/lisa-rspec-shards.mjs verify \
+            --plan "$RUNNER_TEMP/lisa-rspec-shard-plan/plan.json" \
+            --shards-dir "$RUNNER_TEMP/lisa-rspec-shards" \
+            --resultsets "$RUNNER_TEMP/lisa-rspec-resultsets.txt"
+          node scripts/lisa-rspec-shards.mjs timings \
+            --shards-dir "$RUNNER_TEMP/lisa-rspec-shards" \
+            --out "$RUNNER_TEMP/lisa-rspec-timings.json"
+
+      - name: ⏱️ Save spec timings for the next plan
+        if: always() && steps.shard_verify.outcome == 'success'
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ runner.temp }}/lisa-rspec-timings.json
+          key: lisa-rspec-timings-v1-${{ inputs.database_type }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      # `require 'simplecov'` loads the project's own `.simplecov`, so the merged
+      # result is checked against exactly the thresholds an unsharded run
+      # checks. This job sets none of its own.
+      - name: 📊 Collate coverage and enforce the thresholds
+        if: inputs.test_shards != 1
+        run: |
+          set -euo pipefail
+          RESULTSETS=()
+          while IFS= read -r resultset; do
+            if [ -n "$resultset" ]; then RESULTSETS+=("$resultset"); fi
+          done < "$RUNNER_TEMP/lisa-rspec-resultsets.txt"
+          if [ "${#RESULTSETS[@]}" -eq 0 ]; then
+            echo "No shard measured SimpleCov coverage, so there is nothing to collate; an unsharded run would check none either."
+            exit 0
+          fi
+          bundle exec ruby scripts/lisa_simplecov_collate.rb "${RESULTSETS[@]}"
+
+  mutation:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    name: 🧬 Mutation Testing Gate
+    # The caller's choice: see the runner input (#4517).
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 60
+    # Diff-only mutation gate. Self-skips instantly when disabled
+    # (mutation.gate.yml: enabled: false). PostgreSQL-based; MySQL projects can
+    # adapt the service block or skip via skip_jobs: mutation.
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',mutation,') && inputs.database_type == 'postgres' }}
+    services:
+      postgres:
+        image: ${{ inputs.database_imag || format('postgres:{0}', inputs.database_version || '16') }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ${{ inputs.database_name }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/${{ inputs.database_name }}
+      # Diff against the PR base branch (falls back to 'main' outside PRs).
+      MUTATION_SINCE: ${{ github.base_ref || 'main' }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # Full history so the gate can diff changed files against the PR base.
+          fetch-depth: 0
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          bundler-cache: true
+
+      - name: 🗄️ Prepare database
+        run: bin/rails db:prepare
+
+      - name: 🧬 Run mutation-testing gate (diff-only, self-skips when disabled)
+        # The supervisor boundary is HERE, not inside lisa-mutation.sh, so the
+        # pre-push route and this one each cross exactly one boundary and the
+        # gate's enabled/disabled and changed-file behaviour is unchanged.
+        #
+        # The supervisor assertion sits INSIDE the existing absent-gate branch:
+        # a project that does not ship the mutation gate at all has no payload
+        # to supervise, and must not start failing because of a file it has no
+        # use for.
+        run: |
+          if [ ! -f scripts/lisa-mutation.sh ]; then
+            echo "Skipping mutation gate - scripts/lisa-mutation.sh not found"
+            exit 0
+          fi
+          if [ ! -f scripts/lisa-scratch-run.sh ]; then
+            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so the mutation gate has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'mutation' to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
+            exit 1
+          fi
+          bash scripts/lisa-scratch-run.sh --suite mutant-postgres -- bash scripts/lisa-mutation.sh
+
+  code-quality:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    name: Code Quality
+    # The caller's choice: see the runner input (#4517).
+    runs-on: ${{ inputs.runner }}
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',code_quality,') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          bundler-cache: true
+
+      - name: 🔍 Run Reek
+        run: bundle exec reek app/ lib/
+
+      - name: 🔍 Run Flog
+        run: bundle exec flog --all --group app/ lib/
+
+      - name: 🔍 Run Flay
+        run: bundle exec flay app/ lib/
+
+  secret_scanning:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    name: 🔐 Credential Leakage
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',secret_scanning,') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Check for GitGuardian API key
+        id: check_gitguardian
+        run: |
+          if [[ -z "${GITGUARDIAN_API_KEY// }" ]]; then
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ GITGUARDIAN_API_KEY is not configured"
+          else
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
+            echo "✅ GITGUARDIAN_API_KEY is available"
+          fi
+        env:
+          GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+
+      - name: 🔐 GitGuardian scan
+        if: steps.check_gitguardian.outputs.has_token == 'true'
+        shell: bash
+        env:
+          GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+        run: |
+          python -m pip install --user 'ggshield==1.50.3'
+          export PATH="$HOME/.local/bin:$PATH"
+
+          set +e
+          ggshield secret scan ci 2>&1 | tee ggshield.log
+          scan_status=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$scan_status" -eq 0 ]; then
+            exit 0
+          fi
+
+          if grep -qiE 'no more API calls available|quota.*exhaust|exhaust.*quota|quota.*exceed|rate limit' ggshield.log; then
+            echo "::warning::GitGuardian secret detection skipped because API quota is exhausted"
+            echo "GitGuardian quota exhaustion is treated as non-blocking; real secret findings still fail this job."
+            exit 0
+          fi
+
+          exit "$scan_status"
+
+      - name: 🔐 GitGuardian Scan Skipped
+        if: steps.check_gitguardian.outputs.has_token != 'true'
+        run: |
+          echo "::warning::GitGuardian secret detection skipped - GITGUARDIAN_API_KEY not configured"
+          echo "To enable secret detection, add GITGUARDIAN_API_KEY to your repository secrets"
+
+  sg_scan:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    name: 🔎 Structural Rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',sg_scan,') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 🔧 Install ast-grep
+        run: npm install -g @ast-grep/cli@0.40.4
+
+      - name: 🔍 Check for sgconfig.yml
+        id: check_config
+        run: |
+          if [ -f "sgconfig.yml" ]; then
+            echo "has_config=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_config=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 🔍 Check for ast-grep rules
+        id: check_rules
+        if: steps.check_config.outputs.has_config == 'true'
+        run: |
+          RULES_DIR="ast-grep/rules"
+          if [ -d "$RULES_DIR" ]; then
+            RULE_COUNT=$(find "$RULES_DIR" -name "*.yml" -o -name "*.yaml" 2>/dev/null | grep -cv ".gitkeep")
+            if [ "$RULE_COUNT" -gt 0 ]; then
+              echo "has_rules=true" >> "$GITHUB_OUTPUT"
+              echo "rule_count=$RULE_COUNT" >> "$GITHUB_OUTPUT"
+            else
+              echo "has_rules=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "has_rules=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 🔎 Run ast-grep scan
+        if: steps.check_config.outputs.has_config == 'true' && steps.check_rules.outputs.has_rules == 'true'
+        run: sg scan
+
+      # Counts rule-test files rather than trusting the runner's exit code.
+      # `ast-grep test` exits 0 on an empty test directory, and a host project
+      # ships ast-grep/rule-tests/ empty, so an ungated step would report
+      # success having asserted nothing about any rule.
+      #
+      # Discovery is not suffix-based: ast-grep loads every YAML file directly
+      # inside testDir and binds it to a rule by its `id`. __snapshots__ is a
+      # subdirectory and .gitkeep is not YAML, so -maxdepth 1 over *.yml/*.yaml
+      # counts exactly what the runner will run.
+      - name: 🔍 Check for ast-grep rule tests
+        id: check_rule_tests
+        if: steps.check_config.outputs.has_config == 'true'
+        run: |
+          TESTS_DIR="ast-grep/rule-tests"
+          if [ -d "$TESTS_DIR" ]; then
+            TEST_COUNT=$(find "$TESTS_DIR" -maxdepth 1 \( -name "*.yml" -o -name "*.yaml" \) | wc -l | tr -d ' ')
+            if [ "$TEST_COUNT" -gt 0 ]; then
+              echo "has_rule_tests=true" >> "$GITHUB_OUTPUT"
+              echo "rule_test_count=$TEST_COUNT" >> "$GITHUB_OUTPUT"
+            else
+              echo "has_rule_tests=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "has_rule_tests=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 🧪 Run ast-grep rule tests
+        if: steps.check_config.outputs.has_config == 'true' && steps.check_rule_tests.outputs.has_rule_tests == 'true'
+        run: sg test
+
+      - name: ⏭️ AST Grep Skipped (no config)
+        if: steps.check_config.outputs.has_config != 'true'
+        run: |
+          echo "::warning::ast-grep scan skipped - no sgconfig.yml found"
+          echo "To enable ast-grep scanning, add sgconfig.yml to your project root"
+
+      - name: ⏭️ AST Grep Skipped (no rules)
+        if: steps.check_config.outputs.has_config == 'true' && steps.check_rules.outputs.has_rules != 'true'
+        run: |
+          echo "::warning::ast-grep scan skipped - no rules defined in ast-grep/rules/"
+          echo "To enable ast-grep scanning, add rule YAML files to ast-grep/rules/"
+
+      - name: ⏭️ AST Grep Rule Tests Skipped (none defined)
+        if: steps.check_config.outputs.has_config == 'true' && steps.check_rule_tests.outputs.has_rule_tests != 'true'
+        run: |
+          echo "::warning::ast-grep rule tests skipped - no rule test files in ast-grep/rule-tests/"
+          echo "This job going green does NOT mean any ast-grep rule has test coverage."
+          echo "To cover a rule, add ast-grep/rule-tests/<rule-id>-test.yml with valid/invalid cases,"
+          echo "then run 'sg test --update-all' to record its snapshot."
+
+  learnings_budget:
+    name: 📚 Learnings Budget
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Hard budget gate for the project learnings surface (per-entry length cap,
+    # entry count, and token ceiling). The learnings file is loaded eagerly by
+    # every coding agent in every session, so an over-budget file degrades them
+    # all — this job fails the build when it grows too large. The check reads the
+    # learnings file resolved from .lisa.config.json; a Rails project that has
+    # never recorded a learning has no file and passes silently.
+    # Read-only: this job needs no write scopes, so it drops the workflow's
+    # inherited checks:write / pull-requests:write.
+    permissions:
+      contents: read
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',learnings_budget,') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔧 Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+
+      # Gate façade. One declaration governs this property everywhere it is
+      # proved (#2932) — `learnings-budget` in the `gates` block of
+      # .lisa.config.json.
+      #
+      # HOW A RAILS PROJECT'S DECLARATION REACHES THIS JOB (#3018). It could
+      # not, before. This workflow installs no JS dependencies — a Rails
+      # project legitimately has no Node toolchain — so all three on-disk
+      # resolver paths were empty on every Rails consumer, the step reported
+      # `configured=false`, and the job ran the built-in prover no matter what
+      # the project declared. `off` could not turn this job off. That direction
+      # was the safe one and it was written down rather than hidden, but a
+      # declaration nothing can read is not a declaration.
+      #
+      # Three shapes were costed before this one was written:
+      #
+      #   * INSTALL the project's JS dependencies here. It answers the wrong
+      #     question — a Rails project should not need a Node install to read
+      #     its own declaration — and it changes this job's cost profile, which
+      #     is what sized its required-context promotion in
+      #     .github/required-check-promotions.json.
+      #   * READ the `gates` block directly with `node -e`. Cheapest, and it
+      #     puts a SECOND implementation of gate resolution here: registry
+      #     defaults, per-moment levels, `run` precedence, alias fallback — all
+      #     free to disagree with lisa-gates.mjs. That is the
+      #     more-than-one-place-decides defect this epic exists to close, and
+      #     is why #2932's option C was refused one layer up.
+      #   * FETCH the one resolver at the project's own version. Chosen. The
+      #     package tarball is unpacked to a temp dir and the shipped
+      #     `lisa-gates.mjs` runs from there, so resolution stays a single
+      #     implementation and the project still owns the version — the same
+      #     version, from the same field, that the fallback prover below runs.
+      #
+      # The fetch is LAST, not first. An on-disk resolver still wins, so every
+      # project that resolves offline today keeps resolving offline and this
+      # job's shape is unchanged for it; the network is reached only in the
+      # state that used to produce a wrong answer.
+      #
+      # AND IT FAILS CLOSED. A project that declares a `gates` block and whose
+      # resolver cannot be produced is an ERROR, not an empty declaration: the
+      # old `configured=false` said "nobody declared this" when the truth was
+      # "somebody declared this and nothing could read it", and those two must
+      # never print the same word. A project with NO gates block is the other
+      # thing entirely — nothing to resolve, so nothing unresolvable — and it
+      # runs the built-in prover exactly as it does today. Same split, and the
+      # same reasoning, as `🧭 Validate the gates block` in quality.yml.
+      - name: 🎛️ Resolve the learnings-budget gate
+        id: gate
+        env:
+          GATE_ID: learnings-budget
+          FALLBACK_RUNNER: npm run
+          GATE_MOMENT: pull-request
+        run: |
+          set -euo pipefail
+          fetched=""
+          cleanup_fetched() {
+            status=$?
+            trap - EXIT
+            if [ -n "$fetched" ] && [ -e "$fetched" ] && ! rm -r -- "$fetched"; then
+              echo "::error title=Fetched gates resolver cleanup failed::Could not remove the temporary resolver directory."
+              exit 1
+            fi
+            exit "$status"
+          }
+          trap cleanup_fetched EXIT
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then
+            # Three answers, not two. A parse failure is NOT "declares nothing":
+            # the file is the declaration surface, and a config nobody can read
+            # is the unknown case, which refuses.
+            declares=no
+            if [ -f .lisa.config.json ]; then
+              probe=0
+              node -e 'const g=(require("./.lisa.config.json").gates)||{};process.exit(Object.keys(g).length?0:3)' || probe=$?
+              case "$probe" in
+                0) declares=yes ;;
+                3) declares=no ;;
+                *) echo "::error title=Gate declaration cannot be read::.lisa.config.json is present but could not be parsed, so whether this project declares a gates block is unknown. Refusing rather than assuming it declares none and proving something nobody asked for."; exit 1 ;;
+              esac
+            fi
+            if [ "$declares" = "no" ]; then
+              echo "No gates resolver on disk and no gates block — this project is not on the gate registry, so nothing here declares this gate. The built-in prover runs, exactly as before."
+              echo "configured=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            version="$(node -e 'const p=require("./package.json");const v=(p.devDependencies||{})["@codyswann/lisa"]||(p.dependencies||{})["@codyswann/lisa"]||"";process.stdout.write(v)' || true)"
+            if [ -z "$version" ]; then
+              echo "::error title=Gate declaration cannot be resolved::.lisa.config.json declares a \`gates\` block, but no lisa-gates.mjs is on disk and package.json declares no \`@codyswann/lisa\` dependency to fetch one from. This step will not guess a version and will not report the declaration as empty. Add @codyswann/lisa to devDependencies, or add 'learnings_budget' to skip_jobs to decline the gate deliberately, which at least records the decision in the caller."
+              exit 1
+            fi
+            echo "ℹ️ No resolver on disk; fetching one at the project's own version: $version"
+            fetched="$(mktemp -d)"
+            if ! npm pack "@codyswann/lisa@$version" --pack-destination "$fetched" --silent > "$fetched/tarball.name"; then
+              echo "::error title=Gate declaration cannot be resolved::Could not fetch @codyswann/lisa@$version, so this project's gates block cannot be read. Its declaration governs this gate, and this job refuses rather than proving something nobody declared."
+              exit 1
+            fi
+            tar -xzf "$fetched/$(tail -n 1 "$fetched/tarball.name")" -C "$fetched" package/all/copy-overwrite/scripts || true
+            RESOLVER="$fetched/package/all/copy-overwrite/scripts/lisa-gates.mjs"
+            if [ ! -f "$RESOLVER" ]; then
+              echo "::error title=Gate declaration cannot be resolved::@codyswann/lisa@$version does not ship all/copy-overwrite/scripts/lisa-gates.mjs, so this project's gates block cannot be resolved at the version it declares. Raise the @codyswann/lisa range in package.json to a version that ships the gate registry."
+              exit 1
+            fi
+          fi
+          echo "resolver=$RESOLVER" >> "$GITHUB_OUTPUT"
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          const level = hit && ["required", "optional", "off"].includes(hit.level) ? hit.level : "";
+          if (hit && !level) { console.error(`::error::gates.${id} declares level ${JSON.stringify(hit.level)}, which is not one of "required", "optional" or "off".`); process.exit(1); }
+          if (level === "off") return process.stdout.write("configured=off\nlevel=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write(`configured=false\nlevel=${level}\n`);
+          const declared = (require("./.lisa.config.json").gates || {}).runner;
+          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
+          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
+          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
+          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
+          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}".`); process.exit(1); }
+          process.stdout.write(`configured=true\nlevel=${level}\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+
+      # WHICH DECLARATION DECIDED, said out loud. `off` runs neither prover
+      # step below, so without this the job would go green having printed
+      # nothing about why — indistinguishable from a gate that ran and passed,
+      # which is the shape this whole subsystem exists to refuse.
+      - name: ⏭️ Learnings budget declared off
+        if: steps.gate.outputs.configured == 'off'
+        env:
+          GATE_MOMENT: pull-request
+          GATE_RESOLVER: ${{ steps.gate.outputs.resolver }}
+        run: |
+          echo "gates.\"learnings-budget\".\"$GATE_MOMENT\" is declared \"off\" in this project's .lisa.config.json."
+          echo "Nothing in this job proved the learnings budget, which is what that declaration asked for."
+          echo "Declaration read by: $GATE_RESOLVER"
+
+      - name: 🧪 Verify the configured gate runner is installed
+        # The quality.yml counterpart carries this at every run site, for the
+        # reason recorded there: shape is validated at the resolve step and in
+        # the registry, both properties of the CONFIG FILE, while whether the
+        # command EXISTS is a property of the MACHINE that neither can know.
+        # Without it an uninstalled runner reaches `$GATE_RUNNER $GATE_TASK`
+        # and dies as a bare `exit 127`, which reads as a broken gate.
+        #
+        # DELIBERATELY SHORTER THAN THE quality.yml MESSAGE. That one also
+        # names the `package_manager` CI was provisioned with, because the
+        # defect there is a MISMATCH between two declarations. This workflow
+        # declares no `package_manager` input at all, so that half is not
+        # knowable here and is not guessed at.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. Either set gates.runner in .lisa.config.json to a command this runner provides, or provision \"$HEAD\" before the gates run."
+            exit 1
+          fi
+
+      - name: 📚 Run the learnings-budget gate
+        id: gate_run
+        # NON-BLOCKING ONLY WHERE THE PROJECT DECLARED IT SO, exactly as the
+        # façade jobs in `quality.yml` do it. `optional` means "show me the red,
+        # do not block on it", and it used to mean the opposite: the level was
+        # discarded at the resolve step above, both levels left as
+        # `configured=true`, and an optional gate failed this reusable workflow,
+        # failed the caller's release job, and skipped every job sequenced after
+        # it. A skipped job renders like a passing one, so nothing said shipping
+        # had stopped.
+        #
+        # An expression, never a literal `true`: only the level that asked to
+        # may continue on error. `required` still fails.
+        continue-on-error: ${{ steps.gate.outputs.level == 'optional' }}
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split; both values were validated above to be plain
+        # words, so neither reaches argv carrying a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+
+      - name: 🟡 Report the optional gate that failed
+        # OPTIONAL IS NON-BLOCKING, NOT INVISIBLE. `continue-on-error` above
+        # marks the STEP successful, and on its own that trades a silent skip
+        # for a silent pass — the operator loses the red they explicitly asked
+        # for when they wrote `optional`. This step is the other half: an
+        # annotation and a run-summary entry this workflow writes itself, so the
+        # report does not depend on how the UI renders a continued-on-error step.
+        #
+        # `outcome`, not `conclusion`. `conclusion` is the value
+        # `continue-on-error` rewrote to success; reading it here would make
+        # this step unreachable in exactly the case it exists to report.
+        if: always() && steps.gate_run.outcome == 'failure' && steps.gate.outputs.level == 'optional'
+        env:
+          GATE_ID: learnings-budget
+          GATE_MOMENT: pull-request
+        run: |
+          set -euo pipefail
+          echo "::warning title=$GATE_ID failed and is optional::$GATE_ID is declared \"optional\" at $GATE_MOMENT and its task FAILED, so the property it proves does NOT hold. It did not fail this workflow and skipped nothing downstream, because that is what \"optional\" declares. Declare it \"required\" to make the failure block."
+          {
+            echo "### 🟡 $GATE_ID failed (optional)"
+            echo
+            echo "The \`$GATE_ID\` gate is declared **optional** at \`$GATE_MOMENT\`, and its task failed — the property it proves does **not** hold."
+            echo
+            echo "By declaration that did not fail this workflow and skipped nothing after it. Declare it \`required\` to make the failure a merge condition, or \`off\` to say on the record that this project does not govern the property here."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # FALLBACK — THE VERSION COMES FROM THE PROJECT. It used to be the literal
+      # `2.297.0`, written here and in quality.yml, which no project could
+      # override and which sat sixty-odd releases behind — so every consumer's
+      # gate enforced a contract none of them was on, and bumping it was an edit
+      # to a workflow they do not own. The project's own `@codyswann/lisa`
+      # dependency range is the version it actually runs, and `bunx` resolves a
+      # range. There is no literal to fall back to: a project with no such
+      # dependency FAILS, because guessing a version is how the stale pin
+      # happened.
+      #
+      # The floor is >= 2.243.0 — earlier CLIs lack the relocated .lisa/ resolver
+      # or this subcommand, and pre-2.237.0 CLIs self-skip in non-interactive
+      # environments with exit 0. That floor is enforced by BEHAVIOUR rather than
+      # by comparing version strings: the marker grep refuses a run that printed
+      # neither verdict, which is exactly what a self-skipping CLI does.
+      - name: 📚 Check learnings budget
+        if: steps.gate.outputs.configured == 'false'
+        run: |
+          set -o pipefail
+          version="$(node -e 'const p=require("./package.json");const v=(p.devDependencies||{})["@codyswann/lisa"]||(p.dependencies||{})["@codyswann/lisa"]||"";process.stdout.write(v)' 2>/dev/null || true)"
+          if [ -z "$version" ]; then
+            echo "::error title=Learnings budget gate cannot resolve a version::This project declares no \`@codyswann/lisa\` dependency in package.json, so there is no project-owned version of the learnings-budget prover to run. This step will not guess one — a written-in version is how the previous pin drifted sixty releases behind while every consumer's gate enforced a contract none of them was on. Add @codyswann/lisa to devDependencies, or add 'learnings_budget' to skip_jobs to decline the gate deliberately, which at least records the decision in the caller."
+            exit 1
+          fi
+          echo "ℹ️ Running the learnings-budget prover at the project's own version: $version"
+          bunx "@codyswann/lisa@$version" check-learnings-budget | tee learnings-budget.out
+          # Marker grep — refuses a run that printed NO verdict at all (that is
+          # what a pre-2.237.0 self-skipping CLI does). `saturated` is a third
+          # verdict, not a failure: a full-but-valid ledger is reported loudly
+          # and exits 0, so it must be accepted here or a host project with a
+          # full ledger would red-wall on the grep instead (#3089).
+          grep -qE "learnings budget (passed|saturated)|no learnings file" learnings-budget.out
+
+  license_compliance:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    name: 📜 Licence Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',license_compliance,') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 🔍 Check for FOSSA API key
+        id: check_fossa
+        run: |
+          if [[ -z "${FOSSA_API_KEY// }" ]]; then
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ FOSSA_API_KEY is not configured"
+          else
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
+            echo "✅ FOSSA_API_KEY is available"
+          fi
+        env:
+          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+
+      - name: 📜 Run FOSSA license scan
+        if: steps.check_fossa.outputs.has_token == 'true'
+        uses: fossas/fossa-action@c414b9ad82eaad041e47a7cf62a4f02411f427a0 # v1.8.0
+        with:
+          api-key: ${{ secrets.FOSSA_API_KEY }}
+
+      - name: 📜 FOSSA Scan Skipped
+        if: steps.check_fossa.outputs.has_token != 'true'
+        run: |
+          echo "::warning::FOSSA license compliance check skipped - FOSSA_API_KEY not configured"
+          echo "To enable license compliance checking, add FOSSA_API_KEY to your repository secrets"

@@ -1,0 +1,92 @@
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/unit/scripts/npm-update-target-branch.test.ts "--reporter=verbose"
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v5.2.0)
+Built plugins/lisa-typescript (v5.2.0)
+Built plugins/lisa-expo (v5.2.0)
+Built plugins/lisa-nestjs (v5.2.0)
+Built plugins/lisa-cdk (v5.2.0)
+Built plugins/lisa-harper-fabric (v5.2.0)
+Built plugins/lisa-phaser (v5.2.0)
+Built plugins/lisa-rails (v5.2.0)
+Built plugins/lisa-wiki (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-cursor (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-typescript-cursor (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-expo-cursor (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-nestjs-cursor (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-cdk-cursor (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-harper-fabric-cursor (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-phaser-cursor (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-rails-cursor (v5.2.0)
+Generated Cursor variant at <worktree>/plugins/lisa-wiki-cursor (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-agy (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-typescript-agy (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-expo-agy (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-nestjs-agy (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-cdk-agy (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-harper-fabric-agy (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-phaser-agy (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-rails-agy (v5.2.0)
+Generated agy variant at <worktree>/plugins/lisa-wiki-agy (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-copilot (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-typescript-copilot (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-expo-copilot (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-nestjs-copilot (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-cdk-copilot (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-harper-fabric-copilot (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-phaser-copilot (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-rails-copilot (v5.2.0)
+Generated Copilot variant at <worktree>/plugins/lisa-wiki-copilot (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-devin (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-typescript-devin (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-expo-devin (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-nestjs-devin (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-cdk-devin (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-harper-fabric-devin (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-phaser-devin (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-rails-devin (v5.2.0)
+Generated Devin variant at <worktree>/plugins/lisa-wiki-devin (v5.2.0)
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (53 ms); kept 19 entries not private to this user
+
+ RUN  v5.1.0 <worktree>
+
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > policy accepts a configured target branch > passes a target that is a deploy.branches value 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > policy accepts a configured target branch > refuses a target outside deploy.branches, naming it and the allowed branches 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > policy accepts a configured target branch > refuses the malformed ref name "" 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > policy accepts a configured target branch > refuses the malformed ref name "-dev" 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > policy accepts a configured target branch > refuses the malformed ref name "dev..x" 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > policy accepts a configured target branch > refuses the malformed ref name "dev/" 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > policy accepts a configured target branch > refuses the malformed ref name "/dev" 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > policy accepts a configured target branch > refuses the malformed ref name ".dev" 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > policy accepts a configured target branch > refuses the malformed ref name "dev.lock" 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > policy accepts a configured target branch > refuses the malformed ref name "dev name" 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > policy accepts a configured target branch > refuses the malformed ref name "dev@{1}" 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > policy accepts a configured target branch > refuses the malformed ref name "dev~1" 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > policy accepts a configured target branch > selects the configured target from a committed directory list 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > omitted target defaults to main > validates a policy with no target and resolves main 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > selection and signed identity use the configured target > binds dev into the proposal, selection key and signed fields 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > selection and signed identity use the configured target > refuses a descriptor whose target differs from the committed policy 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > selection and signed identity use the configured target > renders the leaf against dev and passes the fixed quality gates 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > the base check reads the configured target > reads refs/heads/dev and never main when the target is dev 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > the base check reads the configured target > fails closed, naming the branch, when the target ref does not exist 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > publication opens and checks its pull request against dev > creates the PR with base dev and accepts only a dev-based PR 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > the hosted gate runs only on the configured target ref > accepts refs/heads/dev and refuses refs/heads/main 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > cancellation authenticates a dev invocation > accepts the dev dispatch event and refuses a main one 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > cancellation authenticates a dev invocation > requires the manual and recorded runs on dev 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > provenance verifies the dev source ref > asks the official verifier for refs/heads/dev 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > provenance verifies the dev source ref > accepts a certificate issued on dev and refuses one issued on main 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > provenance verifies the dev source ref > reads the dev ref and requires the run on dev from the provider 2ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > provenance verifies the dev source ref > builds the hook-read GH catalogue against dev only 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > the CLI binds the workflow input and refuses a missing branch > requires target_branch to equal the committed target 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > the CLI binds the workflow input and refuses a missing branch > exits non-zero naming a target branch absent from the remote 102ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > the workflow runs prepare only on the configured target > declares a target_branch input defaulting to main and passes it to the CLI 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-target-branch.test.ts > the workflow runs prepare only on the configured target > skips prepare on main and runs it on dev when target_branch is dev 0ms
+
+ Test Files  1 passed (1)
+      Tests  31 passed (31)
+   Start at  01:48:58
+   Duration  423ms (tests 35%, transform 29%, import 24%, setup 10%, worker 1%)
+
+exit=0

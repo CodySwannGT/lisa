@@ -22,7 +22,7 @@ export const LISA_MANAGED_MARKER = "_lisaManaged" as const;
 export const LISA_ID_MARKER = "_lisaId" as const;
 
 /** A single hook handler entry (innermost: type/command/timeout/etc.) */
-export interface HookHandler {
+interface HookHandler {
   readonly type: string;
   readonly command?: string;
   readonly timeout?: number;
@@ -34,7 +34,7 @@ export interface HookHandler {
 }
 
 /** A matcher group: a regex matcher + an array of handlers it triggers */
-export interface MatcherGroup {
+interface MatcherGroup {
   readonly matcher: string;
   readonly hooks: readonly HookHandler[];
 }

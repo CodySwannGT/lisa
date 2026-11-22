@@ -1,14 +1,4 @@
-#!/usr/bin/env node
-/**
- * Stub `gh` for the session-manager CLI tests: `api ...` prints the file named
- * by STUB_GH_FILE (else [[]], one empty page) and exits STUB_GH_EXIT (default
- * 0). Every call is recorded through ../support/stub-record.mjs.
- */
-import { readFileSync } from "node:fs";
-
-import { record } from "../support/stub-record.mjs";
-
-record("gh");
-const file = process.env.STUB_GH_FILE;
-process.stdout.write(file ? readFileSync(file, "utf8") : "[[]]");
-process.exitCode = Number(process.env.STUB_GH_EXIT ?? 0);
+#!/bin/sh
+# Stub `gh` for the session-manager CLI tests. The stub itself is
+# ../support/stubs/gh.mjs, kept as a module so the dead-code gate can follow its imports.
+exec node "$(dirname "$0")/../support/stubs/gh.mjs" "$@"

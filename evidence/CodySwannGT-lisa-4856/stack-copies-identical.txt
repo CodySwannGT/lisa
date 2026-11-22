@@ -1,0 +1,28 @@
+# stack-copies-identical @ a91cecdbcdb4f60ed7dfe84f1c2c6bd39bf0418e
+$ diff base expo
+exit=0
+$ diff base rails
+exit=0
+$ shasum -a 256
+1f64e5aa8a47d833f07c5531d990bfbb275262a554eb06d83c5f1258d8e81c4d  plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh
+1f64e5aa8a47d833f07c5531d990bfbb275262a554eb06d83c5f1258d8e81c4d  plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh
+1f64e5aa8a47d833f07c5531d990bfbb275262a554eb06d83c5f1258d8e81c4d  plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh
+## same journey on expo and rails copies
+=== script: plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh
+=== exit: 1
+=== gh release upload calls (0):
+=== script: plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh
+=== exit: 0
+=== gh release upload calls (2):
+=== script: plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh
+=== exit: 1
+=== gh release upload calls (0):
+=== script: plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh
+=== exit: 0
+=== gh release upload calls (2):
+=== script: plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh
+=== exit: 0
+=== gh release upload calls (2):
+=== script: plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh
+=== exit: 0
+=== gh release upload calls (2):

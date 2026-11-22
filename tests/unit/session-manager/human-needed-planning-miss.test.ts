@@ -169,3 +169,28 @@ describe("planMark carries the planning-miss verdict", () => {
     expect(plan.comment).not.toContain("planning");
   });
 });
+
+// CodySwannGT/lisa#4687: an agent performs every act it has access to, so the
+// manager's `decision` mark names missing access or an operator hold, never a
+// "design or product decision" the agent could make itself. The kind
+// identifiers stay stable: ledgers already in use carry them.
+describe("the decision mark's wording", () => {
+  it("keeps the four kind identifiers", () => {
+    expect([...HUMAN_NEEDED_KINDS]).toEqual([
+      WORKER_QUESTION,
+      "repo-route",
+      "exhausted",
+      "decision",
+    ]);
+  });
+
+  it("names what only a person can do, true in either humanGate.mode", () => {
+    const [firstLine] = planMark({ ...BASE, kind: "decision" }).comment.split(
+      "\n"
+    );
+    expect(firstLine).toBe(
+      `[lisa-session-manager-question] ${REF} needs a human: it needs a person: an act the agent cannot perform, or a call this project keeps for a person.`
+    );
+    expect(firstLine).not.toMatch(/design or product decision/u);
+  });
+});

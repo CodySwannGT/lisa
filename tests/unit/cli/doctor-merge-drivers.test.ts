@@ -22,6 +22,7 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { runDoctor } from "../../../src/cli/doctor.js";
+import { installLearningsMergeDriver } from "../../../src/core/learnings-merge-driver-install.js";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
@@ -32,6 +33,7 @@ const DRIVER_KEY = "merge.lisa-learnings.driver";
 const CONFIG_FILE = ".lisa.config.json";
 const INIT = ["init"] as const;
 const ATTRIBUTES_FILE = ".gitattributes";
+const REMEDY_COMMAND = "lisa install-merge-driver";
 const CANONICAL_LEDGER = ".lisa/PROJECT_LEARNINGS.md";
 const ATTRIBUTES = `${CANONICAL_LEDGER} merge=lisa-learnings\n`;
 
@@ -130,7 +132,7 @@ describe("doctor merge-driver registration check", () => {
   it("names the repair command and the silent degradation it prevents", async () => {
     git(tempDir, INIT);
     const check = await driverCheck(tempDir);
-    expect(check.detail).toContain("lisa install-merge-driver");
+    expect(check.detail).toContain(REMEDY_COMMAND);
     expect(check.detail).toMatch(/text merge|conflict marker/iu);
   });
 
@@ -139,6 +141,60 @@ describe("doctor merge-driver registration check", () => {
     git(tempDir, ["config", "--local", DRIVER_KEY, "lisa merge-learnings"]);
     const check = await driverCheck(tempDir);
     expect(check.status).toBe("ok");
+  });
+
+  describe("whether the registered learnings command can run (#4640)", () => {
+    const HOST_ENTRY = "node_modules/@codyswann/lisa/dist/index.js";
+    const PLACEHOLDERS =
+      "merge-learnings --base %O --ours %A --theirs %B --path %P";
+
+    it("fails when an absolute command names a path that no longer exists", async () => {
+      git(tempDir, INIT);
+      const missing = path.join(tempDir, "removed-worktree", HOST_ENTRY);
+      git(tempDir, [
+        "config",
+        "--local",
+        DRIVER_KEY,
+        `'${process.execPath}' '${missing}' ${PLACEHOLDERS}`,
+      ]);
+      const check = await driverCheck(tempDir);
+      expect(check.status).toBe("fail");
+      expect(check.detail).toContain(missing);
+      expect(check.detail).toContain(REMEDY_COMMAND);
+    });
+
+    it("warns when an absolute command still resolves, because it depends on one checkout", async () => {
+      git(tempDir, INIT);
+      const present = path.join(tempDir, "other-checkout", HOST_ENTRY);
+      await fse.outputFile(present, "");
+      git(tempDir, [
+        "config",
+        "--local",
+        DRIVER_KEY,
+        `'${process.execPath}' '${present}' ${PLACEHOLDERS}`,
+      ]);
+      const check = await driverCheck(tempDir);
+      expect(check.status).toBe("warn");
+      expect(check.detail).toMatch(/checkout/u);
+      expect(check.detail).toContain(REMEDY_COMMAND);
+    });
+
+    it("passes a portable command whose entry is installed in this worktree", async () => {
+      git(tempDir, INIT);
+      await fse.outputFile(path.join(tempDir, HOST_ENTRY), "");
+      await installLearningsMergeDriver(tempDir);
+      const check = await driverCheck(tempDir);
+      expect(check.status).toBe("ok");
+    });
+
+    it("warns when a portable command's entry is not installed in this worktree", async () => {
+      git(tempDir, INIT);
+      await installLearningsMergeDriver(tempDir);
+      const check = await driverCheck(tempDir);
+      expect(check.status).toBe("warn");
+      expect(check.detail).toContain(HOST_ENTRY);
+      expect(check.detail).toMatch(/conflict marker/iu);
+    });
   });
 
   it("passes when the host opted out with learnings.mergeDriver false", async () => {

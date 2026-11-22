@@ -1,0 +1,26 @@
+## Mutation probe of the Content-Length fix (falsifiable-checks rule), HEAD 1a1eb5a18517e9f9de4d0e331478821f7f73425d
+## Throwaway detached worktree: git worktree add --detach <scratch>/mut-1a1e 1a1eb5a18517e9f9de4d0e331478821f7f73425d
+## Mutation: removed the two argv entries from the upload call in all/copy-overwrite/scripts/lib/evidence-prune-gh.mjs
+##   "--header",
+##   `Content-Length: ${bytes.length}`,
+## Run: bunx vitest run tests/unit/scripts/evidence-prune.test.ts tests/unit/scripts/evidence-prune-safety.test.ts
+## Unmutated tree at this HEAD: 38/38 pass (see 01-unit-tests.txt).
+## The mutation was reverted and the throwaway worktree removed afterwards.
+## Result under the mutation: 14 failed | 24 passed (38), every failure on the archive-upload path:
+ ❯ |lisa| tests/unit/scripts/evidence-prune.test.ts (17 tests | 5 failed) 46ms
+     × keeps pinned, recent and not-yet-superseded files 6ms
+     × archives with the same name and sha256 before deleting the original 3ms
+     × does not delete when the archive read-back does not match 7ms
+     × stops at the archive's 950-file ceiling 12ms
+     × honours --archive-release 1ms
+ ❯ |lisa| tests/unit/scripts/evidence-prune-safety.test.ts (21 tests | 9 failed) 48ms
+     × keeps files a record in another accepted release depends on 13ms
+     × is read before the delete, and a file it now pins is kept 2ms
+     × stops without deleting when the new record cannot be read 6ms
+     × is skipped, not fatal, when its bytes differ 1ms
+     × is reused without an upload or a capacity charge when identical 4ms
+     × reports a file archived but not deleted on its own line 4ms
+     × archives a configured release into its own monthly archive 1ms
+     × re-reads the release LISA_EVIDENCE_RELEASE pins, even one created mid-run 1ms
+     × downloads the archive copy instead of trusting its reported digest 2ms
+      Tests  14 failed | 24 passed (38)

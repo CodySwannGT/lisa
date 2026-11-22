@@ -1,0 +1,19 @@
+--- recipe lines 1-6 verbatim
+Preparing worktree (detached HEAD 6ec7465)
+HEAD is now at 6ec7465 init
+tmp=/var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.ED3U4y1au5
+--- checks in $tmp
+PASS binary change landed (ef3f4ad34965b0053cd54a9dadd2cbbd7ba7a25960e7b72e2a9200b1355c9a16)
+PASS tracked text change landed
+PASS untracked file landed
+PASS node_modules linked
+--- bite control: the same checks against a bare worktree (no apply/rsync) must FAIL
+CONTROL-OK binary differs without apply
+CONTROL-OK untracked absent without rsync
+--- recipe last line verbatim
+PASS tmp removed
+/Users/codysai/.claude/jobs/783bf208/tmp/recipe-repo 6ec7465 [main]
+ M bin.dat
+ M text.txt
+?? newdir/
+result fail=0

@@ -19,7 +19,7 @@
 import { existsSync } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import * as path from "node:path";
-import process from "node:process";
+import { currentEnvironment } from "../utils/process-environment.js";
 
 /** One worker entry from `.lisa/worker-config.json`. */
 export interface WorkerEpochAgentRecord {
@@ -130,7 +130,7 @@ export async function resolveWorkerJourneyEvidence(
  * @returns Current runtime signature
  */
 export function currentRuntimeWorkerSignature(): RuntimeWorkerSignature {
-  const env = process["env"];
+  const env = currentEnvironment();
   const host =
     env.LISA_WORKER_HOST ??
     env.LISA_REMOTE_AGENT ??
@@ -229,7 +229,7 @@ export function resolveRecordedEvidence(
  * @param current - Current value
  * @returns Drift fragment, or null when unchanged/unobservable
  */
-export function compareWorkerField(
+function compareWorkerField(
   name: string,
   recorded: string | null,
   current: string
@@ -306,7 +306,7 @@ async function countMatchingMarkdownFiles(
  * @param value - Value to inspect
  * @returns True for plain object records
  */
-export function isRecord(value: unknown): value is Record<string, unknown> {
+function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -315,6 +315,6 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
  * @param value - Value to normalize
  * @returns Trimmed string or null
  */
-export function stringField(value: unknown): string | null {
+function stringField(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }

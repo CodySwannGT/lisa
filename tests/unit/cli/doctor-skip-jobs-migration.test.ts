@@ -11,8 +11,7 @@
  * @module tests/unit/cli/doctor-skip-jobs-migration
  */
 
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 
 import { beforeEach, describe, expect, it } from "vitest";
@@ -22,6 +21,10 @@ import {
   describeToken,
   skipJobCallers,
 } from "../../../src/cli/doctor-skip-jobs-migration.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /**
  * The clause doctor prints about ONE token, isolated from the summary.
@@ -83,7 +86,7 @@ const caller = (tokens: string, moment?: string): string =>
   ].join("\n");
 
 beforeEach(async () => {
-  project = await mkdtemp(path.join(tmpdir(), "lisa-skip-jobs-"));
+  project = ownedDir("lisa-skip-jobs-");
 });
 
 describe("doctor skip_jobs migration", () => {

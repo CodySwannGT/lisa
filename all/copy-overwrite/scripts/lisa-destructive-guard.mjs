@@ -141,7 +141,7 @@ export function classifyEnvironment(value) {
  * capability reports rows deleted or created — a read-only adapter that mutated
  * is still a mutation, and the guard should not depend on it being named
  * honestly.
- * @param {object} fields - An envelope or envelope-shaped object
+ * @param {object | null | undefined} fields - An envelope or envelope-shaped object; absent reads as not destructive
  * @returns {boolean} True when the run is destructive
  */
 export function isDestructive(fields) {
@@ -210,7 +210,7 @@ function denyByEnvironment(environment) {
  *
  * This is the check the command envelope itself applies, so a destructive
  * production run cannot be *reported* as a success by any adapter in any repo.
- * @param {object} fields - An envelope or envelope-shaped object
+ * @param {object | null | undefined} fields - An envelope or envelope-shaped object; absent reads as not destructive
  * @returns {{code: string, message: string}|null} The denial, if any
  */
 export function destructiveDenial(fields) {
@@ -264,7 +264,7 @@ export function assertDestructiveAllowed(request) {
 
 /**
  * Read one `--flag value` / `--flag=value` option out of argv.
- * @param {readonly string[]} argv - Arguments after the script name
+ * @param {readonly string[] | undefined} argv - Arguments after the script name; absent means a dry run
  * @param {string} flag - The long flag to read, including leading dashes
  * @returns {string|null} The value, or null when the flag is absent or empty
  */
@@ -285,7 +285,7 @@ function readOption(argv, flag) {
  * instead of mutating. Mutating requires an explicit `--no-dry-run` or
  * `--execute`, and passing `--dry-run` alongside either one keeps the dry run,
  * so a stray flag can never silently upgrade a rehearsal into a real run.
- * @param {readonly string[]} argv - Arguments after the script name
+ * @param {readonly string[] | undefined} argv - Arguments after the script name; absent means a dry run
  * @returns {{dryRun: boolean, requestedStage: (string|null), idempotencyKey: (string|null)}} Parsed arguments
  */
 export function parseDestructiveArgs(argv) {

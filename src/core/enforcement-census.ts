@@ -43,7 +43,7 @@ import { readJsonOrNull } from "../utils/json-utils.js";
 import { pathExists } from "../utils/file-operations.js";
 
 /** Where a checkout on the roster came from. */
-export type RosterSource = "roster" | "scan" | "argument";
+type RosterSource = "roster" | "scan" | "argument";
 
 /** One checkout the census intends to look at. */
 export interface RosterEntry {
@@ -105,9 +105,6 @@ export interface FleetCensus {
   /** The disjoint classes. */
   readonly summary: FleetCensusSummary;
 }
-
-/** The fleet roster `scripts/lisa-update-local.sh` already maintains. */
-export const DEFAULT_ROSTER_FILE = ".lisa.workspaces.json";
 
 /**
  * Expand a leading `~` the way the roster's other reader does.

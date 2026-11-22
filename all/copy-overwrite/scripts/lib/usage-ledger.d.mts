@@ -68,9 +68,11 @@ export interface ParsedLisaUsageSection {
  */
 export interface LisaUsageSectionIntegrityIssue {
   code:
+    | "malformed-usage-section"
     | "missing-entry-token"
     | "missing-rollup-token"
     | "missing-section"
+    | "non-canonical-artifact-ref"
     | "unrecorded-entry";
   entryIds: readonly string[];
   message: string;

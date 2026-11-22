@@ -1,9 +1,6 @@
 {
   "defaults": {
     "devDependencies": {
-      "@graphql-codegen/cli": "^6.1.0",
-      "@graphql-codegen/typescript": "^4.1.6",
-      "@graphql-codegen/typescript-operations": "^4.4.2",
       "tsx": "^4.20.6"
     },
     "scripts": {
@@ -19,10 +16,7 @@
       "test:unit": "$npm_execpath run test:unit:lisa",
       "test:watch": "$npm_execpath run test:watch:lisa"
     },
-    "dependencies": {
-      "class-validator": "^0.14.3",
-      "graphql": "15.10.1"
-    }
+    "dependencies": {}
   },
   "force": {
     "scripts": {
@@ -50,46 +44,26 @@
       "start:docker:down": "docker compose down",
       "start:local": "IS_OFFLINE=true sls offline start --noTimeout",
       "test:cov:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile nestjs --adapter vitest -- vitest run --coverage",
-      "test:cov:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && LISA_COVERAGE_SCOPE=unit lisa-test-run --profile nestjs --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
+      "test:cov:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && LISA_COVERAGE_SCOPE=unit node scripts/lisa-affected-tests.mjs --push-only --fetch scripts/fetch-test-access-map.mjs -- lisa-test-run --profile nestjs --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
       "test:integration:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile nestjs --adapter vitest -- vitest run '.integration.' 'integration/'",
       "test:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile nestjs --adapter vitest -- vitest run",
-      "test:mutation": "node scripts/lib/worktree-dependencies.mjs && LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' lisa-test-run --profile nestjs --adapter direct -- node scripts/lisa-mutation.mjs",
-      "test:node:lisa": "node scripts/lib/worktree-dependencies.mjs && LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile nestjs --adapter direct -- node scripts/lisa-test-node.mjs",
-      "test:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile nestjs --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",
+      "test:mutation": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile nestjs --adapter direct -- node scripts/lisa-mutation.mjs",
+      "test:node:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile nestjs --adapter direct -- node scripts/lisa-test-node.mjs",
+      "test:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && node scripts/lisa-affected-tests.mjs --push-only --fetch scripts/fetch-test-access-map.mjs -- lisa-test-run --profile nestjs --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",
       "test:watch:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile nestjs --adapter vitest -- vitest"
     },
     "dependencies": {
-      "@apollo/server": "^5.4.0",
-      "@as-integrations/express5": "^1.1.2",
-      "@aws-sdk/client-apigatewaymanagementapi": "^3.967.0",
-      "@aws-sdk/client-cognito-identity-provider": "^3.969.0",
-      "@aws-sdk/rds-signer": "^3.968.0",
-      "@graphql-tools/utils": "^12.0.2",
-      "@nestjs/apollo": "^13.2.3",
       "@nestjs/common": "^11.1.11",
       "@nestjs/config": "^4.0.2",
       "@nestjs/core": "^11.1.11",
-      "@nestjs/graphql": "^13.2.3",
       "@nestjs/platform-express": "^11.1.11",
-      "@nestjs/terminus": "^11.0.0",
-      "@nestjs/typeorm": "^11.0.0",
-      "@vendia/serverless-express": "^4.12.6",
-      "aws-jwt-verify": "^5.1.1",
-      "aws-xray-sdk-core": "^3.12.0",
-      "class-transformer": "^0.5.1",
-      "dataloader": "^2.2.3",
-      "graphql-query-complexity": "^1.1.0",
-      "graphql-subscriptions": "^3.0.0",
-      "graphql-ws": "^6.0.6",
       "ioredis": "^5.9.1",
       "pg": "^8.16.3",
       "reflect-metadata": "^0.2.2",
       "rxjs": "^7.8.2",
-      "typeorm": "^0.3.28",
-      "typeorm-naming-strategies": "^4.1.0"
+      "typeorm": "^0.3.28"
     },
     "devDependencies": {
-      "@nestjs/cli": "^11.0.14",
       "@nestjs/schematics": "^11.0.9",
       "@nestjs/testing": "^11.1.11",
       "@types/aws-lambda": "^8.10.159",
@@ -98,19 +72,21 @@
       "serverless-esbuild": "^1.57.0",
       "serverless-offline": "^14.4.0",
       "vite": "^8.3.3",
-      "vitest": "^4.1.11",
-      "@vitest/coverage-v8": "^4.1.11",
-      "eslint-plugin-oxlint": "1.62.0",
-      "oxlint": "1.62.0",
+      "vitest": "^5.1.0",
+      "@vitest/coverage-v8": "^5.1.0",
+      "eslint-plugin-oxlint": ">=1.62.0 <1.86.0",
+      "oxlint": ">=1.62.0 <1.86.0",
       "oxlint-tsgolint": "^0.24.0",
-      "@stryker-mutator/core": "^9.0.0",
-      "@stryker-mutator/vitest-runner": "^9.0.0"
+      "@stryker-mutator/core": "^10.1.1",
+      "@stryker-mutator/vitest-runner": "^10.1.1"
     },
     "overrides": {
-      "vite": "$vite"
+      "vite": "$vite",
+      "@graphql-tools/utils": ">=12.0.2"
     },
     "resolutions": {
-      "vite": "$vite"
+      "vite": "$vite",
+      "@graphql-tools/utils": ">=12.0.2"
     }
   },
   "adopt": {
@@ -161,6 +137,46 @@
         "lisa-test-run --profile nestjs -- vitest",
         "lisa-test-run -- vitest"
       ]
+    },
+    "devDependencies": {
+      "@graphql-codegen/cli": [
+        "^6.1.0"
+      ],
+      "@graphql-codegen/typescript": [
+        "^4.1.6"
+      ],
+      "@graphql-codegen/typescript-operations": [
+        "^4.4.2"
+      ],
+      "@graphql-codegen/typescript-react-apollo": [
+        "^4.3.4"
+      ],
+      "ts-node": [
+        "^10.9.2"
+      ],
+      "@nestjs/cli": [
+        "^11.0.14"
+      ]
     }
+  },
+  "minimums": {
+    "@apollo/server": ">=5.4.0",
+    "@as-integrations/express5": ">=1.1.2",
+    "@aws-sdk/client-apigatewaymanagementapi": ">=3.967.0",
+    "@aws-sdk/client-cognito-identity-provider": ">=3.969.0",
+    "@aws-sdk/rds-signer": ">=3.968.0",
+    "@nestjs/apollo": ">=13.2.3",
+    "@nestjs/graphql": ">=13.2.3",
+    "@nestjs/terminus": ">=11.0.0",
+    "@nestjs/typeorm": ">=11.0.0",
+    "@vendia/serverless-express": ">=4.12.6",
+    "aws-jwt-verify": ">=5.1.1",
+    "aws-xray-sdk-core": ">=3.12.0",
+    "class-transformer": ">=0.5.1",
+    "dataloader": ">=2.2.3",
+    "graphql-query-complexity": ">=1.1.0",
+    "graphql-subscriptions": ">=3.0.0",
+    "graphql-ws": ">=6.0.6",
+    "typeorm-naming-strategies": ">=4.1.0"
   }
 }

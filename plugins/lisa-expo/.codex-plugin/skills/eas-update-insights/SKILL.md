@@ -1,11 +1,11 @@
 ---
 name: eas-update-insights
-description: "Check the health of published…"
+description: "Check how published EAS Updates…"
 version: 1.0.0
 license: MIT
 allowed-tools: "Bash(eas *)"
 ---
-Check the health of published EAS Updates: crash rates, install/launch counts, unique users, payload size, and the split between embedded and OTA users per channel. Use when the user asks how an update is performing, whether a rollout is healthy, how many users are on the embedded build vs OTA, or wants to gate CI on update health.
+Check how published EAS Updates are doing: crash rates, installs and launches, users, payload size, and embedded vs OTA split per channel. Use when asked whether an update or rollout is healthy, or to gate CI on update health.
 
 
 # EAS Update Insights

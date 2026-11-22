@@ -74,6 +74,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24.21.0'
+          package-manager-cache: false
       # This prerequisite belongs to this scheduled caller. Other callers of
       # gates.yml keep their existing behavior when a moment declares no gates.
       - name: Require checks for this environment

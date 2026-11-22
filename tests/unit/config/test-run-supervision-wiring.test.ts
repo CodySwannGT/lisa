@@ -4,11 +4,7 @@ import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import {
-  analyzeTestRunChildLaunches,
-  analyzeVitestSpawns,
-  LISA_TEST_RUNNER_PATH_BIT,
-} from "../../helpers/test-run-supervision-analyzer.js";
+import { analyzeVitestSpawns } from "../../helpers/test-run-supervision-analyzer.js";
 import {
   executableModuleGraph,
   isExecutableModule,
@@ -17,13 +13,11 @@ import { reachableFrom } from "../../helpers/staged-dependency-scan.js";
 import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
-const SPAWN_SYNC = "spawnSync";
-const PROCESS_EXEC_PATH = "process.execPath";
 const ROOT_MTS = "src/root.mts";
 const SOURCE_DIAGNOSTIC = "source parse diagnostic";
 
 /**
- * Own budget for the two cases that read and parse a whole source tree.
+ * Own budget for the case that reads and parses a whole source tree.
  *
  * These walk every executable module under `tests/`, and under `src/` plus
  * `scripts/lib/`, reading and parsing each one — over a thousand files of
@@ -120,9 +114,11 @@ describe("managed test supervision wiring", () => {
       // immediate child. Measured on this repository, killing the immediate
       // child of a bare fixture launch exactly as the bound would, twice:
       // one pool worker survived at PPID 1 each time, still running its case.
-      // Through `lisa-test-run` the same kill left zero of seven descendants
-      // alive, because the detached reaper drains the payload's process group
-      // when the foreground dies.
+      // Through `lisa-test-run` every descendant inherits the run's
+      // `LISA_TEST_RUN_OWNER` marker, so the next run's start-of-run sweep
+      // kills such a survivor once its owner is gone (CodySwannGT/lisa#4597).
+      // The detached reaper that used to drain the group at once was retired
+      // with the per-test policing (CodySwannGT/lisa#4602).
       //
       // So the entry was not an exemption, it was an exposure, and the file is
       // now routed like every other managed child here. The seam went with it:
@@ -132,107 +128,6 @@ describe("managed test supervision wiring", () => {
       // both expressible ON the supervised route.
       expect(findings).toEqual([]);
       expect(bypasses).toEqual([]);
-    },
-    ioLatencyBudgetMs(SOURCE_TREE_SCAN_BASE_MS)
-  );
-
-  it(
-    "keeps prearmed reaper recovery unable to launch a Lisa successor",
-    () => {
-      const sources = new Map(
-        [
-          ...executableSources(path.join(REPO_ROOT, "src")),
-          ...executableSources(path.join(REPO_ROOT, "scripts/lib")),
-        ].map(file => [
-          path.relative(REPO_ROOT, file),
-          fs.readFileSync(file, "utf8"),
-        ])
-      );
-      const closure = executableModuleGraph(sources);
-      const reachable = reachableFrom(
-        closure.graph,
-        new Set(["src/cli/lisa-test-run-reaper.ts"])
-      );
-      expect(
-        closure.unresolved.filter(edge => reachable.has(edge.importer))
-      ).toEqual([]);
-      expect(
-        closure.findings.filter(finding => reachable.has(finding.file))
-      ).toEqual([]);
-      const analyses = [...reachable].map(file => ({
-        file,
-        analysis: analyzeTestRunChildLaunches(sources.get(file) ?? ""),
-      }));
-      expect(
-        analyses.flatMap(({ analysis, file }) =>
-          analysis.findings.map(finding => `${file}: ${finding}`)
-        )
-      ).toEqual([]);
-      const launches = analyses
-        .flatMap(({ analysis, file }) =>
-          analysis.launches.map(launch => ({
-            ...launch,
-            file,
-          }))
-        )
-        .sort((left, right) => left.file.localeCompare(right.file));
-
-      expect(
-        launches.filter(launch =>
-          Boolean(launch.bits & LISA_TEST_RUNNER_PATH_BIT)
-        )
-      ).toEqual([]);
-      expect(
-        launches.map(launch => ({
-          file: launch.file,
-          callee: launch.callee,
-          command: launch.arguments[0],
-        }))
-      ).toEqual([
-        {
-          file: "src/configs/vitest/scratch-bound-cleanup.ts",
-          callee: SPAWN_SYNC,
-          command: PROCESS_EXEC_PATH,
-        },
-        {
-          file: "src/configs/vitest/scratch-bound-root-cleanup.ts",
-          callee: SPAWN_SYNC,
-          command: PROCESS_EXEC_PATH,
-        },
-        {
-          file: "src/configs/vitest/scratch-owner.ts",
-          callee: SPAWN_SYNC,
-          command: '"/bin/ps"',
-        },
-      ]);
-      expect(launches.map(launch => launch.arguments)).toEqual([
-        [
-          PROCESS_EXEC_PATH,
-          '[ "--input-type=commonjs", "--eval", ' +
-            "BOUND_CHILDREN_CLEANUP_PROGRAM, String(options.parent.dev), " +
-            "String(options.parent.ino), ]",
-          '{ cwd: options.parent.canonicalPath, encoding: "utf8", input, maxBuffer: 64 * 1024, }',
-        ],
-        [
-          PROCESS_EXEC_PATH,
-          '[ "--input-type=commonjs", "--eval", ' +
-            "BOUND_DIRECTORY_CLEANUP_PROGRAM, String(expected.dev), " +
-            "String(expected.ino), ]",
-          '{ cwd: candidate, encoding: "utf8", maxBuffer: 64 * 1024 }',
-        ],
-        [
-          '"/bin/ps"',
-          '["-p", pids.join(","), "-o", "pid=", "-o", "lstart="]',
-          '{ encoding: "utf8", killSignal: "SIGKILL", ' +
-            "maxBuffer: Math.max(4_096, pids.length * 128), " +
-            "timeout: PS_TIMEOUT_MS, }",
-        ],
-      ]);
-      expect(
-        launches.every(
-          launch => !launch.arguments.join(" ").includes("lisa-test-run")
-        )
-      ).toBe(true);
     },
     ioLatencyBudgetMs(SOURCE_TREE_SCAN_BASE_MS)
   );

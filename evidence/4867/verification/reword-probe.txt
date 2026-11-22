@@ -1,0 +1,155 @@
+# Reword probe (Validation Journey steps 2-3) - CodySwannGT/lisa#4867
+HEAD: 1f7375d9d56c275e0c5ef77286c67de90fba2e84 + staged changes (15 files in git diff --cached --stat)
+
+## Edits (plugins/src only; generated copies refreshed with 'bun run build:plugins')
+1. lisa-drive-pr-to-merge: 'Never a detached or unbounded sleep loop.' -> 'Do not use a detached or unbounded sleep loop.'
+2. lisa-exploratory-qa: 'Re-file only with evidence that **postdates the decline** and establishes a materially changed consequence, requirement, or risk addressing the recorded reason,' -> 'File it again only when evidence **postdates the decline** and shows a materially different consequence, requirement or risk that answers the recorded reason,'
+3. lisa-project-ideation: 'An idea may only become a **Practical Idea** (and thus a PRD candidate) if it passes BOTH gates.' -> 'An idea becomes a **Practical Idea** (and so a PRD candidate) only when it clears BOTH gates.'
+4. Re-wrap: lisa-drive-pr-to-merge paragraph 'The wait does not apply only when BOTH say none ...' re-wrapped from 5 lines to 6.
+No script or hook parses these sentences: grep over src/ scripts/ all/ plugins/src/base/hooks/ tests/ returned no hit.
+Files changed by the probe (src + generated copies):       21
+plugins/lisa-agy/skills/lisa-drive-pr-to-merge/SKILL.md
+plugins/lisa-agy/skills/lisa-exploratory-qa/SKILL.md
+plugins/lisa-agy/skills/lisa-project-ideation/SKILL.md
+plugins/lisa-copilot/skills/lisa-drive-pr-to-merge/SKILL.md
+plugins/lisa-copilot/skills/lisa-exploratory-qa/SKILL.md
+plugins/lisa-copilot/skills/lisa-project-ideation/SKILL.md
+plugins/lisa-cursor/skills/lisa-drive-pr-to-merge/SKILL.md
+plugins/lisa-cursor/skills/lisa-exploratory-qa/SKILL.md
+plugins/lisa-cursor/skills/lisa-project-ideation/SKILL.md
+plugins/lisa-devin/skills/lisa-drive-pr-to-merge/SKILL.md
+plugins/lisa-devin/skills/lisa-exploratory-qa/SKILL.md
+plugins/lisa-devin/skills/lisa-project-ideation/SKILL.md
+plugins/lisa/.codex-plugin/skills/lisa-drive-pr-to-merge/SKILL.md
+plugins/lisa/.codex-plugin/skills/lisa-exploratory-qa/SKILL.md
+plugins/lisa/.codex-plugin/skills/lisa-project-ideation/SKILL.md
+plugins/lisa/skills/lisa-drive-pr-to-merge/SKILL.md
+plugins/lisa/skills/lisa-exploratory-qa/SKILL.md
+plugins/lisa/skills/lisa-project-ideation/SKILL.md
+plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
+plugins/src/base/skills/lisa-exploratory-qa/SKILL.md
+plugins/src/base/skills/lisa-project-ideation/SKILL.md
+
+## Source diff (plugins/src only)
+diff --git a/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md b/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
+index 2a78859128..df67fe2672 100644
+--- a/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
++++ b/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
+@@ -823,11 +823,12 @@ gh api "repos/<owner>/<repo>/branches/<base>/protection/required_status_checks"
+ gh api "repos/<owner>/<repo>/branches/<base>" --jq .protected
+ ```
+ 
+-The wait does not apply only when BOTH say none: the rules read returns `0`
+-AND the classic read returns `0`, or 404 while the branch read says `.protected`
+-is `false`. GitHub also answers 404 when the token cannot read protection (it
+-needs admin), so a 404 on a protected branch — or any other error from either
+-read — means the requirement is unknown: treat the base as requiring checks.
++The wait does not apply only when BOTH say none: the rules read
++returns `0` AND the classic read returns `0`, or 404 while the branch
++read says `.protected` is `false`. GitHub also answers 404 when the
++token cannot read protection (it needs admin), so a 404 on a protected
++branch — or any other error from either read — means the requirement is
++unknown: treat the base as requiring checks.
+ With no required checks, the loop just re-polls for the other blockers. Otherwise the
+ head's checks have not started: re-poll, and re-run the bounded watch once the
+ re-poll shows required checks registered. Between those re-polls, wait with this
+@@ -839,7 +840,7 @@ required one has not registered):
+ timeout 60 gh pr checks <pr> --watch --interval 10; sleep 30
+ ```
+ 
+-Never a detached or unbounded sleep loop. After 10 re-polls with no required
++Do not use a detached or unbounded sleep loop. After 10 re-polls with no required
+ check registered on the head, that is a blocker, not a wait: stop and name the
+ missing checks (report mode: `blocked:checks`).
+ 
+diff --git a/plugins/src/base/skills/lisa-exploratory-qa/SKILL.md b/plugins/src/base/skills/lisa-exploratory-qa/SKILL.md
+index 687650ab54..9da0073aad 100644
+--- a/plugins/src/base/skills/lisa-exploratory-qa/SKILL.md
++++ b/plugins/src/base/skills/lisa-exploratory-qa/SKILL.md
+@@ -91,7 +91,7 @@ Re-running a pass must not refile the same finding. Before creating a ticket, se
+ 
+ - **Open** ticket carrying the marker → reference/update it instead; do not create a second.
+ - **Closed as _completed_** → does **not** suppress. A recurrence after a fix is a genuine **regression**, so file the finding.
+-- **Closed as _not planned_** (GitHub `stateReason == "not_planned"`; the config-resolved won't-do/canceled equivalent on JIRA/Linear — never infer decline from a hardcoded state name) → a human **declined** this finding, so **suppress it**. Re-file only with evidence that **postdates the decline** and establishes a materially changed consequence, requirement, or risk addressing the recorded reason, carrying BOTH the machine token (`declined <date>; recurred <date> in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. New evidence (<date>, <ref>) changes the consequence, requirement, or risk: <what changed and why the decline no longer applies>.`).
++- **Closed as _not planned_** (GitHub `stateReason == "not_planned"`; the config-resolved won't-do/canceled equivalent on JIRA/Linear — never infer decline from a hardcoded state name) → a human **declined** this finding, so **suppress it**. File it again only when evidence **postdates the decline** and shows a materially different consequence, requirement or risk that answers the recorded reason, carrying BOTH the machine token (`declined <date>; recurred <date> in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. New evidence (<date>, <ref>) changes the consequence, requirement, or risk: <what changed and why the decline no longer applies>.`).
+ 
+ Every filed finding ticket MUST end with the `rejection-detection` **operator footer** as a visible prose line so the operator knows which close-reason silences it:
+ 
+diff --git a/plugins/src/base/skills/lisa-project-ideation/SKILL.md b/plugins/src/base/skills/lisa-project-ideation/SKILL.md
+index e9b229669a..2f17e54bcf 100644
+--- a/plugins/src/base/skills/lisa-project-ideation/SKILL.md
++++ b/plugins/src/base/skills/lisa-project-ideation/SKILL.md
+@@ -43,7 +43,7 @@ tracker tickets (that is `lisa-plan`) and does **not** change code (that is `lis
+ 
+ ## Two gates every build-ready idea must pass
+ 
+-An idea may only become a **Practical Idea** (and thus a PRD candidate) if it passes BOTH gates.
++An idea becomes a **Practical Idea** (and so a PRD candidate) only when it clears BOTH gates.
+ Otherwise demote it.
+ 
+ 1. **Practicality gate.** The project can plausibly implement the idea from sources that actually
+
+## Run 1: 'time bun run test:unit' immediately after the reword (before regenerating derived artifacts)
+ Test Files  3 failed | 1608 passed (1611)
+      Tests  3 failed | 25166 passed | 2 skipped (25171)
+   Start at  16:53:10
+   Duration  1377.50s (transform 13.09s, setup 70.11s, import 128.91s, tests 1963.10s, environment 67ms)
+
+error: script "lisa-test-run" exited with code 1
+error: script "test:unit" exited with code 1
+bun run test:unit  987.68s user 531.84s system 109% cpu 23:09.37 total
+exit=1
+Failures (3), all derived-artifact freshness, none a wording pin:
+ FAIL  |lisa| tests/unit/scripts/derived-artifact-staleness.test.ts > derived-artifact staleness gate: end to end > passes on a tree whose artifacts are current
+ FAIL  |lisa| tests/unit/scripts/invoked-as-script.test.ts > shared entry guard wiring > BITE: the pre-commit artifact gate reaches its verdict through a symlink
+ FAIL  |lisa| tests/unit/scripts/upstream-evidence-manifest.test.ts > upstream evidence manifest > is deterministically synchronized with tracked public sources
+src/core/upstream-evidence-manifest.ts is stale.
+
+  Its inputs moved after it was generated. These files no longer have
+  the bytes it recorded:
+    plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
+    plugins/src/base/skills/lisa-exploratory-qa/SKILL.md
+Cause: src/core/upstream-evidence-manifest.ts records byte hashes of plugins/src inputs; any source edit requires
+'bun run build:upstream-evidence-manifest' (same class as build:plugins). That is a generated-artifact sync check
+(STRUCTURAL), which the issue's Keep list retains.
+
+## Regenerate: 'bun run build:upstream-evidence-manifest'; 'node scripts/generate-upstream-evidence-manifest.mjs --check' -> exit 0
+
+## Run 2: 'time bun run test:unit' after regenerating the manifest
+EXECUTED  suite runs the thing — 12.5ms
+
+ Test Files  1611 passed (1611)
+      Tests  25169 passed | 2 skipped (25171)
+   Start at  17:16:56
+   Duration  1030.80s (transform 12.03s, setup 67.70s, import 118.67s, tests 1765.09s, environment 67ms)
+
+bun run test:unit  967.46s user 495.58s system 140% cpu 17:22.14 total
+exit=0
+
+## Bite control: the PRE-cull tests (from HEAD~2) against the same reworded tree
+Command: drive-pr-bounded-ci-watch.test.ts and automations-skills.test.ts taken from HEAD~2, placed temporarily as
+tests/unit/strategies/zz-bite-*.test.ts; npx vitest run <both>; exit 1; files then deleted.
+ FAIL  |lisa| tests/unit/strategies/zz-bite-automations.test.ts > proposing loops consult the shared rejection-memory contract (#1800) > plugins/src/base/skills > lisa-exploratory-qa re-file tone > acknowledges the decline and explains a materially changed consequence
+ FAIL  |lisa| tests/unit/strategies/zz-bite-automations.test.ts > proposing loops consult the shared rejection-memory contract (#1800) > plugins/lisa/skills > lisa-exploratory-qa re-file tone > acknowledges the decline and explains a materially changed consequence
+ FAIL  |lisa| tests/unit/strategies/zz-bite-drive-pr.test.ts > drive-pr-to-merge bounded CI watch (plugins/src/base/skills) > handles a head with no required checks registered yet without spinning
+ FAIL  |lisa| tests/unit/strategies/zz-bite-drive-pr.test.ts > drive-pr-to-merge bounded CI watch (plugins/lisa/skills) > handles a head with no required checks registered yet without spinning
+ FAIL  |lisa| tests/unit/strategies/zz-bite-drive-pr.test.ts > drive-pr-to-merge bounded CI watch (plugins/lisa-agy/skills) > handles a head with no required checks registered yet without spinning
+ FAIL  |lisa| tests/unit/strategies/zz-bite-drive-pr.test.ts > drive-pr-to-merge bounded CI watch (plugins/lisa-copilot/skills) > handles a head with no required checks registered yet without spinning
+ FAIL  |lisa| tests/unit/strategies/zz-bite-drive-pr.test.ts > drive-pr-to-merge bounded CI watch (plugins/lisa-cursor/skills) > handles a head with no required checks registered yet without spinning
+ FAIL  |lisa| tests/unit/strategies/zz-bite-drive-pr.test.ts > drive-pr-to-merge bounded CI watch (plugins/lisa-devin/skills) > handles a head with no required checks registered yet without spinning
+ FAIL  |lisa| tests/unit/strategies/zz-bite-drive-pr.test.ts > drive-pr-to-merge bounded CI watch (plugins/lisa/.codex-plugin/skills) > handles a head with no required checks registered yet without spinning
+ Test Files  2 failed (2)
+      Tests  9 failed | 282 passed (291)
+AssertionError: expected '---\nname: lisa-exploratory-qa\ndescr…' to contain 'materially changed consequence, requi…'
+
+- Expected
++ Received
+
+- materially changed consequence, requirement, or risk
++ ---
+
+## Revert
+Exact inverse replacements (reword.cjs revert); src/core/upstream-evidence-manifest.ts restored from backup
+(sha256 2d967baa3a91b62eae68c0cc23e061b53f2cb923291462d6cebf6a1b6160f195 before and after); bun run build:plugins; zz-bite files removed.
+Status after revert matched the starting state (only evidence/4867/classification-summary.md shows MM, a teammate's concurrent edit).
+node scripts/generate-upstream-evidence-manifest.mjs --check after revert -> exit 0

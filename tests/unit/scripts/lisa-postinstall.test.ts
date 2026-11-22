@@ -72,6 +72,13 @@ describe("postinstall leaves template application to the operator", () => {
           expect(readFileSync(marker, "utf8")).toBe('{"exitCode":1}\n');
         expect(result.stdout).toContain("lisa apply");
         expect(result.stdout).toContain("lisa doctor");
+        // #4504: say plainly that plugins were not registered, and how to.
+        expect(result.stdout).toContain(
+          "Claude Code plugins are not registered by dependency install"
+        );
+        expect(result.stdout).toContain(
+          "Run `lisa apply .` in this project to register them"
+        );
       } finally {
         rmSync(root, { recursive: true, force: true });
       }

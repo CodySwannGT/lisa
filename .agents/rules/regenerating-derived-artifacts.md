@@ -8,13 +8,13 @@ before `git add` records the file set you had a moment ago.
 git add <the real changes>
 bun run build:lisa-owned-hash-ledger
 bun run build:upstream-evidence-manifest
-git add src/core/lisa-owned-hash-ledger.ts src/core/upstream-evidence-manifest.ts
+git add src/core/lisa-owned-hash-ledger.json src/core/upstream-evidence-manifest.json
 bun run check:artifacts
 ```
 
 The two artifacts are:
 
-- `src/core/lisa-owned-hash-ledger.ts` — every content hash Lisa has ever
+- `src/core/lisa-owned-hash-ledger.json` — every content hash Lisa has ever
   shipped at a Lisa-owned destination, built by
   `scripts/generate-lisa-owned-hash-ledger.mjs`. It holds **two** records, and
   both are regenerated together: `LISA_OWNED_HASH_LEDGER` is the hashes, and
@@ -24,9 +24,13 @@ The two artifacts are:
   clone, it is KEPT rather than pruned, and the generator reports it on every
   run (CodySwannGT/lisa#3115). `digestOrigin` in
   `src/core/lisa-owned-provenance.ts` answers the same question in one call.
-- `src/core/upstream-evidence-manifest.ts` — the hash-pinned allowlist of public
+- `src/core/upstream-evidence-manifest.json` — the hash-pinned allowlist of public
   upstream evidence, built by
   `scripts/generate-upstream-evidence-manifest.mjs`.
+
+Both are JSON data, read at runtime by hand-written loaders of the same name
+(`src/core/lisa-owned-hash-ledger.ts`, `src/core/upstream-evidence-manifest.ts`).
+Never edit the JSON by hand; the loaders are ordinary source.
 
 `bun run check:artifacts` runs both `--check`s. The same pair runs at commit
 time from `.husky/pre-commit` via `scripts/check-derived-artifacts.mjs`.
@@ -48,7 +52,7 @@ reformat is a no-op on already-formatted bytes.
 
 Folklore says ledger-before-manifest because "the manifest hashes the ledger".
 **Measured, the manifest does not hash the ledger.**
-`src/core/lisa-owned-hash-ledger.ts` sits outside
+`src/core/lisa-owned-hash-ledger.json` sits outside
 every packaged-evidence prefix, so the manifest records its *path* and never its
 *bytes*; changing the ledger's contents leaves the manifest's `--check` passing.
 
@@ -75,6 +79,33 @@ only the file, and each cause has a different fix:
 When the listed files include a `copy-overwrite` template, the refusal also
 tells you to regenerate the ledger, because that template's bytes are recorded
 in both.
+
+## The manifest's commit list is refreshed by the release, not by you
+
+The manifest also holds `UPSTREAM_PUBLIC_COMMITS`, the list of commits
+`lisa file-upstream` accepts as references. An ordinary regeneration carries
+that list forward unchanged — which is what keeps `--check` byte-reproducible on
+any clone — so between releases it is behind `HEAD`, and that is expected.
+
+The release extends it. The `postbump` hook in `.versionrc` stages the release
+build, runs `node scripts/generate-upstream-evidence-manifest.mjs
+--refresh-public-commits`, runs `node scripts/check-release-commit-listed.mjs`,
+and stages the manifest, so the release commit carries every commit reachable
+from `origin`'s refs at that moment. Until CodySwannGT/lisa#4960 nothing ran the
+refresh, and every commit made after the list was introduced was refused.
+
+Three refusals guard it, each naming its fix:
+
+- **the commit being released from is not on the refreshed list** — it was never
+  pushed, or `origin`'s refs were not fetched. The release stops.
+- **the clone is shallow** — a shallow clone would add its newest commit and
+  silently omit everything older, so the refresh refuses it. The release job
+  checks out with `fetch-depth: 0`; keep it that way.
+- **the new list would drop a recorded commit** — the list only ever grows, so a
+  shorter one means the generated file was reformatted or edited. Restore it.
+
+There is no need to refresh the list in an ordinary pull request: it adds
+thousands of lines that the next release writes anyway.
 
 ## Why regenerating twice can be right
 

@@ -6,6 +6,13 @@ const SRC_TS_GLOB = "src/**/*.ts";
 
 describe("vitest.typescript", () => {
   describe("getTypescriptVitestConfig", () => {
+    it("carries the access-map recorder so a host's CI can record its map (#4611)", () => {
+      const names = (getTypescriptVitestConfig().plugins ?? []).map(
+        plugin => (plugin as { name?: string }).name
+      );
+      expect(names).toContain("lisa:test-access-map");
+    });
+
     it("uses node environment", () => {
       const config = getTypescriptVitestConfig();
 

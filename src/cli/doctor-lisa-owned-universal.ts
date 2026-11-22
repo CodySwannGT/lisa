@@ -15,7 +15,7 @@ import { isLisaOwnedTemplate } from "../core/lisa-owned-templates.js";
 import { listFilesRecursive } from "../utils/file-operations.js";
 
 /** Directory name of the strategy tree these artifacts are shipped from. */
-export const COPY_OVERWRITE = "copy-overwrite";
+const COPY_OVERWRITE = "copy-overwrite";
 
 /**
  * The stack tree every project receives regardless of detected type.

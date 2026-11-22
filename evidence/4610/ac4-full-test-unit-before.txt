@@ -1,0 +1,6 @@
+# Note: this run used a git-archive export of origin/main ef452d2a31 (no .git), so 45 git-dependent test files fail; only file count and timing are usable.
+⎯⎯⎯⎯⎯⎯ Failed Tests 89 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  45 failed | 1557 passed (1602)
+      Tests  89 failed | 29551 passed | 18 skipped (29658)
+   Start at  08:34:57
+   Duration  953.84s (transform 11.73s, setup 64.73s, import 101.95s, tests 1630.20s, environment 66ms)

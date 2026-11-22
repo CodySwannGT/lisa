@@ -3,6 +3,10 @@
 
 /** Provider-native proof discovery/publication adapters; credentials stay in CLI. */
 import {
+  EstimateConfigError,
+  resolveEstimateGate,
+} from "./work-item-estimate-config.mjs";
+import {
   CompletionProofError,
   MAX_NATIVE_JSON_BYTES,
   requireProof,
@@ -12,6 +16,22 @@ const READ_ERROR = "read-error";
 const WRITE_ERROR = "write-error";
 
 /** Construct the same strict authorizer context for supported lifecycle writers. */
+/**
+ * The project's token-estimate settings for the done gate
+ * (CodySwannGT/lisa#4956). An unusable `workItem.estimate` is carried as an
+ * error so completion refuses with the reason instead of crashing, unless the
+ * project turned the gate off: then the gate never reads those settings, so
+ * they cannot refuse completion either.
+ */
+function estimateSettings(config) {
+  try {
+    return resolveEstimateGate(config);
+  } catch (error) {
+    if (!(error instanceof EstimateConfigError)) throw error;
+    return { required: true, error: error.message };
+  }
+}
+
 export function completionContext(options) {
   const { ref, contract, run, declares, hasBacklink } = options;
   const github = contract.provider === "github";
@@ -164,6 +184,7 @@ export function completionContext(options) {
     branch,
     suppliedPrUrl: options.prUrl,
     policy: options.config.verification?.completion ?? {},
+    estimate: estimateSettings(options.config),
     run,
     declares,
     readSubject,

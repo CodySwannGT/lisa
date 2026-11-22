@@ -14,6 +14,17 @@ import {
   writeRepoFile,
 } from "../../helpers/readiness-workflow-fixtures.js";
 
+/**
+ * The first element of a list, failing the test loudly when the list is empty.
+ * @param items - The list under test
+ * @returns Its first element
+ */
+function first<T>(items: readonly T[]): T {
+  const [head] = items;
+  if (head === undefined) throw new Error("expected a non-empty list");
+  return head;
+}
+
 /** The ship blocker this producer can stand up. */
 const BLOCKER_ID = "B5";
 
@@ -103,7 +114,7 @@ describe("assessDependenciesSupplyChainDimension — Go module repositories", ()
     expect(finding?.evidence).toContain(GO_SUM);
     expect(finding?.evidence).toContain("Go dependency-audit gate");
     expect(finding?.evidence).toContain("github.com/stretchr/testify");
-    expect(assessReadiness([record]).blockers[0].id).toBe(BLOCKER_ID);
+    expect(first(assessReadiness([record]).blockers).id).toBe(BLOCKER_ID);
   });
 
   it("PASSes a locked and audited Go module with pinned requirements", async () => {
@@ -117,8 +128,8 @@ describe("assessDependenciesSupplyChainDimension — Go module repositories", ()
     expect(record.status).toBe("PASS");
     expect(assessReadiness([record]).blockers).toEqual([]);
     const findings = asFindings(record.findings);
-    expect(findings[0].evidence).toContain(GO_MOD);
-    expect(findings[0].evidence).toContain(GO_SUM);
+    expect(first(findings).evidence).toContain(GO_MOD);
+    expect(first(findings).evidence).toContain(GO_SUM);
     for (const finding of findings) {
       expect(Object.hasOwn(finding, "blocker")).toBe(false);
     }
@@ -161,7 +172,7 @@ describe("assessDependenciesSupplyChainDimension — Go module repositories", ()
 
     expect(record.status).toBe(SKIP);
     const findings = asFindings(record.findings);
-    expect(findings[0].reason).toContain("declares no module requirements");
+    expect(first(findings).reason).toContain("declares no module requirements");
     expect(assessReadiness([record]).blockers).toEqual([]);
   });
 

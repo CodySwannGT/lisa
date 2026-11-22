@@ -13,7 +13,6 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const MODES = ["embedded", "wrapper", "standalone", "subdir"];
 const SIDE_EFFECTS = ["read-only-ingest", "repo-write", "external-write"];
 const RETENTION = [
   "raw-ok",
@@ -88,24 +87,13 @@ if (!isObject(config)) {
 }
 
 // Required
-for (const key of ["schemaVersion", "org", "mode", "wikiRoot", "categories"]) {
+for (const key of ["schemaVersion", "org", "categories"]) {
   if (config[key] === undefined) err(`missing required field: ${key}`);
 }
 checkType(config.schemaVersion, "string", "schemaVersion");
 checkType(config.org, "string", "org");
 checkType(config.displayName, "string", "displayName");
 checkType(config.purpose, "string", "purpose");
-checkEnum(config.mode, MODES, "mode");
-checkType(config.wikiRoot, "string", "wikiRoot");
-if (
-  typeof config.wikiRoot === "string" &&
-  (path.isAbsolute(config.wikiRoot) ||
-    config.wikiRoot.split(/[\\/]/).includes(".."))
-) {
-  err(
-    'wikiRoot: must be a relative path inside the repo (no absolute paths, no ".." traversal)'
-  );
-}
 checkType(config.frontmatter, "boolean", "frontmatter");
 if (
   config.categories !== undefined &&
@@ -228,15 +216,6 @@ if (config.documentation !== undefined) {
     }
   }
 }
-if (config.onboarding !== undefined) {
-  if (!isObject(config.onboarding)) err("onboarding: must be an object");
-  else
-    checkType(
-      config.onboarding.allowAudienceNote,
-      "boolean",
-      "onboarding.allowAudienceNote"
-    );
-}
 
 if (config.connectors !== undefined) {
   if (!isObject(config.connectors))
@@ -281,33 +260,6 @@ if (config.customConnectors !== undefined) {
         SIDE_EFFECTS,
         `customConnectors[${i}].sideEffects`
       );
-    });
-  }
-}
-
-if (config.staff !== undefined) {
-  if (!Array.isArray(config.staff)) err("staff: must be an array");
-  else {
-    config.staff.forEach((s, i) => {
-      if (!isObject(s)) {
-        err(`staff[${i}]: must be an object`);
-        return;
-      }
-      for (const k of ["id", "role"]) {
-        if (s[k] === undefined)
-          err(`staff[${i}]: missing required field "${k}"`);
-      }
-      checkEnum(s.sensitivity, SENSITIVITY, `staff[${i}].sensitivity`);
-      if (s.owns !== undefined) {
-        if (!isObject(s.owns)) err(`staff[${i}].owns: must be an object`);
-        else {
-          for (const ok of ["categories", "connectors", "skills"]) {
-            if (s.owns[ok] !== undefined && !isStringArray(s.owns[ok])) {
-              err(`staff[${i}].owns.${ok}: must be an array of strings`);
-            }
-          }
-        }
-      }
     });
   }
 }

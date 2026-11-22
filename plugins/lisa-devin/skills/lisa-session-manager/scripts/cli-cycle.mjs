@@ -11,6 +11,8 @@ import {
   AUTOMATION_RUN_OUTCOMES,
   recordAutomationRun,
 } from "../../../scripts/automation-run-record.mjs";
+import { resolveHumanGatePolicy } from "../../../scripts/human-gate-act.mjs";
+import { idComparableValues } from "../../../scripts/operator-id-kinds.mjs";
 import {
   CliError,
   EXIT,
@@ -22,6 +24,7 @@ import {
   stdinText,
 } from "./cli-runtime.mjs";
 import { parseJson, readJsonFile } from "./cli-queue.mjs";
+import { trustedReleaseEntries } from "./config.mjs";
 import {
   clearPendingQuestion,
   clearValidationFailure,
@@ -33,6 +36,7 @@ import {
   setPendingQuestion,
 } from "./ledger.mjs";
 import { recordMarked } from "./ledger-questions.mjs";
+import { clearSetupGap } from "./ledger-setup-gaps.mjs";
 import { planBlockedRelease } from "./reconcile.mjs";
 import { formatAnswer, routeInbound } from "./telegram-route.mjs";
 
@@ -52,6 +56,21 @@ function pausedFlag(value) {
     throw new CliError("--paused must be true or false.", 2);
   }
   return value === "true";
+}
+
+/**
+ * Parse `--hold-digest <fingerprint>`: the sha256 `orphan-plan` reported.
+ * @param {string} value - Flag value
+ * @returns {string} Fingerprint
+ */
+function holdDigestFlag(value) {
+  if (!/^[0-9a-f]{64}$/u.test(value)) {
+    throw new CliError(
+      "--hold-digest must be a sha256 fingerprint or none.",
+      2
+    );
+  }
+  return value;
 }
 
 /**
@@ -130,6 +149,7 @@ const LEDGER_ACTIONS = {
     clearPendingQuestion(ctx.root, {
       ref: requirePositional(ctx, "ref"),
       resetAttempts: ctx.values["reset-attempts"] === true,
+      expectAnswerAt: ctx.values["expect-answer-at"],
     }),
   async finish(ctx) {
     const status = ctx.values.status;
@@ -138,10 +158,15 @@ const LEDGER_ACTIONS = {
     }
     const ref = requirePositional(ctx, "ref");
     await assertSender(ctx, ref);
+    const setupGap = ctx.values["setup-gap"] === true;
+    if (setupGap && status !== "FAILED") {
+      throw new CliError("--setup-gap needs --status FAILED.", 2);
+    }
     return recordFinish(ctx.root, {
       ref,
       status,
       reason: stdinText(ctx, "reason", { required: false }),
+      setupGap,
     });
   },
   "validation-failed": ctx =>
@@ -152,6 +177,8 @@ const LEDGER_ACTIONS = {
     }),
   "validation-cleared": ctx =>
     clearValidationFailure(ctx.root, { ref: requirePositional(ctx, "ref") }),
+  "clear-setup-gap": ctx =>
+    clearSetupGap(ctx.root, { repo: requirePositional(ctx, "repo") }),
   control: ctx =>
     setControl(
       ctx.root,
@@ -162,6 +189,7 @@ const LEDGER_ACTIONS = {
             intFlag(value, "--max-workers")
           ),
           me: clearable(ctx.values.me, value => value),
+          holdDigest: clearable(ctx.values["hold-digest"], holdDigestFlag),
         }).filter(([, value]) => value !== undefined)
       )
     ),
@@ -224,10 +252,17 @@ export async function route(ctx) {
  * its JSON (stdin, or the file). `--ref` fills in the ledger's pending
  * question when the input does not carry one.
  *
- * Who may release a human hold comes from `sessionManager.trustedAuthorIds`
- * only. Any `trustedHumanActorIds` in the input is discarded: the input is
+ * Who may release a human hold comes from `sessionManager.trustedReleaseIds`
+ * only, falling back to `trustedAuthorIds` when it is unset (#4895). Any `trustedHumanActorIds` in the input is discarded: the input is
  * assembled from the item's own (untrusted) body and comments, so a list
- * carried beside them would let the item's text vouch for itself.
+ * carried beside them would let the item's text vouch for itself. The
+ * release check compares account ids only, so an `id:` entry reaches it as
+ * its bare value and a `login:` entry not at all (#4623).
+ *
+ * The human-gate policy (`humanGate.mode`, `humanGate.humanOnly`) comes from
+ * config the same way, resolved local-then-global like
+ * `human-gate-act.mjs policy`, and any copy in the input is overwritten: the
+ * item must not be able to declare its own hold invalid (#4687).
  * @param {object} ctx - CLI context
  * @returns {Promise<{ json: object }>} `{action,reason,edges,gate}`
  */
@@ -240,10 +275,15 @@ export async function blockedPlan(ctx) {
     input.pendingQuestion ??
     (ref ? (await readLedger(ctx.root)).items[ref]?.pendingQuestion : null);
   const project = loadProject(ctx.root);
-  const trustedHumanActorIds = project.config?.trustedAuthorIds ?? [];
+  const trustedHumanActorIds = idComparableValues(
+    trustedReleaseEntries(project.config)
+  );
+  const policy = resolveHumanGatePolicy(project.local, project.global);
   return {
     json: planBlockedRelease({
       ...input,
+      humanOnly: policy.humanOnly,
+      humanGateMode: policy.mode,
       // The configured label, so a Jira `Human Needed` hold is still a hold.
       humanNeededLabel:
         input.humanNeededLabel ?? humanNeededLabel(project, undefined),

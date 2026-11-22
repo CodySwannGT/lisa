@@ -1,0 +1,43 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4694-sweep-json-flush
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ↓ |lisa| tests/integration/lisa-cleanup-sweep.test.ts > cleanup sweep, real filesystem and processes > removes the 25-hour Lisa folder and keeps the 1-hour one and the non-Lisa one
+ ↓ |lisa| tests/integration/lisa-cleanup-sweep.test.ts > cleanup sweep, real filesystem and processes > kills the orphan of a dead owner and leaves a live run's child running
+ × |lisa| tests/integration/lisa-cleanup-sweep.test.ts > cleanup sweep, real filesystem and processes > writes the whole --json report into a pipe, listing all 10,000 stale entries 2258ms
+   → expected 65536 to be greater than 65536
+ ↓ |lisa| tests/integration/lisa-cleanup-sweep.test.ts > cleanup sweep, real filesystem and processes > prints one summary line and exits 0 without --json
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/integration/lisa-cleanup-sweep.test.ts > cleanup sweep, real filesystem and processes > writes the whole --json report into a pipe, listing all 10,000 stale entries
+AssertionError: expected 65536 to be greater than 65536
+ ❯ tests/integration/lisa-cleanup-sweep.test.ts:205:41
+    203|       expect(child.status).toBe(0);
+    204|       const output = String(child.stdout);
+    205|       expect(Buffer.byteLength(output)).toBeGreaterThan(65_536);
+       |                                         ^
+    206|       const report = JSON.parse(output.trim());
+    207|       expect(report.removed).toHaveLength(PIPED_ENTRY_COUNT);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 skipped (4)
+   Start at  13:23:33
+   Duration  2.91s (transform 264ms, setup 308ms, import 58ms, tests 2.26s, environment 0ms)
+
+exit=1

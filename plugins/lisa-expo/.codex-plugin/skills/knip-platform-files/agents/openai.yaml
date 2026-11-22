@@ -1,0 +1,4 @@
+display_name: "Knip Platform Files"
+short_description: "Fix knip flagging imports…"
+default_prompt:
+  - "Use $knip-platform-files: Fix knip flagging imports…."

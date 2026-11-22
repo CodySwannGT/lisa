@@ -33,14 +33,13 @@ set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 DRY_RUN=false
-VERBOSE=false
 PROJECT_PATH=""
 PASSTHROUGH=()
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     -n|--dry-run) DRY_RUN=true; PASSTHROUGH+=("--dry-run"); shift ;;
-    -v|--verbose) VERBOSE=true; PASSTHROUGH+=("--verbose"); shift ;;
+    -v|--verbose) PASSTHROUGH+=("--verbose"); shift ;;
     -h|--help) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) echo "Unknown option: $1" >&2; exit 1 ;;
     *) PROJECT_PATH="$1"; shift ;;

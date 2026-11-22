@@ -22,13 +22,9 @@ import {
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
 import { hostedHookContext } from "../../../all/copy-overwrite/scripts/lib/npm-update-hosted-hook.mjs";
 import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
-import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../../src/configs/vitest/scratch-supervision.js";
 
 async function fixture(operation: (state: any) => Promise<void>) {
-  const scratch = createSupervisedUnixFixture(
-    "hook-reader.sock",
-    process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-  );
+  const scratch = createSupervisedUnixFixture("hook-reader.sock");
   const root = scratch.root;
   const gh = join(root, "native-gh-fixture");
   writeFileSync(
@@ -290,6 +286,28 @@ describe("hosted gate read-only provider transport", () => {
       rmSync(expired.file);
       writeJson(expired.file, context);
       expect(() => hostedHookContext(expired.file)).toThrow(/context/);
+    });
+  });
+  it("admits a hook graph up to 256 files, like the helper graph, and refuses one more", async () => {
+    // At 128 the managed inventory sat at the cap (CodySwannGT/lisa#4582).
+    await fixture(async state => {
+      const { file } = gatewayFixture(state, 'process.stdout.write("x");');
+      const context = JSON.parse(readFileSync(file, "utf8"));
+      const withGraphOf = (count: number): void => {
+        const graph: Record<string, string> = { ...context.graph };
+        const missing = count - Object.keys(graph).length;
+        for (let index = 0; index < missing; index += 1) {
+          const filler = join(state.root, `bound-filler-${index}.mjs`);
+          writeFileSync(filler, `export const n = ${index};\n`);
+          graph[filler] = sha256(readFileSync(filler));
+        }
+        rmSync(file);
+        writeJson(file, { ...context, graph });
+      };
+      withGraphOf(256);
+      expect(Object.keys(hostedHookContext(file).graph)).toHaveLength(256);
+      withGraphOf(257);
+      expect(() => hostedHookContext(file)).toThrow(/changed/);
     });
   });
   it("refuses writer, foreign subject, caller-selected native options and unknown slots", async () => {

@@ -1,5 +1,5 @@
 ---
-description: "Monitor application health AND audit observability completeness for the current repo, then file build-ready tickets for anomalies and instrumentation gaps. Health/logs/errors/performance via the stack ops-specialist or stack-agnostic base probing; repo-scoped, idempotent, capped; files by default, --dry-run previews."
+description: "Check app health and instrumentation coverage, then file build-ready tickets for anomalies and gaps. Files by default; --dry-run previews."
 argument-hint: "[environment] [--dry-run] [--report-only] [--all-gaps] [max_candidates=<n>]"
 ---
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Type-check `tests/` and hold the result to a quarantine that can only shrink.
+ * Type-check `tests/` and fail on any error, in any file.
  *
  * WHY THIS EXISTS. The required `type-correctness` gate compiles `tsconfig.json`,
  * whose `include` is `src/**\/*`, so it compiled 0 of 1385 test files and reported
@@ -8,33 +8,19 @@
  * (CodySwannGT/lisa#3811). Test files here are not incidental: they hold fixture
  * builders, shape assertions and harnesses other suites import.
  *
- * WHY A FILE-LEVEL QUARANTINE RATHER THAN A STAGED ROLLOUT. Turning the program
- * on surfaces a backlog that predates this gate, so something has to hold it.
- * The tempting option is to widen the program one directory at a time. That is
- * the defect surviving in miniature: with a directory scope, a brand-new file
- * under an unreached directory is unchecked on the day it is written. A
- * file-level quarantine inverts it — **every new or renamed file is checked
- * immediately**, and only the files that were already failing are exempt.
+ * THERE IS NO EXEMPTION LIST. The gate once held a file-level quarantine of
+ * files that were already failing when the program was switched on, ratcheted
+ * so it could only shrink. CodySwannGT/lisa#4923 emptied it and deleted it: an
+ * exemption list is debt with a mechanism attached, and the mechanism outlives
+ * the reason. Every file in the program is now held to the same rule — one type
+ * error anywhere fails the gate.
  *
- * IT RATCHETS IN BOTH DIRECTIONS, which is what stops it becoming permanent:
- *
- *   - an error in a file NOT in the quarantine fails the gate: that is new debt;
- *   - a quarantined file with NO errors fails the gate too, asking to be
- *     removed from the list. Without that rule the list would record files that
- *     were fixed years ago and quietly re-authorise them if they regressed.
- *
- * `typecheck-quarantine.json` is additionally watched by the existing
- * threshold-ratchet as an `allow-list` family, so *adding* an entry is flagged
- * by a gate somebody already reads.
- *
- * IT REFUSES TO ANSWER FROM AN UNRESOLVABLE TREE (CodySwannGT/lisa#3913). The
- * second of those ratchet directions is the destructive one: it names files and
- * tells a reader to delete their quarantine entries. With an empty
- * `node_modules` the compiler cannot start, nothing is compiled, no diagnostic
- * is parsed — and "no diagnostic for this file" is exactly the shape of "this
- * file was fixed". The gate reported all 370 quarantined files as cleared and
- * instructed their removal, which is a destructive edit ordered on the strength
- * of a comparison whose inputs never resolved.
+ * IT REFUSES TO ANSWER FROM AN UNRESOLVABLE TREE (CodySwannGT/lisa#3913). With
+ * an empty `node_modules` the compiler cannot start, nothing is compiled and no
+ * diagnostic is parsed. Under the old quarantine that emptiness read as "every
+ * quarantined file was fixed" and ordered a destructive edit; without one it
+ * would read as a clean run. Either way it is a verdict about a program nobody
+ * compiled, so it is refused rather than reported.
  *
  * So there are two ways this refuses instead of reporting, and the second is
  * the general one:
@@ -54,6 +40,13 @@
  * token out of this header to decide the gate is probeable at all — without it
  * this sits in that sweep's declared blind spot.
  *
+ * `--project` POINTS IT AT ANOTHER PROGRAM. `tsconfig.eslint.json` is the
+ * program ESLint's type-aware rules read their types from; it once reported
+ * 5,294 errors while lint passed, so those rules were reasoning over `any` and
+ * error types (CodySwannGT/lisa#4927). `bun run typecheck:eslint` runs this
+ * same gate over it — same rules, same refusals, no exemption list — so that
+ * program cannot rot unseen again. Without the flag it checks the test program.
+ *
  * WHAT IS DELIBERATELY NOT DONE HERE: the declared `lib` is not widened. tsc
  * emits "Try changing the 'lib' compiler option to 'es2023' or later" on the
  * ES2023 array APIs, and taking that suggestion would have erased the
@@ -63,7 +56,6 @@
  * @module scripts/check-typecheck-tests
  */
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import * as path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -81,40 +73,64 @@ const DEFAULT_ROOT = path.resolve(
   ".."
 );
 
-/** The gate's name, as it prints in both the report and the refusal. */
-const GATE = "type-correctness (tests)";
+/** The project the gate compiles when no `--project` is given. */
+const DEFAULT_PROJECT = "tsconfig.tests.json";
 
-/** Where the compiler is spawned from, relative to the root. */
-const TSC = path.join("node_modules", "typescript", "bin", "tsc");
+/**
+ * How each known program is named in the report and the refusal. The test
+ * program's wording is a contract: `gate-failure-diagnosis.mjs` and the tests
+ * pinning this gate read it.
+ * @type {Readonly<Record<string, { gate: string, program: string }>>}
+ */
+const PROGRAMS = {
+  "tsconfig.tests.json": {
+    gate: "type-correctness (tests)",
+    program: "the test program",
+  },
+  "tsconfig.eslint.json": {
+    gate: "type-correctness (eslint program)",
+    program: "the ESLint program",
+  },
+};
+
+/**
+ * Name a program for the report: a known one by its fixed wording, any other
+ * by its config file, so a new project never prints as the test program.
+ * @param {string} project - The tsconfig path, relative to the root.
+ * @returns {{ gate: string, program: string }} The gate name and program noun.
+ */
+export function describeProgram(project) {
+  return (
+    PROGRAMS[project] ?? {
+      gate: `type-correctness (${project})`,
+      program: `the ${project} program`,
+    }
+  );
+}
+
+/**
+ * Where the compiler is spawned from, relative to the root: the TypeScript
+ * native compiler (`tsgo`, npm `@typescript/native-preview`), which checks this
+ * program about ten times faster than `tsc` (CodySwannGT/lisa#4614, #4695). On
+ * this program it puts the same set of files in error as `tsc`, though error
+ * counts, codes and wording can differ — which is enough, because this gate
+ * asks only whether any file is in error and names the files, never compares
+ * raw diagnostics across compilers. Its bin is a plain Node script, so it is
+ * spawned under `node` exactly as `tsc` was.
+ */
+const TSC = path.join(
+  "node_modules",
+  "@typescript",
+  "native-preview",
+  "bin",
+  "tsgo"
+);
 
 /** Matches `path/to/file.ts(12,34): error TS1234: message`. */
 const ERROR_LINE = /^(?<file>[^(]+)\((?<line>\d+),\d+\): error (?<code>TS\d+):/;
 
 /**
- * Read the quarantined paths.
- * @param {string} root - The directory holding the quarantine.
- * @returns {{files: string[], reason: string} | null} The parsed quarantine, or
- *   `null` when it could not be read — an unreadable list is a refusal, not a
- *   pass, because that file is what makes this gate green.
- */
-function readQuarantine(root) {
-  const quarantine = path.join(root, "typecheck-quarantine.json");
-  try {
-    const parsed = JSON.parse(readFileSync(quarantine, "utf-8"));
-    return { files: parsed.files ?? [], reason: parsed.reason ?? "" };
-  } catch (error) {
-    console.error(
-      `check-typecheck-tests: cannot read ${path.relative(root, quarantine)} — ${error.message}`
-    );
-    console.error(
-      "That file is what makes this gate green, so an unreadable one is a refusal, not a pass."
-    );
-    return null;
-  }
-}
-
-/**
- * Parse tsc's output into a per-file error count.
+ * Parse the compiler's output into a per-file error count.
  * @param {string} output - Combined stdout and stderr.
  * @returns {Map<string, number>} Errors keyed by forward-slashed path.
  */
@@ -133,45 +149,37 @@ function parseDiagnostics(output) {
 /**
  * The refusal issued when nothing was compiled.
  *
- * The denial names the destructive remedy explicitly. "Nothing type-checked" is
- * the inference a reader draws from an empty diagnostic set, and the gate's own
- * cleared-entry message is what turns that inference into a deletion — so this
- * has to deny both, not just the first.
+ * The denial names the inference a reader draws from an empty diagnostic set —
+ * that the test program type-checks — because that is exactly what was not
+ * established.
  *
- * NO FILE IS NAMED HERE, deliberately. A list of paths is what makes the
- * destructive message actionable, and a refusal that still printed 370 paths
- * would be followed exactly as often as the finding it replaces.
+ * NO FILE IS NAMED HERE, deliberately: nothing was compiled, so nothing is
+ * known about any file.
  *
+ * @param {{ gate: string, program: string }} named - The program's names.
  * @param {string} because - Why the measurement could not happen.
- * @param {number} quarantined - How many entries went unexamined.
  * @param {string} fix - The action that repairs THIS cause. Named per call
  *   site rather than fixed, because telling someone to install dependencies
  *   they already have is how a refusal gets dismissed as noise.
  * @returns {string} The refusal block.
  */
-function refuseUnmeasurable(because, quarantined, fix) {
+function refuseUnmeasurable(named, because, fix) {
   return cannotMeasure({
-    gate: GATE,
-    denial: `that any of the ${quarantined} quarantined file(s) now type-check`,
+    gate: named.gate,
+    denial: `that ${named.program} type-checks`,
     because,
-    remedy:
-      `${fix} Do NOT edit typecheck-quarantine.json on the strength of ` +
-      `this — no file was compiled, so nothing was established about any ` +
-      `entry in it.`,
+    remedy: `${fix} No file was compiled, so nothing was established about any of them.`,
   });
 }
 
 /**
  * Run the gate.
- * @param {string} root - Directory to resolve the project and quarantine under.
+ * @param {string} root - Directory to resolve the project under.
+ * @param {string} [project] - The tsconfig to compile, relative to the root.
  * @returns {number} The process exit code.
  */
-export function main(root) {
-  const quarantine = readQuarantine(root);
-  if (quarantine === null) return 1;
-  const quarantined = quarantine.files;
-  const exempt = new Set(quarantined);
-
+export function main(root, project = DEFAULT_PROJECT) {
+  const named = describeProgram(project);
   // PRECONDITION. Checked before the spawn rather than inferred from it: the
   // spawn SUCCEEDS with an empty `node_modules` — node starts, and it is node
   // that cannot find the module — so `tsc.error` never fires and the failure
@@ -180,8 +188,8 @@ export function main(root) {
   if (missing.length > 0) {
     console.error(
       refuseUnmeasurable(
-        `the TypeScript compiler is not installed — no file at ${missing[0]}.`,
-        quarantined.length,
+        named,
+        `the TypeScript native compiler (tsgo) is not installed — no file at ${missing[0]}.`,
         `Run \`${INSTALL_COMMAND}\`, then re-run this gate.`
       )
     );
@@ -193,15 +201,17 @@ export function main(root) {
     [
       path.join(root, TSC),
       "--noEmit",
+      "--pretty",
+      "false",
       "-p",
-      path.join(root, "tsconfig.tests.json"),
+      path.join(root, project),
     ],
     { cwd: root, encoding: "utf-8", maxBuffer: 64 * 1024 * 1024 }
   );
 
   if (tsc.error) {
     console.error(
-      `check-typecheck-tests: could not run tsc — ${tsc.error.message}`
+      `check-typecheck-tests: could not run tsgo — ${tsc.error.message}`
     );
     return 1;
   }
@@ -211,10 +221,10 @@ export function main(root) {
   );
 
   // POSTCONDITION, and the general form of the same defect. The compiler
-  // signalled failure and produced nothing this gate can read, so the
-  // comparison below would run against an empty set — the exact shape of "every
-  // quarantined file is fixed". A ZERO exit with no diagnostics is not this: it
-  // is a clean run, and it reports normally.
+  // signalled failure and produced nothing this gate can read — a broken
+  // tsconfig, an OOM, a crash. Reporting that as a pass would be a verdict
+  // about a program nobody compiled. A ZERO exit with no diagnostics is not
+  // this: it is a clean run, and it reports normally.
   if (ranVacuously(tsc.status, errorsByFile.size)) {
     const firstLine = `${tsc.stderr ?? ""}${tsc.stdout ?? ""}`
       .split("\n")
@@ -222,65 +232,57 @@ export function main(root) {
       .find(Boolean);
     console.error(
       refuseUnmeasurable(
-        `tsc exited ${tsc.status} without emitting one diagnostic this gate ` +
-          `could parse, so the comparison had no subject.` +
+        named,
+        `tsgo exited ${tsc.status} without emitting one diagnostic this gate ` +
+          `could parse, so the check had no subject.` +
           `${firstLine ? ` First output line: ${firstLine}` : ""}`,
-        quarantined.length,
         "Fix the cause named above, then re-run this gate."
       )
     );
     return 1;
   }
 
-  const offenders = [...errorsByFile.keys()]
-    .filter(file => !exempt.has(file))
-    .sort();
-  const cleared = quarantined.filter(file => !errorsByFile.has(file)).sort();
-
+  const offenders = [...errorsByFile.keys()].sort();
   const totalErrors = [...errorsByFile.values()].reduce((sum, n) => sum + n, 0);
   console.log(
-    `${GATE}: ${errorsByFile.size} file(s) with ${totalErrors} error(s); ` +
-      `${quarantined.length} quarantined.`
+    `${named.gate}: ${errorsByFile.size} file(s) with ${totalErrors} error(s).`
   );
 
   if (offenders.length > 0) {
     console.error("");
-    console.error(
-      `❌ ${offenders.length} file(s) outside the quarantine have type errors:`
-    );
+    console.error(`❌ ${offenders.length} file(s) have type errors:`);
     for (const file of offenders) {
       console.error(`   ${file} (${errorsByFile.get(file)})`);
     }
     console.error("");
     console.error(
-      "Fix them. Do NOT add them to typecheck-quarantine.json — that list"
+      "Fix each at its cause. There is no exemption list: every file in"
     );
-    console.error(
-      "only shrinks, and the threshold-ratchet flags additions to it."
-    );
+    console.error(`${named.program} is type-checked, and one error fails it.`);
+    return 1;
   }
 
-  if (cleared.length > 0) {
-    console.error("");
-    console.error(
-      `❌ ${cleared.length} quarantined file(s) now type-check and must leave the list:`
-    );
-    for (const file of cleared) console.error(`   ${file}`);
-    console.error("");
-    console.error(
-      "Remove them from typecheck-quarantine.json. A list that keeps entries"
-    );
-    console.error(
-      "after they are fixed would re-authorise them if they ever regressed."
-    );
-  }
-
-  if (offenders.length > 0 || cleared.length > 0) return 1;
-
-  console.log(
-    "✅ No type errors outside the quarantine, and no stale quarantine entries."
-  );
+  const program =
+    named.program.charAt(0).toUpperCase() + named.program.slice(1);
+  console.log(`✅ ${program} type-checks with no errors.`);
   return 0;
+}
+
+/**
+ * Read the value following `flag`, or undefined when the flag is absent.
+ * @param {ReadonlyArray<string>} argv - Arguments after the script name.
+ * @param {string} flag - The flag, e.g. `--root`.
+ * @returns {string | undefined} The flag's value.
+ */
+function flagValue(argv, flag) {
+  const index = argv.indexOf(flag);
+  if (index === -1) return undefined;
+  const value = argv[index + 1];
+  if (value === undefined) {
+    console.error(`check-typecheck-tests: ${flag} requires a value`);
+    process.exit(2);
+  }
+  return value;
 }
 
 /**
@@ -289,16 +291,21 @@ export function main(root) {
  * @returns {string} The absolute root.
  */
 export function rootFrom(argv) {
-  const flag = argv.indexOf("--root");
-  if (flag === -1) return DEFAULT_ROOT;
-  const value = argv[flag + 1];
-  if (value === undefined) {
-    console.error("check-typecheck-tests: --root requires a value");
-    process.exit(2);
-  }
-  return path.resolve(value);
+  const value = flagValue(argv, "--root");
+  return value === undefined ? DEFAULT_ROOT : path.resolve(value);
+}
+
+/**
+ * Resolve the project from `--project <tsconfig>`, relative to the root and
+ * defaulting to the test program.
+ * @param {ReadonlyArray<string>} argv - Arguments after the script name.
+ * @returns {string} The tsconfig path relative to the root.
+ */
+export function projectFrom(argv) {
+  return flagValue(argv, "--project") ?? DEFAULT_PROJECT;
 }
 
 if (invokedAsScript(import.meta.url)) {
-  process.exit(main(rootFrom(process.argv.slice(2))));
+  const argv = process.argv.slice(2);
+  process.exit(main(rootFrom(argv), projectFrom(argv)));
 }

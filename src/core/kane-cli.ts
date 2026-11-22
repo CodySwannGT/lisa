@@ -2,6 +2,7 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
+import { currentEnvironment } from "../utils/process-environment.js";
 import {
   readProjectConfig,
   validateProjectConfig,
@@ -19,17 +20,14 @@ import type {
 } from "./kane-cli-types.js";
 
 export { parseKaneResult } from "./kane-cli-parser.js";
-export { isChromeAvailable, runKaneCommand } from "./kane-cli-process.js";
 export type {
   ChromeAvailabilityProbe,
-  KaneCommandResult,
   KaneCommandRunner,
   KaneMutationLevel,
   KaneOutcome,
   KaneReadiness,
   KaneRunRequest,
   KaneRunResult,
-  KaneTerminalEvent,
 } from "./kane-cli-types.js";
 
 /** Kane CLI version covered by Lisa's adapter contract tests. */
@@ -137,8 +135,7 @@ async function executeKaneRun(
   runner: KaneCommandRunner
 ): Promise<KaneRunResult> {
   const timeoutSeconds = config?.timeoutSeconds ?? 120;
-  // eslint-disable-next-line no-restricted-syntax -- child inherits existing auth without logging values
-  const env = { ...process.env, KANE_CLI_USER_AGENT: "lisa" };
+  const env = { ...currentEnvironment(), KANE_CLI_USER_AGENT: "lisa" };
   assertKaneRunAllowed(config, request);
   if (request.objective.trim().length === 0) {
     throw new Error("Kane CLI objective must not be empty");
@@ -299,8 +296,7 @@ export async function probeKaneReadiness(
         "Kane CLI requires Google Chrome or Chromium; install it or set CHROME_PATH",
     };
   }
-  // eslint-disable-next-line no-restricted-syntax -- read-only probes inherit existing auth/config
-  const env = { ...process.env, KANE_CLI_USER_AGENT: "lisa-doctor" };
+  const env = { ...currentEnvironment(), KANE_CLI_USER_AGENT: "lisa-doctor" };
   const options = { cwd: projectRoot, timeoutMs: 15_000, env };
   const version = await runner("kane-cli", ["--version"], options);
   const observedVersion = /\b\d+\.\d+\.\d+\b/u.exec(version.stdout)?.[0];

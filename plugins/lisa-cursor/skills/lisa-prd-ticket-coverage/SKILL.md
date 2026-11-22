@@ -1,6 +1,6 @@
 ---
 name: lisa-prd-ticket-coverage
-description: "Verifies that every requirement in a PRD (Notion, Confluence, Linear, or GitHub Issues) is covered by at least one created destination ticket (JIRA, GitHub Issues, or Linear) — no silent drops. Parses the PRD into atomic items (goals, user stories, functional/non-functional requirements, acceptance criteria, important notes), maps each to the created tickets, and produces a coverage matrix and verdict (COMPLETE / COMPLETE_WITH_SCOPE_CREEP / GAPS_FOUND / NO_TICKETS_FOUND). Used by notion-prd-intake / confluence-prd-intake / linear-prd-intake / github-prd-intake post-write to gate the Ticketed transition; can also be invoked standalone for after-the-fact audits."
+description: "Check that every requirement in a PRD is covered by at least one created ticket, with a coverage matrix and a verdict (complete, complete with scope creep, gaps found, or no tickets). Gates PRD intake; also usable for audits."
 allowed-tools: ["Skill", "Bash"]
 ---
 

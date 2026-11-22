@@ -102,14 +102,22 @@ export class ReactNativeCanvas {
   releasePointerCapture() {}
 }
 
+/**
+ * three.js and R3F type their canvas as a DOM canvas; on native it is a
+ * react-native-wgpu canvas wrapped to the subset three.js actually calls.
+ * This is the one, named place that bridge is declared, instead of an
+ * error-suppression comment at every call site.
+ */
+export const toDomCanvas = (canvas: ReactNativeCanvas): HTMLCanvasElement =>
+  canvas as unknown as HTMLCanvasElement;
+
 export const makeWebGPURenderer = (
   context: GPUCanvasContext,
   { antialias = true }: { antialias?: boolean } = {}
 ) =>
   new THREE.WebGPURenderer({
     antialias,
-    // @ts-expect-error
-    canvas: new ReactNativeCanvas(context.canvas),
+    canvas: toDomCanvas(new ReactNativeCanvas(context.canvas)),
     context,
   });
 ```
@@ -133,6 +141,7 @@ import { Canvas, type CanvasRef } from "react-native-wgpu";
 import {
   makeWebGPURenderer,
   ReactNativeCanvas,
+  toDomCanvas,
 } from "@/lib/make-webgpu-renderer";
 
 // Extend THREE namespace for R3F - add all components you use
@@ -178,8 +187,7 @@ export const FiberCanvas = ({
     const context = canvasRef.current!.getContext("webgpu")!;
     const renderer = makeWebGPURenderer(context);
 
-    // @ts-expect-error - ReactNativeCanvas wraps native canvas
-    const canvas = new ReactNativeCanvas(context.canvas) as HTMLCanvasElement;
+    const canvas = toDomCanvas(new ReactNativeCanvas(context.canvas));
     canvas.width = canvas.clientWidth * PixelRatio.get();
     canvas.height = canvas.clientHeight * PixelRatio.get();
     const size = {
@@ -201,8 +209,9 @@ export const FiberCanvas = ({
       frameloop: "always",
       dpr: 1,
       onCreated: async (state: RootState) => {
-        // @ts-expect-error - WebGPU renderer has init method
-        await state.gl.init();
+        // R3F types state.gl as a WebGL renderer; `renderer` is the
+        // WebGPURenderer created above, typed with its init method.
+        await renderer.init();
         const renderFrame = state.gl.render.bind(state.gl);
         state.gl.render = (s: THREE.Scene, c: THREE.Camera) => {
           renderFrame(s, c);
@@ -454,11 +463,12 @@ extend({
 
 **Problem:** Type mismatches between three.js and R3F
 
-**Solution:** Use `@ts-expect-error` comments where needed:
+**Solution:** Keep the precise types instead of silencing the checker. Call WebGPU-only methods on the `WebGPURenderer` you created (R3F types `state.gl` as a WebGL renderer), and cross the native-canvas/DOM-canvas boundary through the single `toDomCanvas` adapter:
 
 ```tsx
-// @ts-expect-error - WebGPU renderer types don't match
-await state.gl.init();
+const renderer = makeWebGPURenderer(context);
+// ...
+await renderer.init();
 ```
 
 ### 3. Blank Screen

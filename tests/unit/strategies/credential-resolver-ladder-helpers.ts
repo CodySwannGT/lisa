@@ -262,10 +262,6 @@ export interface LadderRunOptions {
   readonly projectRootEnv?: boolean;
 }
 
-/* eslint-disable sonarjs/no-os-command-from-path -- The PATH is built here on
-   purpose: a test-only stub bin fronts a deliberately minimal PATH so `uname`
-   is deterministic and no developer-shell credential leaks into the child. */
-
 /**
  * Run one ladder inside a purpose-built tree.
  * @param entry The copy of the ladder to drive.
@@ -286,22 +282,29 @@ export const runLadder = (
   const fnText =
     fnTextOverride ??
     extractFunction(readLadderSource(SOURCE, entry), entry.fn);
-  const result = spawnSync("bash", ["-c", `${fnText}\n${entry.invoke}\n`], {
-    cwd,
-    encoding: "utf8",
-    timeout: 60_000,
-    env: {
-      // A deliberately minimal environment: any leaked ATLASSIAN_API_TOKEN or
-      // LINEAR_API_KEY from the developer's shell would short-circuit the
-      // ladder at rung zero and make every assertion vacuous.
-      PATH: [stubBin, path.dirname(process.execPath), "/usr/bin", "/bin"].join(
-        ":"
-      ),
-      HOME: root,
-      ...(options.projectRootEnv ? { CLAUDE_PROJECT_DIR: root } : {}),
-      ...env,
-    },
-  });
+  const result = spawnSync(
+    "/bin/bash",
+    ["-c", `${fnText}\n${entry.invoke}\n`],
+    {
+      cwd,
+      encoding: "utf8",
+      timeout: 60_000,
+      env: {
+        // A deliberately minimal environment: any leaked ATLASSIAN_API_TOKEN or
+        // LINEAR_API_KEY from the developer's shell would short-circuit the
+        // ladder at rung zero and make every assertion vacuous.
+        PATH: [
+          stubBin,
+          path.dirname(process.execPath),
+          "/usr/bin",
+          "/bin",
+        ].join(":"),
+        HOME: root,
+        ...(options.projectRootEnv ? { CLAUDE_PROJECT_DIR: root } : {}),
+        ...env,
+      },
+    }
+  );
   const invoked = readFileSync(marker, "utf8").split("\n").filter(Boolean);
 
   // The tree is disposable and `root` came from `mkdtempSync`, so reaping it
@@ -316,5 +319,3 @@ export const runLadder = (
     invoked,
   };
 };
-
-/* eslint-enable sonarjs/no-os-command-from-path -- End test-only PATH shim scope. */

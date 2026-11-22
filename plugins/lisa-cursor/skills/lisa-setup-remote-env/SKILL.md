@@ -1,6 +1,6 @@
 ---
 name: lisa-setup-remote-env
-description: "Provision and verify a remote execution environment for a host project — Codex Cloud today, other remote surfaces as they are added. Generates a repository-owned setup script that installs the declared toolchain, materializes secrets through lisa-secrets-access, and runs the project's own hook. Provisions by API where one exists, by driving the vendor console where one does not, and by emitting exact config otherwise — then proves the result with the same read-back regardless of which tier did the work. Use before dispatching any work with executionEnv."
+description: "Provision and verify a remote execution environment (Codex Cloud today) for a project: a setup script that installs the toolchain and secrets, provisioning by API or console, and a read-back check. Use before dispatching remote work."
 allowed-tools: ["Bash", "Read", "Write", "Edit", "Skill"]
 ---
 
@@ -91,6 +91,8 @@ A project with no lockfile is not fatal on its own — a checkout may carry the 
 3. **Project hook** — an optional `setup.local.sh` the project owns.
 
 Order matters. The toolchain comes first because the secrets step needs the provider CLI it installs. The hook comes last because it is the only part that may assume everything else is ready.
+
+**Which provider CLI the toolchain verifies.** Setup picks the same provider the `lisa-secrets-access` runtime will use, so it never installs a CLI the runtime ignores. An explicit `--provider=<name>` wins (operator intent); otherwise the runtime's own resolution applies: `secrets.provider` from the committed `.lisa.config.json` when a config exists (`.lisa.config.local.json` and `LISA_PROVIDER` are ignored then, as the runtime ignores them), `env` — no CLI — for a config that names none, and `LISA_PROVIDER` / `LISA_SECRETS_PROVIDER` only for a repo-less tenant with no config. Every source is checked against the known provider list (`bitwarden`, `doppler`, `env`, `1password`, `aws`, `vault`) and anything else is refused, because the name is printed into shell you paste. The repo-less setup field translates `env` to the workstation catalogue's `none`. After the `remoteEnv.tools` manifest is applied, that provider's CLI is probed and, with consent, installed through the workstation catalogue; a remote container that still lacks it fails the toolchain phase with the provider named. The emitted guidance (`--emit=…`) uses the same resolution, so it exports the configured provider rather than assuming one.
 
 #### Which phases run depends on the surface
 

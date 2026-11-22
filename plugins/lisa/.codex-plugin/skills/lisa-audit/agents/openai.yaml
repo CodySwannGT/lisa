@@ -1,0 +1,4 @@
+display_name: "Audit"
+short_description: "Audit any repository, on any…"
+default_prompt:
+  - "Use $lisa-audit: Audit any repository, on any…."

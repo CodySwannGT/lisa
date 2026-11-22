@@ -1,8 +1,8 @@
 ---
 name: phaser-testing
-description: "writing or designing tests for…"
+description: "Design and write tests for a…"
 ---
-This skill should be used when writing or designing tests for a Phaser 4 game — unit-testing pure game logic with Vitest, keeping logic Phaser-free so it tests without a browser, the Phaser.HEADLESS renderer for logic-only boots, asset-manifest coverage tests, and the CI runtime gates (boot smoke, allocation/perf budget, leak gate, determinism gate, deterministic Playwright visual regression, bundle-size budget) that verify scenes and entities that are excluded from unit coverage. Use it when adding tests, setting up CI verification, or deciding what is testable at which level. Pairs with phaser-project-structure, the official loading-assets skill, and phaser-services.
+Design and write tests for a Phaser 4 game: Vitest for pure logic, headless boots, asset-manifest checks, and the CI runtime gates (smoke, perf, leaks, determinism, visual regression, bundle size). Use when adding tests or CI checks.
 
 
 # Phaser 4 Testing

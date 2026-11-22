@@ -1,4 +1,4 @@
 display_name: "Wiki Migrate"
-short_description: "Migrate an existing…"
+short_description: "Move an existing hand-rolled…"
 default_prompt:
-  - "Use $lisa-wiki-migrate: Migrate an existing…."
+  - "Use $lisa-wiki-migrate: Move an existing hand-rolled…."

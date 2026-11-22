@@ -1,0 +1,11 @@
+HEAD under test: 2a1777df939df9183d0dbfdc1d9e801badaa309f
+== falsify files check: inject bun.lock into a copy of proposal.json
+["bun.lock","externals/package-lock.json","externals/package.json"]
+FILES MISMATCH
+check exit=3 (expect 3)
+== same check on the real proposal
+["externals/package-lock.json","externals/package.json"]
+check exit=0 (expect 0)
+== falsify bun.lock identity check: append one byte to a copy
+cmp: EOF on /tmp/v4741-verify/work/a/host/bun.lock
+cmp exit=1 (expect 1)

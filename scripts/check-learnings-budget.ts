@@ -40,7 +40,7 @@ type BudgetChecker = Pick<
   "checkLearningsBudget" | "formatBudgetVerdict" | "formatDiagnosticPath"
 >;
 
-const REPO_ROOT = path.resolve(import.meta.dir, "..");
+const REPO_ROOT = path.resolve(import.meta.dirname, "..");
 
 const TEMPLATE_LEARNINGS_FILE = path.resolve(
   REPO_ROOT,
@@ -221,7 +221,7 @@ async function check(checker: BudgetChecker, file: string): Promise<void> {
  * @returns Canonical budget-checker functions
  */
 async function loadBudgetChecker(): Promise<BudgetChecker> {
-  const packageRoot = path.resolve(import.meta.dir, "..");
+  const packageRoot = path.resolve(import.meta.dirname, "..");
   const sourceTypescript = path.join(
     packageRoot,
     "src",
@@ -247,7 +247,7 @@ async function loadBudgetChecker(): Promise<BudgetChecker> {
 async function loadOverflowResolver(): Promise<
   typeof OverflowPathModule.resolveLearningsOverflowFile
 > {
-  const packageRoot = path.resolve(import.meta.dir, "..");
+  const packageRoot = path.resolve(import.meta.dirname, "..");
   const sourceTypescript = path.join(
     packageRoot,
     "src",
@@ -269,7 +269,7 @@ async function loadOverflowResolver(): Promise<
 async function loadConfiguredLearningsResolver(): Promise<
   typeof ConfiguredPathModule.resolveLearningsFileFromRawConfig
 > {
-  const packageRoot = path.resolve(import.meta.dir, "..");
+  const packageRoot = path.resolve(import.meta.dirname, "..");
   const sourceTypescript = path.join(
     packageRoot,
     "src",

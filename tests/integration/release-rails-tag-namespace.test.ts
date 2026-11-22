@@ -11,52 +11,40 @@
  * the release job failed, and the Deploy job that depends on it was SKIPPED —
  * a branch that looks released with nothing deployed (CodySwannGT/lisa#3467).
  *
- * These cases execute the real step extracted from the workflow rather than
+ * These cases execute the real job extracted from the workflow rather than
  * asserting on its text, because the defect was behavioural: the previous
  * implementation contained no wrong string, it simply named every tag the same
  * way on every branch. The assertion that discriminates against it is that
  * `dev` and `staging` no longer produce the same tag.
  *
- * The `npx standard-version@9` line is dropped before execution — it needs the
- * network and a conventional-commit history, and it is not what these cases
- * are about. Everything after it, which is the whole of the fix, runs as
- * written.
+ * The job runs against a local bare remote with `standard-version` stood in
+ * for by a deterministic `npx` stub — see `tests/helpers/release-rails-job.ts`.
+ * The racing-merge behaviour of the same job is covered by
+ * `release-rails-push-race.test.ts` (CodySwannGT/lisa#4748).
  * @module tests/integration/release-rails-tag-namespace
  */
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
-
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
-import { cleanGitEnv, resolveGit } from "../support/git-executable.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, "..", "..");
-const RELEASE_RAILS_YML = path.join(
-  REPO_ROOT,
-  ".github",
-  "workflows",
-  "release-rails.yml"
-);
-
-const GIT_BIN = resolveGit();
-const BASH_BIN = "/bin/bash";
+import {
+  cloneRemote,
+  git,
+  isAncestor,
+  releaseFixture,
+  RELEASE_RAILS_YML,
+  runReleaseJob,
+  type ReleaseFixture,
+} from "../helpers/release-rails-job.js";
 
 /** The version these cases bump to, fixed so tags are predictable. */
 const VERSION = "1.4.2";
 
+/** The VERSION the remote starts at; the stubbed bump lands on `VERSION`. */
+const BASE_VERSION = "1.4.1";
+
 /** `VERSION` with its dots escaped, for building tag-shape expectations. */
 const VERSION_RE = VERSION.replace(/\./g, "\\.");
-
-/** Hermetic git environment: no inherited GIT_* state, no developer config. */
-const GIT_ENV: NodeJS.ProcessEnv = {
-  ...cleanGitEnv(),
-  GIT_CONFIG_GLOBAL: "/dev/null",
-  GIT_CONFIG_SYSTEM: "/dev/null",
-};
 
 /** Minimal shape of the parsed workflow these cases read. */
 interface RailsReleaseWorkflow {
@@ -72,15 +60,17 @@ interface RailsReleaseWorkflow {
   >;
 }
 
-/** What one execution of the extracted version step produced. */
+/** What one execution of the release job produced. */
 interface StepRun {
   readonly status: number | null;
   /** stdout and stderr combined: `::error::` is a stdout annotation. */
   readonly output: string;
+  /** The version step's outputs. */
   readonly outputs: Record<string, string>;
+  /** The checkout the job ran in. */
+  readonly clone: string;
 }
 
-let versionStepScript = "";
 let releaseStepScript = "";
 const scratchRoots: string[] = [];
 
@@ -101,101 +91,50 @@ function stepScript(workflow: RailsReleaseWorkflow, id: string): string {
 }
 
 /**
- * Runs one git command in a scratch repository.
- * @param root - Repository to run in.
- * @param args - Arguments, excluding the executable.
+ * A fresh remote at `BASE_VERSION` on `branch`, removed after the case.
+ * @param branch - Branch the release runs on.
+ * @returns The fixture.
  */
-function git(root: string, ...args: readonly string[]): void {
-  boundedSpawnSync({
-    label: `git ${args[0] ?? ""}`,
-    command: GIT_BIN,
-    args: [...args],
-    cwd: root,
-    env: GIT_ENV,
-  });
+function freshFixture(branch: string): ReleaseFixture {
+  const fixture = releaseFixture(BASE_VERSION, branch);
+
+  scratchRoots.push(fixture.base);
+  return fixture;
 }
 
 /**
- * Builds a throwaway git repository holding one commit and a VERSION file.
- * @returns Absolute path to the repository.
+ * Builds a remote where `vX.Y.Z` already points at a commit off the branch.
+ * @param branch - Branch the release runs on.
+ * @returns The fixture.
  */
-function scratchRepo(): string {
-  const base = fs.realpathSync(process.env["TMPDIR"] ?? "/tmp");
-  const root = fs.mkdtempSync(path.join(base, "rails-tag-"));
+function remoteWithPriorTag(branch: string): ReleaseFixture {
+  const fixture = freshFixture(branch);
+  const other = cloneRemote(fixture, "prior");
 
-  scratchRoots.push(root);
-  git(root, "init", "--quiet", "--initial-branch=main");
-  git(root, "config", "user.name", "t");
-  git(root, "config", "user.email", "t@example.com");
-  fs.writeFileSync(path.join(root, "VERSION"), `${VERSION}\n`);
-  git(root, "add", "VERSION");
-  git(root, "commit", "--quiet", "-m", "chore(release): 1.4.2");
-  return root;
+  git(other, "commit", "--quiet", "--allow-empty", "-m", "prior release");
+  git(other, "tag", "-a", `v${VERSION}`, "-m", "prior release");
+  git(other, "push", "--quiet", "origin", `refs/tags/v${VERSION}`);
+  return fixture;
 }
 
 /**
- * Builds a repository where `vX.Y.Z` already points at an earlier commit.
- * @returns Absolute path to the repository.
+ * Runs the release job for one branch.
+ * @param branch - The branch the job runs on.
+ * @param fixture - Remote to release against; a fresh one when omitted.
+ * @returns Exit status, combined output, and the version step's outputs.
  */
-function repoWithPriorTag(): string {
-  const root = scratchRepo();
-
-  git(root, "tag", "-a", `v${VERSION}`, "-m", "prior release", "HEAD");
-  fs.writeFileSync(path.join(root, "later.txt"), "later\n");
-  git(root, "add", "later.txt");
-  git(root, "commit", "--quiet", "-m", "feat: later");
-  return root;
-}
-
-/**
- * Parses the `key=value` lines a step wrote to `$GITHUB_OUTPUT`.
- * @param outputPath - Path the step was given as GITHUB_OUTPUT.
- * @returns The step's outputs.
- */
-function parseStepOutputs(outputPath: string): Record<string, string> {
-  const raw = fs.existsSync(outputPath)
-    ? fs.readFileSync(outputPath, "utf8")
-    : "";
-  const outputs: Record<string, string> = {};
-
-  for (const line of raw.split("\n")) {
-    const index = line.indexOf("=");
-
-    if (index > 0) {
-      outputs[line.slice(0, index)] = line.slice(index + 1);
-    }
-  }
-  return outputs;
-}
-
-/**
- * Runs the extracted version step for one branch.
- * @param branch - Value of the step's BRANCH environment variable.
- * @param root - Repository to run in; a fresh one when omitted.
- * @returns Exit status, combined output, and parsed step outputs.
- */
-function runVersionStep(branch: string, root: string = scratchRepo()): StepRun {
-  // Drop only the bump itself; every line the fix added runs as written.
-  const script = versionStepScript
-    .split("\n")
-    .filter(line => !line.includes("standard-version@9"))
-    .join("\n");
-  const outputPath = path.join(root, "step-output.txt");
-  const result = boundedSpawnSync({
-    label: "release-rails version step",
-    command: BASH_BIN,
-    // `-e` because that is the shell GitHub Actions gives a `run:` block
-    // (`bash -e {0}`); without it a failing command mid-step would pass here
-    // and fail in CI.
-    args: ["-e", "-c", script],
-    cwd: root,
-    env: { ...GIT_ENV, BRANCH: branch, GITHUB_OUTPUT: outputPath },
-  });
+function runVersionStep(
+  branch: string,
+  fixture: ReleaseFixture = freshFixture(branch)
+): StepRun {
+  const clone = cloneRemote(fixture, `run-${branch.replace(/\//g, "-")}`);
+  const run = runReleaseJob(fixture, clone);
 
   return {
-    status: result.status,
-    output: `${result.stdout ?? ""}${result.stderr ?? ""}`,
-    outputs: parseStepOutputs(outputPath),
+    status: run.status,
+    output: run.output,
+    outputs: run.outputs["version"] ?? {},
+    clone,
   };
 }
 
@@ -205,7 +144,6 @@ describe("release-rails.yml environment-scoped tags (#3467)", () => {
       fs.readFileSync(RELEASE_RAILS_YML, "utf8")
     ) as RailsReleaseWorkflow;
 
-    versionStepScript = stepScript(workflow, "version");
     releaseStepScript = stepScript(workflow, "Create GitHub Release");
   });
 
@@ -219,7 +157,7 @@ describe("release-rails.yml environment-scoped tags (#3467)", () => {
     for (const branch of ["main", "master", "prod", "production"]) {
       const run = runVersionStep(branch);
 
-      expect(run.status).toBe(0);
+      expect(run.status, run.output).toBe(0);
       expect(run.outputs["tag"]).toBe(`v${VERSION}`);
     }
   });
@@ -243,13 +181,10 @@ describe("release-rails.yml environment-scoped tags (#3467)", () => {
   });
 
   it("keeps VERSION clean so the next bump is never fed a prerelease string", () => {
-    const root = scratchRepo();
-    const run = runVersionStep("staging", root);
+    const run = runVersionStep("staging");
 
     expect(run.outputs["version"]).toBe(VERSION);
-    expect(fs.readFileSync(path.join(root, "VERSION"), "utf8").trim()).toBe(
-      VERSION
-    );
+    expect(git(run.clone, "show", "HEAD:VERSION")).toBe(VERSION);
     // The suffix belongs to the tag alone.
     expect(run.outputs["tag"]).toContain("-staging.");
   });
@@ -264,16 +199,17 @@ describe("release-rails.yml environment-scoped tags (#3467)", () => {
     expect(run.outputs["tag"]).not.toContain("/");
   });
 
-  it("refuses a production tag that already points at a different commit", () => {
-    const root = repoWithPriorTag();
-    const run = runVersionStep("main", root);
+  it("advances past a production tag that already points at a different commit", () => {
+    // Refusing here (the behaviour before #4748) wedged every later run,
+    // because VERSION on the branch never moved past the taken tag.
+    const fixture = remoteWithPriorTag("main");
+    const run = runVersionStep("main", fixture);
 
-    // Loud and diagnosable, rather than a rejected ref from `git push` that
-    // says nothing about what to do.
-    expect(run.status).toBe(1);
-    expect(run.output).toContain("::error::");
-    expect(run.output).toContain(`Tag v${VERSION} already exists`);
-    expect(run.output).toContain("align VERSION past the latest existing tag");
+    expect(run.status, run.output).toBe(0);
+    expect(run.output).toContain("::warning::");
+    expect(run.output).toContain(`Tag v${VERSION} is already taken`);
+    expect(run.outputs["tag"]).toBe("v1.4.3");
+    expect(isAncestor(fixture.remote, "v1.4.3", "main")).toBe(true);
   });
 
   it("reuses an existing release on rerun instead of failing the deploy behind it", () => {

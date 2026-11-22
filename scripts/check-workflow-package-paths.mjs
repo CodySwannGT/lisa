@@ -104,7 +104,7 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { mkdtempSync, statSync } from "node:fs";
+import { mkdtempSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -441,10 +441,14 @@ function fetchReleases(chosen, cacheDir) {
       continue;
     }
     const staging = mkdtempSync(path.join(tmpdir(), "lisa-release-"));
+    // A download, not a local start, so it gets the same bound as the
+    // extraction below rather than the 30 s default for a child start.
+    // Measured 2026-11-18: one 18 MB release took 112 s on a working but
+    // slow link, so the default refused a run that would have succeeded.
     boundedExecFileSync(
       "npm",
       ["pack", `${PACKAGE_NAME}@${version}`, "--pack-destination", staging],
-      { stdio: ["ignore", "pipe", "pipe"] }
+      { stdio: ["ignore", "pipe", "pipe"], timeout: 300_000 }
     );
     const tarball = readdirSync(staging).find(entry => entry.endsWith(".tgz"));
     if (tarball === undefined) {
@@ -524,6 +528,23 @@ function introducedLater(version, contract) {
 }
 
 /**
+ * Run the contract probes in a scratch folder and remove it afterwards,
+ * success or failure; every run used to leave one `lisa-contract-probe-*`
+ * folder behind (CodySwannGT/lisa#5095).
+ * @template T
+ * @param {(workRoot: string) => T} probe - The probes, given the folder.
+ * @returns {T} What the probes returned.
+ */
+function probeInScratch(probe) {
+  const workRoot = mkdtempSync(path.join(tmpdir(), "lisa-contract-probe-"));
+  try {
+    return probe(workRoot);
+  } finally {
+    rmSync(workRoot, { force: true, maxRetries: 10, recursive: true });
+  }
+}
+
+/**
  * Run the check.
  * @returns {void}
  */
@@ -573,17 +594,20 @@ function main() {
           operational: [],
           probed: [],
         }
-      : probeReleases({
-          groups: claims.groups,
-          releases: probeable.map(([version, release]) => ({
-            version,
-            root: release.root,
-            contains: candidate => releaseContains(release.entries, candidate),
-          })),
-          contracts: declaration.contracts,
-          fixtures: declaration.fixtures,
-          workRoot: mkdtempSync(path.join(tmpdir(), "lisa-contract-probe-")),
-        });
+      : probeInScratch(workRoot =>
+          probeReleases({
+            groups: claims.groups,
+            releases: probeable.map(([version, release]) => ({
+              version,
+              root: release.root,
+              contains: candidate =>
+                releaseContains(release.entries, candidate),
+            })),
+            contracts: declaration.contracts,
+            fixtures: declaration.fixtures,
+            workRoot,
+          })
+        );
 
   const breakages = [
     ...findBreakages(claims.groups, listings, declaration.contracts),

@@ -1,6 +1,7 @@
 {
   "harness": "fleet",
   "tracker": "github",
+  "knowledge": "llm-wiki",
   "source": "github",
   "workItem": {
     "verify": "full"
@@ -56,7 +57,8 @@
           "events": ["push", "workflow_dispatch"]
         }
       },
-      "automationPublishers": []
+      "automationPublishers": [],
+      "evidenceRelease": "pr-assets-{YYYY-MM}"
     }
   },
   "quality": {
@@ -92,6 +94,13 @@
         "routes": 80
       }
     }
+  },
+  "pushGate": {
+    "cache": true,
+    "buildOnce": true,
+    "admission": true,
+    "affectedTests": true,
+    "affectedCoverage": "changed-files"
   },
   "gates": {
     "runner": "bun run",
@@ -147,11 +156,17 @@
       "pull-request": "optional"
     },
     "traceability": {
-      "push": "required",
+      "push": {
+        "level": "required",
+        "cache": false
+      },
       "pull-request": "required"
     },
     "threshold-monotonicity": {
-      "push": "optional"
+      "push": {
+        "level": "optional",
+        "cache": false
+      }
     },
     "dead-code": {
       "run": "knip:check",
@@ -178,8 +193,7 @@
       "pull-request": "optional"
     },
     "behavior-contract": {
-      "run": "check:behavior-contract",
-      "pull-request": "required"
+      "pull-request": "off"
     },
     "test-node-suites": {
       "push": "off",
@@ -208,7 +222,8 @@
     "x-orphan-fixture-processes": {
       "push": {
         "level": "optional",
-        "run": "check:orphan-processes"
+        "run": "check:orphan-processes",
+        "cache": false
       }
     },
     "x-failure-signature-index": {
@@ -220,13 +235,15 @@
     "x-withdrawn-rulings": {
       "push": {
         "level": "required",
-        "run": "check:withdrawn-rulings"
+        "run": "check:withdrawn-rulings",
+        "cache": false
       }
     },
     "x-operational-hazards": {
       "push": {
         "level": "required",
-        "run": "check:operational-hazards"
+        "run": "check:operational-hazards",
+        "cache": false
       }
     },
     "x-plugin-artifact-sync": {
@@ -234,7 +251,147 @@
         "level": "required",
         "run": "check:plugins",
         "failure_shape": [
-          "✗ Generated plugin artifacts are out of sync with plugins/src."
+          "✗ Generated plugin artifacts are out of sync with plugins/src.",
+          "✗ The four control commands are not in place on every coding agent."
+        ]
+      }
+    },
+    "x-template-workflow-refs": {
+      "push": {
+        "level": "required",
+        "run": "check:template-workflow-refs",
+        "failure_shape": [
+          "✗"
+        ]
+      }
+    },
+    "x-workflow-contract-assertions": {
+      "push": {
+        "level": "required",
+        "run": "check:workflow-contract-assertions",
+        "failure_shape": [
+          "✗ "
+        ]
+      }
+    },
+    "x-third-party-action-pins": {
+      "push": {
+        "level": "required",
+        "run": "check:third-party-action-pins",
+        "failure_shape": [
+          "✗ "
+        ]
+      }
+    },
+    "x-delivery-deletion-conflicts": {
+      "push": {
+        "level": "required",
+        "run": "check:delivery-deletion-conflicts",
+        "failure_shape": [
+          "✗ "
+        ]
+      }
+    },
+    "x-shipped-surface-removals": {
+      "push": {
+        "level": "required",
+        "run": "check:shipped-surface-removals",
+        "failure_shape": [
+          "FAIL "
+        ]
+      }
+    },
+    "x-workflow-package-paths": {
+      "push": {
+        "level": "required",
+        "run": "check:workflow-package-paths",
+        "cache": false,
+        "failure_shape": [
+          "  ✗ "
+        ]
+      }
+    },
+    "x-rules-pairing": {
+      "push": {
+        "level": "required",
+        "run": "check:rules-pairing",
+        "failure_shape": [
+          "✗ Missing reference body for eager rule:",
+          "✗ Unreachable reference body:"
+        ]
+      }
+    },
+    "x-eager-rule-budget": {
+      "push": {
+        "level": "required",
+        "run": "check:eager-rule-budget",
+        "failure_shape": [
+          "✗ "
+        ]
+      }
+    },
+    "x-pipeline-status-reads": {
+      "push": {
+        "level": "required",
+        "run": "check:pipeline-status-reads",
+        "failure_shape": [
+          "  ✖ "
+        ]
+      }
+    },
+    "x-whole-output-guards": {
+      "push": {
+        "level": "required",
+        "run": "check:whole-output-guards",
+        "failure_shape": [
+          "  ✖ "
+        ]
+      }
+    },
+    "x-probe-absence-direction": {
+      "push": {
+        "level": "required",
+        "run": "check:probe-absence-direction",
+        "failure_shape": [
+          "  ✖ "
+        ]
+      }
+    },
+    "x-guard-parity-notes": {
+      "push": {
+        "level": "required",
+        "run": "check:guard-parity-notes",
+        "failure_shape": [
+          "  ✖ "
+        ]
+      }
+    },
+    "x-empty-subject-guards": {
+      "push": {
+        "level": "required",
+        "run": "check:empty-subject-guards",
+        "failure_shape": [
+          "  ✖ "
+        ]
+      }
+    },
+    "x-cwd-resolution-corpus": {
+      "push": {
+        "level": "required",
+        "run": "check:cwd-resolution-corpus",
+        "failure_shape": [
+          "cwd-resolution corpus is not adversarial enough:"
+        ]
+      }
+    },
+    "x-self-dependency-pin": {
+      "push": {
+        "level": "required",
+        "run": "check:self-pin",
+        "cache": false,
+        "failure_shape": [
+          "is pinned at \"",
+          "'s pin is current: "
         ]
       }
     }

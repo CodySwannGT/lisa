@@ -4,6 +4,20 @@ import * as path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { runDoctor } from "../../../src/cli/doctor.js";
 
+/**
+ * Read one element, failing the test when it is absent.
+ * @param items Items to index.
+ * @param index Position to read.
+ * @returns The element at that position.
+ */
+const at = <T>(items: readonly T[], index: number): T => {
+  const item = items[index];
+  if (item === undefined) {
+    throw new Error(`expected an element at index ${index}`);
+  }
+  return item;
+};
+
 /** Lisa project marker file written into doctor test fixtures. */
 const LISA_CONFIG_FILE = ".lisa.config.json";
 
@@ -59,7 +73,7 @@ describe("runDoctor", () => {
         status: "warn",
       })
     );
-    expect(() => JSON.parse(write.mock.calls[0][0])).not.toThrow();
+    expect(() => JSON.parse(at(write.mock.calls, 0)[0])).not.toThrow();
   });
 
   it("sets a failing exit code when config JSON is malformed", async () => {

@@ -1,4 +1,3 @@
-/* eslint-disable code-organization/enforce-statement-order -- Open the command log before spawning the process that writes it. */
 /** Bounded subprocesses for the real packed-host verification journey. */
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
@@ -7,39 +6,55 @@ import {
   ioLatencyBudgetMs,
   workerSpawnSlowdown,
 } from "../../helpers/io-latency-budget.js";
-import {
-  admissionDeadlineMs,
-  admissionEnabled,
-  ADMISSION_POLL_MS,
-} from "../../../src/configs/vitest/fleet-admission.js";
-
 /**
- * Budget the unchanged native work after the real, unscaled admission phase.
- * @param environment - Actual independent generated-host environment
+ * Budget the unchanged native work of a generated host's unit run.
+ *
+ * The host's Vitest preset no longer holds a run in a fleet admission
+ * `globalSetup` (CodySwannGT/lisa#4596 replaced it with headroom admission in
+ * `lisa-test-run`, which a generated host only uses once its template turns
+ * `pushGate.admission` on), so the deadline is the work allowance alone.
  * @param workBudgetMs - Machine-scaled native work allowance
  * @param caseMarginMs - Existing machine-scaled case margin ceiling
  * @returns Finite wall deadline preserving the full work allowance
  */
 export function nativeUnitDeadlineMs(
-  environment: NodeJS.ProcessEnv,
   workBudgetMs = ioLatencyBudgetMs(60_000),
   caseMarginMs = ioLatencyBudgetMs(300_000)
 ): number {
-  const admissionMs = admissionDeadlineMs(environment);
-  const deadline = admissionMs + ADMISSION_POLL_MS + workBudgetMs;
   if (
-    !admissionEnabled(environment) ||
-    !Number.isFinite(admissionMs) ||
     !Number.isFinite(workBudgetMs) ||
     workBudgetMs <= 0 ||
     !Number.isFinite(caseMarginMs) ||
-    !Number.isFinite(deadline) ||
-    deadline >= caseMarginMs
+    workBudgetMs >= caseMarginMs
   )
     throw new Error(
-      "Native unit admission/work deadline is disabled, nonfinite or exceeds the unchanged case margin"
+      "Native unit work deadline is nonfinite or exceeds the unchanged case margin"
     );
-  return deadline;
+  return workBudgetMs;
+}
+
+/**
+ * Open a child's evidence log and record the invocation before it starts.
+ * @param file - Evidence log file to append to
+ * @param command - Actual child executable
+ * @param args - Actual child arguments
+ * @param baseMs - Quiet-box child work deadline in milliseconds
+ * @param deadlineMs - Explicit wall deadline including any bounded control phase
+ * @returns Open append descriptor the child writes its output to
+ */
+function openRunLog(
+  file: string,
+  command: string,
+  args: readonly string[],
+  baseMs: number,
+  deadlineMs: number
+): number {
+  const fd = fs.openSync(file, "a");
+  fs.writeSync(
+    fd,
+    `${new Date().toISOString()} ${JSON.stringify([command, ...args])}\nwork_budget_ms=${ioLatencyBudgetMs(baseMs)} wall_deadline_ms=${deadlineMs} slowdown=${workerSpawnSlowdown()}\n`
+  );
+  return fd;
 }
 
 /**
@@ -69,11 +84,7 @@ export async function run(
     );
   const file = path.join(logs, `${label}.log`);
   const started = performance.now();
-  const fd = fs.openSync(file, "a");
-  fs.writeSync(
-    fd,
-    `${new Date().toISOString()} ${JSON.stringify([command, ...args])}\nwork_budget_ms=${ioLatencyBudgetMs(baseMs)} wall_deadline_ms=${deadlineMs} slowdown=${workerSpawnSlowdown()}\n`
-  );
+  const fd = openRunLog(file, command, args, baseMs, deadlineMs);
   const child = spawn(command, [...args], {
     cwd,
     env,
@@ -117,5 +128,3 @@ export async function run(
     fs.closeSync(fd);
   }
 }
-
-/* eslint-enable code-organization/enforce-statement-order -- End the chronological fixture harness. */

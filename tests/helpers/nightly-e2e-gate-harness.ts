@@ -18,16 +18,17 @@ import type {
   IssuePlanEntry,
   IssueResult,
   ReportingModule,
-} from "./nightly-e2e-reporting-harness";
+  TrackedIssue,
+} from "./nightly-e2e-reporting-harness.js";
 import type {
   Observation,
   Run,
   RunSelection,
   SelectionModule,
-} from "./nightly-e2e-selection-harness";
+} from "./nightly-e2e-selection-harness.js";
 import type { WaiverModule } from "./nightly-e2e-waiver-harness.js";
 
-export type { Run } from "./nightly-e2e-selection-harness";
+export type { Run } from "./nightly-e2e-selection-harness.js";
 
 export {
   GATE_CONTEXT,
@@ -36,15 +37,14 @@ export {
   LABEL_STATE,
   REQUIRED_STATE,
   requiredChecksRule,
-} from "./nightly-e2e-reporting-harness";
+} from "./nightly-e2e-reporting-harness.js";
 export type {
   BypassLabelState,
   IssuePlanEntry,
-  IssueResult,
   Requiredness,
   RulesetSource,
   TrackedIssue,
-} from "./nightly-e2e-reporting-harness";
+} from "./nightly-e2e-reporting-harness.js";
 
 /** Repository root, from this file's location. */
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -68,7 +68,7 @@ export interface Job {
 }
 
 /** The resolved bootstrap window. */
-export interface Bootstrap {
+interface Bootstrap {
   readonly active: boolean;
   readonly until: string | null;
   readonly expiresInDays: number | null;
@@ -80,7 +80,7 @@ export interface Bootstrap {
  * Same shape as `Bootstrap` plus the anchor it was computed from, because the
  * anchor is what makes the window bounded and the audit has to show it.
  */
-export interface SuiteGrace extends Bootstrap {
+interface SuiteGrace extends Bootstrap {
   readonly firstSeen: string | null;
 }
 
@@ -106,7 +106,7 @@ export interface Finding {
 }
 
 /** What a run recorded about its own scope, from its artifact names. */
-export interface SuiteScope {
+interface SuiteScope {
   readonly readable: boolean;
   readonly filtered: readonly string[];
   readonly full: readonly string[];
@@ -122,6 +122,11 @@ export interface BypassDecision {
   readonly ticket: string | null;
   readonly detail: string | null;
   readonly expiresAt: string | null;
+  readonly appliedAt: string | null;
+  readonly label: string | null;
+  readonly prNumber: number | null;
+  readonly actorPermission: string | null;
+  readonly prAuthor: string | null;
   readonly waived?: readonly Finding[];
 }
 

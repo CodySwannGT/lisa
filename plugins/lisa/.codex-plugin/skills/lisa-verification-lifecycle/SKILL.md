@@ -1,8 +1,8 @@
 ---
 name: lisa-verification-lifecycle
-description: "Verification lifecycle: confirm…"
+description: "How to verify work: confirm…"
 ---
-Verification lifecycle: confirm quality gates, classify types, discover tools, fail fast, plan, execute, codify (turn each passing verification into a regression test), spec conformance (verify shipped work matches the spec), loop. Quality gates (tests/typecheck/lint) are prerequisites, NOT verification. Verification means running the actual system and observing results.
+How to verify work: confirm quality gates, decide what kinds of verification apply, find the tools, run the real system and observe it, turn passing checks into regression tests, and check the result against the spec.
 
 
 # Verification Lifecycle
@@ -73,6 +73,55 @@ A claim that the change is "behavior-preserving", a "no-visual-regression" refac
 ### 6. Execute
 
 After implementation, run the verification plan. Execute each verification type in order.
+
+#### Packaged Lisa applies: destination preflight
+
+Before running a packaged Lisa apply for verification, use the package's shared
+`scripts/verify-packaged-apply.mjs` controller. Select the narrowest harness
+that exercises the required behavior; measure generated-copy parity separately.
+Never run a verification apply directly against the operator's environment.
+The controller's default host preflight refuses before spawning apply: a
+temporary project, missing agent CLI, XDG override, or unchanged HOME does not
+contain Antigravity's unconditional user-global MCP writer, vendor plugin
+registrations, Git configuration, temporary backups, or package-manager caches.
+
+Build the tool image from the shipped `scripts/fixtures/packaged-apply/Dockerfile`,
+then use the exact candidate or published archive, a new private evidence
+directory, and the same shared controller on every agent:
+
+```bash
+docker build -t lisa-packaged-verification -f scripts/fixtures/packaged-apply/Dockerfile scripts/fixtures/packaged-apply
+node scripts/verify-packaged-apply.mjs --backend docker --archive /absolute/path/lisa.tgz --image lisa-packaged-verification --harness codex --output /absolute/path/new-evidence-directory
+```
+
+Run those paths from the installed package. Record registry integrity/version
+for a published archive; a local pack establishes candidate behavior only.
+Keep the CLI's release-pin checks enabled. If an unstamped local CLI pack
+refuses full apply, record that refusal instead of inventing a release stamp.
+To qualify a new verifier before publication, run the candidate package's
+controller against an identified, genuine public CLI archive and record both
+identities separately. That proves the candidate verifier and that public CLI;
+repeat with the exact new public package after release before completing work.
+The controller inspects the actual stopped container before starting it,
+rejects host mounts/shared namespaces/privileges, and copies inputs into its
+disposable filesystem. It does not change the operator's HOME or CODEX_HOME,
+forward credentials, replace runtime tools, or change normal apply defaults.
+Fleet requires that same proved boundary for every writer and descendant;
+unresolved host destinations cause refusal, not a weaker fallback.
+
+Add every declared outside configuration/sentinel file with repeated
+`--preserve /absolute/path/file` arguments. Capture both host-authored and
+Lisa-managed entries, plus absent paths, without exclusions. Preserve the full
+before/after comparison on success and failure; use `--failure-control` to
+exercise a genuine failed CLI child with `--harness fleet` and require
+preservation even though that command returns nonzero. The control reaches
+Antigravity's user-config writer after project mutations, inside the disposable
+filesystem. An unexpected write stops execution; privately
+preserve current bytes and report any missing before-image as unknown. Never
+guess a restoration or delete the operator's settings. Generated hooks and
+native allow/refuse controls establish emitted behavior; absent vendor
+authentication or activation remains explicitly unverified. Docker image and
+container bookkeeping is expected infrastructure state, not agent settings.
 
 Evidence output must explicitly label each verification result as either `verified empirically` or `artifact-only / verification deferred`. Artifact-only evidence can support a blocked escalation packet, but it cannot mark a required runtime verification complete.
 
@@ -162,6 +211,8 @@ Verification surfaces include:
 - Queue depth and consumer execution visibility
 - CDN headers and edge behavior
 - Artifact capture (video, screenshots, traces, diffs)
+
+**Telemetry arrives.** When the change adds or changes instrumentation — logs, metrics, traces, error reporting, analytics events — follow that instrumentation in the code to wherever it sends data: the SDK it initializes, the exporter or transport it configures, the environment variables it reads. Trigger the instrumented path in the target environment and confirm the signal arrived at that destination. Do not assume a vendor; a project may send to several, or to one Lisa has no access skill for. Use the destination's `*-access` skill when one exists, otherwise its CLI or API with credentials resolved through `lisa-secrets-access`. If the destination cannot be reached, that is a missing-access stop: name the destination and the credential, and never report the telemetry as verified.
 
 If a required surface is unavailable, agents must follow the Escalation Protocol.
 
@@ -267,7 +318,7 @@ Agents must follow this sequence unless explicitly instructed otherwise:
 3. **If verification fails**: Fix and re-run, don't mark complete
 4. **If verification blocked** (missing tools, services, etc.): Mark as blocked, not complete
 5. **Must not be dependent on CI/CD** if necessary, you may use local deploy methods found in the project manifest, but the verification methods must be listed in the pull request and therefore cannot be dependent on CI/CD completing
-6. **Evidence manifest satisfied (leaf work units)**: For a leaf work unit (Bug / Task / Sub-task / Improvement) whose ticket carries a Validation Journey, do not mark the ticket complete or transition it out of in-progress until every typed `[EVIDENCE: <artifact-type>: <name>]` marker declared on the ticket has a corresponding captured, non-empty artifact **of the declared type** attached to the ticket (an image for `screenshot`, request + response for `http-transcript`, measured output for `perf-trace`, …). A missing, empty, or wrong-type artifact for any declared marker blocks completion exactly like a failed verification — fix and re-capture, or escalate; never close with an unsatisfied manifest. Epics / Stories / Spikes are exempt (coordination containers, not work units).
+6. **Evidence manifest satisfied (leaf work units)**: For a leaf work unit (Bug / Task / Sub-task / Improvement) whose ticket carries a Validation Journey, do not mark the ticket complete or transition it out of in-progress until every typed `[EVIDENCE: <artifact-type>: <name>]` marker declared on the ticket has a corresponding captured, non-empty artifact **of the declared type** attached to the ticket (an image for `screenshot`, a JSON request/response capture for `http-transcript`, JSON measurements for `perf-trace`, …; the JSON kinds refuse plain text — see `../lisa-tracker-evidence/references/completion-authorization.md` ("Typed capture shapes")). A missing, empty, or wrong-type artifact for any declared marker blocks completion exactly like a failed verification — fix and re-capture, or escalate; never close with an unsatisfied manifest. Epics / Stories / Spikes are exempt (coordination containers, not work units).
    - Extract local obligations using the exact `[EVIDENCE:` prefix (plus legacy local `[SCREENSHOT:`). Both the canonical `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]` and the Lisa 2.223.0 legacy alias `[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]` are non-claiming pointers to another work item: never capture either, match it to a local artifact, include it in duplicates, or count it toward S14. A reference-only runtime-changing leaf remains incomplete.
 7. **No artifact-only completion for required runtime verification**: If empirical verification is required and cannot run because credentials are missing, do not mark the item done on artifact-only evidence. Exhaust the credential lookup order first; if still blocked, post the blocker comment, move the item to the configured blocked state, and apply the configured `needs-human` / `human-review` label.
 

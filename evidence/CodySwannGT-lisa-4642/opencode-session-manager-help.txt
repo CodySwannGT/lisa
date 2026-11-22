@@ -1,0 +1,64 @@
+# AC-1: session-manager.mjs --help from a lisa-apply-emitted OpenCode tree (CodySwannGT/lisa#4642)
+artifact_head_sha: e5ebb2a264a7dde6f2bc761fac64e8a95a523088
+captured_at: 2026-11-08T23:27:06Z
+build: bun run build:dist at this HEAD (exit 0)
+
+## Emit: LISA_BOOTSTRAP=1 node dist/index.js apply --yes --no-update-check --skip-git-check --harness opencode <scratch-project>
+apply1 exit=0
+[INFO] OpenCode emit: 172 skills, 7 plugin hooks, 29 agents, 72 commands, AGENTS.md created, opencode.json created, 1 MCP server(s)
+emitted .opencode/skills/scripts/ (after first apply):
+  skills/scripts/automation-run-record.mjs
+  skills/scripts/blocker-edge-resolution.mjs
+  skills/scripts/intake-blocker-reprobe.mjs
+  skills/scripts/intake-prework-denominator.mjs
+  skills/scripts/operator-id-kinds.mjs
+  skills/scripts/qa-signal-lifecycle.mjs
+  skills/scripts/ready-queue-order.mjs
+  skills/scripts/resolve-lifecycle-role.mjs
+
+## $ cd <scratch-project> && node .opencode/skills/lisa/lisa-session-manager/scripts/session-manager.mjs --help
+exit=0  stdout_lines=304  stderr_bytes=0
+--- stdout head ---
+Usage: node session-manager.mjs <subcommand> [args] [--project-root <abs>]
+
+Every subcommand accepts --project-root <absolute dir> (default: the current
+directory) and -h/--help. Output is one line of JSON on stdout (repo-dir --raw
+prints a bare path); errors go to stderr. Untrusted text (answers, questions,
+reasons, Telegram messages, summaries) is read from STDIN, never from argv.
+
+Exit codes: 0 ok; 1 a command failed (claude, tmux or gh error); 2 bad repo,
+bad config or bad usage; 3 no capacity; 4 a live worker already holds the ref.
+
+Workers and capacity
+  capacity [--max-workers <n>]
+
+## Every subcommand listed in the help: <subcommand> --help
+answer --help exit=0 stdout_lines=304 stderr=
+answer-plan --help exit=0 stdout_lines=304 stderr=
+blocked-plan --help exit=0 stdout_lines=304 stderr=
+capacity --help exit=0 stdout_lines=304 stderr=
+channel-answer --help exit=0 stdout_lines=304 stderr=
+classify --help exit=0 stdout_lines=304 stderr=
+coexistence --help exit=0 stdout_lines=304 stderr=
+init-config --help exit=0 stdout_lines=304 stderr=
+item-answer --help exit=0 stdout_lines=304 stderr=
+ledger --help exit=2 stdout_lines=0 stderr=ledger needs one of: get, record-spawn, set-question, marked, clear-question, finish, validation-failed, validation-cleared, control. 
+mark-plan --help exit=0 stdout_lines=304 stderr=
+overruled-plan --help exit=0 stdout_lines=304 stderr=
+queue --help exit=0 stdout_lines=304 stderr=
+record-cycle --help exit=0 stdout_lines=304 stderr=
+repo-dir --help exit=0 stdout_lines=304 stderr=
+resume --help exit=0 stdout_lines=304 stderr=
+route --help exit=0 stdout_lines=304 stderr=
+spawn --help exit=0 stdout_lines=304 stderr=
+start --help exit=0 stdout_lines=304 stderr=
+status --help exit=0 stdout_lines=304 stderr=
+stop --help exit=0 stdout_lines=304 stderr=
+store-token --help exit=0 stdout_lines=304 stderr=
+trust-status --help exit=0 stdout_lines=304 stderr=
+validate --help exit=0 stdout_lines=304 stderr=
+(ledger exits 2 with its own usage message: argument validation, not a module-load failure)
+
+## Bite control: same tree with skills/scripts/ excluded (reconstructs the pre-fix emit)
+exit=1
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<scratch>/bite/.opencode/skills/scripts/automation-run-record.mjs' imported from <scratch>/bite/.opencode/skills/lisa/lisa-session-manager/scripts/cli-cycle.mjs

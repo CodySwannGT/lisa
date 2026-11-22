@@ -1,0 +1,5 @@
+{
+  "fixture-canary": { "branch": "dev", "canary": true },
+  "fixture-host-a": { "branch": "staging", "canary": true },
+  "fixture-host-b": "main"
+}

@@ -1,0 +1,1 @@
+{"zod":[{"id":1243066,"url":"https://github.com/advisories/GHSA-mrhx-c7xc-m3w5","title":"Zod can exhaust memory while validating oversized constrained collections","severity":"high","vulnerable_versions":"<4.6.6","cwe":["CWE-770"],"cvss":{"score":7.5,"vectorString":"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"}}]}

@@ -6,7 +6,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdtemp, realpath, rmdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { env as processEnvironment } from "node:process";
+import { currentEnvironment } from "../utils/process-environment.js";
 import { captureCommand, type CaptureCommand } from "./starter-provenance.js";
 
 /** Git writes stream their normal hooks; metadata reads remain bounded. */
@@ -61,7 +61,7 @@ export const runLandingCommand: LandingCommands["run"] = async (
       cwd,
       stdio: ["ignore", 2, 2],
       env: {
-        ...processEnvironment,
+        ...currentEnvironment(),
         GIT_TERMINAL_PROMPT: "0",
         GH_PROMPT_DISABLED: "1",
         GIT_EDITOR: "true",

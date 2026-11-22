@@ -1,6 +1,6 @@
 ---
 name: lisa-tear-down-automations
-description: "Remove recurring Lisa automations that /setup-automations registered for this project — either the whole lisa-auto-<project>-* fleet by default, or one named loop registration when approving a policy-obsolete proposal — using the CURRENT runtime's native scheduler — Codex automations or, on Claude, /schedule. This skill is a declarative specification: it identifies WHICH automations to remove; it does not run teardown scripts. Carries no fixed list of loops for fleet teardown: the registration set is the roster. Removes only this project's Lisa automations — never other projects' automations or non-Lisa ones. Leaves checked-in runbook files on disk. The inverse of /setup-automations."
+description: "Remove the recurring Lisa automations registered for this project, or a single named one, using the current runtime's native scheduler. Never touches other projects' or non-Lisa automations; leaves runbook files in place."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
@@ -32,7 +32,7 @@ that one registered loop.
   loop's registration under the same prefix, e.g. `lisa-auto-<project>-monitor`. Report every other
   project automation left in place. If the named loop is absent, that single-loop teardown is a clean
   no-op; do not widen it into a fleet teardown.
-- This explicitly includes the opt-in **`learnings-audit`** gardener when it is registered:
+- This explicitly includes the **`learnings-audit`** gardener when it is registered:
   `/setup-automations learnings-audit=true` registers it under the same prefix, so teardown removes
   it with the rest. A conditionally-skipped loop (e.g. `exploratory-bugs` on a stack without
   `exploratory-qa`) simply is not in the sweep.

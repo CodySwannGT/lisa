@@ -11,7 +11,8 @@
  * Precedence measured directly against knip 5.82.1, varying only which files
  * exist: `knip.ts` alone yields the repository's real findings; `knip.json`
  * alone yields `Refine entry pattern (no matches)`; **both** is byte-identical
- * to `knip.json` alone.
+ * to `knip.json` alone. knip 6.44.1 keeps the same precedence and also lists
+ * the outranked `knip.ts` as an unused file (CodySwannGT/lisa#4932).
  * @module tests/unit/strategies/copy-overwrite-config-shadowing
  */
 import * as fs from "fs-extra";

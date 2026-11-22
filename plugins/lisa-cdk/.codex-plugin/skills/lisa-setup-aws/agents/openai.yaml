@@ -1,4 +1,4 @@
 display_name: "Setup AWS"
-short_description: "Provision the…"
+short_description: "Provision the AWS accounts this…"
 default_prompt:
-  - "Use $lisa-setup-aws: Provision the…."
+  - "Use $lisa-setup-aws: Provision the AWS accounts this…."

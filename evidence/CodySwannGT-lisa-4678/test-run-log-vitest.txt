@@ -1,0 +1,128 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4678-third-party-check-redispatch
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-cli.test.ts > applyPlan > posts the comment before moving the label, through the configured repository 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-cli.test.ts > applyPlan > edits a marker comment by its numeric id with a JSON body on stdin 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-cli.test.ts > applyPlan > stops at the first failed write and names it 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-cli.test.ts > applyPlan > can never write through a recorded fixture 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-cli.test.ts > main > reads the run by id on the live path before planning 9ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-cli.test.ts > main > refuses a run id that is not a positive integer 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-cli.test.ts > main > refuses to apply a recorded fixture without --dry-run 9ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-cli.test.ts > the CLI under plain node > prints exactly one planned comment and one lane move for the failed-agent fixture 44ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > a late third-party required check failure > check-run-coderabbit-failed.json plans one marker naming the PR, head and CodeRabbit, then one claimed-to-ready move 2ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > a late third-party required check failure > status-gitguardian-failed.json plans one marker naming the PR, head and GitGuardian Security Checks, then one claimed-to-ready move 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > a late third-party required check failure > attributes the decision to the acting Actions run when GITHUB_RUN_ID is set 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > a late third-party required check failure > falls back to the event id when GITHUB_RUN_ID is not a positive integer 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > a late pass > clears the earlier marker with a numeric run id and restores the claimed lane 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > repeated, partial and mixed results act at most once > check-run-coderabbit-failed-replayed.json plans nothing (already-reported) 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > repeated, partial and mixed results act at most once > status-coderabbit-passed-gitguardian-pending.json plans nothing (checks-pending) 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > repeated, partial and mixed results act at most once > status-coderabbit-passed-gitguardian-failed.json plans nothing (already-reported) 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > irrelevant events do nothing > check-run-non-required.json plans nothing (not-required-context) 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > irrelevant events do nothing > status-pending.json plans nothing (ignored-pending-status) 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > irrelevant events do nothing > check-run-actions-owned.json plans nothing (ignored-actions-check) 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > irrelevant events do nothing > reads nothing at all for a pending status or an Actions-owned check run 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > irrelevant events do nothing > treats a required-context read that fails as a failed read, not as 'not required' 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > --head-sha mode > resolves the PR from the SHA by search and runs the same pipeline 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > --head-sha mode > uses run id 0 when no acting run id is available, never undefined 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > --head-sha mode > refuses ["--head-sha","abc","--dry-run"] as bad usage 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > --head-sha mode > refuses ["--head-sha","3DB71F89A186D5DBEB78015AA5735FA9D8EFDA48","--dry-run"] as bad usage 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > --head-sha mode > refuses ["--head-sha","3db71f89a186d5dbeb78015aa5735fa9d8efda48","--run-id","42","--dry-run"] as bad usage 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > --head-sha mode > refuses ["--head-sha","3db71f89a186d5dbeb78015aa5735fa9d8efda48","--payload","x.json"] as bad usage 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > --head-sha mode > refuses ["--dry-run"] as bad usage 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > the CLI under plain node > replays check-run-coderabbit-failed.json as redispatch with 2 planned writes 43ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > the CLI under plain node > replays status-gitguardian-failed.json as redispatch with 2 planned writes 43ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > the CLI under plain node > replays status-coderabbit-passed-clears.json as clear-and-restore with 2 planned writes 49ms
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > trigger > fires when either workflow carrying required checks on main completes 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > trigger > names workflows that exist under exactly those names 7ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > trigger > offers a manual dispatch by run id or head SHA that defaults to a dry run 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > third-party required checks (CodySwannGT/lisa#4678) > also fires when any check run completes or any commit status changes 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > third-party required checks (CodySwannGT/lisa#4678) > drops pending statuses and Actions-owned check runs before the job starts 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > third-party required checks (CodySwannGT/lisa#4678) > hard-codes no required context: the script reads them from the ruleset 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > third-party required checks (CodySwannGT/lisa#4678) > serialises every trigger on the head SHA it concerns 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > third-party required checks (CodySwannGT/lisa#4678) > never cancels a waiting run when a newer event for the same head joins 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > third-party required checks (CodySwannGT/lisa#4678) > hands the manual head SHA to the script through env only 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > permissions > defaults the workflow to read-only contents 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > permissions > grants the job exactly the metadata scopes it needs 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > permissions > runs only in the Lisa repository and serialises per head without cancelling 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > never runs the PR's code > checks out only the default branch, without persisted credentials 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > never runs the PR's code > references no head ref or head SHA anywhere a step could fetch or run it 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > never runs the PR's code > interpolates no expression inside a shell script 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > never runs the PR's code > installs no dependencies and runs only the default-branch script 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > never runs the PR's code > pins every non-actions/ action to a full commit SHA 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > a failure is reported > files a deduplicated issue when the job fails 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > the CLI under plain node > replays check-run-coderabbit-failed-replayed.json as already-reported with 0 planned writes 49ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > the CLI under plain node > replays status-coderabbit-passed-gitguardian-pending.json as checks-pending with 0 planned writes 47ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > the CLI under plain node > replays status-coderabbit-passed-gitguardian-failed.json as already-reported with 0 planned writes 51ms
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > runs that never reach the work item > ignores a run whose head was superseded by a newer push 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > runs that never reach the work item > treats a fork PR as non-agent even when its body names a work item 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > runs that never reach the work item > ignores a PR that is no longer open 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > runs that never reach the work item > treats a work item in another repository as non-agent 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > runs that never reach the work item > refuses a run that belongs to another repository 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > runs that never reach the work item > falls back to a head-SHA search and exits when no open PR carries that head 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > runs that never reach the work item > refuses a payload without a concrete head SHA 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > work item and check states that write nothing > ignores a closed work item 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > work item and check states that write nothing > waits while a required check is still pending and none has failed 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > work item and check states that write nothing > treats a PR with no required checks as nothing to judge 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > classifyRequiredChecks > fails only on the fail bucket, and a cancelled check neither fails nor passes 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > the clear path > is idempotent: an already-cleared marker plans nothing 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > the clear path > clears without relabelling when the item was already re-claimed 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > the clear path > does not restore the claimed lane when a later Lisa marker shows something else moved the item 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > the clear path > clears a marker left on a superseded head once the PR's newer head passes 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > the clear path > plans nothing on a passing run with no marker for that head 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > a replayed failure after a partial write > repairs only the label when the marker is posted, newest, and the item is still claimed 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts > a replayed failure after a partial write > leaves a re-claimed item alone once intake has claimed it after the marker 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > the CLI under plain node > replays check-run-non-required.json as not-required-context with 0 planned writes 42ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > the CLI under plain node > replays status-pending.json as ignored-pending-status with 0 planned writes 40ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > the CLI under plain node > replays check-run-actions-owned.json as ignored-actions-check with 0 planned writes 44ms
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch.test.ts > a failed required check on an agent PR > plans exactly one marker comment naming the PR, head SHA and failing checks, then one claimed-to-ready move 2ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch.test.ts > a failed required check on an agent PR > puts a visible sentence before the marker, so the comment never renders as an empty bubble 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch.test.ts > a replayed failure > plans nothing once the same PR and head SHA already carry a marker 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch.test.ts > a passing re-run > clears the marker for that head and restores the claimed lane when the marker is what left the item unclaimed 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch.test.ts > PRs the workflow must leave alone > plans nothing for a PR with no Work-Item binding 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch.test.ts > PRs the workflow must leave alone > plans nothing when the bound item is not in the claimed lane 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch.test.ts > the recorded fixtures stay honest > refuses a gh call the fixture did not record, instead of inventing an answer 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-trust.test.ts > marker authorship > trusts only the workflow's own identity by default 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-trust.test.ts > marker authorship > re-dispatches a real failure even when an outsider already posted a copy of the marker 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-trust.test.ts > marker authorship > never edits an outsider's comment nor restores a lane on a forged marker 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-trust.test.ts > marker authorship > does not let a forged cleared marker hide a real uncleared one 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-trust.test.ts > label history vetoes a write the comments alone would allow > leaves an item alone that was re-claimed without a new comment, when the same failure is replayed 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-trust.test.ts > label history vetoes a write the comments alone would allow > still repairs the lane when no claim happened after the marker 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-trust.test.ts > label history vetoes a write the comments alone would allow > clears but does not restore the claimed lane when a claim happened after the marker 0ms
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-intake.test.ts > github build intake on an uncleared [lisa-ci-failed] marker > classifies it as CI rework before the claim and files no rejection learning 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-intake.test.ts > github build intake on an uncleared [lisa-ci-failed] marker > dispatches lisa-drive-pr-to-merge on the PR the marker names, not lisa-implement 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-intake.test.ts > github build intake on an uncleared [lisa-ci-failed] marker > ties completion to the named PR's checks, and counts a merged or closed PR's marker as cleared 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-intake.test.ts > a [lisa-ci-failed] marker is evidence only when it checks out > accepts the marker only when github-actions[bot] authored it 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-intake.test.ts > a [lisa-ci-failed] marker is evidence only when it checks out > requires the named PR to be open, same-repository, and bound to this item, or treats it as no marker 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-intake.test.ts > the CI-rework route is executable > checks out the PR's head branch in a worktree bound to the item and writes the bundle there 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-intake.test.ts > the CI-rework route is executable > invokes lisa-drive-pr-to-merge pr=<n>, skips archaeology and triage, then runs the ordinary 3d transition 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-intake.test.ts > the CI-rework route is executable > reuses a worktree already on the PR head, else creates one from the fetched remote branch 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-intake.test.ts > the CI-rework route is executable > never resets a local head branch that holds commits not on origin 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-intake.test.ts > the CI-rework route is executable > writes the bundle for the agent to read, without claiming the PR skill reads it 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-intake.test.ts > a repeatedly failing PR does not loop forever > blocks for a human at three bot-authored markers for the same PR instead of re-dispatching 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-intake.test.ts > the rejection-detection rule > exempts an uncleared CI-failure bounce from rejection-reclaim in both the head and the body 0ms
+
+ Test Files  7 passed (7)
+      Tests  99 passed (99)
+   Start at  04:51:27
+   Duration  1.27s (transform 327ms, setup 596ms, import 597ms, tests 519ms, environment 0ms)
+
+exit=0

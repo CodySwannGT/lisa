@@ -1,4 +1,4 @@
 display_name: "Nestjs Rules"
-short_description: "Procedural rules and patterns…"
+short_description: "Rules for NestJS backend…"
 default_prompt:
-  - "Use $nestjs-rules: Procedural rules and patterns…."
+  - "Use $nestjs-rules: Rules for NestJS backend…."

@@ -79,7 +79,7 @@ describe("maestro-native flow_runner seam", () => {
   });
 
   it("runs Android through the caller runner or the existing Maestro command", () => {
-    const emulator = (workflow.jobs.android.steps ?? []).find(step =>
+    const emulator = (workflow.jobs.android?.steps ?? []).find(step =>
       step.uses?.startsWith("reactivecircus/android-emulator-runner")
     );
     const script = String(emulator?.with?.script ?? "");
@@ -89,7 +89,7 @@ describe("maestro-native flow_runner seam", () => {
     // The seam itself is unchanged: the caller's runner still receives the
     // report path first, the debug dir second, the assembled args, and the
     // thing to run last.
-    const driver = (workflow.jobs.android.steps ?? []).find(step =>
+    const driver = (workflow.jobs.android?.steps ?? []).find(step =>
       step.run?.includes("maestro-android-report.xml")
     );
 
@@ -102,7 +102,7 @@ describe("maestro-native flow_runner seam", () => {
     expect(script).not.toContain(FLOWS_DIR_EXPANSION);
     expect(driver?.run).not.toContain(FLOWS_DIR_EXPANSION);
     expect(driver?.run).toContain(
-      'bash "$FLOW_RUNNER" "$1" "${3:-maestro-debug}" $MAESTRO_E2E_ARGS "$2"'
+      'bash "$FLOW_RUNNER" "$1" "${3:-maestro-debug}" "${maestro_args[@]}" "$2"'
     );
     expect(driver?.run).toContain(
       'run_target maestro-android-report.xml "$FLOWS_DIR"'
@@ -110,8 +110,8 @@ describe("maestro-native flow_runner seam", () => {
     // Indentation-agnostic for the same reason the iOS assertion below is: the
     // invocation lives inside a function so the suite and each per-flow retry
     // can both call it.
-    expect(driver?.run.replace(/\n\s+/g, " ")).toContain(
-      'maestro test "$2" \\ $MAESTRO_E2E_ARGS'
+    expect(driver?.run?.replace(/\n\s+/g, " ")).toContain(
+      'maestro test "$2" \\ "${maestro_args[@]}"'
     );
     expect(
       String(driver?.run ?? "")
@@ -124,7 +124,7 @@ describe("maestro-native flow_runner seam", () => {
   });
 
   it("runs iOS through the caller runner or the existing Maestro command", () => {
-    const iosRun = (workflow.jobs.ios.steps ?? []).find(step =>
+    const iosRun = (workflow.jobs.ios?.steps ?? []).find(step =>
       step.run?.includes("maestro-ios-report.xml")
     );
 
@@ -140,7 +140,7 @@ describe("maestro-native flow_runner seam", () => {
     // thing to run last. The internal third parameter chooses a fresh debug
     // root for a selected retry; the original suite keeps maestro-debug.
     expect(iosRun?.run).toContain(
-      'bash "$FLOW_RUNNER" "$1" "${3:-maestro-debug}" $MAESTRO_E2E_ARGS "$2"'
+      'bash "$FLOW_RUNNER" "$1" "${3:-maestro-debug}" "${maestro_args[@]}" "$2"'
     );
     // …and the suite call still supplies exactly the pair the assertion above
     // used to spell out inline.
@@ -151,8 +151,8 @@ describe("maestro-native flow_runner seam", () => {
     // so the driver-startup retry and the per-flow retry can both call it,
     // which shifts it two columns. What matters is that the target and the
     // assembled args still reach the same command, not how deep it sits.
-    expect(iosRun?.run.replace(/\n\s+/g, " ")).toContain(
-      'maestro test "$2" \\ $MAESTRO_E2E_ARGS'
+    expect(iosRun?.run?.replace(/\n\s+/g, " ")).toContain(
+      'maestro test "$2" \\ "${maestro_args[@]}"'
     );
   });
 

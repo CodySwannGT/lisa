@@ -1,4 +1,4 @@
 display_name: "E2e Coverage Gaps"
-short_description: "Playwright/e2e coverage-gap explorer that FEEDS THE LIFECYCLE"
+short_description: "Find end-to-end paths the Playwright suite doesn't cover — untested routes or happy-path-only flows — confirm each in the running app, and…"
 default_prompt:
-  - "Use $e2e-coverage-gaps: Playwright/e2e coverage-gap explorer that FEEDS THE LIFECYCLE."
+  - "Use $e2e-coverage-gaps: Find end-to-end paths the Playwright suite doesn't cover — untested routes or happy-path-only flows — confirm each in the running app, and…."

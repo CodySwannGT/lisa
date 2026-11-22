@@ -1,6 +1,6 @@
 ---
 name: lisa-wiki-status
-description: Report Lisa wiki source freshness across enabled ingestion connectors. Reads wiki config, log, source notes, and state cursors, then renders a concise read-only freshness table with skipped/blocker reasons and exact next actions. Use when maintainers ask whether the wiki sources are fresh, stale, skipped, blocked, or need targeted ingest.
+description: "Report how fresh each wiki ingestion source is — fresh, stale, skipped, or blocked — with the exact next action for each. Read-only. Use when asked whether the wiki's sources are up to date."
 allowed-tools: ["Bash", "Read"]
 ---
 

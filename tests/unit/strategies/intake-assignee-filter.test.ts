@@ -3,8 +3,9 @@
  *
  * Intake may narrow the ready queue to items already assigned to one person for
  * a local automation lane, but the default shared queue behavior must remain
- * unchanged when no assignee is resolved. Both source and generated plugin
- * roots are asserted.
+ * unchanged when no assignee is resolved. The documented ready query is
+ * executed against stubbed `gh` pages in both source and generated plugin
+ * roots; the surrounding guidance prose is not pinned (#4867).
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -75,31 +76,8 @@ function runReadyQuery(content: string, assignee: string, failed = false) {
 }
 
 describe("intake assignee filter", () => {
-  describe.each(ROOTS)("%s/lisa-intake", root => {
-    const content = readSkill(root, "lisa-intake");
-
-    it("documents the assignee argument and local config resolution order", () => {
-      expect(content).toContain("assignee=<vendor-user-id-or-login>");
-      expect(content).toContain(".lisa.config.local.json` `intake.assignee`");
-      expect(content).toMatch(/empty default/i);
-    });
-
-    it("states that the filter is selection-only", () => {
-      expect(content).toMatch(/never assigns or reassigns tickets/i);
-      expect(content).toMatch(
-        /ready[\s\S]*already assigned to that assignee are considered/i
-      );
-    });
-  });
-
   describe.each(ROOTS)("%s/lisa-github-build-intake", root => {
     const content = readSkill(root, "lisa-github-build-intake");
-
-    it("documents assignee resolution for github build intake", () => {
-      expect(content).toContain("assignee=<github-login>");
-      expect(content).toContain(".lisa.config.local.json` `intake.assignee`");
-      expect(content).toMatch(/empty default/i);
-    });
 
     it.each([
       { assignee: "", expected: [1, 3] },
@@ -124,45 +102,5 @@ describe("intake assignee filter", () => {
       expect(result.status).toBe(1);
       expect(result.stdout).toBe("");
     });
-
-    it("preserves shared-queue behavior when no assignee is resolved", () => {
-      expect(content).toMatch(/scan the shared ready queue exactly as before/i);
-      expect(content).toMatch(
-        /filter the ready-item query to issues already assigned/i
-      );
-    });
   });
 });
-
-const RULES_ROOTS = [
-  "plugins/src/base/rules/reference",
-  "plugins/lisa/rules/reference",
-] as const;
-
-describe.each(RULES_ROOTS)(
-  "config-resolution intake.assignee docs (%s)",
-  rulesRoot => {
-    const content = readFileSync(
-      path.resolve(rulesRoot, "config-resolution.md"),
-      "utf8"
-    );
-
-    it("documents intake.assignee as a local-only override", () => {
-      expect(content).toContain(
-        "### Intake assignee filter (`intake.assignee`)"
-      );
-      expect(content).toMatch(/local-only/i);
-      expect(content).toMatch(/\.lisa\.config\.local\.json/);
-    });
-
-    it("documents argument override and empty default behavior", () => {
-      expect(content).toContain(
-        "$ARGUMENTS` `assignee=<vendor-user-id-or-login>`"
-      );
-      expect(content).toMatch(/empty default/i);
-      expect(content).toMatch(
-        /empty resolved value disables the[\s\S]*shared ready-queue behavior/i
-      );
-    });
-  }
-);

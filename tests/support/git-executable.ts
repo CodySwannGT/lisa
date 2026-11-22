@@ -29,22 +29,13 @@ import * as path from "node:path";
  * where they already were. On Linux neither promoted path exists, so CI
  * resolves `/usr/bin/git` exactly as before.
  */
-export const GIT_CANDIDATES: readonly string[] = Object.freeze([
+const GIT_CANDIDATES: readonly string[] = Object.freeze([
   "/Library/Developer/CommandLineTools/usr/bin/git",
   "/Applications/Xcode.app/Contents/Developer/usr/bin/git",
   "/usr/bin/git",
   "/opt/homebrew/bin/git",
   "/usr/local/bin/git",
 ]);
-
-/**
- * The path that is not git.
- *
- * On macOS `/usr/bin/git` is Apple's `xcrun` shim, which locates a developer
- * directory and re-executes the real binary there. Exported so a guard test can
- * pin it by name rather than by string literal.
- */
-export const XCRUN_SHIM = "/usr/bin/git";
 
 /**
  * Resolve git to an absolute executable path.

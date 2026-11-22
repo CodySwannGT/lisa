@@ -1,9 +1,9 @@
 ---
 name: lisa-health-drift-cron
-description: "Scheduled health consumer"
+description: "Run Lisa Health on a schedule…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
-Scheduled health consumer. Runs Lisa Health headless, and for each check that has drifted files exactly one tracker ticket through lisa-tracker-write, deduped by a per-check marker across OPEN tickets only. Files nothing for a project in band. Use for the lisa-auto-<project>-health-drift automation registered when health.schedule is set.
+Run Lisa Health on a schedule and file one tracker ticket per check that has drifted, without duplicates. Files nothing when the project is in band. Used by the health-drift automation.
 
 
 # Lisa Health Drift Cron: $ARGUMENTS

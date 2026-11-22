@@ -1,0 +1,63 @@
+=== control: unmutated copy
+ Test Files  1 passed (1)
+      Tests  40 passed (40)
+=== mutant: timeout-proceeds  (s/timeout: "halt"/timeout: "proceed"/)
+-- CLI probe:
+proceed
+exit=0
+lisa-update-projects-plan: tests/fixtures/update-projects/two-canaries.json: workspace file designates 2 canaries ("fixture-canary", "fixture-host-a"); exactly one is allowed. Designate exactly one canary host in .lisa.workspaces.json by giving its entry the object form: "<host path>": { "branch": "<target branch>", "canary": true }. Every other entry keeps its plain branch string (or uses { "branch": "<target branch>" }).
+two-canaries exit=1
+{"canary":{"path":"fixture-canary","branch":"dev"},"rest":[{"path":"fixture-host-a","branch":"staging"},{"path":"fixture-host-b","branch":"main"}]}
+-- unit tests:
+     × maps timeout to halt 3ms
+     × prints timeout -> halt 25ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/unit/scripts/lisa-update-projects-plan.test.ts > decide: what follows a canary result > maps timeout to halt
+ FAIL  tests/unit/scripts/lisa-update-projects-plan.test.ts > CLI: decide > prints timeout -> halt
+ Test Files  1 failed (1)
+      Tests  2 failed | 38 passed (40)
+=== mutant: two-canaries-allowed  (s/canaries.length > 1/canaries.length > 2/)
+-- CLI probe:
+halt
+exit=0
+two-canaries exit=0
+{"canary":{"path":"fixture-canary","branch":"dev"},"rest":[{"path":"fixture-host-a","branch":"staging"},{"path":"fixture-host-b","branch":"main"}]}
+-- unit tests:
+     × refuses two canaries, naming both, and says how to designate one 3ms
+     × refuses two-canaries.json with the designation message and a non-zero exit 25ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/unit/scripts/lisa-update-projects-plan.test.ts > planFromText: canary designation > refuses two canaries, naming both, and says how to designate one
+ FAIL  tests/unit/scripts/lisa-update-projects-plan.test.ts > CLI: plan > refuses two-canaries.json with the designation message and a non-zero exit
+ Test Files  1 failed (1)
+      Tests  2 failed | 38 passed (40)
+=== mutant: legacy-branch-dropped  (s/entry: { path: key, branch: value, canary: false }/entry: { path: key, branch: "main", canary: false }/)
+-- CLI probe:
+halt
+exit=0
+lisa-update-projects-plan: tests/fixtures/update-projects/two-canaries.json: workspace file designates 2 canaries ("fixture-canary", "fixture-host-a"); exactly one is allowed. Designate exactly one canary host in .lisa.workspaces.json by giving its entry the object form: "<host path>": { "branch": "<target branch>", "canary": true }. Every other entry keeps its plain branch string (or uses { "branch": "<target branch>" }).
+two-canaries exit=1
+{"canary":{"path":"fixture-canary","branch":"dev"},"rest":[{"path":"fixture-host-a","branch":"main"},{"path":"fixture-host-b","branch":"main"}]}
+-- unit tests:
+     × splits one canary from the rest, keeping file order and branches 5ms
+     × accepts a string value as the legacy branch form 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/unit/scripts/lisa-update-projects-plan.test.ts > planFromText: canary designation > splits one canary from the rest, keeping file order and branches
+ FAIL  tests/unit/scripts/lisa-update-projects-plan.test.ts > parseWorkspaces: value forms > accepts a string value as the legacy branch form
+ Test Files  1 failed (1)
+      Tests  2 failed | 38 passed (40)
+=== mutant: canary-stays-in-rest  (s/rest: entries.filter(entry => !entry.canary).map(toPhase)/rest: entries.map(toPhase)/)
+-- CLI probe:
+halt
+exit=0
+lisa-update-projects-plan: tests/fixtures/update-projects/two-canaries.json: workspace file designates 2 canaries ("fixture-canary", "fixture-host-a"); exactly one is allowed. Designate exactly one canary host in .lisa.workspaces.json by giving its entry the object form: "<host path>": { "branch": "<target branch>", "canary": true }. Every other entry keeps its plain branch string (or uses { "branch": "<target branch>" }).
+two-canaries exit=1
+{"canary":{"path":"fixture-canary","branch":"dev"},"rest":[{"path":"fixture-host-a","branch":"staging"},{"path":"fixture-canary","branch":"dev"},{"path":"fixture-host-b","branch":"main"}]}
+-- unit tests:
+     × splits one canary from the rest, keeping file order and branches 5ms
+     × allows a canary that is the only host, leaving the rest empty 1ms
+     × prints the canary phase, then the rest, as JSON 30ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/unit/scripts/lisa-update-projects-plan.test.ts > planFromText: canary designation > splits one canary from the rest, keeping file order and branches
+ FAIL  tests/unit/scripts/lisa-update-projects-plan.test.ts > buildPlan > allows a canary that is the only host, leaving the rest empty
+ FAIL  tests/unit/scripts/lisa-update-projects-plan.test.ts > CLI: plan > prints the canary phase, then the rest, as JSON
+ Test Files  1 failed (1)

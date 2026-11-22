@@ -1,4 +1,4 @@
 display_name: "Jira Write Ticket"
-short_description: "Creates or updates a JIRA ticket following organizational best practices"
+short_description: "Create or update a JIRA ticket to the organization's standards: description sections, Gherkin criteria, epic parent, links, labels…"
 default_prompt:
-  - "Use $lisa-jira-write-ticket: Creates or updates a JIRA ticket following organizational best practices."
+  - "Use $lisa-jira-write-ticket: Create or update a JIRA ticket to the organization's standards: description sections, Gherkin criteria, epic parent, links, labels…."

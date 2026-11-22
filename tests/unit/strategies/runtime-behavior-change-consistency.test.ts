@@ -1,16 +1,13 @@
 /**
  * Internal-consistency coverage for the `runtime_behavior_change` contract —
- * the falsifiable half of the decidability suite.
+ * the falsifiable half of the contract's presence checks.
  *
- * Read this together with `runtime-behavior-change-decidability.test.ts`. The
- * two files divide one contract along the axis that actually broke:
- *
- * - **Decidability (sibling file)** asserts the contract wording is *present*.
- *   That pins it against silent deletion or a lossy regeneration. Every
- *   assertion there is existential — "some copy says the right thing".
- * - **Consistency (this file)** asserts no copy says the *wrong* thing. Every
- *   assertion here is universal — quantified over every occurrence in the
- *   corpus, so a second copy cannot contradict the first.
+ * The contract's wording used to be pinned *present* as well, by entries in
+ * `tests/phrase-manifest/required-phrases.json`. CodySwannGT/lisa#4867 removed
+ * those: presence of a sentence is guidance wording, which needs review, not a
+ * test. What remains here is **consistency** — no copy says the *wrong*
+ * thing. Every assertion is universal, quantified over every occurrence in the
+ * corpus, so a second copy cannot contradict the first.
  *
  * The distinction is not academic. The defect that produced this file shipped
  * twice. `lisa-linear-validate-issue` spelled the discriminator `` `None -` ``
@@ -30,18 +27,20 @@
  * underneath, so there is no function to call and no return value to assert.
  * These are still assertions over prose. What changed is the quantifier, and
  * that is the half that binds: a universal negative over the whole corpus
- * cannot be satisfied by a correct copy elsewhere in the file. Deletion is the
- * sibling file's job; contradiction is this one's. Neither catches an agent
- * that reads a correct instruction and disobeys it.
+ * cannot be satisfied by a correct copy elsewhere in the file. It does not
+ * catch an agent that reads a correct instruction and disobeys it.
  * @module tests/unit/strategies/runtime-behavior-change-consistency
  */
+
 import { describe, expect, it } from "vitest";
 
+import { NO_RUNTIME_REASONS } from "../../../all/copy-overwrite/scripts/lib/completion-proof-shape.mjs";
 import {
   CONTRACT_SKILLS,
   RULE_ROOTS,
   SKILL_ROOTS,
   VALIDATORS,
+  WRITERS,
   readRule,
   readSkill,
 } from "./runtime-behavior-change-sources.js";
@@ -51,25 +50,6 @@ const MARKER_SPAN = /`None[^`]*`/gs;
 
 /** Every place the prose points at a missing declaration. */
 const ABSENCE_SITE = /\babsent\b\W{0,4}\bsection\b/gi;
-
-/**
- * Phrasings that read a missing declaration as `false`.
- *
- * Stated as a universal negative on purpose. The positive form — "the file
- * says underivable somewhere" — is what let the marker mutation through twice.
- */
-const ABSENCE_AS_FALSE: readonly RegExp[] = [
-  /\babsent\b\W{0,4}\bsection\b[^.\n]{0,30}?(?:\b(?:means|is|reads as)\b|→|=)\s*\*{0,2}`?false`?/i,
-  /\babsence\b[^.\n]{0,30}?(?:\b(?:means|is|reads as)\b|→|=)\s*\*{0,2}`?false`?/i,
-  /\bno section\b[^.\n]{0,30}?(?:\b(?:means|is|reads as)\b|→|=)\s*\*{0,2}`?false`?/i,
-  /\|[^|\n]*\babsent\b[^|\n]*\|\s*\*{0,2}`?false`?\*{0,2}\s*\|/i,
-];
-
-/** Phrasings that hand authority back to the caller's assertion. */
-const CALLER_BEATS_STORED: readonly RegExp[] = [
-  /\bcallers?(?:'s|')?\b[^.\n]{0,60}?\b(?:is taken as given|takes precedence|is authoritative|is trusted|is believed)\b/i,
-  /\basserted\b[^.\n]{0,40}?\bbeats\b[^.\n]{0,40}?\bpersisted\b/i,
-];
 
 /**
  * How many times each skill must state the absence rule.
@@ -160,49 +140,63 @@ describe("no copy reads an absent declaration as false", () => {
       // Each site must resolve to a verdict on its own. A correct copy
       // elsewhere in the file is not allowed to vouch for a broken one.
       for (const window of windows) expect(window).toMatch(/underivable/iu);
-
-      for (const pattern of ABSENCE_AS_FALSE) {
-        expect(content).not.toMatch(pattern);
-      }
     });
   });
 });
 
-describe("no rule copy reads an absent declaration as false", () => {
-  describe.each(RULE_ROOTS)("%s", root => {
-    // #3992 demoted `derived-branch-plan` out of the eager tier, folding its
-    // head into the reference body. One copy per root now, so the sweep runs
-    // over the tier that has it — still every root, still a universal negative.
-    it.each(["reference"] as const)("%s tier", tier => {
-      const content = readRule(root, tier);
+/** Matches the lenient grammar that let an unknown reason pass S8. */
+const LENIENT_GRAMMAR = /the words after it are for the human/iu;
 
-      expect(content).toMatch(/underivable/iu);
-
-      for (const pattern of ABSENCE_AS_FALSE) {
-        expect(content).not.toMatch(pattern);
-      }
-    });
+/**
+ * The validators once called the words after `None —` "for the human", so a
+ * leaf declaring `test-only` passed S8 and was then refused at completion as
+ * pending-proof forever, because `declaredScope()` accepts only a closed
+ * reason set (CodySwannGT/lisa#4684). These checks pin the prose grammar to
+ * the code export, so the set can change in one place only.
+ */
+describe("every copy names the closed no-runtime reason set the checker enforces", () => {
+  it("the checker's set is closed, frozen, and includes test-only", () => {
+    expect(Object.isFrozen(NO_RUNTIME_REASONS)).toBe(true);
+    expect([...NO_RUNTIME_REASONS]).toStrictEqual([
+      "doc-only",
+      "config-only",
+      "type-only",
+      "test-only",
+    ]);
   });
-});
 
-describe("no copy hands authority back to the caller", () => {
   describe.each(SKILL_ROOTS)("%s", root => {
-    it.each(VALIDATORS)("%s keeps the stored declaration on top", slug => {
-      const content = readSkill(root, slug);
+    it.each([...VALIDATORS, ...WRITERS])(
+      "%s names every reason and the shared export",
+      slug => {
+        const content = unwrap(readSkill(root, slug));
 
-      for (const pattern of CALLER_BEATS_STORED) {
-        expect(content).not.toMatch(pattern);
+        for (const reason of NO_RUNTIME_REASONS) {
+          expect(content).toContain(reason);
+        }
+        expect(content).toContain("NO_RUNTIME_REASONS");
+        expect(content).not.toMatch(LENIENT_GRAMMAR);
       }
+    );
+
+    it.each(VALIDATORS)("%s fails a reason outside the closed set", slug => {
+      const content = unwrap(readSkill(root, slug));
+
+      expect(content).toContain(
+        "`doc-only | config-only | type-only | test-only`"
+      );
+      expect(content).toMatch(/any other reason[^.]*\*\*FAILs\*\* this gate/u);
     });
   });
 
   describe.each(RULE_ROOTS)("%s", root => {
-    it("the reference tier keeps the stored declaration on top", () => {
-      const content = readRule(root, "reference");
+    it("the reference tier names every reason and drops the lenient grammar", () => {
+      const content = unwrap(readRule(root, "reference"));
 
-      for (const pattern of CALLER_BEATS_STORED) {
-        expect(content).not.toMatch(pattern);
+      for (const reason of NO_RUNTIME_REASONS) {
+        expect(content).toContain(reason);
       }
+      expect(content).not.toMatch(LENIENT_GRAMMAR);
     });
   });
 });

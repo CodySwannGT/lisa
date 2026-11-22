@@ -1,5 +1,5 @@
 ---
-description: "Plan work from a single PRD or specification. Decomposes into ordered work items in the configured tracker (JIRA, GitHub Issues, or Linear per .lisa.config.json). Source can be a Notion / Confluence / Linear / GitHub Issue URL, a JIRA epic key, a markdown file, or a free-form description. For batch scanning of all Ready PRDs in a queue, use /lisa:intake instead."
+description: "Break one PRD or spec into ordered work items in the project's tracker, from a PRD URL, epic key, markdown file, or description. For a whole ready queue use /lisa:intake."
 argument-hint: "<single-PRD-url | GitHub-issue-url | @file | ticket-id-or-url | description>"
 ---
 

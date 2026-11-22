@@ -31,7 +31,7 @@ import {
   runGateWrite,
   runReport,
   writeMap,
-} from "./bdd/support";
+} from "./bdd/support.js";
 
 const RESULTS_FILE = "results.json";
 const STALE_TITLE = "renamed away";
@@ -334,6 +334,6 @@ describe("an empty denominator is not 100%", () => {
         files: HEALTHY_FILES,
       })
     );
-    expect(report.floor.byPlatform.ios.ok).toBe(false);
+    expect(report.floor.byPlatform.ios?.ok).toBe(false);
   });
 });

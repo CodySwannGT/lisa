@@ -6,10 +6,22 @@
  * command fails, and both run gh with the scrubbed worker env.
  * @module session-manager/queue-github
  */
-import { normalizeGithubIssue } from "../../../scripts/ready-queue-order.mjs";
+import {
+  labelNames,
+  normalizeGithubIssue,
+} from "../../../scripts/ready-queue-order.mjs";
 import { resolveRole } from "../../../scripts/resolve-lifecycle-role.mjs";
+import {
+  landedDoneRoles,
+  terminalDoneRoles,
+} from "../../../scripts/stale-blocker-edges.mjs";
 import { CliError, mustRun } from "./cli-runtime.mjs";
 import { parseJson } from "./json-input.mjs";
+import {
+  blockerReader,
+  hasBlockers,
+  withBlockers,
+} from "./stale-links-github.mjs";
 import { scrubWorkerEnv } from "./workers.mjs";
 
 const OWNER_REPO = /^[\w.-]+\/[\w.-]+$/;
@@ -32,6 +44,55 @@ function githubRepo(ctx, project) {
     );
   }
   return repo;
+}
+
+/**
+ * Normalize REST rows with their blockers attached, so the queue judges a
+ * blocker by the same rule as intake and the stale-link sweep (#5065).
+ * Only rows that name a blocker, and that `keep` retains, cost any extra
+ * read: a row the caller will drop anyway is dropped before enrichment.
+ * @param {object} ctx - CLI context
+ * @param {{global?: object, local?: object}} project - Loaded project
+ * @param {string} repo - `owner/repo`
+ * @param {object[]} rows - REST issues
+ * @param {(row: object) => boolean} [keep] - Raw-row filter, applied first
+ * @returns {object[]} Normalized items
+ */
+function normalizeRows(ctx, project, repo, rows, keep = () => true) {
+  const config = {
+    tracker: "github",
+    global: project.global,
+    local: project.local,
+  };
+  const doneRoles = terminalDoneRoles(config);
+  const landedRoles = landedDoneRoles(config);
+  const blocker = blockerReader(ctx);
+  return rows
+    .filter(row => !row.pull_request && keep(row))
+    .map(row =>
+      hasBlockers(row, repo) ? enrichOrHold(ctx, repo, row, blocker) : row
+    )
+    .map(row => normalizeGithubIssue(row, { repo, doneRoles, landedRoles }))
+    .filter(Boolean);
+}
+
+/**
+ * Attach one row's blockers. A failed blocker read holds THAT row only: the
+ * rest of the queue is still offered.
+ * @param {object} ctx - CLI context
+ * @param {string} repo - `owner/repo`
+ * @param {Record<string, any>} row - REST issue
+ * @param {(ref: string) => object | null} blocker - Body-ref reader
+ * @returns {Record<string, any>} The enriched row, or the row marked unreadable
+ */
+function enrichOrHold(ctx, repo, row, blocker) {
+  try {
+    return withBlockers(ctx, repo, row, blocker);
+  } catch {
+    // probe-direction: fail-closed — an item whose blockers could not be read
+    // is held (`blockersUnreadable`), never released as unblocked.
+    return { ...row, blockersUnreadable: true };
+  }
 }
 
 /**
@@ -87,13 +148,12 @@ export function fetchGithubBacklog(ctx, project) {
   );
   const pages = parseJson(stdout, "gh api output");
   const rows = Array.isArray(pages) ? pages.flat() : [];
+  // The lifecycle test reads labels exactly as `normalizeGithubIssue` does,
+  // and runs on the raw rows so an excluded issue costs no blocker read.
+  const unlabelled = row =>
+    !labelNames(row.labels).some(label => lifecycle.has(label.toLowerCase()));
   return {
-    items: rows
-      .map(row => normalizeGithubIssue(row, { repo }))
-      .filter(Boolean)
-      .filter(
-        item => !item.labels.some(label => lifecycle.has(label.toLowerCase()))
-      ),
+    items: normalizeRows(ctx, project, repo, rows, unlabelled),
     pages: Array.isArray(pages) ? pages.length : 0,
   };
 }
@@ -124,7 +184,7 @@ export function fetchGithubQueue(ctx, project) {
   const pages = parseJson(stdout, "gh api output");
   const rows = Array.isArray(pages) ? pages.flat() : [];
   return {
-    items: rows.map(row => normalizeGithubIssue(row, { repo })).filter(Boolean),
+    items: normalizeRows(ctx, project, repo, rows),
     pages: Array.isArray(pages) ? pages.length : 0,
   };
 }

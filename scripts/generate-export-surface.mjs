@@ -39,7 +39,9 @@
  * — Lisa cannot see the consumer's importer, and the consumer has no dependency
  * to declare — so the exported names are the only shared contract there is.
  *
- * It reads exports **statically**, by their declaration form. It does not
+ * It reads exports **statically**, from the TypeScript compiler's syntax tree
+ * (a runtime dependency already), so an `export const` written inside a
+ * template string or a comment is text, not a declaration. It does not
  * execute the modules, and it therefore cannot see a name attached at runtime.
  * That limit is deliberate: importing 130 shipped scripts to enumerate them
  * would run their top-level code during a build.
@@ -48,6 +50,8 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+
+import ts from "typescript";
 
 /**
  * Fixed absolute git locations, in the order they are tried.
@@ -89,51 +93,13 @@ const SHIPPED_ROOTS = [
  * exported name per line is what makes a removal show up as a DELETED line in
  * the pull request that causes it — which is the entire point of recording the
  * surface. At 974 names that is well past the 300-line ceiling `max-lines`
- * applies to source, and the sibling generated artifacts buy their way past it
- * with a file-wide `eslint-disable`. Data does not need to be source: as JSON
+ * applies to source — the reason the sibling generated artifacts (the hash
+ * ledger and the evidence manifest) are JSON too. Data does not need to be source: as JSON
  * the artifact keeps the per-name diff, needs no waiver, and its reader becomes
  * `JSON.parse` instead of a hand-rolled line parser that could silently
  * disagree with the renderer.
  */
 const ARTIFACT = "src/core/export-surface.json";
-
-/**
- * Declaration forms that introduce a named export.
- *
- * Anchored at line start, because an `export` inside a string or a comment is
- * not a declaration and counting it would make the artifact disagree with the
- * module. The corpus was surveyed before this list was written: 613 `function`,
- * 306 `const`, 38 `async function`, 14 `class`, 4 brace-lists.
- */
-const DECLARATION =
-  /^export\s+(?:async\s+)?(?:function|const|let|var|class)\s+([A-Za-z_$][\w$]*)/gm;
-
-/**
- * `export { a, b as c }` — the re-export form, on one line or many.
- *
- * The body is `[^}]*`, which crosses newlines, because the reader used to walk
- * the source a line at a time and so could only ever see a list that closed on
- * the line it opened on. A multiline block contributed NOTHING to the artifact,
- * and a removal from one was therefore never reported while the check went on
- * passing — the exact failure this file exists against (CodySwannGT/lisa#4006).
- *
- * Still anchored with `m` rather than dropped, so an `export {` inside a string
- * or a comment is no more countable than it was before.
- */
-const BRACE_LIST = /^export\s*\{([^}]*)\}/gm;
-
-/**
- * `export * as ns from "mod"` — the namespace re-export form.
- *
- * `ns` is a name a consumer imports, so it belongs on the surface. Its bare
- * sibling `export * from "mod"` stays invisible: it introduces no name of its
- * own, and enumerating what it forwards would mean resolving and reading the
- * other module, which is the dynamic behavior this reader deliberately avoids.
- */
-const NAMESPACE_REEXPORT = /^export\s*\*\s+as\s+([A-Za-z_$][\w$]*)\s+from\b/gm;
-
-/** Comments inside a brace list — a commented-out name is not on the surface. */
-const CLAUSE_COMMENT = /\/\*[\s\S]*?\*\/|\/\/[^\n]*/g;
 
 /**
  * Every tracked, shipped `.mjs` path.
@@ -153,31 +119,82 @@ export function shippedScripts(cwd = process.cwd()) {
 }
 
 /**
+ * Whether a statement carries a given modifier keyword.
+ * @param {ts.Statement} statement A top-level statement.
+ * @param {ts.SyntaxKind} kind The modifier to look for.
+ * @returns {boolean} True when present.
+ */
+function hasModifier(statement, kind) {
+  return (
+    ts.canHaveModifiers(statement) ? (ts.getModifiers(statement) ?? []) : []
+  ).some(modifier => modifier.kind === kind);
+}
+
+/**
+ * Every identifier a binding introduces, through destructuring.
+ * @param {ts.BindingName} name A variable declaration's name.
+ * @returns {string[]} The bound identifiers.
+ */
+function boundNames(name) {
+  if (ts.isIdentifier(name)) return [name.text];
+  return name.elements.flatMap(element =>
+    ts.isOmittedExpression(element) ? [] : boundNames(element.name)
+  );
+}
+
+/**
+ * The names one top-level statement adds to the module's exports.
+ * @param {ts.Statement} statement A top-level statement.
+ * @returns {string[]} Exported names; empty when the statement exports none.
+ */
+function statementExports(statement) {
+  if (ts.isExportDeclaration(statement)) {
+    const clause = statement.exportClause;
+    // `export * from "mod"` introduces no name of its own.
+    if (clause === undefined) return [];
+    if (ts.isNamespaceExport(clause)) return [clause.name.text];
+    // `a as b` exports b; the local name is not part of the surface.
+    return clause.elements.map(element => element.name.text);
+  }
+  if (!hasModifier(statement, ts.SyntaxKind.ExportKeyword)) return [];
+  if (hasModifier(statement, ts.SyntaxKind.DefaultKeyword)) return [];
+  if (ts.isVariableStatement(statement)) {
+    return statement.declarationList.declarations.flatMap(declaration =>
+      boundNames(declaration.name)
+    );
+  }
+  if (
+    (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) &&
+    statement.name !== undefined
+  ) {
+    return [statement.name.text];
+  }
+  return [];
+}
+
+/**
  * The names one module exports.
  *
- * `export default` is deliberately excluded: it has no name to compare, so
- * recording it would add a row that can never change meaningfully.
- *
- * Read over the whole source rather than a line at a time, so a declaration
- * list that spans lines is seen. Every pattern stays anchored at a line start
- * under `m`, which is what keeps an `export` inside a string or a comment out.
+ * Read from the syntax tree, so only real top-level export declarations count:
+ * an `export const` inside a template string, a comment, or a nested scope is
+ * not on the surface. `export default` is deliberately excluded: it has no
+ * name to compare, so recording it would add a row that can never change
+ * meaningfully.
  * @param {string} source Module source.
  * @returns {string[]} Exported names, sorted and deduplicated.
  */
 export function exportedNames(source) {
-  const names = new Set();
-  for (const [, declared] of source.matchAll(DECLARATION)) names.add(declared);
-  for (const [, namespaced] of source.matchAll(NAMESPACE_REEXPORT)) {
-    names.add(namespaced);
-  }
-  for (const [, body] of source.matchAll(BRACE_LIST)) {
-    for (const clause of body.replace(CLAUSE_COMMENT, " ").split(",")) {
-      // `a as b` exports b; the local name is not part of the surface.
-      const parts = clause.trim().split(/\s+as\s+/);
-      const exported = (parts.at(-1) ?? "").trim();
-      if (exported && exported !== "default") names.add(exported);
-    }
-  }
+  const file = ts.createSourceFile(
+    "module.mjs",
+    source,
+    ts.ScriptTarget.Latest,
+    false,
+    ts.ScriptKind.JS
+  );
+  const names = new Set(
+    file.statements.flatMap(statement => statementExports(statement))
+  );
+  names.delete("default");
   return [...names].sort((left, right) =>
     left < right ? -1 : left > right ? 1 : 0
   );
@@ -259,6 +276,34 @@ export function removedExports(before, after) {
 }
 
 /**
+ * Keep only the removals that were real exports at the earlier revision.
+ *
+ * An artifact recorded by an older reader can list a name that was never
+ * exported: the regex reader it replaced counted `export const` lines inside
+ * template strings. Reporting such a name as removed would announce an API
+ * break that never happened. Each candidate is re-read from the module's
+ * source at that revision with today's reader; a module that cannot be read
+ * there keeps its removal, so the check fails closed rather than going quiet.
+ * @param {Array<{file: string, name: string}>} removals From {@link removedExports}.
+ * @param {(file: string) => string|null} sourceAt The module's source at the earlier revision, or null.
+ * @returns {Array<{file: string, name: string}>} The removals that were real exports.
+ */
+export function confirmedRemovals(removals, sourceAt) {
+  const cache = new Map();
+  const namesIn = file => {
+    if (!cache.has(file)) {
+      const source = sourceAt(file);
+      cache.set(file, source === null ? null : new Set(exportedNames(source)));
+    }
+    return cache.get(file);
+  };
+  return removals.filter(({ file, name }) => {
+    const names = namesIn(file);
+    return names === null || names.has(name);
+  });
+}
+
+/**
  * The changelog section a release carries when it removes exports.
  *
  * Emits nothing when nothing was removed — a release that removed no export
@@ -299,6 +344,28 @@ function surfaceAt(ref, cwd) {
     // says so in words, which any caller treating non-zero as a block reads
     // as a refusal. An unreadable revision costs a false block, never a
     // release that reports zero removals because it could not look.
+    return null;
+  }
+}
+
+/**
+ * A file's contents at a git revision.
+ * @param {string} ref Git revision.
+ * @param {string} file Repo-relative path.
+ * @param {string} cwd Repository root.
+ * @returns {string|null} The source, or null when it cannot be read there.
+ */
+function sourceAtRevision(ref, file, cwd) {
+  try {
+    return execFileSync(GIT_BIN, ["show", `${ref}:${file}`], {
+      cwd,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    // probe-direction: fail-closed — an unreadable revision returns null, and
+    // confirmedRemovals keeps the removal it could not disprove.
     return null;
   }
 }
@@ -370,7 +437,10 @@ function main() {
       );
       return 2;
     }
-    const removals = removedExports(before, currentSurface(cwd));
+    const removals = confirmedRemovals(
+      removedExports(before, currentSurface(cwd)),
+      file => sourceAtRevision(since, file, cwd)
+    );
     const section = changelogSection(removals);
     process.stdout.write(
       section === ""

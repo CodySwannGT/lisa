@@ -12,7 +12,7 @@
 #     with:
 #       tag: ${{ needs.release.outputs.tag }}
 #       version: ${{ needs.release.outputs.version }}
-#       node_version: '22.x'
+#       node_version: '24.21.0'
 #       package_manager: 'bun'
 
 name: Publish to npm
@@ -31,7 +31,7 @@ on:
       node_version:
         description: 'Node.js version to use'
         required: false
-        default: '20.x'
+        default: '24.21.0'
         type: string
       package_manager:
         description: 'Package manager to use (npm, yarn, or bun)'

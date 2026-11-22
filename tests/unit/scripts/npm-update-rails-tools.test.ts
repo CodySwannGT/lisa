@@ -6,13 +6,13 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 useIoLatencyBudget();
 
@@ -167,7 +167,7 @@ describe("closed native Rails tool qualification", () => {
       await import("../../../all/copy-overwrite/scripts/lib/npm-update-rails-tool-identity.mjs");
     await fixture(async ({ root, file }) => {
       const alias = join(root, "ruby");
-      symlinkSync(file, alias);
+      createSymlink(file, alias);
       observation.path = alias;
       observation.reads = 0;
       try {
@@ -254,7 +254,7 @@ describe("closed native Rails tool qualification", () => {
       await import("../../../all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs");
     await fixture(async ({ docker, file, root }) => {
       const alias = join(root, "alias");
-      symlinkSync(file, alias);
+      createSymlink(file, alias);
       const before = readFileSync(file);
       await expect(
         assertDockerQualified({ ...docker, path: alias }, Date.now() + 10000)

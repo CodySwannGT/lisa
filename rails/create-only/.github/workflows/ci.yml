@@ -44,6 +44,11 @@ jobs:
     # `runner: 'ubuntu-24.04'`: newer runner images only get builds of each
     # Ruby series' latest patch, and setup fails there
     # (CodySwannGT/lisa#4517).
+    # If the schema enables a postgres extension the official image lacks
+    # (pgvector, for example), add `database_image: 'pgvector/pgvector:pg17'`
+    # (a digest pin `image@sha256:...` works too). It replaces the image of
+    # every postgres service; `database_version` then has no effect on it
+    # (CodySwannGT/lisa#4671).
     secrets:
       GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
       FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}

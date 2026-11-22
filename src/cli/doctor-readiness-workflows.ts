@@ -35,7 +35,7 @@ export type WorkflowBlock = Record<string, unknown> | string | null;
  * whether the *absence* of an in-file validating job proves a bypass or merely
  * means the proof lives somewhere this parser cannot see.
  */
-export interface ParsedWorkflowTrigger {
+interface ParsedWorkflowTrigger {
   /** Declared event names, e.g. `push`, `workflow_call`, `workflow_run`. */
   readonly events: readonly string[];
   /** Branch filters on a `push` trigger (empty when unfiltered or absent). */

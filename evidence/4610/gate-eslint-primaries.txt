@@ -1,0 +1,8 @@
+
+tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts
+  142:22  warning  Refactor this code to not use nested template literals  sonarjs/no-nested-template-literals
+  152:24  warning  Refactor this code to not use nested template literals  sonarjs/no-nested-template-literals
+  159:41  warning  Refactor this code to not use nested template literals  sonarjs/no-nested-template-literals
+
+✖ 3 problems (0 errors, 3 warnings)
+

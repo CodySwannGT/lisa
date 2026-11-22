@@ -1,0 +1,168 @@
+# AC-3 | HEAD c4c2daa67710528bc1845b5868a06bfd2e8a8158 | clean tree
+$ bunx vitest run tests/unit/config/security-pin-floors.test.ts tests/unit/config/postinstall-ci-guard.test.ts --reporter=verbose
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4712-systeminformation-floor
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates guard Lisa postinstall with CI-skip prefix > package.lisa.json either omits postinstall or prefixes it with the CI guard 1ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates guard Lisa postinstall with CI-skip prefix > typescript/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard 1ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates guard Lisa postinstall with CI-skip prefix > expo/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates guard Lisa postinstall with CI-skip prefix > nestjs/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates guard Lisa postinstall with CI-skip prefix > cdk/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates guard Lisa postinstall with CI-skip prefix > harper-fabric/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates guard Lisa postinstall with CI-skip prefix > phaser/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates guard Lisa postinstall with CI-skip prefix > npm-package/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > package.lisa.json does not declare @codyswann/lisa in any force block 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > typescript/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > expo/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > nestjs/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > cdk/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > harper-fabric/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > phaser/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > npm-package/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > typescript/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > expo/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > nestjs/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > cdk/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > harper-fabric/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > phaser/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > npm-package/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json prepare scripts install hooks after successful builds > package.lisa.json runs husky install only after a successful build 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json prepare scripts install hooks after successful builds > npm-package/package-lisa/package.lisa.json runs husky install only after a successful build 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates carry force-governed CVE floors > typescript template floors systeminformation (GHSA-3f7j-7jwc-fxfj, patched 5.33.16) 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates carry force-governed CVE floors > typescript template keeps undici on the File-exporting v6 line 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates carry force-governed CVE floors > expo template floors websocket-driver (RN-firebase GHSA-xv26-6w52-cph6) 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates carry force-governed CVE floors > expo template floors fast-xml-parser (GHSA-8r6m-32jq-jx6q) 0ms
+ ✓ |lisa| tests/unit/config/postinstall-ci-guard.test.ts > EnsureLisaPostinstallMigration injects CI-guarded invocation > the migration's LISA_INVOCATION constant starts with the CI guard 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > finds the templates it is meant to police 1ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'cdk/package-lisa/package.lisa.json' forces 'esbuild' in 'devDependencies' at '^0.28.1', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'cdk/package-lisa/package.lisa.json' forces 'vite' in 'devDependencies' at '^8.3.3', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces 'tar' in 'dependencies' at '>=7.5.21', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces 'zod' in 'dependencies' at '^4.6.6', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces '@isaacs/brace-expansion' in 'overrides' at '^5.0.1', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces 'fast-xml-parser' in 'overrides' at '^5.10.1', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces 'tar' in 'overrides' at '>=7.5.21', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces 'websocket-driver' in 'overrides' at '>=0.7.5', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces '@isaacs/brace-expansion' in 'resolutions' at '^5.0.1', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces 'fast-xml-parser' in 'resolutions' at '^5.10.1', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces 'tar' in 'resolutions' at '>=7.5.21', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces 'websocket-driver' in 'resolutions' at '>=0.7.5', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'nestjs/package-lisa/package.lisa.json' forces '@graphql-tools/utils' in 'dependencies' at '^12.0.2', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'nestjs/package-lisa/package.lisa.json' forces 'vite' in 'devDependencies' at '^8.3.3', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'npm-package/package-lisa/package.lisa…' forces 'vite' in 'devDependencies' at '^8.3.3', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'package.lisa.json' forces 'esbuild' in 'devDependencies' at '^0.28.2', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'package.lisa.json' forces 'vite' in 'devDependencies' at '^8.3.3', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'package.lisa.json' forces 'smol-toml' in 'overrides' at '1.7.1', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces '@isaacs/brace-expansion' in 'overrides' at '^5.0.1', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'axios' in 'overrides' at '>=1.20.0', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'esbuild' in 'overrides' at '>=0.28.1', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'handlebars' in 'overrides' at '>=4.7.10', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'lodash' in 'overrides' at '>=4.18.1', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'multer' in 'overrides' at '>=2.5.0', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'undici' in 'overrides' at '^6.29.1', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'vite' in 'overrides' at '^8.3.3', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'ws' in 'overrides' at '>=8.21.0', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'form-data' in 'overrides' at '>=4.0.6', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'systeminformation' in 'overrides' at '>=5.33.16', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces '@isaacs/brace-expansion' in 'resolutions' at '^5.0.1', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'axios' in 'resolutions' at '>=1.20.0', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'esbuild' in 'resolutions' at '>=0.28.1', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'handlebars' in 'resolutions' at '>=4.7.10', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'lodash' in 'resolutions' at '>=4.18.1', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'multer' in 'resolutions' at '>=2.5.0', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'undici' in 'resolutions' at '^6.29.1', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'vite' in 'resolutions' at '^8.3.3', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'ws' in 'resolutions' at '>=8.21.0', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'form-data' in 'resolutions' at '>=4.0.6', admitting nothing below its advisory floor 0ms
+ ✓ |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'systeminformation' in 'resolutions' at '>=5.33.16', admitting nothing below its advisory floor 0ms
+
+ Test Files  2 passed (2)
+      Tests  72 passed (72)
+   Start at  11:22:23
+   Duration  476ms (transform 171ms, setup 248ms, import 167ms, tests 13ms, environment 0ms)
+
+EXIT_CODE=0
+
+# Bite control: both template floors temporarily set to >=5.31.7 (restored immediately after; tree verified clean)
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4712-systeminformation-floor
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ❯ |lisa| tests/unit/config/postinstall-ci-guard.test.ts (31 tests | 1 failed) 8ms
+     × typescript template floors systeminformation (GHSA-3f7j-7jwc-fxfj, patched 5.33.16) 3ms
+ ❯ |lisa| tests/unit/config/security-pin-floors.test.ts (41 tests | 2 failed) 8ms
+     × 'typescript/package-lisa/package.lisa.…' forces 'systeminformation' in 'overrides' at '>=5.31.7', admitting nothing below its advisory floor 3ms
+     × 'typescript/package-lisa/package.lisa.…' forces 'systeminformation' in 'resolutions' at '>=5.31.7', admitting nothing below its advisory floor 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates carry force-governed CVE floors > typescript template floors systeminformation (GHSA-3f7j-7jwc-fxfj, patched 5.33.16)
+AssertionError: expected '>=5.31.7' to be '>=5.33.16' // Object.is equality
+
+Expected: ">=5.33.16"
+Received: ">=5.31.7"
+
+ ❯ tests/unit/config/postinstall-ci-guard.test.ts:173:58
+    171|       TYPESCRIPT_PACKAGE_TEMPLATE
+    172|     ) as OverridesShape;
+    173|     expect(template.force?.overrides?.systeminformation).toBe(">=5.33.…
+       |                                                          ^
+    174|     expect(template.force?.resolutions?.systeminformation).toBe(">=5.3…
+    175|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'systeminformation' in 'overrides' at '>=5.31.7', admitting nothing below its advisory floor
+ FAIL  |lisa| tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'systeminformation' in 'resolutions' at '>=5.31.7', admitting nothing below its advisory floor
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ tests/unit/config/security-pin-floors.test.ts:149:46
+    147|       // admit ANY release below the patch? A floor that merely starts…
+    148|       // right version still fails here if the range reaches under it.
+    149|       expect(intersects(range, `<${floor}`)).toBe(false);
+       |                                              ^
+    150|     }
+    151|   );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  3 failed | 69 passed (72)
+   Start at  11:21:39
+   Duration  456ms (transform 169ms, setup 257ms, import 156ms, tests 16ms, environment 0ms)
+
+EXIT_CODE=1

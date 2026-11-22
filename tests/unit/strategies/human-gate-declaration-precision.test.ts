@@ -23,7 +23,7 @@
  *
  * `pr-arming-sweep.mjs` hit it on CodySwannGT/lisa#3986, where the pull request
  * introducing a suppression marker suppressed itself by explaining what the
- * marker was, and `parity-safety-net.sh` hit it on #3825, where a comment
+ * marker was, and a since-retired guard hit it on #3825, where a comment
  * quoting a destructive command read as running one. The reasoning that
  * produces it is always the same and always sounds sound. **Before matching a
  * token, ask what it means in every position it can occupy.**

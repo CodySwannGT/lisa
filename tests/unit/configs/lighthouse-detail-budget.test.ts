@@ -1,5 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,6 +6,10 @@ import { describe, expect, it } from "vitest";
 
 import { compareFile } from "../../../plugins/src/base/hooks/threshold-ratchet-compare.mjs";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../..");
@@ -29,7 +32,7 @@ function projectWithReports(
   reports: readonly Record<string, unknown>[],
   maximum?: number
 ): string {
-  const project = mkdtempSync(path.join(tmpdir(), "lisa-lighthouse-details-"));
+  const project = ownedDir("lisa-lighthouse-details-");
   const reportDirectory = path.join(project, REPORT_DIRECTORY);
   mkdirSync(reportDirectory);
   reports.forEach((report, index) => {
@@ -291,7 +294,8 @@ describe("Lighthouse detail budget", () => {
 
   it("fails closed when a passing audit omits detail evidence", () => {
     const missingDetails = report(1);
-    delete missingDetails.audits["forced-reflow-insight"].details;
+    const audit = missingDetails.audits["forced-reflow-insight"];
+    Reflect.deleteProperty(audit, "details");
 
     const result = run(projectWithReports([missingDetails]));
 
@@ -342,7 +346,7 @@ describe("Lighthouse detail budget", () => {
   });
 
   it("fails closed when Lighthouse produced no reports", () => {
-    const project = mkdtempSync(path.join(tmpdir(), "lisa-lighthouse-empty-"));
+    const project = ownedDir("lisa-lighthouse-empty-");
     mkdirSync(path.join(project, REPORT_DIRECTORY));
 
     const result = run(project);

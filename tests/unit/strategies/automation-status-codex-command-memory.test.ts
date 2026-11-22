@@ -39,6 +39,7 @@ describe("automation-status Codex command and memory normalization", () => {
     );
 
     expect(observedCommand).toBe(BUILD_COMMAND);
+    if (observedCommand === undefined) throw new Error("no command derived");
     expect(
       compareAutomationContract({
         expected: {

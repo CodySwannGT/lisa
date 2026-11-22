@@ -1,0 +1,63 @@
+### HEAD b590df4c25815538d0d3e9a6c084c7aaca00212c  date 2026-11-08T18:58:37Z
+### $ bunx vitest run <7 files>
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4692-evidence-release-rotation
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+
+ Test Files  7 passed (7)
+      Tests  98 passed (98)
+   Start at  13:58:38
+   Duration  43.26s (transform 580ms, setup 751ms, import 1.33s, tests 80.02s, environment 0ms)
+
+exit=0
+### $ bun run typecheck
+$ node scripts/lib/worktree-dependencies.mjs && tsgo --noEmit && bun run typecheck:tests && bun run typecheck:engine-floor
+$ node scripts/check-typecheck-tests.mjs
+type-correctness (tests): 355 file(s) with 1530 error(s); 355 quarantined.
+✅ No type errors outside the quarantine, and no stale quarantine entries.
+$ node scripts/check-engine-floor.mjs
+type-correctness (engine floor): engines.node "24.21.0" → Node 24 → --lib es2025. 22852 diagnostic(s) at that library, of which 0 are attributable to the floor.
+Measured backlog (NOT gated): 22852 diagnostic(s) survive at --lib esnext and are unrelated to the engine floor.
+✅ Nothing in the shipped JavaScript outruns Node 24.
+exit=0
+### $ bun run check:artifacts
+  never-delivered: 0
+  undelivered: 3
+staleness detection: 4/29 coupling(s) can detect a stale artifact (version handshake); 0/29 detect it at one capability floor only; 22/29 detect absence at most and never age; 3/29 could not be checked (nothing is delivered at the path, so there is no artifact to ask).
+  version-handshake: 4
+  capability-probe: 0
+  existence-only: 5
+  no-probe: 17
+  unchecked: 3
+  decision handshake: 4
+  decision not-needed: 14
+  decision warranted: 11
+▸ check:deletion-basis
+deletion basis: 251 declared path(s) classified, of which 244 still carry `needs-review`.
+  244 reason(s) remain unwritten. Each one replaced by `legacy: <reason>` is a path whose removal somebody has justified in writing.
+▸ check:export-surface
+▸ check:merge-coverage
+generated-artifact merge coverage: 6 artifact(s) declared, 2 merge-driver covered, 4 declared unsupported and still unparseable by the driver.
+▸ check:retired-safety-net-manifest
+Retired safety-net ownership is current.
+check:artifacts OK - all 8 generated-artifact checks passed.
+exit=0

@@ -1,4 +1,4 @@
 display_name: "Github Read Issue"
-short_description: "Fetches the full scope of a GitHub Issue — metadata, body sections, all comments, native sub-issue parent and children, linked PRs, related…"
+short_description: "Fetch a GitHub issue with everything related — comments, parent and sub-issues, linked PRs, related and cross-repo issues — so work is…"
 default_prompt:
-  - "Use $lisa-github-read-issue: Fetches the full scope of a GitHub Issue — metadata, body sections, all comments, native sub-issue parent and children, linked PRs, related…."
+  - "Use $lisa-github-read-issue: Fetch a GitHub issue with everything related — comments, parent and sub-issues, linked PRs, related and cross-repo issues — so work is…."

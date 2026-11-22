@@ -1,0 +1,17 @@
+== 4701 {"route":"implement","reason":"no-marker","detail":"the item carries no [lisa-ci-failed] marker"}
+== 4620 {"route":"implement","reason":"no-marker","detail":"the item carries no [lisa-ci-failed] marker"}
+== 4592 {"route":"implement","reason":"no-marker","detail":"the item carries no [lisa-ci-failed] marker"}
+== 4634 {"route":"implement","reason":"no-marker","detail":"the item carries no [lisa-ci-failed] marker"}
+== 4591 {"route":"implement","reason":"no-marker","detail":"the item carries no [lisa-ci-failed] marker"}
+== 4599 {"route":"implement","reason":"no-marker","detail":"the item carries no [lisa-ci-failed] marker"}
+== 4598 {"route":"ci-rework","item":"CodySwannGT/lisa#4598","pr":4674,"sha":"50d60a8c6eca239d6a31042d13c756e89c0ccd9c","headRefName":"codex/4598-shard-unit-ci","failingChecks":["🔍 Quality Checks / 🧪 Run Integration Tests"],"markerCount":1}
+== 4521 {"route":"ci-rework","item":"CodySwannGT/lisa#4521","pr":4693,"sha":"7aaeca4f1afee2e0800512adeb172455434d3dc6","headRefName":"claude/4521-path-scoped-audit-exclusions","failingChecks":["🔍 Quality Checks / 🧪 Run Integration Tests"],"markerCount":1}
+== 4666 {"route":"implement","reason":"no-marker","detail":"the item carries no [lisa-ci-failed] marker"}
+== 4576 {"route":"implement","reason":"no-marker","detail":"the item carries no [lisa-ci-failed] marker"}
+== 4583 {"route":"implement","reason":"no-marker","detail":"the item carries no [lisa-ci-failed] marker"}
+== 4540 {"route":"implement","reason":"no-marker","detail":"the item carries no [lisa-ci-failed] marker"}
+== 4621 {"route":"implement","reason":"no-marker","detail":"the item carries no [lisa-ci-failed] marker"}
+== 4609 {"route":"implement","reason":"no-marker","detail":"the item carries no [lisa-ci-failed] marker"}
+== 4630 {"route":"implement","reason":"no-marker","detail":"the item carries no [lisa-ci-failed] marker"}
+== 4525 {"route":"implement","reason":"no-marker","detail":"the item carries no [lisa-ci-failed] marker"}
+== 4534 {"route":"implement","reason":"no-marker","detail":"the item carries no [lisa-ci-failed] marker"}

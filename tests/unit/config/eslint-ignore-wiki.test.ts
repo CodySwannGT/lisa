@@ -128,7 +128,7 @@ describe("managed eslint config wrappers", () => {
     }
   );
 
-  it.each(CONFIGS.map(c => [c[0]]).concat(SLOW_CONFIGS.map(p => [p])))(
+  it.each([...CONFIGS.map(c => c[0]), ...SLOW_CONFIGS].map(p => [p]))(
     "%s merges the optional project-owned eslint.ignore.config.local.json",
     relPath => {
       const src = readText(relPath);

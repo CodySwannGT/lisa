@@ -1,8 +1,8 @@
 ---
 name: lisa-e2e-coverage-gaps
-description: "Explore gaps in the automated…"
+description: "Find end-to-end paths the…"
 ---
-Explore gaps in the automated Playwright/e2e suite: inventory the app's routes and existing tests, find routes with no coverage or flows tested only on the happy path (missing error, permission, empty, loading, and edge cases), confirm each in the running app, and file bounded build-ready work for worthwhile test gaps via lisa:tracker-write. The optional ready flag (default true) controls build-ready vs backlog. For human usability issues, use exploratory-qa instead.
+Find end-to-end paths the Playwright suite doesn't cover — untested routes or happy-path-only flows — confirm each in the running app, and file tickets (build-ready by default). For usability problems use exploratory-qa.
 
 ## Lisa Command Compatibility
 

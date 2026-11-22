@@ -1,6 +1,6 @@
 ---
 name: phaser-asset-sourcing
-description: This skill should be used when a Phaser 4 game needs actual art or audio and none exists yet — deciding WHERE game art comes from before it can be packed. Covers the priority order (curated CC0 packs → deriving/editing CC0 art → asking the human for bespoke/paid work), the strict license gate (CC0-or-equivalent only, recorded with an exact license quote + evidence URL in assets/LICENSES.md), the provenance requirement (a committed ingest script or committed raw sources), why procedural generateTexture placeholders are tracked art debt and never a best practice, and the expectation that characters ship real idle+walk animation. Use it BEFORE phaser-asset-pipeline (which only packs art that already exists). Pairs with phaser-asset-pipeline, the official animations skill, and the art-director / audio-director personas.
+description: "Decide where a Phaser 4 game's art and audio come from before packing it: CC0 packs first, then edited CC0, then asking a human; record licenses and provenance. Use before phaser-asset-pipeline when assets don't exist yet."
 ---
 
 # Phaser 4 Asset Sourcing
@@ -57,17 +57,22 @@ pack becomes *this game's* assets: slice a sprite sheet into per-frame PNGs,
 rename frames to your content refs, restitch strips. Record exactly how in the
 ingest script (below) so the derivation is reproducible.
 
-### 3. Ask the human (bespoke quality, paid tools, commissioning)
+### 3. Bespoke quality, paid tools, commissioning
 
 When the art bible demands a bespoke look no CC0 pack delivers — a signature
-character, a specific illustrated style, licensed audio — **stop and ask the
-human**. Do not silently downgrade to placeholders and do not buy/commission on
-your own. Surface the decision:
+character, a specific illustrated style, licensed audio — do not silently
+downgrade, and do not buy or commission on your own. Keep the game moving and
+hold only the act that needs a person:
 
-> "The art direction calls for `<X>`. No CC0 source covers it. Options: (a) adapt
-> the closest CC0 pack `<Y>` and accept the style delta, (b) you provide/approve
-> a paid pack or commission, (c) ship a tracked `generateTexture` placeholder
-> against issue `#NNN` until real art lands. Which?"
+1. **Decide the interim yourself and record it.** Adapt the closest CC0 pack
+   `<Y>` and note the style delta, or ship a tracked `generateTexture`
+   placeholder. Record the choice and why in `assets/LICENSES.md` or the work
+   item.
+2. **File the paid or licensed option as a held work item.** Spending money and
+   accepting a license are acts an agent cannot perform, so file it through
+   `lisa-track` with `human_gate: "approve spend on, or the license for, <X>"`
+   (`ready-role-filing`, "What a human gate is"), naming the candidate source,
+   its cost and its terms. The placeholder from step 1 points at that item.
 
 Paid assets, CC-BY with attribution, or any non-CC0 license are allowed **only
 with explicit human approval**, recorded in `assets/LICENSES.md` with the terms.

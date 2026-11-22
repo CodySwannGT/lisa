@@ -166,12 +166,12 @@ describe("package.lisa.json templates carry force-governed CVE floors", () => {
     };
   }
 
-  it("typescript template floors systeminformation (harperdb GHSA-5xpp-75jx-m839)", () => {
+  it("typescript template floors systeminformation (GHSA-3f7j-7jwc-fxfj, patched 5.33.16)", () => {
     const template = readTemplateJson(
       TYPESCRIPT_PACKAGE_TEMPLATE
     ) as OverridesShape;
-    expect(template.force?.overrides?.systeminformation).toBe(">=5.31.7");
-    expect(template.force?.resolutions?.systeminformation).toBe(">=5.31.7");
+    expect(template.force?.overrides?.systeminformation).toBe(">=5.33.16");
+    expect(template.force?.resolutions?.systeminformation).toBe(">=5.33.16");
   });
 
   it("typescript template keeps undici on the File-exporting v6 line", () => {

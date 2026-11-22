@@ -46,7 +46,7 @@ import {
   runLadder,
   SURFACES,
   UNCONDITIONAL_RUNGS,
-} from "./credential-resolver-ladder-helpers";
+} from "./credential-resolver-ladder-helpers.js";
 
 /** Value a planted plugin-copy resolver answers with. */
 const PLUGIN_VALUE = "value-from-plugin-copy";

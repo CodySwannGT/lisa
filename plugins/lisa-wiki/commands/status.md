@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Report Lisa wiki source freshness across enabled connectors. Read-only — summarizes last ingest evidence, skipped/blocker reasons, and targeted next actions without running ingestion."
 argument-hint: "[--json] [--wiki <path>] [--config <path>]"
 ---

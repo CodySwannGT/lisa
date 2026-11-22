@@ -200,9 +200,9 @@ export function currentPlatform(runtime = process) {
  *
  * A flat entry is still valid and means "identical everywhere" — true of every
  * `npm-global` install, which is genuinely platform-independent.
- * @param {object} tool Manifest entry.
+ * @param {{[field: string]: unknown, name?: unknown, platforms?: unknown}} tool Manifest entry.
  * @param {string} [platform] Platform key to resolve for.
- * @returns {object} The entry with its platform block merged in.
+ * @returns {Record<string, unknown>} The entry with its platform block merged in.
  */
 export function resolvePlatform(tool, platform = currentPlatform()) {
   const { platforms } = tool;

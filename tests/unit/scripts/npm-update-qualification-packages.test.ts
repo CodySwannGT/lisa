@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
-import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../../src/configs/vitest/scratch-supervision.js";
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import { normalizeQualificationPackages } from "../../fixtures/npm-update-hosted-runtime/packages.mjs";
 import {
@@ -34,10 +33,7 @@ if (args.includes("install")) {
 async function fixture(
   operation: (root: string, state: string) => Promise<void>
 ) {
-  const owned = createSupervisedUnixFixture(
-    "hook-reader.sock",
-    process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-  );
+  const owned = createSupervisedUnixFixture("hook-reader.sock");
   const state = join(owned.root, "packages.json");
   writeFileSync(state, JSON.stringify({ version: NEWER }));
   try {

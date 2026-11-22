@@ -1,4 +1,0 @@
-display_name: "Wiki Connector Slack"
-short_description: "Ingest a Slack channel into sanitized source notes via a user token"
-default_prompt:
-  - "Use $lisa-wiki-connector-slack: Ingest a Slack channel into sanitized source notes via a user token."

@@ -89,7 +89,7 @@ describe("linear completion grammar compatibility", () => {
   ])("preserves claiming text for $name", ({ body, expected }) => {
     // This tests the local claiming projection, not an external renderer.
     expect(localMarkers(body)).toEqual(expected);
-    expect(primarySpecProjection(body)).toBe(body);
+    expect(primarySpecProjection(body)).toBe(body.trimEnd());
   });
 
   it.each([
@@ -104,7 +104,7 @@ describe("linear completion grammar compatibility", () => {
   ])("does not claim example evidence in %j", example => {
     const body = `## Validation Journey\n${example}\n1. Capture real output. [EVIDENCE: cli-output: actual]\n`;
     expect(localMarkers(body)).toEqual([{ kind: CLI_OUTPUT, name: "actual" }]);
-    expect(primarySpecProjection(body)).toBe(body);
+    expect(primarySpecProjection(body)).toBe(body.trimEnd());
   });
 
   it("keeps visible evidence around inline comments and legacy screenshots", () => {
@@ -205,6 +205,30 @@ describe("linear completion grammar compatibility", () => {
     expect(() =>
       declaredScope(`## Target Backend Environment\n${declaration}`, "other")
     ).toThrow();
+  });
+
+  it.each(["doc-only", "config-only", "type-only", "test-only", "TEST-ONLY"])(
+    "grants the no-runtime exemption for the closed reason %j",
+    reason => {
+      expect(
+        declaredScope(
+          `## Target Backend Environment\nNone — no runtime behavior change: ${reason}`,
+          "production"
+        )
+      ).toEqual({ runtime: false, reason: reason.toLowerCase() });
+    }
+  );
+
+  it.each([
+    "None — no runtime behavior change: refactor-only",
+    "None — no runtime behavior change: test-only because specs only",
+    "None — no runtime behavior change: test",
+    "None — no runtime behavior change: `test-only`",
+    "None — no runtime behavior change: test-only\n\nOnly spec files change.",
+  ])("refuses a no-runtime exemption outside the closed set: %j", line => {
+    expect(() =>
+      declaredScope(`## Target Backend Environment\n${line}`, "production")
+    ).toThrow(/does not declare target environment production/);
   });
 
   it("normalizes only actual canonical pipe rows and retains unknown prose", () => {

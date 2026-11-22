@@ -1,4 +1,4 @@
 display_name: "Setup Notion"
-short_description: "Configure Notion as the PRD…"
+short_description: "Configure Notion as this…"
 default_prompt:
-  - "Use $lisa-setup-notion: Configure Notion as the PRD…."
+  - "Use $lisa-setup-notion: Configure Notion as this…."

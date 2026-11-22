@@ -143,16 +143,29 @@ export function buildChildProcessScopes(
 ): ChildProcessScopeTree {
   const plan = createChildProcessScopePlan(source);
   const scopes: readonly ChildProcessScope[] = plan.parents.map(
-    (parentId, scopeId) => ({
-      get parent(): ChildProcessScope | undefined {
-        return parentId === undefined ? undefined : scopes[parentId];
-      },
-      get bindings(): Map<string, ChildProcessBinding> {
-        return bindingMaps.get(scopeId) ?? new Map();
-      },
-    })
+    (parentId, scopeId): ChildProcessScope =>
+      parentId === undefined
+        ? {
+            get bindings(): Map<string, ChildProcessBinding> {
+              return bindingMaps.get(scopeId) ?? new Map();
+            },
+          }
+        : {
+            get parent(): ChildProcessScope {
+              const parent = scopes[parentId];
+              if (parent === undefined) {
+                throw new Error(
+                  `scope ${scopeId} names missing parent ${parentId}`
+                );
+              }
+              return parent;
+            },
+            get bindings(): Map<string, ChildProcessBinding> {
+              return bindingMaps.get(scopeId) ?? new Map();
+            },
+          }
   );
-  const bindingMaps = plan.events.reduce(
+  const bindingMaps = plan.events.reduce<ScopeBindings>(
     (maps, event) => applyBindingEvent(maps, event, plan.parents, scopes),
     new Map<number, Map<string, ChildProcessBinding>>()
   );

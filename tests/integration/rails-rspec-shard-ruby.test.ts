@@ -22,7 +22,7 @@ import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
-import { probeSucceeds, suiteDeferral } from "../support/ci-runtime.js";
+import { suiteDeferral } from "../support/ci-runtime.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const RECORDER = path.join(
@@ -36,8 +36,56 @@ const COLLATE = path.join(
 
 const RECORDER_NAME = "lisa_rspec_shard_recorder.rb";
 
+/** Prints its interpreter path; exits 0 only on Ruby 3.2 or newer. */
+const RUBY_PROBE =
+  'print RbConfig.ruby; exit((RUBY_VERSION.split(".").map(&:to_i).first(2) <=> [3, 2]) >= 0 ? 0 : 1)';
+
+/**
+ * The Ruby both drivers run, as an absolute path, or undefined when the `ruby`
+ * on PATH is missing or older than 3.2.
+ *
+ * The test's Ruby stand-ins use one-line method definitions, which older Ruby
+ * cannot parse; treat Ruby below the documented 3.2 floor as absent rather than
+ * failing every case.
+ *
+ * One process names its own interpreter (`RbConfig.ruby`) and checks its
+ * version, so the drivers run exactly the Ruby that passed, whatever a version
+ * manager shim would pick under their HOME. It runs with RubyGems disabled and
+ * drops an inherited RUBYOPT, so neither RUBYOPT nor a stale BUNDLER_SETUP can
+ * make a usable Ruby read as absent.
+ * @returns The interpreter path, or undefined when Ruby is unusable here
+ */
+function resolveRuby(): string | undefined {
+  const { RUBYOPT: _ignored, ...env } = process.env;
+  try {
+    const { status, stdout } = boundedSpawnSync({
+      label: "probe ruby",
+      command: "ruby",
+      args: ["--disable-gems", "-rrbconfig", "-e", RUBY_PROBE],
+      env,
+    });
+    return status === 0 && path.isAbsolute(stdout) && fs.existsSync(stdout)
+      ? stdout
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const RUBY = resolveRuby();
+
+/**
+ * The resolved Ruby for a driver; drivers run only when the suite is not
+ * deferred, so a missing one here is a harness bug.
+ * @returns The interpreter path the probe resolved
+ */
+function ruby(): string {
+  if (RUBY === undefined) throw new Error("probe did not resolve Ruby");
+  return RUBY;
+}
+
 const deferred = suiteDeferral(
-  () => probeSucceeds("ruby", ["-e", "exit 0"]),
+  () => RUBY !== undefined,
   "Ruby",
   "Install any Ruby >= 3.2 on PATH."
 );
@@ -155,7 +203,7 @@ puts "CALLS=" + (defined?(SimpleCov) ? SimpleCov::CALLS.inspect : "none")
   );
   return boundedSpawnSync({
     label: "ruby recorder driver",
-    command: "ruby",
+    command: ruby(),
     args: [driver],
     cwd,
     env: { PATH: process.env.PATH ?? "", HOME: cwd, ...env },
@@ -304,7 +352,7 @@ function collateOutcome(root: string, lib: string, args: string[]) {
   const received = path.join(root, "received.json");
   const outcome = boundedSpawnSync({
     label: "ruby collate",
-    command: "ruby",
+    command: ruby(),
     args: ["-I", lib, COLLATE, ...args],
     cwd: root,
     env: { PATH: process.env.PATH ?? "", HOME: root },

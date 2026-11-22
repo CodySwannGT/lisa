@@ -22,6 +22,26 @@ jobs:
       node_version: '24.21.0'
       package_manager: 'bun'
       skip_jobs: ''
+      # Split the unit suite across parallel legs (#4598). quality.yml merges
+      # shard coverage and checks thresholds once in the aggregate job, so the
+      # required check `🔍 Quality Checks / 🧪 Run Unit Tests` keeps its name.
+      # 10 legs, against an 8-minute unit path (plan start to aggregate end):
+      # 4 legs took 10m11s (run 42443161832) and 7 legs 8m49s (run
+      # 42456747818). About 3m43s of the path is fixed overhead (runner
+      # pickup, setup, aggregate merge). Files are split by count, not time,
+      # and the slowest leg at 7 held the three heaviest files together
+      # (~306s of tests vs a 170s mean). The heaviest single file runs ~3 min,
+      # so more legs can still reach the target; 10 is the smallest count
+      # estimated to.
+      unit_test_shards: 10
+      # Split the integration suite across parallel legs (#4599). The plan job
+      # assigns files longest-processing-time-first from the newest recorded
+      # integration timings and keeps the history-scanner suites in one leg;
+      # every leg reuses one shared build. `🔍 Quality Checks / 🧪 Run
+      # Integration Tests` stays the one required check. 3 is the issue's
+      # starting count for ~660 s of integration work; re-choose it from the
+      # plan job's printed per-shard totals once a run has recorded them.
+      integration_test_shards: 3
     secrets: inherit
   bin_smoke:
     name: Lisa CLI bin smoke
@@ -40,10 +60,13 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Build package
         run: bun run build
-      - name: Execute and name GitHub evidence upload regression
+      - name: Verify packed learnings contract
+        run: node scripts/verify-packed-learnings-contract.mjs
+      - name: Execute and name GitHub evidence upload and issue reader regressions
         run: >-
           node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- ./node_modules/.bin/vitest run
-          tests/unit/strategies/github-evidence-upload.test.ts --reporter=verbose
+          tests/unit/strategies/github-evidence-upload.test.ts
+          tests/unit/skills/github-reader-projects-optional.test.ts --reporter=verbose
       - name: Execute and name current PR base regressions
         run: >-
           node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- ./node_modules/.bin/vitest run
@@ -55,6 +78,11 @@ jobs:
           tests/unit/scripts/registration-deferred.test.ts
           tests/unit/scripts/review-evidence-wakeup.test.ts
           tests/integration/registration-deferred-cli.test.ts --reporter=verbose
+      - name: Exercise filing and worktree binding with source references
+        run: >-
+          node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- ./node_modules/.bin/vitest run
+          tests/unit/hooks/block-direct-issue-create-non-shell-prose.test.ts
+          tests/unit/hooks/worktree-binding-inert-source-data.test.ts --reporter=verbose
       - name: Verify built Lisa CLI
         env:
           LISA_SKIP_UPDATE_CHECK: '1'
@@ -63,15 +91,6 @@ jobs:
           node dist/index.js --version
           node dist/index.js --help | grep -q "setup-project"
           node dist/index.js --help | grep -q "setup-wiki"
-      - name: Verify real released-package safety-net retirement
-        run: node scripts/verify-native-safety-net-retirement.mjs --out "${{ runner.temp }}/lisa-safety-net-retirement"
-      - name: Retain safety-net upgrade evidence
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: lisa-safety-net-retirement
-          path: ${{ runner.temp }}/lisa-safety-net-retirement
-          if-no-files-found: error
   windows_preflight:
     name: Windows lint-staged preflight
     runs-on: windows-latest

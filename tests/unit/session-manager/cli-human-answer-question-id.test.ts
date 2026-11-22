@@ -122,6 +122,9 @@ describe("item-answer and the recorded question id", () => {
   it("explains no-question-comment: the question must be re-posted and its id recorded", () => {
     const sandbox = githubSandbox();
     ask(sandbox);
+    // Marked (#4643: an unmarked question is refused first), but the
+    // recorded id is not among the comments read.
+    expect(mark(sandbox, LABEL, "599").status).toBe(0);
     const result = pick(sandbox, [
       {
         id: 601,

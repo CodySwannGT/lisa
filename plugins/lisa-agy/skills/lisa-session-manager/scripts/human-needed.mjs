@@ -3,9 +3,16 @@
  * on a work item that cannot progress without a human, and how it reads the
  * human's answer back off the item. Pure: no I/O, no clock, no config reads.
  *
- * Four cases need a human: a worker's question, an ambiguous repo route, an
- * item `exhausted` after `stall.maxAttempts`, and a design or product
- * decision. In each the manager marks the item with the configured
+ * Four kinds of mark exist: a worker's question, an ambiguous repo route, an
+ * item `exhausted` after `stall.maxAttempts`, and a `decision`. An agent
+ * performs every act it has access to (CodySwannGT/lisa#4687), so a hold is
+ * only for an act the agent lacks access to (an interactive login, a
+ * credential it cannot reach, spending money, a legal signature, an action
+ * only a person's account can take) or a hold the operator asked for. A
+ * design or product choice the agent can make is decided and recorded, not
+ * marked, unless the project sets `humanGate.mode: "strict"`. The kind
+ * identifiers are stable on purpose: ledgers in use already carry them. When
+ * a mark is warranted the manager marks the item with the configured
  * human-needed marker, posts the question on the item with enough context to
  * answer it there, records it pending in the ledger, and keeps dispatching
  * other work. One item waiting on a person never stops the queue.
@@ -19,7 +26,10 @@
  * @module session-manager/human-needed
  */
 
-/** The four reasons an item can need a human. */
+/**
+ * The four kinds of mark. Whether one is warranted follows `humanGate.mode`:
+ * under `access-only` only missing access or an operator hold needs a person.
+ */
 export const HUMAN_NEEDED_KINDS = Object.freeze([
   "worker-question",
   "repo-route",
@@ -149,6 +159,14 @@ function planningMissPlan({ ref, kind, cause, question, overruled }) {
   };
 }
 
+/**
+ * Starts every other comment the manager posts. `item-answer` never reads a
+ * comment that starts with a bracketed `[lisa-...]` tag as an answer, so the
+ * manager's own notes (and the answers it records on the item) are never
+ * taken for a new answer.
+ */
+export const MANAGER_COMMENT_PREFIX = "[lisa-session-manager]";
+
 /** Marks the manager's question comment, so its answer can be found after it. */
 export const QUESTION_MARKER = "[lisa-session-manager-question]";
 
@@ -157,7 +175,8 @@ const KIND_TITLES = {
   "worker-question": "the worker building it has a question",
   "repo-route": "it is not clear which repository it belongs to",
   exhausted: "every automatic attempt to build it stopped without finishing",
-  decision: "it needs a design or product decision",
+  decision:
+    "it needs a person: an act the agent cannot perform, or a call this project keeps for a person",
 };
 
 /**
@@ -173,6 +192,23 @@ const CREDENTIAL_SHAPES = [
   ["API key", /\bsk-(?:ant-)?[A-Za-z0-9_-]{20,}/],
   ["private key", /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
   ["bearer token", /\bbearer\s+[A-Za-z0-9._~+/=-]{20,}/i],
+  // The password part cannot cross a `/`, so a port, a path or a query
+  // holding an `@` (`http://host:3000/q?owner=a@b.com`) is not refused.
+  ["URI with a password", /\b[a-z][a-z0-9+.-]*:\/\/[^\s:/@]+:[^\s/@]+@/i],
+  // Env-style names (GITHUB_TOKEN, client_secret, DB_PASSWORD) are caught by
+  // allowing an identifier prefix: `\b` does not fire after `_`. The value
+  // must hold a digit and be 8+ characters, so ordinary prose ("token:
+  // expires daily", "secret: yes") is not refused.
+  [
+    "password or secret assignment",
+    /(?:^|[^A-Za-z0-9])[A-Za-z0-9_-]*(?:password|passwd|secret|token)\s*[=:]\s*(?=\S*\d)\S{8,}/i,
+  ],
+  // A password needs no digit to be one: refuse a long value outright
+  // (`password: changeme` is still accepted).
+  [
+    "password assignment",
+    /(?:^|[^A-Za-z0-9])[A-Za-z0-9_-]*(?:password|passwd)\s*[=:]\s*\S{12,}/i,
+  ],
 ];
 
 /**
@@ -233,7 +269,7 @@ function questionComment({
     "How to answer:",
     ...ways,
     "",
-    `The session manager keeps working on other items meanwhile. Once the answer is delivered it removes ${markerText} and says so here.`,
+    `The session manager keeps working on other items meanwhile. Once the answer is delivered to the worker, or recorded here for the next attempt, it removes ${markerText} and says so here.`,
   ].join("\n");
 }
 
@@ -260,7 +296,7 @@ function chooseMarker(label, blocked) {
  *   overruled?: boolean}}
  *   input - The item, why, the question, the configured human-needed label
  *   and `blocked` role value, whether a notification channel exists, whether
- *   anyone (operatorIds / trustedAuthorIds) may answer on the item, and the
+ *   anyone (operatorIds / trustedReleaseIds / trustedAuthorIds) may answer on the item, and the
  *   cause the planning-miss signal needs (default `planning`), and whether
  *   the item carries the wrongly-escalated label (`overruled`)
  * @returns {{ref: string, kind: string, marker: {type: string, value: string},

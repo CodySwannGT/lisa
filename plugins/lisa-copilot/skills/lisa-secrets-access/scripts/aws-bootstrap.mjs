@@ -182,7 +182,7 @@ export function readProfiles(bundle) {
  * the installer can drop it as a unit after looking at the filesystem — which
  * this function deliberately cannot see. See `RESOLVE_ONLY_LEGACY_SOURCE_PROFILE` for why
  * that half exists at all and when it goes away.
- * @param {object} bundle Parsed bootstrap bundle.
+ * @param {object | null | undefined} bundle Parsed bootstrap bundle; absent renders nothing (null).
  * @param {string} owner Tenant these profiles belong to.
  * @returns {{credentials: string, config: string, profiles: string[], resolveOnly: {credentials: string, config: string, profiles: string[], sourceProfile: string}}|null}
  *   Rendered file contents, the profile names, and the deprecated
@@ -320,7 +320,7 @@ function assertDeclaredAccount(stage, entry, roleArn) {
  * secret in the run is still valid and still needed, and a session with most of
  * its credentials beats a session with none.
  * @param {string} raw Bundle contents.
- * @returns {object|null} Parsed bundle, or null.
+ * @returns {Record<string, unknown>|null} Parsed bundle, or null.
  */
 export function parseBootstrap(raw) {
   if (typeof raw !== "string" || raw.trim() === "") return null;

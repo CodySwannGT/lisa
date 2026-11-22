@@ -24,6 +24,9 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 - [Testing Documentation](documentation/testing/)
 - [Workflow Documentation](documentation/workflows/)
   - [Wiki Ingestion Safety](documentation/workflows/wiki-ingestion-safety.md)
+  - [Control Audit: Audit, Configure, Enforce, Attest](documentation/workflows/control-audit.md)
+    - Find, declare, wire and prove repository controls across seven coding agents. Includes the control register, the Level 1 verdict and checks for missing edit-time registrations and undeclared hook commands.
+    - Run declared checks through a host-owned GitHub pull-request workflow when the repository has no Lisa stack workflow.
 - [Specifications](documentation/specs/)
 
 ## Architecture
@@ -35,7 +38,6 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
   - Includes the Devin CLI section: plugin variant, repository fallback, routing, and documented gaps (scheduler = manual trigger).
 - [Lisa Hook Per-Agent Ship List](architecture/lisa-hook-per-agent-ship-list.md), including retired automatic Entire registrations and host-owned capture opt-in
   - Codex uses activated plugin hooks plus one tagged repository enforcement dispatcher; marketplace selection alone is not treated as hook-liveness proof.
-- [Lisa Console UI](architecture/lisa-console-ui.md)
 - [Pattern B Per-Agent Plugin Fan-Out Specification](architecture/pattern-b-fan-out-spec.md)
   - Devin CLI variant shape (`.devin-plugin/`, root `hooks.json`, tool-name shim) and the `.devin/hooks.v1.json` enforcement fallback; facts from the [Devin CLI runtime probe](sources/docs/2026-10-11-devin-cli-runtime-probe.md).
 
@@ -45,6 +47,7 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 
 ## Decisions
 
+- [2026-11-21 — Level 1 evidence for controls Lisa cannot yet exercise](decisions/2026-11-21-level-1-proof-reachability.md)
 - [2026-09-05 — File Age Is Asked in Minutes, Never in Days](decisions/2026-09-05-find-age-predicates.md)
   - Why `find -mtime +N` means "older than N+1 days", the measured 49h-71h disagreement band, the correction to the "broken instrument" reading, and the `-mmin` / `! -newermt` equivalences the shipped ast-grep rule enforces.
 - [2026-09-04 — An Absence Shaped Like a Verdict](decisions/2026-09-04-absence-shaped-like-a-verdict.md)
@@ -71,7 +74,7 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 ## Concepts
 
 - [TASC — Trust in Autonomous Software Criteria](concepts/tasc-specification.md)
-  - SOC 2-parity attestation spec for autonomous development; AC1–AC9 mirror CC1–CC9; Type C continuous attestation; 0.2.0-draft adds evidence authenticity, finding and measurement integrity, generative testing, and distributional model qualification; 0.3.0-draft adds the named accountable party, standing to accept risk, and incident answerability; 0.4.0-draft adds the maintained evaluation suite, capability-drift monitoring, and delivery-effectiveness measurement; 0.5.0-draft adds agent-to-agent boundaries, risk-tiered autonomy, shadow-mode staff introduction, and approval sampling; 0.6.0-draft adds declared control obligations, the bidirectionally reconciled control register, and output provenance and licensing for code the system emits; 0.7.0-draft adds one conversational-plus-formal question model, durable orchestration, task-class model routing, complete and efficiently tiered E2E proof, repository-bound control activation, measured UI/UX conformance, pre-CI parity, and failed-deployment recovery; draft source at [spec/tasc-0.1-draft.md](../spec/tasc-0.1-draft.md).
+  - SOC 2-parity attestation spec for autonomous development; AC1–AC9 mirror CC1–CC9; Type C continuous attestation; 0.2.0-draft adds evidence authenticity, finding and measurement integrity, generative testing, and distributional model qualification; 0.3.0-draft adds the named accountable party, standing to accept risk, and incident answerability; 0.4.0-draft adds the maintained evaluation suite, capability-drift monitoring, and delivery-effectiveness measurement; 0.5.0-draft adds agent-to-agent boundaries, risk-tiered autonomy, shadow-mode staff introduction, and approval sampling; 0.6.0-draft adds declared control obligations, the bidirectionally reconciled control register, and output provenance and licensing for code the system emits; 0.7.0-draft adds one conversational-plus-formal question model, durable orchestration, task-class model routing, complete and efficiently tiered E2E proof, repository-bound control activation, measured UI/UX conformance, pre-CI parity, and failed-deployment recovery; draft source at [spec/tasc-0.1-draft.md](../spec/tasc-0.1-draft.md). The requirements are also held as data in the criterion catalogue, [spec/tasc-criteria.json](../spec/tasc-criteria.json), from which the operator questionnaire under `docs/` is generated and against which the [control audit](documentation/workflows/control-audit.md) commands compute a Level 1 verdict.
 - [Lisa Vocabulary](concepts/lisa-vocabulary.md)
   - Distinguishes installation readiness, repository readiness, and the ship blocker condition that produces a narrowed `NOT_READY` claim.
 - [Coding-Agent Feature Taxonomy](concepts/coding-agent-feature-taxonomy.md)

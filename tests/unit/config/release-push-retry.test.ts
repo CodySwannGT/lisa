@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { loadWorkflow } from "../../helpers/workflow-test-utils.js";
+import { jobOf, loadWorkflow } from "../../helpers/workflow-test-utils.js";
 
 const REPO_ROOT = path.resolve(__dirname, "../../..");
 const RELEASE_WORKFLOW = path.join(
@@ -31,7 +31,7 @@ const postbump = (): string => {
 describe("release workflow changelog push", () => {
   const pushStepRun = (): string => {
     const workflow = loadWorkflow(RELEASE_WORKFLOW);
-    const versionSteps = workflow.jobs.version.steps ?? [];
+    const versionSteps = jobOf(workflow, "version").steps ?? [];
     const pushStep = versionSteps.find(
       step => step.name === "Push Changelog Changes"
     );
@@ -96,7 +96,7 @@ describe("release workflow generated artifacts", () => {
 
   it("keeps the initial stamp and conflict restamp on the shared lifecycle", () => {
     const workflow = loadWorkflow(RELEASE_WORKFLOW);
-    const versionSteps = workflow.jobs.version.steps ?? [];
+    const versionSteps = jobOf(workflow, "version").steps ?? [];
     const initial = versionSteps.find(
       step => step.name === "Generate Changelog"
     );

@@ -39,6 +39,10 @@ import {
 } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
@@ -125,7 +129,7 @@ function stubReconciler(code: number, marker: string): string {
  * @returns The project directory.
  */
 function createProject(): string {
-  const projectDir = mkdtempSync(path.join(tmpdir(), "lisa-setup-project-"));
+  const projectDir = ownedDir("lisa-setup-project-");
   cleanup.push(projectDir);
   boundedExecFileSync({
     label: "git init",

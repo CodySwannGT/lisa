@@ -57,6 +57,9 @@ export interface ResolvedGate {
   readonly task: string | null;
   readonly command: string | null;
   readonly label: string;
+  /** Folder and argument vector of a declared part, when the gate has parts. */
+  readonly scope?: string;
+  readonly argv?: readonly string[] | null;
   /**
    * The `shippedAs` substitution that produced `task`, or null.
    *
@@ -76,7 +79,7 @@ export interface ResolvedGate {
 }
 
 /** One `skip_jobs` token's migration. */
-export interface SkipJobResolution {
+interface SkipJobResolution {
   readonly token: string;
   readonly status: string;
   readonly gate: string | null;
@@ -84,7 +87,7 @@ export interface SkipJobResolution {
 }
 
 /** The config `readGates` parses out of `.lisa.config.json`. */
-export interface ParsedGateConfig {
+interface ParsedGateConfig {
   readonly runner: string;
   readonly gates: Record<string, unknown>;
 }
@@ -159,7 +162,7 @@ function walkForPackageFile(
  * Locate the shipped registry inside the running Lisa package.
  * @returns Absolute path, or null when it cannot be found
  */
-export function resolveGateRegistryPath(): string | null {
+function resolveGateRegistryPath(): string | null {
   const fromPackageRoot = path.join(__dirname, "..", "..", REGISTRY_RELATIVE);
   if (existsSync(fromPackageRoot)) return fromPackageRoot;
   return walkForPackageFile(__dirname, REGISTRY_RELATIVE);

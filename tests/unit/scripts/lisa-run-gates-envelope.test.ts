@@ -9,8 +9,8 @@
  *
  * So this file exercises `evidenceDocument` in-process, and the properties it
  * pins are the ones a reader's trust rests on: the state-to-status mapping,
- * the freshness stamp every row carries, and a digest that answers "is this
- * the same contract?" and nothing else.
+ * the slim row shape, and a digest that answers "is this the same contract?"
+ * and nothing else.
  * @module tests/unit/scripts/lisa-run-gates-envelope
  */
 
@@ -39,26 +39,76 @@ const REPO = "owner/repo";
 /** The command the fixture gate resolves to under `BUN`. */
 const PROVER = "bun run test:a11y";
 
+/** The fixture gate's registry id. */
+const GATE_ID = "accessibility";
+
+/** The fixture gate's registry label. */
+const GATE_LABEL = "♿ Accessibility";
+
 /** One gate's declaration, as a gates block resolves it at this moment. */
 const BLOCK = { accessibility: { [MOMENT]: "required" }, runner: BUN };
 
+/** The evidence envelope `evidenceDocument` returns. */
+type Envelope = ReturnType<typeof evidenceDocument>;
+
+/** One gate row of the envelope, as `gateEvidence` writes it. */
+type EvidenceRow = Envelope["gates"][number];
+
+/** The options object `evidenceDocument` accepts. */
+type EnvelopeOptions = Parameters<typeof evidenceDocument>[0];
+
+/** What running one moment produced, as `runGates` returns it. */
+type GateRun = NonNullable<EnvelopeOptions["result"]>;
+
+/** One gate outcome, as `runGates` pushes it into a run's results. */
+type Outcome = GateRun["results"][number];
+
+/**
+ * A complete run over the given outcomes, bucketed by state the way
+ * `runGates` buckets them. The envelope reads only `results`.
+ * @param results Gate outcomes in execution order.
+ * @returns The run.
+ */
+function gateRun(results: Outcome[]): GateRun {
+  const inState = (state: string): Outcome[] =>
+    results.filter(result => result.state === state);
+  return {
+    moment: MOMENT,
+    blocked: false,
+    blockedBy: null,
+    interrupted: null,
+    total: results.length,
+    results,
+    passed: inState(STATE.PASSED),
+    failed: inState(STATE.FAILED),
+    unprovable: inState(STATE.UNPROVABLE),
+    killed: inState(STATE.KILLED),
+    skipped: inState(STATE.SKIPPED),
+    notRun: inState(STATE.NOT_RUN),
+  };
+}
+
 /**
  * One outcome in the shape `runGates` pushes, with only what matters overridden.
+ *
+ * Cases deliberately inject values outside the declared outcome type (an
+ * unknown state, a missing label) to prove the builder fails closed, so the
+ * merged record is asserted to the outcome type once, here.
  * @param over Fields to override.
  * @returns A gate outcome.
  */
-function outcome(over: Record<string, unknown> = {}): Record<string, unknown> {
+function outcome(over: Record<string, unknown> = {}): Outcome {
   return {
     code: 0,
     command: PROVER,
     detail: PROVER,
     diagnosis: null,
-    id: "accessibility",
-    label: "♿ Accessibility",
+    id: GATE_ID,
+    label: GATE_LABEL,
     level: "required",
     state: STATE.PASSED,
     ...over,
-  };
+  } as Outcome;
 }
 
 /**
@@ -68,18 +118,29 @@ function outcome(over: Record<string, unknown> = {}): Record<string, unknown> {
  * @returns The envelope.
  */
 function build(
-  outcomes: Record<string, unknown>[] = [outcome()],
-  over: Record<string, unknown> = {}
-): Record<string, never> {
+  outcomes: Outcome[] = [outcome()],
+  over: Partial<EnvelopeOptions> = {}
+): Envelope {
   return evidenceDocument({
     gates: BLOCK,
     moment: MOMENT,
     observedAt: OBSERVED,
-    result: { results: outcomes },
+    result: gateRun(outcomes),
     runner: BUN,
     verdict: "proved",
     ...over,
-  }) as Record<string, never>;
+  });
+}
+
+/**
+ * The single gate row of an envelope, failing loudly when there is none.
+ * @param doc The envelope.
+ * @returns Its first gate row.
+ */
+function firstRow(doc: Envelope): EvidenceRow {
+  const [row] = doc.gates;
+  if (row === undefined) throw new Error("envelope carries no gate rows");
+  return row;
 }
 
 /** Environment keys this suite sets, restored after each case. */
@@ -95,8 +156,6 @@ const KEYS = [
   "GITHUB_WORKFLOW",
   "GITHUB_WORKFLOW_REF",
   "GITHUB_WORKFLOW_SHA",
-  "LISA_GATE_EVIDENCE_CALLER_CHAIN",
-  "LISA_GATE_EVIDENCE_INPUTS",
 ];
 
 let saved: Record<string, string | undefined> = {};
@@ -119,12 +178,12 @@ afterEach(() => {
 
 describe("a runner state becomes exactly one evidence status", () => {
   it("credits only a gate that ran and passed", () => {
-    expect(build([outcome()]).gates[0].status).toBe("pass");
+    expect(firstRow(build([outcome()])).status).toBe("pass");
   });
 
   it("blames only a gate that was measured and found wanting", () => {
     const doc = build([outcome({ code: 1, state: STATE.FAILED })]);
-    expect(doc.gates[0].status).toBe("fail");
+    expect(firstRow(doc).status).toBe("fail");
   });
 
   it("says unknown for every state that measured nothing", () => {
@@ -140,7 +199,7 @@ describe("a runner state becomes exactly one evidence status", () => {
     ];
     const doc = build(states.map(state => outcome({ state })));
 
-    expect(doc.gates.map((row: { status: string }) => row.status)).toEqual([
+    expect(doc.gates.map(row => row.status)).toEqual([
       "unknown",
       "unknown",
       "unknown",
@@ -152,50 +211,37 @@ describe("a runner state becomes exactly one evidence status", () => {
     // Fails closed. A state added upstream without a mapping here must not
     // fall through to a credit.
     const doc = build([outcome({ state: "invented" })]);
-    expect(doc.gates[0].status).toBe("unknown");
+    expect(firstRow(doc).status).toBe("unknown");
   });
 });
 
-describe("every row carries the run's own freshness stamp", () => {
-  it("stamps each row with when the run began, not when it ended", () => {
-    // The conservative direction: a bound computed against a START can only
-    // judge the evidence OLDER than it is, so it errs toward `unknown` rather
-    // than toward crediting a stale observation.
+describe("every row is the slim record a reader needs", () => {
+  it("carries exactly gate, status, level and label", () => {
+    // The work, measures, prover and freshness fields existed for a reuse
+    // checker nothing called, and were always null or restated the exit code
+    // (CodySwannGT/lisa#4794).
     const doc = build([outcome(), outcome({ id: "load-capacity" })]);
 
     expect(doc.observed_at).toBe(OBSERVED);
-    expect(
-      doc.gates.map((row: { observed_at: string }) => row.observed_at)
-    ).toEqual([OBSERVED, OBSERVED]);
-  });
-
-  it("records the exit code as a measure, so a verdict cites something", () => {
-    const doc = build([outcome({ code: 3, state: STATE.FAILED })]);
-    expect(doc.gates[0].measures.exit_code).toBe(3);
-    expect(doc.gates[0].measures.state).toBe(STATE.FAILED);
-  });
-
-  it("reports a killed gate's absent exit code as null, never as zero", () => {
-    // `code: null` means the command was signalled and never reached a
-    // verdict. A `?? 0` here would record a clean exit for a run nobody saw
-    // finish.
-    const doc = build([outcome({ code: null, state: STATE.KILLED })]);
-    expect(doc.gates[0].measures.exit_code).toBeNull();
-  });
-
-  it("names the command as the prover, with a null version", () => {
-    const doc = build([outcome()]);
-    expect(doc.gates[0].prover).toEqual({ tool: PROVER, version: null });
-  });
-
-  it("names no prover for a gate that resolved to no command", () => {
-    const doc = build([outcome({ command: null, state: STATE.SKIPPED })]);
-    expect(doc.gates[0].prover.tool).toBeNull();
+    expect(doc.gates).toEqual([
+      {
+        gate: GATE_ID,
+        status: "pass",
+        level: "required",
+        label: GATE_LABEL,
+      },
+      {
+        gate: "load-capacity",
+        status: "pass",
+        level: "required",
+        label: GATE_LABEL,
+      },
+    ]);
   });
 
   it("falls back to the gate id when the registry has no label", () => {
     const doc = build([outcome({ label: undefined })]);
-    expect(doc.gates[0].label).toBe("accessibility");
+    expect(firstRow(doc).label).toBe(GATE_ID);
   });
 });
 
@@ -219,14 +265,14 @@ describe("the contract digest answers one question and no other", () => {
       observedAt: OBSERVED,
       runner: BUN,
       verdict: "proved",
-    }) as Record<string, never>;
+    });
     const other = evidenceDocument({
       gates: { runner: BUN, accessibility: { [MOMENT]: "required" } },
       moment: MOMENT,
       observedAt: OBSERVED,
       runner: BUN,
       verdict: "proved",
-    }) as Record<string, never>;
+    });
 
     expect(one.contract.gates_digest).toMatch(DIGEST);
     expect(one.contract.gates_digest).toBe(other.contract.gates_digest);
@@ -253,23 +299,19 @@ describe("the contract digest answers one question and no other", () => {
   });
 });
 
-describe("the envelope reads its subject, contract, and producer from the run", () => {
-  it("uses one captured Lisa identity even if artifacts change later", () => {
-    const captured = {
-      surface: "managed-script",
-      registry_version: "4.35.0",
-      registry_path: "scripts/lisa-gates.mjs",
-      workflow_ref: "owner/repo/.github/workflows/quality.yml@refs/heads/main",
-      workflow_sha: "a".repeat(40),
-      artifacts: {
-        "lisa-gates.mjs": `sha256:${"b".repeat(12)}`,
-        "lisa-run-gates.mjs": `sha256:${"c".repeat(12)}`,
-      },
-    };
+describe("the envelope reads its subject and contract from the run", () => {
+  it("records only the moment and the plan digest as its contract", () => {
+    const doc = build();
 
-    const doc = build([], { identity: captured });
+    expect(
+      Object.keys(doc.contract).sort((a, b) => a.localeCompare(b))
+    ).toEqual(["gates_digest", "moment"]);
+    expect(doc.contract.moment).toBe(MOMENT);
+    expect(doc.contract.gates_digest).toMatch(DIGEST);
+  });
 
-    expect(doc.contract).toMatchObject(captured);
+  it("records no producer block", () => {
+    expect(build()).not.toHaveProperty("producer");
   });
 
   it("records the repository, commit, and ref the run declares", () => {
@@ -283,66 +325,6 @@ describe("the envelope reads its subject, contract, and producer from the run", 
     expect(doc.subject.commit).toBe("a".repeat(40));
     expect(doc.subject.ref).toBe("refs/heads/main");
   });
-
-  it("builds a run url only when every part of one is known", () => {
-    process.env["GITHUB_RUN_ID"] = "7";
-    // No repository and no server url, so a url cannot be built. A partial one
-    // would be a link an auditor cannot follow, presented as if it were.
-    expect(build().producer.run_url).toBeNull();
-
-    process.env["GITHUB_REPOSITORY"] = REPO;
-    process.env["GITHUB_SERVER_URL"] = "https://ghe.example";
-    expect(build().producer.run_url).toBe(
-      `https://ghe.example/${REPO}/actions/runs/7`
-    );
-  });
-
-  it("digests the inputs the caller states, order-insensitively", () => {
-    process.env["LISA_GATE_EVIDENCE_INPUTS"] = '{"a":1,"b":2}';
-    const one = build().contract.inputs_digest;
-    process.env["LISA_GATE_EVIDENCE_INPUTS"] = '{"b":2,"a":1}';
-    const other = build().contract.inputs_digest;
-
-    expect(one).toMatch(DIGEST);
-    expect(one).toBe(other);
-  });
-
-  it("records no inputs digest when the caller stated none", () => {
-    // Null reads as "not established", which is what it is. A digest of an
-    // empty object would read as "this run took no inputs" — a claim nothing
-    // here can make.
-    expect(build().contract.inputs_digest).toBeNull();
-  });
-
-  it("records no inputs digest when the caller stated unreadable JSON", () => {
-    // The caller established nothing about its inputs, so a verifier must
-    // rerun. Throwing here would instead erase the gate's real verdict and
-    // prevent the evidence document from being written at all.
-    process.env["LISA_GATE_EVIDENCE_INPUTS"] = "not json";
-    expect(build().contract.inputs_digest).toBeNull();
-  });
-
-  it("takes a caller chain the caller derived", () => {
-    process.env["LISA_GATE_EVIDENCE_CALLER_CHAIN"] = '["Release","🔍 Quality"]';
-    expect(build().producer.caller_chain).toEqual(["Release", "🔍 Quality"]);
-  });
-
-  it("refuses a caller chain that is not a list of strings", () => {
-    // A verifier reads a null chain as ineligible and reruns. Accepting a
-    // malformed value would make it read as an eligible depth instead.
-    process.env["LISA_GATE_EVIDENCE_CALLER_CHAIN"] = '{"depth":1}';
-    expect(build().producer.caller_chain).toBeNull();
-
-    process.env["LISA_GATE_EVIDENCE_CALLER_CHAIN"] = "[1,2]";
-    expect(build().producer.caller_chain).toBeNull();
-
-    process.env["LISA_GATE_EVIDENCE_CALLER_CHAIN"] = "not json";
-    expect(build().producer.caller_chain).toBeNull();
-  });
-
-  it("declares no reuse, so a proof cannot rest on a proof of nothing", () => {
-    expect(build().producer.reused_gates).toEqual([]);
-  });
 });
 
 describe("an envelope that observed nothing says so", () => {
@@ -352,7 +334,7 @@ describe("an envelope that observed nothing says so", () => {
       moment: MOMENT,
       observedAt: OBSERVED,
       verdict: "no-gates",
-    }) as Record<string, never>;
+    });
 
     expect(doc.gates).toEqual([]);
     // The verdict is what keeps this from being byte-similar to a clean run.

@@ -193,7 +193,18 @@ function awaitedDeclarations(): readonly (readonly [
  */
 function taskFor(gate: string): string {
   const declared = (CONFIG.gates ?? {})[gate] as { run?: string } | undefined;
-  return declared?.run ?? (REGISTRY[gate]?.task as string);
+  if (declared?.run !== undefined) return declared.run;
+  if (!isRegisteredGate(gate)) throw new Error(`${gate} is not a known gate`);
+  return REGISTRY[gate].task;
+}
+
+/**
+ * Whether a gate id names an entry of the gate registry.
+ * @param gate - Gate id
+ * @returns True when the registry declares the gate
+ */
+function isRegisteredGate(gate: string): gate is keyof typeof REGISTRY {
+  return Object.hasOwn(REGISTRY, gate);
 }
 
 /**

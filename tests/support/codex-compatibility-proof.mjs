@@ -1,12 +1,5 @@
 /** Replay the exact loaded commands through explicit full apply. */
-import {
-  readFile,
-  writeFile,
-  symlink,
-  unlink,
-  lstat,
-  rm,
-} from "node:fs/promises";
+import { readFile, writeFile, unlink, lstat, rm } from "node:fs/promises";
 import path from "node:path";
 import {
   root,
@@ -27,6 +20,7 @@ import {
   INSTALLED_LISA,
 } from "./codex-compatibility-state.mjs";
 import { seedCompatibilityHost } from "./codex-compatibility-seed.mjs";
+import { createSymlink } from "./borrowed-node-modules.mjs";
 try {
   await seedCompatibilityHost();
   const before = commands
@@ -211,7 +205,7 @@ try {
     scannerAfter.status === 1,
     scannerAfter
   );
-  await symlink(candidate, path.join(host, INSTALLED_LISA), "dir");
+  createSymlink(candidate, path.join(host, INSTALLED_LISA), "dir");
   const repeat = run("node", applyArgs);
   const second = JSON.parse(
     await readFile(path.join(host, ".codex/.lisa-managed.json"), "utf8")

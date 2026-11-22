@@ -20,6 +20,7 @@ import {
   scratchRoot,
 } from "./enforcement-fallback-fixtures.js";
 import { boundedSpawnSync } from "./io-latency-budget.js";
+import { inheritedEnvironment } from "../support/process-environment.js";
 
 export const SELECTED_GUARDS = [
   "block-no-verify",
@@ -32,7 +33,7 @@ export const SELECTED_GUARDS = [
 ] as const;
 
 export const INSTALLED_VERSION = "4.72.7";
-export const HISTORICAL_VERSION = "4.33.1";
+const HISTORICAL_VERSION = "4.33.1";
 
 /**
  * A host with current real guards/templates and an independently old receipt.
@@ -135,8 +136,7 @@ export function driveFreshness(
       args: [driver],
       cwd: root,
       env: {
-        // eslint-disable-next-line no-restricted-syntax -- a real subprocess fixture inherits the installed toolchain
-        ...process.env,
+        ...inheritedEnvironment(),
         CLAUDE_PROJECT_DIR: root,
         CLAUDE_CONFIG_DIR: path.join(driverRoot, "empty-config"),
         TMPDIR: options.tmp ?? driverRoot,

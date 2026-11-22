@@ -1,0 +1,12 @@
+$ node scripts/lisa-ci-failure-redispatch.mjs --payload tests/fixtures/ci-failure-redispatch/status-pending.json --dry-run
+# worktree head_sha=68ca1b31795ba5f0de17b1b40488bb29bfe7e02d captured_at=2026-11-08T09:49:21Z
+run 38800000003 -> PR (none) -> work item (none)
+outcome: ignored-pending-status — a pending status has not finished (dry run: nothing written)
+{
+  "repository": "CodySwannGT/lisa",
+  "runId": 38800000003,
+  "outcome": "ignored-pending-status",
+  "reason": "a pending status has not finished",
+  "actions": []
+}
+exit=0

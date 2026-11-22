@@ -1,4 +1,4 @@
 display_name: "Pull Request Review"
-short_description: "address and resolve the code…"
+short_description: "Address every review comment on…"
 default_prompt:
-  - "Use $lisa-pull-request-review: address and resolve the code…."
+  - "Use $lisa-pull-request-review: Address every review comment on…."

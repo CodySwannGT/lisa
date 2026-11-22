@@ -27,7 +27,7 @@ import {
   INJECT_RULES,
   PLUGIN_JSON,
   scaffoldSource,
-} from "./cursor-artifact-helpers";
+} from "./cursor-artifact-helpers.js";
 
 const ROOT = "${CLAUDE_PLUGIN_ROOT}/hooks/";
 const CITATION_SKILL = "skills/citation/SKILL.md";

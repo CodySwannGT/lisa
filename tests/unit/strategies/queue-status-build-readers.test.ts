@@ -111,7 +111,7 @@ describe("queue-status build readers (#825)", () => {
       ref: "#828",
       summary: "Oldest stalled build item likely actionable for repair-intake",
     });
-    expect(snapshot.highlights[1].nextStep).toBe(
+    expect(snapshot.highlights[1]?.nextStep).toBe(
       "Run /lisa:repair-intake github intake_mode=build after clearing the blocker."
     );
     expect(snapshot.repairSignals).toMatchObject({
@@ -247,10 +247,10 @@ describe("queue-status build readers (#825)", () => {
         "review",
       ]);
       expect(snapshot.repairSignals.actionable).toBe(true);
-      expect(snapshot.repairSignals.blocked[0].title).toBe(
+      expect(snapshot.repairSignals.blocked[0]?.title).toBe(
         "Blocked build item needs clarification"
       );
-      expect(snapshot.repairSignals.stalled[0].title).toBe(
+      expect(snapshot.repairSignals.stalled[0]?.title).toBe(
         "Stalled claimed build item"
       );
       expect(snapshot.health.verdict).toBe("ATTENTION_NEEDED");

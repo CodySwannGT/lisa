@@ -1,4 +1,4 @@
 display_name: "Reduce Complexity"
-short_description: "This skill provides strategies…"
+short_description: "Reduce cognitive complexity in…"
 default_prompt:
-  - "Use $reduce-complexity: This skill provides strategies…."
+  - "Use $reduce-complexity: Reduce cognitive complexity in…."

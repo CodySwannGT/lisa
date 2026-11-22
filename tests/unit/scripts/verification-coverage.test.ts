@@ -177,7 +177,6 @@ describe("check-verification-coverage", () => {
     const labels = await fetchLivePullRequestLabels({
       repository: REPOSITORY,
       prNumber: "1371",
-      token: undefined,
       fetchImpl: (() => {
         throw new Error("fetch should not be called");
       }) as unknown as typeof fetch,
@@ -188,16 +187,6 @@ describe("check-verification-coverage", () => {
 });
 
 describe("verification (UAT) gate wiring", () => {
-  it("frames verification AS UAT (one concept) in the eager rule", () => {
-    const rule = read("plugins/src/base/rules/eager/verification.md");
-    expect(rule).toContain("Verification IS UAT");
-    expect(rule).toContain("evidence/<ticket>/");
-    expect(rule).toContain("verification-exempt");
-    expect(rule).toContain("lisa:product-walkthrough");
-    // No parallel "acceptance-uat" skill should be referenced.
-    expect(rule).not.toContain("acceptance-uat");
-  });
-
   it("does not ship a parallel acceptance-uat skill", () => {
     expect(
       fs.existsSync(

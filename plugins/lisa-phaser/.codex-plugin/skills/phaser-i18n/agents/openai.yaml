@@ -1,4 +1,4 @@
 display_name: "Phaser I18n"
-short_description: "localizing a Phaser 4 game — a…"
+short_description: "Localize a Phaser 4 game: typed…"
 default_prompt:
-  - "Use $phaser-i18n: localizing a Phaser 4 game — a…."
+  - "Use $phaser-i18n: Localize a Phaser 4 game: typed…."

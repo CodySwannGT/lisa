@@ -1,0 +1,15 @@
+$ node scripts/lisa-ci-failure-redispatch.mjs --head-sha 3d7c4b89bfee95cc369911f80b3c82e3f5e84d65 --dry-run
+# worktree head_sha=68ca1b31795ba5f0de17b1b40488bb29bfe7e02d captured_at=2026-11-08T09:50:03Z
+run 0 -> PR #4674 -> work item CodySwannGT/lisa#4598
+outcome: not-claimed — the item is not in the claimed lane (status:in-progress) (dry run: nothing written)
+{
+  "repository": "CodySwannGT/lisa",
+  "runId": 0,
+  "pr": 4674,
+  "sha": "3d7c4b89bfee95cc369911f80b3c82e3f5e84d65",
+  "item": "CodySwannGT/lisa#4598",
+  "outcome": "not-claimed",
+  "reason": "the item is not in the claimed lane (status:in-progress)",
+  "actions": []
+}
+exit=0

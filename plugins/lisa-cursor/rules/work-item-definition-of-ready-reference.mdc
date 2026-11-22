@@ -17,6 +17,8 @@ alwaysApply: false
 
 Three-audience description · Gherkin acceptance criteria (except Spike) · Out of Scope · single-repo scope · relationship search · typed evidence manifest on runtime changes · Source Requirement traceability when PRD-sourced · provable read access to every named external surface · declared reachability for any **existing** test the item pins as a red-before-green control (`control-reachability`, gate S20 — `N/A` when the item introduces a new test instead).
 
+**Shipped-prerequisite check (S13).** Relationship search includes verifying every prerequisite a leaf calls already shipped (a symbol, file, migration…; for a route, its handler symbol or file) on `origin/<default>` — ticket text written ahead of delivery is a claim, not a fact. An absent prerequisite needs an `is blocked by` link to the item that owns delivering it before the leaf is ready; the commands live in `lisa-task-decomposition` step 4. It mirrors `stale-state-claims`: a premature *done* claim instead of a stale *not-yet* one.
+
 ## Per-type additions
 
 | Type | Must additionally carry | Terminal state is |
@@ -171,9 +173,38 @@ The dry-run also asks the **learned planning checks**: `planning-miss`
 learnings, the check planning should have run, persisted by `learning-judge`
 each time a dispatched worker still had to stop for a human or file a ticket
 mid-build (CodySwannGT/lisa#4569). They are read through the learnings
-contract's bounded projection (`lisa-task-decomposition` step 0), never the raw
-ledger. A worker that stops anyway is the signal this gate missed something,
+contract's bounded projection with the `lisa-task-decomposition` step 0
+command, never the raw ledger. That command projects over the planning checks
+alone, and names each planning check the projection omitted, by id; a missing
+ledger adds nothing, and a ledger it cannot read prints one warning naming the
+error. Neither fails the gate. A worker that stops anyway is the signal this gate missed something,
 and the loop turns that stop into the next item's question.
+
+## Token estimate (gate S21)
+
+When `workItem.estimate.required` is `true` (the default; an absent key means
+`true`, and a non-boolean value fails safe to `true`), every leaf carries one
+managed `## Lisa Estimate` section before work begins: a token range, the
+matching dollar range, and a recommended model, either an exact id or a family,
+from any vendor, taken from `workItem.estimate.models`. The model is recorded,
+not enforced for dispatch. The section shape, pricing and config live in the
+`lisa-usage-accounting` skill's `references/estimate.md`; the shipped
+`scripts/lisa-estimate.mjs` renders and checks it for every agent.
+
+The estimate is **not** a write-time or ready-time requirement. Deterministic
+sources (Sentry, New Relic, monitors) file items they cannot estimate, and a
+missing estimate never forces a human question, because the claiming agent
+writes one. So S21 at ready time refuses only an estimate that is present and
+wrong. At claim time `lisa-track` reruns it with `--phase claim`, where a
+missing estimate fails: the claiming agent estimates the item, calibrated
+against comparable finished items, and writes it before any work. If
+estimating itself fails, the work still goes ahead: the item stays claimed, the
+result records `estimate_outcome: failed` with the reason, and a plain-English
+comment on the item says why (`lisa-track` step 4). At done time
+`lisa-work-item complete` refuses the item until its usage ledger has an entry
+and the section shows that ledger's actual tokens and cost beside the estimate
+(`lisa-estimate.mjs tally`). It is `N/A` when the project turns the
+requirement off. Nobody is ever asked for an estimate.
 
 ## Relationship to the lifecycle
 

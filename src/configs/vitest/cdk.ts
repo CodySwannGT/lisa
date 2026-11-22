@@ -16,6 +16,8 @@ import type { ViteUserConfig } from "vitest/config";
 type UserConfig = ViteUserConfig;
 
 import {
+  accessMapPlugins,
+  accessMapSetupFiles,
   coverageGlobalSetup,
   coverageReportsDirectory,
   defaultCoverageExclusions,
@@ -76,8 +78,9 @@ interface CdkVitestOptions {
 export const getCdkVitestConfig = ({
   thresholds,
 }: CdkVitestOptions = {}): UserConfig => ({
+  plugins: [...accessMapPlugins()],
   test: {
-    setupFiles: [...scratchSetupFiles()],
+    setupFiles: [...scratchSetupFiles(), ...accessMapSetupFiles()],
     globalSetup: [...scratchGlobalSetup(), ...coverageGlobalSetup()],
     sequence: { setupFiles: "list", hooks: "stack" },
     // Bounded so k concurrent runs do not claim k x cores. See resolveMaxWorkers.

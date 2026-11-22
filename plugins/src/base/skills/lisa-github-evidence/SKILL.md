@@ -1,6 +1,6 @@
 ---
 name: lisa-github-evidence
-description: "Upload text evidence to the GitHub `pr-assets` release, update PR description, and post a GitHub Issue comment with code blocks. Reusable by any skill that captures evidence and generates evidence/comment.md (and optionally evidence/comment.txt). The GitHub counterpart of lisa-jira-evidence."
+description: "Post text evidence for a GitHub issue: upload it to the GitHub evidence release, update the PR description, and comment on the issue."
 allowed-tools: ["Bash"]
 ---
 
@@ -40,14 +40,26 @@ If either is missing, **refuse to post**: stop and report the missing Not-establ
 
    Parse `ISSUE_REF` into `<issue-org>/<issue-repo>#<issue-number>`. Parse the local repo (where the PR lives) via `gh repo view --json nameWithOwner --jq '.nameWithOwner'`.
 
-2. **Ensure the `pr-assets` release exists in the IMPLEMENTATION repo**
+2. **Resolve and ensure the evidence release in the IMPLEMENTATION repo**
 
-   The `pr-assets` release is the asset CDN for evidence files. Each PR's evidence is uploaded with the PR number prefix in the asset name to keep them addressable.
+   Evidence goes to the configured evidence release:
+   `verification.completion.evidenceRelease` in `.lisa.config.json`, default
+   `pr-assets`. A rotating name such as `pr-assets-{YYYY-MM}` keeps each
+   release under GitHub's 1000-file limit. It is the asset CDN for evidence
+   files; each PR's evidence carries the PR number prefix in the asset name to
+   keep it addressable. From the implementation repo's root:
 
    ```bash
-   gh release view pr-assets --repo <impl-org>/<impl-repo> >/dev/null 2>&1 \
-     || gh release create pr-assets --repo <impl-org>/<impl-repo> --title "PR Assets" --notes "CDN for PR evidence"
+   RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || exit 1
    ```
+
+   `--ensure` creates the release when it is absent, rolls over to the next
+   overflow release (`<release>-2`, `-3`, …) when it is nearly full, and prints
+   the release that has room. It stops with a plain message only when a pinned
+   `LISA_EVIDENCE_RELEASE` is full, every overflow release is, or the release
+   name is too long to roll over. Do not upload
+   when it fails. A project
+   without `scripts/lisa-work-item.mjs` uses `RELEASE=pr-assets`.
 
 3. **Upload each evidence file**
 
@@ -55,6 +67,7 @@ If either is missing, **refuse to post**: stop and report the missing Not-establ
    (
      set -e
      export LC_ALL=C
+     : "${RELEASE:?Resolve the evidence release in step 2 first}"
      upload_dir=$(mktemp -d "${TMPDIR:-/tmp}/lisa-github-evidence.XXXXXXXX")
      trap 'rm -rf "$upload_dir"' EXIT
      expected_names="$upload_dir/expected-names.txt"
@@ -75,11 +88,11 @@ If either is missing, **refuse to post**: stop and report the missing Not-establ
      while IFS= read -r base; do
        name="pr-${PR_NUMBER}-${base}"
        cp "$EVIDENCE_DIR/$base" "$upload_dir/$name"
-       gh release upload pr-assets --repo <impl-org>/<impl-repo> --clobber "$upload_dir/$name"
+       gh release upload "$RELEASE" --repo <impl-org>/<impl-repo> --clobber "$upload_dir/$name"
        printf '%s\n' "$name" >> "$expected_names"
      done < "$basenames"
 
-     gh release view pr-assets --repo <impl-org>/<impl-repo> \
+     gh release view "$RELEASE" --repo <impl-org>/<impl-repo> \
        --json assets --jq '.assets[].name' > "$upload_dir/asset-names.txt"
      while IFS= read -r name; do
        if ! grep -Fxq -- "$name" "$upload_dir/asset-names.txt"; then
@@ -110,7 +123,8 @@ If either is missing, **refuse to post**: stop and report the missing Not-establ
    `--clobber` replaces an existing asset with that same PR-prefixed name.
 
    Link to the actual name:
-   `https://github.com/<impl-org>/<impl-repo>/releases/download/pr-assets/pr-<number>-<file>`.
+   `https://github.com/<impl-org>/<impl-repo>/releases/download/<release>/pr-<number>-<file>`,
+   where `<release>` is the `$RELEASE` resolved in step 2.
 
 4. **Update the PR description**
 
@@ -159,7 +173,7 @@ Asset names in the release are prefixed with `pr-<number>-` so multiple PRs' evi
 Check:
 - `gh auth status` succeeds.
 - The PR / issue refs are correct.
-- The `pr-assets` release exists in the implementation repo.
+- `node scripts/lisa-work-item.mjs evidence-release --ensure` succeeds in the implementation repo (it creates a missing release, rolls over past a full one, and names a full pinned one).
 
 ### `gh issue edit` returns 404
 

@@ -6,6 +6,12 @@ measured failure they exist to prevent.
 
 Tracking issue: CodySwannGT/lisa#2579.
 
+An open review of every gate interface (one row per registry gate, with a
+decision column) lives in
+[`gate-interface-review.xlsx`](gate-interface-review.xlsx). It was built from
+the registry on 2026-11-12, so check it against `REGISTRY` in
+`all/copy-overwrite/scripts/lisa-gates.mjs` before relying on it.
+
 ## The organising defect
 
 Every decision below is downstream of one failure mode: **a check reporting
@@ -145,7 +151,65 @@ Every route to "I do not know" — no coverage file, an empty one, a runner that
 could not run, an inexact match — runs the built-in step. A caller that does not
 pass `--coverage` is an older hook whose only lever is all-or-nothing, and for
 that one the runner still withholds the whole moment until the block is
-complete.
+complete. The same caller is answered 78 after a run in which a gate's parts
+did not reach every path the change touches: it cannot keep one built-in
+check on its own, so it keeps all of them. See "A part the change does not
+touch".
+
+### A caller with no built-in checks
+
+Everything above assumes the hook has checks of its own to keep. The hooks a
+stack template ships do. A repository on no supported project type has no such
+hook: whatever calls the runner there — the carrier the enforce step installs —
+has nothing behind it. For that caller, exit 78 ("run your own checks instead")
+is an instruction it cannot follow, and obeying it would let a commit through
+having checked nothing.
+
+So the caller says which kind it is. `--builtins=none` tells the runner there
+are no built-in checks behind this call, and the runner then answers with a
+verdict every time:
+
+| Exit | Meaning for the caller                                                                                           |
+| ---- | ---------------------------------------------------------------------------------------------------------------- |
+| `0`  | Let it through. One of three things happened, and the runner says which: every required gate declared at this moment was proved; nothing is declared at this moment; or every part declared at this moment is for a folder the change does not touch, so no command ran. |
+| `1`  | Stop it. A required gate was not proved, or the declaration is one the validator refuses.                        |
+| `70` | Stop it. The runner could not run (unreadable configuration, a flag it does not understand), so nothing was proved. |
+
+**Exit 0 can mean no command ran.** Where a gate is declared with a part for
+`api` and a part for `web` and nothing else, a commit that changes only
+`tools/b.js` touches neither folder. Both parts print `NOT APPLICABLE`, the
+tally reads `0 proved … 2 part(s) this change does not touch were not run`,
+and the exit is 0: nothing the declaration covers changed, and this caller has
+no check of its own to fall back to. A repository that wants every change
+checked declares a part with scope `.`, which always runs.
+
+It never answers 78. Three things change under the flag, and nothing else:
+
+- **A half-written block is run, not withheld.** The floor lists what the
+  caller's built-in checks prove. With no built-in checks there is no floor,
+  so silence about `credential-leakage` deletes nothing — nothing was proving
+  it.
+- **No gates at all is a pass that says so.** The runner prints
+  `No gates are declared in .lisa.config.json, so nothing was checked at
+<moment>` and exits 0, and the evidence envelope still records `no-gates`.
+  It is the same answer a gates block that is silent at one moment has always
+  had.
+- **A gate left to a built-in check is not proved.** The registry resolves
+  some gates to `builtin`: the hook proves them with a step of its own. To a
+  caller with such a step they print `SKIPPED`. To a caller with none they
+  print `UNPROVABLE`, and a required one stops the commit, because otherwise a
+  required gate would read as settled while nothing anywhere had checked it.
+
+`--builtins=none` and `--coverage` say opposite things about the caller, so
+the runner refuses the two together (exit 70) rather than pick one.
+
+**No manifest is needed for any of it.** A part names its own command, so the
+runner resolves and starts it whether or not the repository has a
+`package.json`. A gate with _no_ parts still resolves to `<runner> <task>` as
+it always has; in a repository with no manifest that command has nothing to
+run, exits non-zero, and the gate is reported as not proved — at `required`,
+where it stops the commit, and at `optional`, where it is reported and stops
+nothing. It is never reported as passing.
 
 ## Requirements follow the work, not the surface
 
@@ -176,6 +240,28 @@ for code review: an agentic review before push, a bot on the pull request.
 
 Awaiting before a pull request exists is refused. A check that can never fire is
 a declared guarantee that never runs.
+
+`lisa doctor` follows that distinction for CodeRabbit. A `pull-request` gate
+awaiting CodeRabbit is proven by the hosted check run; the local CLI is optional.
+An installed optional CLI whose authentication cannot be verified produces a
+warning. A project that runs CodeRabbit locally declares its tool dependency
+beside the task:
+
+```json
+"code-review": {
+  "needs": { "tools": ["coderabbit"] },
+  "push": { "level": "required", "run": "review:local" },
+  "pull-request": { "level": "required", "await": "CodeRabbit" }
+}
+```
+
+Here `review:local` is the project's own task that invokes the CLI; Lisa does not
+ship a CodeRabbit review runner or infer tool dependencies from shell text.
+Doctor names `code-review at push` if that required CLI is missing or signed out.
+An `optional` local task stays advisory, and an `off` task needs no CLI. Gate-level
+`needs` on an awaited signal alone does not turn hosted proof into local work.
+These diagnostics share one CLI across all supported agents and do not change
+hosted evidence requirements or the optional CodeRabbit Claude plugin.
 
 ## An exit code is one bit, and two gates may share one prover
 
@@ -254,6 +340,156 @@ The general lesson is worth stating without the specifics: **a wall-clock budget
 over a subprocess is a measurement of the machine, not of the code**, and a
 suite that spawns a second copy of itself is the case where the machine is
 guaranteed to be busy.
+
+## A push pass is remembered by content
+
+A retry, or a re-push of a tree that already passed (a rebase that changes no
+content, a second branch, a push after a network failure), used to pay every
+push gate again. `lib/gate-pass-cache.mjs` remembers a push gate's pass under a
+sha256 key over everything its verdict can depend on: the pushed commit's tree,
+the gate id and exact command, every lockfile present, the node and bun
+versions, the `gates` blocks of `.lisa.config.json` and
+`.lisa.config.local.json`, and an environment allowlist (`NODE_OPTIONS`,
+`NODE_ENV`, `TZ`, and every `LISA_*` variable except the volatile
+`LISA_GATE_CACHE`, `LISA_PUSHED_REFS_FILE`, `LISA_CLEANUP_SWEPT` and the
+admission wait bounds `LISA_ADMISSION_MAX_WAIT` and
+`LISA_ADMISSION_PUSH_MAX_WAIT`, which decide when a gate starts, never what it
+proves). A hit
+prints `CACHED PASS (<first 12 hex of key>)`, counts as PASSED, and does not run.
+Entries live machine-wide under `${XDG_CACHE_HOME:-~/.cache}/lisa/gate-passes/`
+and are pruned after 30 days.
+
+Every rule fails toward running the gate:
+
+- The cache is read or filled only when the working tree is exactly the tree
+  being pushed — `git status --porcelain` empty and `HEAD^{tree}` equal to the
+  tree of every non-deletion pushed ref — and passes are written only after the
+  run, once the tree is re-read unchanged. A green must describe the pushed tree
+  (CodySwannGT/lisa#3874).
+- Only a full pass is remembered: never FAILED, KILLED, UNPROVABLE or NOT_RUN,
+  and never a pass read off a shared prover that did not itself pass.
+- A moment entry declares `"cache": false` beside `level` and `run` when its
+  verdict depends on anything outside the key. Lisa marks `traceability` (reads
+  the tracker), `threshold-monotonicity` (compares against `HEAD^`),
+  `x-orphan-fixture-processes` (live processes), and `x-operational-hazards` and
+  `x-withdrawn-rulings` (each also reads a machine ledger under `~/.lisa`). It
+  sits on the moment entry, like `failure_shape`, because an older Lisa refuses
+  an unknown gate-level key together with the whole gates block.
+- CI (`CI` or `GITHUB_ACTIONS` set) never reads or writes it; CI always runs the
+  full suite. `LISA_GATE_CACHE=off` switches it off for one run.
+- It is off unless `pushGate.cache` is `true` (a TypeScript project defaults it on), and while
+  off it is silent and touches nothing. Lisa turns it on for itself; TypeScript hosts get it
+  by default (CodySwannGT/lisa#4611) and Rails hosts per #4613. `lisa apply`
+  and the runner both refuse a value that is not `true` or `false`.
+
+### `lisa check`: fill the cache before the push
+
+Git opens the remote connection before the pre-push hook runs, and a hook that
+runs past about 35 minutes dies with exit 141 even when every gate passes
+(CodySwannGT/lisa#4505), so a long wait for machine headroom must not happen
+inside a push. `lisa check` (CodySwannGT/lisa#4601) runs the same push gates
+through the same runner — `lisa-run-gates.mjs --moment=push --coverage=<tmp>`,
+the project's copy when it has one, else the one the installed Lisa ships —
+against `HEAD`'s tree, outside the push. It sets `LISA_ADMISSION_MAX_WAIT`
+(default `30m`, `--max-wait <duration>` to change it) so admission may wait
+longer than the in-push bound. Its passes land in the cache, so the push that
+follows reports every cacheable gate as `CACHED PASS`.
+
+- A dirty working tree is refused (exit 1, "commit first"): the cache only
+  records a pass for a clean tree equal to the pushed commit.
+- A required gate that does not pass exits 1 with the runner's own lines.
+- With `pushGate.cache` off — a non-TypeScript host, or one that set it to `false` — or with
+  `LISA_GATE_CACHE=off` or under CI, it runs nothing and exits 0 with
+  `gate pass cache is off for this project; push directly (the push runs every
+  gate)`, because checking first would only run every gate twice. That is what
+  lets the pushing skills (`lisa-git-submit-pr`, `lisa-drive-pr-to-merge`,
+  `lisa-implement`) tell every agent to run `lisa check` before `git push`
+  unconditionally. Humans may keep pushing normally.
+
+In a Rails project (`bin/rails`, else `config/application.rb`, as the Rails
+detector decides) the push gates are lefthook's pre-push commands, not the
+gate registry, so `lisa check` runs `scripts/lisa-rails-gates.mjs --all`
+instead (CodySwannGT/lisa#4613). Each lefthook command calls that script with
+its own gate name, so check and push run the same commands under the same
+cache keys, which add `Gemfile.lock`, `ruby -v` and `bundle -v`. `pushGate.cache`
+and `pushGate.admission` default to on there; an explicit `false` wins. RSpec
+(and an enabled mutation gate) goes through `lisa admit`; a full run uses
+`parallel_rspec -n <granted>` only when the host's create-only
+`config/database.yml` names its test database with `TEST_ENV_NUMBER`. Work-item
+traceability and the history scan stay in `lisa-rails-prepush.mjs`, which
+reads Git's stdin, and are never cached. Because only that command reads the
+pushed refs, a Rails gate proves `HEAD`'s clean tree, the same tree the
+uncached gates always tested.
+
+## Affected-test selection at push
+
+`pushGate.affectedTests: true` (CodySwannGT/lisa#4600) routes the unit push
+task through `scripts/lisa-affected-tests.mjs`, which narrows `vitest run` to
+`vitest related --run <changed files> <map-selected tests>` using the CI access
+map (#4593). The decisions live in `scripts/lib/affected-tests.mjs`:
+
+- Any reason the selection could be wrong runs the full command unchanged and
+  prints the reason. These are a missing, stale or unreadable map, a changed
+  file that is new since the map, a `FULL_SUITE_TRIGGERS` entry, or a CI run.
+  It never runs nothing because the map is in doubt.
+- The command reports what it selected through `LISA_SELECTION_REPORT`, a
+  per-command file the gate runner points it at. A partial pass is never
+  written to the pass cache. An escalated run (below) reports itself as a
+  full run, because a full run produced its verdict.
+- `pushGate.affectedCoverage` decides what a partial run means for
+  `coverage-adequacy`. With `full` (the default), the full suite runs wherever
+  `coverage-adequacy` is declared at push. With `changed-files`, the chosen
+  tests run with coverage on and each changed source file is held to the floor
+  on its own. When every one meets it, the partial run passes. When one does
+  not, or the run left no coverage to read, the selector does not fail the
+  push on that alone: it prints one line per short file and runs the full
+  command with whole-repo coverage, as `full` does, and that exit code is the
+  verdict. With `skip`, the runner reports `coverage-adequacy` SKIPPED with
+  `partial selection — enforced by CI`, and `test-correctness` keeps the run's
+  own verdict, so a failing chosen test still blocks the push.
+
+### TypeScript hosts (CodySwannGT/lisa#4611)
+
+- **Defaults by stack, at run time.** `scripts/lib/push-gate-defaults.mjs`
+  fills in `cache`, `admission`, `affectedTests: true` and
+  `affectedCoverage: "changed-files"` under the project's own `pushGate`
+  keys when the project is TypeScript. TypeScript is detected the way
+  `src/detection/detectors/typescript.ts` does it. The gate runner, the
+  selector, the access-map recorder, `lisa-test-run` (admission) and
+  `lisa check` (cache) all read it, so no two of them disagree. An explicit
+  value wins, `false` included. A malformed `pushGate` is passed through
+  unchanged so the readers still refuse it. `buildOnce` is not defaulted on:
+  a host's push gates do not build, so a build-once step would add a full
+  build to every push, a cached re-push included.
+- **Why `changed-files` for hosts.** With `full`, a seeded host (which
+  declares `coverage-adequacy` at push on `test:cov:unit`) would never narrow
+  at all. With `skip`, coverage would leave the push. `changed-files` keeps
+  coverage enforced at push for every file the change touched.
+- **Never stricter than before (owner rule, CodySwannGT/lisa#4600).** Before
+  selection, a push failed coverage only when whole-repo coverage failed. A
+  per-file floor is stricter than that: a file can sit below the floor while
+  the repo as a whole clears it. So the per-file check only decides when to
+  take the fast path. A shortfall escalates to the full suite with whole-repo
+  coverage, which passes or fails the push exactly as `full` would. The same
+  rule holds on Rails: `lisa-rspec-select.mjs` escalates on a short changed
+  file, a missing resultset, or a hand-off that could not keep SimpleCov's
+  minimums off the slice (`lisa_rspec_partial_coverage.rb` writes `escalate`
+  to its `status.json`). The Rails gate runner passes its own full run,
+  parallel when granted, as the escalation. It falls back
+  to the full measured suite when there is no `vitest.thresholds.json` or no
+  test reaches a changed source file. CI still enforces whole-repo coverage.
+- **Scripts.** Each Vitest stack's forced `test:cov:unit:lisa` and
+  `test:unit:lisa` run through `lisa-affected-tests.mjs --push-only`. That
+  narrows only when the gate runner set `LISA_SELECTION_REPORT`, so CI and a
+  developer's own run are unchanged. A command that is not a `vitest run`
+  (the Jest stack) always runs unchanged, with the reason printed.
+- **Map.** The stack presets carry the recorder plugin, which records only
+  when `LISA_ACCESS_MAP=1` and the effective `affectedTests` is on. The
+  shared `quality.yml` now sets that variable and uploads the map for every
+  pull request, not only Lisa's. The recorder also writes the resolved
+  `forceRerunTriggers`, `setupFiles` and `globalSetup` into the map, and the
+  selector treats them as full-suite triggers. The fetch script reads the
+  repository from `GITHUB_REPOSITORY` or the `origin` remote.
 
 ## Hollow results
 
@@ -558,47 +794,29 @@ document.
 ## The interface is the evidence shape
 
 A task name is not an interface. If Lisa standardises only *how to invoke*, the
-register records "test:cov passed" and cites nothing — as true of a scrupulous
-project as a careless one. Standardising what comes **back** is what lets jest
-and vitest both satisfy `coverage-adequacy`, and what lets an attestation quote
-a number instead of a verdict.
+register records "test:cov passed" and cites nothing. Standardising what comes
+**back** is what would let jest and vitest both satisfy `coverage-adequacy`, and
+let an attestation quote a number instead of a verdict.
 
-Every implementation emits the same envelope, whatever tool produced it:
-
-```json
-{
-  "gate": "coverage-adequacy",
-  "status": "pass | fail | unknown",
-  "work": 412,
-  "measures": { "statements": 87.4, "branches": 71.2, "threshold": 80 },
-  "prover": { "tool": "vitest", "version": "4.1.9" },
-  "observed_at": "2026-08-15T18:02:11Z",
-  "max_age_minutes": 1440
-}
-```
-
-- **`status`** is three-valued. `unknown` is not a synonym for `fail`.
-- **`work`** is the count that proves it *ran*. `null` forces `unknown` — the
-  `passWithNoTests` hole closed structurally rather than by vigilance.
-- **`measures`** is what an attestation actually cites.
-- **`prover`** records which implementation produced it. Vendor-neutrality means
-  Lisa does not *mandate* a tool, not that it declines to *record* one; an
-  auditor asking "what measured this?" deserves an answer.
-
-Per-gate measures are small and mostly obvious: coverage reports its metrics and
-threshold, mutation its mutants and score, load its percentiles and error rate,
-scanners their findings by severity. Generative testing is the one with a
-distinctive shape, because SI9 asks for a *declared inventory* rather than a
-verdict:
+**What actually ships is smaller, on purpose.** The runner records each gate as:
 
 ```json
-{ "invariants": 12, "dimensions": ["unicode", "depth", "size"],
-  "cases_generated": 120000, "counterexamples": 0, "seed": "0x4f2a…" }
+{ "gate": "coverage-adequacy", "status": "pass | fail | unknown", "level": "required", "label": "✅ Verification Coverage" }
 ```
 
-`seed` matters disproportionately: a property run that found nothing is only
-meaningful if someone can re-run *that* exploration. Without it the evidence is
-unreproducible, which is a strange thing for evidence to be.
+inside a run record carrying the `subject` (tree and commit), the `contract`
+(`moment` and `gates_digest`), the run `verdict`, and `observed_at`.
+
+- **`status`** is three-valued. `unknown` is not a synonym for `fail`: only a
+  gate that ran and passed is `pass`, and anything not measured is `unknown`.
+
+An earlier version also carried `work`, `measures`, `prover` and freshness
+fields for a release-reuse checker. No tool parser ever filled them, so they
+were always null or restated the exit code, and nothing read them. They were
+removed with that checker (CodySwannGT/lisa#4794). Recording a work count, real
+measures or a prover version is still the right direction for attestation.
+Add each one when a parser exists to fill it and a reader exists to use it,
+not before.
 
 ## What Lisa owes, and what the project owes
 
@@ -766,15 +984,1145 @@ only under an explicit flag. Same rule as extra required contexts — silently
 removing something a human may have installed deliberately is destructive on a
 guess.
 
+## One property, several parts
+
+A repository with more than one part — an API in one folder, a web client in
+another — proves the same property with a different command in each. A gate
+says so with `parts`, and says what it is for with three more keys:
+
+```json
+"code-style": {
+  "commit": "required",
+  "criteria": ["SI7"],
+  "owner": "Platform team",
+  "tier": "authoritative",
+  "parts": [
+    { "scope": "api", "command": ["go", "vet", "./..."] },
+    {
+      "scope": "web",
+      "command": ["npm", "run", "lint"],
+      "parameters": { "max-warnings": { "value": 0, "direction": "ceiling" } },
+      "proof": {
+        "violation": ".lisa/controls/proofs/lint-web.violation.patch",
+        "clean": ".lisa/controls/proofs/lint-web.clean.patch",
+        "failure_shape": ["problems found"],
+        "timeout_seconds": 120,
+        "external_effects": []
+      }
+    }
+  ]
+}
+```
+
+| key | on | meaning |
+| --- | --- | --- |
+| `criteria` | gate | The requirement ids the gate serves, written as the specification writes them. |
+| `owner` | gate | The person or team that answers for the gate. |
+| `tier` | gate | `authoritative` (the author of a change cannot get around it) or `advisory`. |
+| `parts` | gate | One entry per folder the gate covers. |
+| `scope` | part | The folder, written from the repository root; `.` is the whole repository. |
+| `command` | part | What checks it, as a list with one item per argument. |
+| `parameters` | part | Named settings, each `{ value, direction }`; `direction` is `floor` or `ceiling` and marks a number as a threshold. |
+| `proof` | part | Two patch files under `.lisa/controls/proofs/` — one that breaks the rule, one that does not — plus how a failure prints, a time limit, and anything the proof does outside the repository. |
+| `evidence` | part | What supports declaring the part: the places the audit found the check, or the audit questions a person answered. See "A part says what supports it". |
+
+**`command` is a list and never a string.** It is started directly, with no
+shell in between, so `;` and `&&` are characters in an argument rather than
+instructions. A string would have to be split by something, and whatever splits
+it is a shell or an imitation of one — so validation refuses a string instead
+of splitting it.
+
+**A gate with parts resolves to one entry per part.** Each carries every field
+an entry always had, then `scope` and `argv`. `task` and `command` are `null`
+on purpose: `command` is the text a shell is handed, and a part's argument list
+must never become one. A gate with no parts resolves exactly as it did before
+the key existed, field for field, and `tests/unit/controls/paved-road-regression.test.ts`
+holds that.
+
+**With parts, the parts are the only prover.** A `run` or an `await` beside
+them is refused, for the reason a moment may not declare both: one declaration
+with two things claiming to prove it has to be resolved by picking, silently.
+A second prover written for one moment is refused by `validate` and at that
+moment. The runner at any other moment says a problem waits elsewhere and
+runs, because there the gate has exactly one thing to run. A task named for
+the whole gate and a malformed part are refused at every moment.
+
+**Two parts of one gate may not cover the same folder**, and a folder has one
+spelling — `api`, not `api/` or `./api` — so every reader can compare two
+scopes as text.
+
+**A key Lisa does not read on a part is refused**, as it is on a gate. A part
+is read by several tools that never see each other, so a misspelt `parameters`
+would be a threshold nothing holds while every tool reported the declaration
+valid. A key that starts with `x-` is the project's own and passes through
+unread.
+
+### How the runner runs a part
+
+`lisa-run-gates.mjs` runs each part on its own and reports each on its own
+line, named by gate and folder:
+
+```
+  PASSED     required code-style in api           ["go","vet","./..."]
+  FAILED     required code-style in web           ["npm","run","lint"] (exit 1) — …
+```
+
+**The list is started as written, in the part's folder.** The program is the
+first item and every other item is one argument. No shell is involved at any
+point, so the report prints the list as JSON to show where each argument
+starts and ends. The command gets the runner's own environment, as every gate
+command does.
+
+**The folder is resolved on disk before anything starts.** A scope names a
+folder inside the repository, and a name is only inside the repository if
+what it _is_ on disk is: a committed link called `api` that leads somewhere
+else would start the command there. So the runner resolves the folder through
+every link and starts the command only when the result is a folder inside the
+repository.
+
+**A part that cannot start is not proved, and says why.** A folder that does
+not exist, a folder that leads outside the repository, and a program that is
+not installed each print `UNPROVABLE` against the part, with the folder or
+the program named. That blocks a required gate exactly as a failure does, and
+it is never a pass. The command of a part that cannot start is not run
+anywhere else instead.
+
+**A part is judged the way every gate is.** Exit 0 from a command that says it
+ran no tests is not proved; a command that was killed is `KILLED`, not
+failed; and a failure the classifier does not recognise is read against the
+part's `proof.failure_shape` before it is called unknown.
+
+**A gate is proved by all of its parts.** The commit and push hooks stand a
+built-in check down only against a gate the runner proved, and one part going
+unproved leaves the whole gate unproved. Passing parts are needed and are not
+enough: the parts must also reach every path the change touches, which "A
+part the change does not touch" sets out. The evidence envelope records one
+row per part, with the folder in `scope`.
+
+Three things are not built for parts yet. A part's command has thirty minutes
+rather than two hours, which is the longest the process supervisor accepts for
+a command started this way. On Windows a part's output is not captured, so a
+failure there is reported from its exit code alone. And a part is never read
+from the push gate's pass cache or admitted through `pushGate.admission`: it
+runs every time and starts immediately.
+
+### A part the change does not touch
+
+In a repository with two parts, a change to one should not run the other's
+check, and must not be reported as having passed it. So at commit and at push
+the runner works out which paths the change touches, and leaves out a part
+whose folder holds none of them:
+
+```
+  🔎 This commit changes 1 path(s). A part runs only when one of them is inside its folder; a part for the whole repository always runs.
+  PASSED     required code-style in api           ["go","vet","./..."]
+  NOT APPLICABLE required code-style in web       the change touches nothing inside "web", so ["npm","run","lint"] was not run. Not counted as proved
+✅ commit: 1 proved, 0 failed (optional), 0 not proved, 0 killed, 1 not applicable here, of 2 gate(s) declared. Each part of a gate is counted on its own. 1 part(s) this change does not touch were not run, and are counted as not applicable, never as proved.
+```
+
+**A part left out by mistake is a folder nothing checked.** That is the
+mistake that matters, so the rule has one direction: a part is left out only
+when the runner is sure the change does not touch it. Everything it is not
+sure about runs the part.
+
+| Moment            | What "the change" is                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------------------- |
+| `commit`          | The staged paths, read from the index git names for this commit. A rename counts at its old and its new path, and a deletion counts. |
+| `push`            | For each ref being pushed, what differs between the commit the remote holds and the commit being sent.   |
+| every other moment | Not worked out. Every part runs.                                                                        |
+
+The change is **not known**, and every part runs, when:
+
+- there is no git, or the runner was not started at the top of a repository;
+- git is set up to answer for some other repository (an inherited `GIT_DIR`
+  or `GIT_INDEX_FILE`), or fails, or is killed;
+- nothing is staged — which is also what a runner started by hand sees, and
+  a run to check the repository must not report every folder as untouched;
+- the caller did not say what is being pushed, or the list is empty or is not
+  written the way git writes it;
+- a ref is new on the remote (a first push of a branch, a new tag), because
+  there is nothing to compare it with;
+- git does not hold the commit the remote has;
+- more than 100 refs are pushed at once;
+- the push changes no file at all;
+- the change edits `.lisa.config.json`, the file that says what each part
+  runs.
+
+An amended commit is read like any other: the paths staged on top of the
+commit being amended. Amending only the message stages nothing, so every part
+runs.
+
+A push of several refs adds their paths together, and one ref that cannot be
+compared makes the whole push "not known". A ref being deleted sends no
+commit and adds no path. A forced push is read like any other: the two ends
+are compared as they are.
+
+**The pushed range comes from the push hook, and only from there.** Git
+writes `<local ref> <local object> <remote ref> <remote object>` for every
+ref on the hook's standard input, and nothing else knows both ends. The
+caller hands that text to the runner with `--push-refs=<file>`, or
+`--push-refs=-` to have the runner read its own standard input. When the flag
+is absent the runner reads the file named by `LISA_PUSHED_REFS_FILE`, which
+the push hook of a stack template has exported since it began keeping a copy
+of that text. The runner never guesses a range from the branch that happens to
+be checked out.
+
+With `-`, standard input is read to its end before any gate starts: every
+gate command inherits it and git writes it once, so whichever read it first
+would leave the other nothing. A gate's command then finds it empty, and a
+caller whose gates read the pushed refs themselves hands over a file instead.
+
+**The caller must hand over everything git wrote, or nothing.** The runner
+cannot tell a list that is short because few refs are pushed from one that is
+short because something read part of it first. A hook that runs after other
+hook content — which may have read one line of standard input and left the
+rest — must not pass `-`: the runner would narrow to the refs it was left
+with, and could leave out a part that only a consumed ref touches. Such a
+caller either keeps its own complete copy and passes the file, or passes
+nothing, so that every part runs.
+
+**How a path is matched to a folder.** Paths are compared from the repository
+root, one whole segment at a time: `api` holds `api/main.py` and not
+`api-v2/main.py`. Git is asked for names in a form it never quotes, so a
+folder with a space or a non-ASCII letter in its name matches like any other.
+Letter case and the two ways of composing an accented letter are ignored,
+because a filesystem may ignore them too; that can only run a part that was
+not touched. A folder that is a link is matched under its declared name and
+under the folder it leads to. A changed path that the folder lies below
+counts as well: a nested repository (a submodule) or a link above the folder
+is one path to git, which says nothing about what moved underneath it, so a
+part for `vendor/engine/src` runs when `vendor/engine` changed.
+
+**`.` always applies**, and a part for it is never left out.
+
+**A shared file at the root does not trigger a folder's part.** A change to a
+lint configuration in the repository root touches no path inside `api`, so the
+`api` part is left out even though that file changes what its command does.
+The runner cannot know which root files a command reads. A project that needs
+the check to run for such a change declares a part with scope `.`, which
+always runs. `--parts=all` runs every part whatever the change touches, for a
+run by hand.
+
+**What a part left out is, to everything that reads a run.** Its state is
+`SKIPPED` with `untouched: true`. It is never started, never read from or
+written to the pass cache, and never shared with another gate that names the
+same command. The evidence envelope records it with `status: "unknown"` and
+`applicable: false`. The tally counts it under "not applicable here".
+
+**A gate is reported as covered only when its parts reached the whole
+change.** The commit and push hooks of a stack template stand a built-in
+check down against each gate the runner names in the `--coverage` file, and
+they stand it down for the whole commit or push. So a gate with parts is
+named only when every path the change touches is inside the folder of a part
+that ran. Otherwise the gate is withheld, the runner says why, and the
+built-in check runs. With parts for `api` and `web`:
+
+| the change | the gate in `--coverage` | what the runner prints |
+| --- | --- | --- |
+| `api/a.go` | named | nothing more |
+| `api/a.go` and `tools/b.js` | withheld | `code-style has no part for 1 path(s) this change touches ("tools/b.js"), so the built-in check for it still runs.` |
+| `tools/b.js` | withheld | `No part of code-style applies to this change, so the built-in check for it still runs.` |
+| not known | withheld | `What this change touches is not known and code-style has no part for the whole repository, so the built-in check for it still runs.` |
+
+The last row is the same rule, not a second one. When the change is not known
+every part runs, and nothing says the folders they cover are all of it: a
+commit that edits `.lisa.config.json` is "not known", and that file is by
+definition outside `api` and `web`. A gate with a part for scope `.` is named
+whatever the change touches, because that part reaches every path. A project
+whose parts are meant to replace the built-in check for every change declares
+one.
+
+"Inside" is read strictly here, where "touches" above is read generously. A
+nested repository that moved is one changed path; a part for a folder inside
+it runs, and does not make that path covered. Letter case and the composition
+of an accented letter are compared exactly here, where "touches" ignores
+them: a change to `API/x.js` runs the part for `api`, and is still a path no
+part covers, because on a filesystem that tells the two apart `API` is
+another folder. Where the filesystem treats them as one and git recorded the
+other spelling, that only keeps a built-in check that could have stood down.
+
+A hook that does not pass `--coverage` cannot keep one built-in check on its
+own. When a gate would be withheld for one of these reasons and nothing
+failed, it is answered 78 and runs every built-in check it has. The parts
+that ran stay on record: the evidence envelope carries their rows under the
+verdict `fell-back`. A caller that passed `--builtins=none` has no built-in
+check to keep, and the table under "A caller with no built-in checks" says
+what its exit 0 means.
+
+## A part says what supports it
+
+A register entry is a statement that a rule governs a folder, and it may be
+written only where something supports it. A part records that in `evidence`:
+
+```json
+{
+  "scope": "api",
+  "command": ["ruff", "check", "."],
+  "evidence": {
+    "locators": [{ "path": "api/ruff.toml", "line": 1 }],
+    "questions": ["SI2@api"]
+  }
+}
+```
+
+`locators` are the places the audit found the check, each the audit report's
+own `{ path, line }`. `questions` are the ids of the audit questions a person
+answered, each the id the report records the answer under: `<requirement>@<scope>`.
+Either may be left off; one of them must be there.
+
+The other examples in this note show a part without `evidence`. Each is a
+valid declaration, and the runner runs it. The register refuses it until the
+part names what supports it.
+
+Three pieces of code each hold a different part of that, because each can see
+a different thing:
+
+| where | what it refuses | why there |
+| --- | --- | --- |
+| `validate` (the shipped registry) | `evidence` that is written wrongly: not an object, an unknown key, an empty list, a path outside the repository, a line below 1, the same place twice, or neither list. | It ships to every repository and reads no report. `evidence` is optional here, because nothing that runs a part reads it. |
+| `lisa controls register` | A part with no `evidence` at all. | The register is where "this rule governs this folder" becomes a record. It never reads the audit report, so it stays the same bytes on every machine. |
+| `lisa controls declaration-check` | A place the audit did not report for a requirement the gate serves, in that folder or in the report's whole-repository section; a question the report holds no answer to, or whose answer is about another requirement or another folder; and a part for a requirement the audit still asks about. | It is the one place the declaration and the audit report are both in reach. |
+
+**A gate with no parts is outside all three.** Its one entry comes from the
+declarations Lisa ships for a supported project type, it has no part to carry
+evidence, and it generates exactly as before. `lisa controls seed` is what
+declares those: it says whether the whole repository is one piece of software
+on a supported type and, when it is, runs the same `seedGates` that
+`lisa apply` runs. Everywhere else the configure step declares parts from the
+audit's findings, one decision at a time.
+
+**A threshold on an unsupported stack is the host's.** `lisa controls
+propose-threshold` turns a value measured with the host's own tool into the
+parameter to propose, `{ value: <measured>, direction }`, and nothing else
+goes into it: there is no default in that code to fall back on.
+
+## A declared threshold moves one way
+
+A parameter with a `direction` is a threshold, and `threshold-monotonicity`
+holds it: a `floor` may rise and never fall, a `ceiling` may fall and never
+rise. The prover is the one that already held Lisa's own threshold files
+(`plugins/src/base/hooks/threshold-ratchet*.mjs`, shipped to every repository
+as `scripts/check-threshold-ratchet.mjs` and its two siblings). It compares
+`.lisa.config.json` between the base and the change, so it needs no threshold
+file, no `package.json` and nothing installed — only `node` and git.
+
+It walks the thresholds the base declares and asks of each whether it is still
+held at least as tightly. Everything else follows from that one question:
+
+| the change | verdict |
+| --- | --- |
+| a floor goes down, or a ceiling goes up | refused |
+| a floor goes up, a ceiling goes down, or the value stays | allowed |
+| the parameter, its part, its gate or the file is removed | refused: removing a floor lowers it all the way |
+| the part's folder or the gate is renamed | refused, even when the threshold moved with it |
+| `direction` is dropped, or a floor becomes a ceiling or the reverse | refused |
+| the value stops being a number | refused |
+| the file stops being valid JSON while it held a threshold | refused |
+| a parameter with no `direction` changes or goes | not compared |
+| a new parameter, part or gate | allowed |
+| the base declares no thresholds, has no such file, or has one that is not valid JSON | allowed: nothing readable was held |
+
+**What is held is the declared number, and only that.** The check compares
+`value` as it is written in `.lisa.config.json`. It never runs the host's tool
+and never reads where that tool takes its limit from — a `fail_under` in
+`.coveragerc`, a number in a script, an argument in the part's own `command`
+— so a limit lowered there while the declared number stays the same is not
+refused. The parameter records the number; the part's command is what applies
+it, and keeping the two equal is the host's to do. `lisa controls
+propose-threshold` says this to the operator in `yes_means`, and the
+configure step tells them to put the same number in the command where the
+tool takes it as an argument.
+`tests/integration/controls-threshold-ratchet-declared-parameters.test.ts` holds both
+halves: a lowered declared floor is refused, and a limit lowered in the tool's
+own settings is not seen.
+
+**A rename is refused on purpose.** A threshold is named by its gate, its
+folder and its parameter. Nothing in two versions of a file can tell a renamed
+folder from a part that was removed beside an unrelated one that was added, or
+show that a floor under a new name covers the code the old one covered. So a
+rename leaves the way any deliberate loosening does.
+
+**There is one way out, and it is not new.** A person records a
+`thresholdRatchet.allow` entry in `.lisa.config.json` with a reason and an
+`until` day, in a change of its own; the check honours it only once it is on
+the base side, and only through that day. For a declared threshold `file` is
+`.lisa.config.json` and `key` is
+`gates.<gate>.parts[<folder>].parameters.<name>` — every refusal prints the
+exact pair. Nothing written beside the parameter is read as permission.
+
+**The prover reads the declaration and does not validate it.** `validate`
+decides what a valid `gates` block is. A shape it would refuse yields no
+threshold here rather than an error, because a comparison that throws on a
+hand-edited file compares nothing.
+`tests/unit/controls/declared-thresholds-register.test.ts` holds the prover and
+the register to the same list of thresholds for one declaration.
+
+**What still has to call it.** The files reach every repository Lisa is applied
+to, and the coding agent's after-edit hook runs them wherever the plugin is
+installed. The commit and pull-request callers are the TypeScript and Rails
+templates' hooks and the reusable quality workflows. The gate's default task,
+`check:thresholds`, is a package script, so a repository with no
+`package.json` declares the gate as a part instead:
+
+```json
+"threshold-monotonicity": {
+  "push": "required",
+  "parts": [
+    {
+      "scope": ".",
+      "command": ["node", "scripts/check-threshold-ratchet.mjs", "--base", "origin/main"],
+      "proof": { "failure_shape": ["blocked by the threshold ratchet"] }
+    }
+  ]
+}
+```
+
+The `failure_shape` is what lets the runner print `FAILED` for a loosened
+threshold. Without it the runner still blocks, but calls the result
+`UNPROVABLE`, because the registry declares no failure shape for this gate.
+`tests/integration/controls-threshold-ratchet-declared-gate.test.ts` runs this
+declaration through the shipped runner in a repository with no `package.json`.
+What calls the runner there — a push hook in a repository the templates were
+never applied to — is separate work.
+
+## The control register
+
+The `gates` block is the only thing a person or an agent writes. The control
+register at `.lisa/controls/register.json` is generated from it, so the one
+file an operator or an auditor reads cannot disagree with what runs:
+
+```
+lisa controls register [path]          # write the register
+lisa controls register [path] --check  # write nothing; fail when it differs
+```
+
+Both read the declaration through the shipped registry — `readGates`,
+`validateGates`, `resolveMoment` — and restate none of it. A declaration
+`validate` refuses is refused here with the same lines. So is a
+`.lisa.config.json` that is valid JSON and is not an object — a list, `null`,
+a number — and one whose `gates` is not an object: `readGates` refuses each in
+one sentence rather than read it as a file that declares nothing, so no empty
+register is written from a damaged file.
+
+**One entry per gate and folder.** A gate with `parts` gets an entry per part;
+a gate with none gets one entry for the whole repository (`scope` is `.`),
+taken from what `resolveMoment` returns for it today.
+
+| field | what it states |
+| --- | --- |
+| `id` | `<gate>@<scope>`, for example `code-style@api` or `code-style@.`. Nothing else goes into it, so it does not change when other gates or folders are added or removed. |
+| `gate` | The gate the entry was generated from. |
+| `criteria` | The gate's `criteria`, in catalogue order. A gate that declares none gets the requirements the criterion catalogue maps to it. |
+| `scope` | The part's folder, or `.`. |
+| `tier` | The gate's `tier`. A gate that declares none is `authoritative` when it is `required` on the hosting platform, in a deployment or in a scheduled run, and `advisory` otherwise. A declared `authoritative` has to meet the same test (see below). |
+| `enforcement_points` | One `{ moment, level, location }` per moment the gate is declared at and not `off`, in the order the moments happen. `location` is `coding-agent`, `local-checkout`, `hosting-platform`, `deployment-pipeline` or `scheduled-run`. |
+| `measuring_mechanism` | `{ kind, … }`: a part's `command` (`argv`), a `task` (`task`, `command`), an awaited `external-check` (`name`, `posted_by`), a shipped `interceptor`, the workflow's `built-in` job, or `none`. An enforcement point measured differently carries its own. |
+| `parameters` | The part's `parameters`, or `{}`. |
+| `proof` | The part's `proof` with every key present; `null` where the declaration does not say. |
+| `evidence` | The part's `evidence` as `{ locators, questions }`, both lists present. On every entry generated from a part; absent on the entry of a gate with no parts. |
+| `accountable_party` | The gate's `owner`, or `null`. |
+
+**The same declaration gives the same bytes.** Keys are sorted at every depth,
+entries are ordered by gate and then by folder, and nothing in the file is a
+date or a path of the machine it was written on. `--check` compares byte for
+byte and names each entry that differs.
+
+**Whether a requirement id exists is checked here.** `validate` checks only
+how a `criteria` id is written, because the registry ships to repositories
+that do not carry the criterion catalogue. Generating the register refuses an
+id the catalogue does not list as in scope.
+
+**A declared `authoritative` has to be true.** A gate may declare `advisory`
+whatever its moments: that only understates it. A gate that declares
+`authoritative` is refused unless its entry is `required` somewhere the author
+of a change does not control: on the hosting platform, in a deployment or in a
+scheduled run. A hook in the author's own checkout can be skipped and a coding
+agent's session is the author's own, so `required` at `commit` or `push` alone
+does not make a rule authoritative, and a register that said so would tell
+every reader that a rule cannot be skipped when one flag skips it. The check
+is made per entry, so a gate with `parts` is refused for each folder where it
+does not hold, and the line says what to change: require the gate at
+`pull-request` (or at a deployment or scheduled moment), or declare it
+`advisory`, or leave `tier` out. The working-out of an undeclared tier and
+this refusal share one test (`src/controls/register-tier-rule.ts`).
+
+The format is published as `schemas/control-register.schema.json` in the Lisa
+package. Every object in it is closed, so a new fact about an entry is a new
+key in the schema and in `src/controls/register-types.ts` together;
+`tests/unit/controls/register-schema.test.ts` fails when one has a key or a
+value the other does not.
+
+When the criterion catalogue has no registered gate and an applicable requirement
+still lacks evidence, the audit report and the attest command's table output
+explain the gap and name the required evidence rung. A verified failure or a
+cited reason that the requirement does not apply keeps its own disposition.
+`lisa controls attest --check` still recomputes the verdict from the stored
+register and evidence. The [Level 1 evidence decision](../../wiki/decisions/2026-11-21-level-1-proof-reachability.md)
+describes the authoritative surfaces that can supply each observation or exercise.
+
+## A pull-request executor Lisa did not write
+
+Lisa ships the file that runs the gates on a pull request for one hosting
+platform, GitHub. On any other the host's agent writes it, and the declaration
+says where it is, on the gate's `pull-request` entry:
+
+```json
+"code-style": {
+  "pull-request": {
+    "level": "required",
+    "executor": { "platform": "gitlab", "path": ".gitlab-ci.yml" }
+  }
+}
+```
+
+| key | meaning |
+| --- | --- |
+| `platform` | The hosting platform, in lower-case letters and digits with hyphens between words. `github` is the one Lisa ships the file for; anything else is a platform Lisa did not write the executor for. |
+| `path` | The file, from the repository root, under the spelling rules of a part's `scope`. `.` is refused: it names the repository, not a file. |
+
+**It sits on the moment entry, and only at `pull-request`.** `validate`
+refuses it at any other moment, and refuses any key in it but those two unless
+the key starts with `x-`. A moment-level key is one an older Lisa ignores; a
+gate-level key would make an older Lisa refuse the whole block. It changes
+nothing about what the moment resolves to.
+
+**Every gate checked at the pull-request moment names the same executor, or
+none does.** One command, `lisa-run-gates.mjs --moment=pull-request`, runs all
+of them, so they all run from one file. Generating the register refuses a
+declaration that names the file on some of those gates and not on others, or
+that names two. A gate that only awaits a check another system reports may
+leave it out.
+
+**The register records it and marks the entry unproved.** The entry's
+`pull-request` enforcement point carries `executor`. When the platform is not
+GitHub the entry also carries `"status": "unproved"`, until
+`.lisa/controls/evidence.json` holds a record of both halves of that entry's
+proof, each saying the half held: a record with the entry's id as `entry_id`,
+`half` set to `violation` and `result` set to `held`, and one with `half` set
+to `clean` and `result` set to `held`. A half that was run and did not hold
+does not count. A record that names a `moment` counts only when it is
+`pull-request`. An entry with no `status` is
+not thereby proved; the verdict says what was proved.
+
+**So the register is generated from two committed files, and `--check` stays
+honest.** For a declaration that names such an executor, the same declaration
+and the same evidence give the same bytes, and `--check` regenerates from both.
+The committed register is out of date exactly when one of them changed since it
+was written, and the difference is reported against the entry, with a sentence
+saying the status comes from the evidence file. The clock is never read: how old
+a record is decides whether a verdict may rely on it, and a register that
+changed because time passed would fail its own check with nothing changed. For
+every other declaration the evidence file is not read at all, and the register
+is what it always was.
+
+The contract the file must meet is in the enforce skill, at
+`plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md`.
+
+## Required checks from the register
+
+A check is only a gate when the hosting platform refuses the merge without it.
+`lisa controls protect` holds the platform to the register:
+
+```
+lisa controls protect [path]           # read, compare, hand over; changes nothing
+lisa controls protect [path] --apply   # also change the setting, when allowed
+```
+
+**The safe result is the default.** Whether a tool may change what a
+repository requires before a merge is the owner's decision, and many
+organisations say no. So without `--apply` the command can only read: it
+compares the live rulesets with the register and writes
+`.lisa/controls/merge-protection-change.md` for an administrator. With
+`--apply` it sends a change only after a read of the repository says the
+signed-in account administers it — the flag alone is not enough, and neither is
+the permission. Permission is learned from that read, never from a write that
+failed. On any platform but github.com nothing is sent in either mode.
+
+**Only an authoritative, required pull-request entry derives a check.** The
+names come from `contextsFor`, called on the gates of those entries and no
+others, so an `advisory` gate is not made blocking here even where it is
+`required` on a pull request.
+
+**A gate with `parts` derives one check, not one per part.** `contextsFor`
+gives a gate one name however many parts it has, and that is right for a
+required check: the platform keeps one requirement per name and cannot hold
+the same name twice. It is sound only while one status is reported under that
+name and that status fails when any part fails. A carrier that reported one
+status per part under the shared name would let a passing part answer for a
+failing one, so the carrier owns that, not the ruleset.
+
+**Nothing about a ruleset is built twice.** Reading, comparing, planning and
+writing are `lisa-reconcile-policy.mjs` (`readLivePolicy`, `reconcileContexts`,
+`planRepairs`, `applyRepairs`); a ruleset that has to be created takes its
+branches, enforcement and bypass list from `lisa-ruleset-payload.mjs` and holds
+the status-check rule only; which rulesets are enforced on the branch is
+`lisa-ruleset-reach.mjs`. Repository settings and the shape of other rules are
+never touched: the plan is given no settings drift to repair.
+
+**What is reported is what was read back.** After a change the rulesets are
+read again through `lisa health`'s ruleset reader and compared again. A
+platform that accepted the change and did not keep it is `blocked`, with the
+difference, never `wired`. The read before a change (`readLivePolicy`) and the
+read after it take the same lists for whole: any list shorter than the page of
+a hundred they both ask for. They once differed — the read-back stopped at
+thirty-two — and a repository in between had every change sent and then
+reported as not confirmed. A change that would create a ruleset on a
+repository one short of a full page is not sent, because the list it leaves
+behind could not be read back, by that run or any later one; the reason says to
+delete a ruleset or name an existing one with `--ruleset`. The reader takes
+the ruleset details thirty-two at a time, the most it ever started at once.
+
+**A check that is already required is never changed.** A required check is a
+name and, where the settings say so, the one app allowed to report it, and the
+platform's own settings page pins a check to an app by default. An awaited
+check that declares no app (`await` with no `posted_by`) has no opinion about
+the app, so it is required as soon as an enforced ruleset requires its name,
+whatever app that ruleset pins it to, and it is in no change. The reconciler's
+own comparison is stricter there — it wants such a check unpinned in the
+ruleset it would write to — which is right for a tool that rewrites a ruleset
+to match a declaration and wrong for one that only adds what is missing: the
+host's pinned check read as missing, and the repair replaced it with one any
+source may report. Beyond that case the rule is general. Before anything is
+sent, every planned payload is compared with the ruleset as it was read, and a
+plan that would drop a required check, drop its app, or name another app for it
+is refused whole, with a sentence naming the check and both apps.
+
+**A check is only made required once it has been reported, where the branch
+runs it and by the source that would be required.** A required check that never
+reports does not fail a pull request; the platform holds it waiting for ever,
+with no failure to read. So before a missing check is sent, the command reads
+the check runs and commit statuses on the head of the protected branch and,
+while a name is still unseen, on the heads of the five pull requests most
+recently **merged** into it, found among the thirty most recently updated
+closed ones — a pipeline that runs only on pull requests never reports on the
+branch itself. An open pull request, one closed without being merged, and one
+from a fork that never landed show what somebody proposed, not what the branch
+runs, and are not read. A result counts only from the source the change would
+pin the check to: GitHub Actions for a check a pipeline job runs, the declared
+app for an awaited check that names one, any check run or commit status for an
+awaited check that names none. A commit status does not say which app wrote
+it, so it never counts for a pinned check. Among the results that qualify,
+whether a name counts is `verifyContextsPosted` in the registry. These are
+reads only. A name the platform shows no qualifying result for is `not-ready`,
+and when it was seen from another source the sentence says which; one it could
+not be asked about, because a read failed or a list came back incomplete, is
+`unknown`. Neither is in any write, and each carries a sentence saying what has
+to happen first. A plan that would require a check from an app other than the
+one it was shown to be reported by is refused.
+
+The page of closed pull requests is one of the lists that can come back
+incomplete. Pull requests closed without being merged share it with the merged
+ones, so when the page is full and holds fewer than five merged ones, the
+merged pull requests that would have been looked at are further down a list
+that was not read. A name still unseen then is `unknown`, not `not-ready`, and
+the sentence says so and that merging a pull request which runs the check puts
+it at the top of that list. A page that is not full is the whole list, and so
+is a full one that holds the five. A merged pull request listed without a
+commit id that can be read is an incomplete read too.
+
+The step a `not-ready` sentence names is one that works for what was seen.
+An app that reported a check run can be named in the declaration, so for that
+the sentence says where: `posted_by` on the gate that awaits the check, or
+`integration_id` on its entry under `github.rulesets.requiredChecks`. A commit
+status cannot be named, because it does not say which app wrote it, so for
+that the sentence gives the two things that do work: declare the check without
+an app, which leaves it open to any source, or have the app report a check
+run. Leaving the app out only opens an awaited check; a check placed under a
+ruleset's required checks falls back to GitHub Actions, so that half is offered
+for an awaited check alone. For a check a pipeline job reports there is nothing
+to declare: the step is to merge the workflow and let it run.
+
+**A read that does not settle a question is "not known", never a guess.** The
+ruleset list is asked for a hundred at a time, the largest page the platform
+gives, and a page that comes back full is an incomplete read: nothing is
+compared and nothing is changed. A ruleset whose branch conditions the matcher
+does not model may or may not cover the branch, so a check that reads as
+missing while such a ruleset requires it is `unknown`, is not listed as a
+difference, and is not made required a second time. The default branch name
+the platform gives is checked the way `--branch` is before it is put in a
+request path; one that is not a branch name ends the run with nothing compared.
+
+**Every request names its host.** Where a repository is hosted is decided from
+its remote address, and a request is sent only for github.com. `gh` decides
+for itself where a call goes — `GH_HOST`, else the host its configuration puts
+first — so every call from the one door the requests go through
+(`protect-requests.ts`) is `gh api --hostname github.com …`. That covers
+`lisa controls protect`, the merge-protection read of the audit, and the
+canary requests of the attest step, which all go through that door.
+
+**Two more checks are held back without asking the platform.** One a pipeline
+job would report, in a repository with no `.github/workflows` folder: nothing
+can report it — the same rule the ruleset applier follows. And one the
+repository lists under `github.rulesets.dropRequiredChecks`.
+
+**Rulesets are the only merge protection it reads.** That is what the ruleset
+scripts it is built from read. A check required through a classic branch
+protection rule is enforced by the platform and is still reported here as not
+required, so the handover file asks for a ruleset and says why.
+
+The command prints one JSON document on stdout — per register entry and per
+requirement it serves, `wired` or `blocked` and why — and exits 0 when every
+derived check is required, 2 when an entry is blocked, 1 when it could produce
+no result. The handover file carries no date, so a second run that finds the
+same thing writes nothing; it is removed once nothing is left to hand over.
+
+## Carriers for a repository on no project type
+
+A declared check only governs a repository when something runs it. The hooks
+that call the gate runner ship with the stack templates, so on any other
+repository nothing does. `lisa controls install-carriers` is what makes git
+call the runner at commit and at push there:
+
+```
+lisa controls install-carriers [path]           # install, or change nothing
+lisa controls install-carriers [path] --check   # write nothing; say what a run would write
+```
+
+**The runner goes where `lisa apply` puts it.** `scripts/lisa-run-gates.mjs`,
+`scripts/lisa-gates.mjs` and the part of `scripts/lib/` the runner loads, found
+by following its relative imports from the package the command runs from. That
+is the destination `all/copy-overwrite/scripts/` already has, so a repository
+that later adopts a project type has one copy, which `lisa apply` then
+refreshes like any other file it owns. A private folder would have left a
+second copy that nothing updates.
+
+**It never replaces a file it did not write.** Every whole file it places is
+listed in `.lisa/controls/carriers.json`. A missing file is created, a file
+that is already byte for byte what would be written is left alone, and a file
+that differs is replaced only when the record lists it. Anything else belongs
+to the repository: the run stops and writes nothing at all, because a hook
+that called a runner that is not there would stop every commit. The record
+holds nothing that differs between two checkouts of the same commit, so it is
+committed.
+
+**A file it may not change is found before anything is written.** Every write
+is planned first. A file the person running the command has no permission to
+change is found while planning: a hook file like that is one `blocked` point
+with a sentence, and the rest of the run goes ahead; a file every carrier
+needs (the runner, the record, `.gitignore`) stops the run with nothing
+written. A write can still fail for a reason planning cannot see. The run
+then gives no result (exit 1), does not undo the writes it made, and its last
+line lists them. It says "nothing was written" only when that is so.
+
+**The carrier is one short script per moment**, `.lisa/hooks/pre-commit` and
+`.lisa/hooks/pre-push`. It asks for Node first and, without it, stops the
+operation with one sentence naming Node; it never passes having checked
+nothing. Then it goes to the top folder of the checkout, which is two folders
+above the script wherever it was started from, and hands over to the runner
+with `--builtins=none`, passing the hook's arguments and standard input on
+untouched. A hook that changed folder before it called the carrier therefore
+still runs the checks, from the folder the declaration is written for.
+
+**The push carrier tells the runner what is being pushed only where it is
+sure to have all of it.** The runner leaves out a part a push does not touch
+([A part the change does not touch](#a-part-the-change-does-not-touch)), and
+must be handed everything git wrote on the hook's standard input or nothing.
+So the push carrier passes `--push-refs=-` unless its caller sets
+`LISA_PUSH_STDIN_USED`, and who starts it decides:
+
+| Who starts the push carrier | What it is handed | At push |
+| --- | --- | --- |
+| git itself, where `core.hooksPath` is `.lisa/hooks` | everything git wrote | a part the push does not touch is left out |
+| Lefthook, through `use_stdin: true` | everything git wrote, even when another command read some first (measured on Lefthook 2.2.2) | the same |
+| the lines added after a hook's own content (Husky, a hooks folder, git's own) | nothing: the call sets `LISA_PUSH_STDIN_USED` and closes standard input (`</dev/null`) | every part runs |
+| the pre-commit framework | an empty standard input (measured on pre-commit 4.7.0) | every part runs |
+
+Lines added at the end of a hook run after its content, which may already
+have read a ref, and nothing can put that back. Taking a copy first would
+mean writing above that content, in the part of the file that belongs to the
+repository, so it is not done. A hook that keeps a whole copy of its own can
+still hand it over, by exporting `LISA_PUSHED_REFS_FILE` above the added
+lines. The framework names one ref of a push in its environment and no more,
+so that is not read either. A branch the remote has never seen runs every
+part whoever starts the carrier.
+
+**Whoever owns hooks keeps them.** The evidence is weighed in a fixed order,
+and the call to the carrier is added in the owner's own way:
+
+| Owner, in order of evidence | Where the call goes |
+| --- | --- |
+| `core.hooksPath` naming a folder of the repository | marked lines at the end of that folder's hook file |
+| Husky (`.husky/`) | marked lines at the end of `.husky/pre-commit` and `.husky/pre-push` |
+| Lefthook (`lefthook.yml` and its other names) | a `lisa-gates` command under the hook's `commands` |
+| the pre-commit framework (`.pre-commit-config.yaml`) | one `repo: local` entry at the end of `repos` |
+| a hook written by hand in git's hooks folder | marked lines at the end of that hook file |
+| nothing | `core.hooksPath` is set to `.lisa/hooks` in the repository's own configuration, which is not committed |
+
+In a shell hook the added lines begin by reading the exit status of whatever
+ran above them, so a hook that failed before still fails, with the same
+status, and the carrier does not run. A hook manager's YAML file is added to
+by line, never parsed and rewritten, and the result is kept only when it
+parses to exactly what the file meant before plus the one entry. A file that
+cannot be added to safely — not a shell script, not started by git, in a
+folder outside the checkout that `core.hooksPath` names, or replaced by Lisa
+on every update — is left as it is, and the point is reported `blocked`.
+
+**Lines added to a hook have to be reached, and heeded.** A hook that leaves
+before its end takes the added lines with it: the result would say
+`installed` and every commit would pass unchecked. So every line above the
+place the call goes is read (`src/controls/carrier-hook-reach.ts`), and the
+hook is left as it is, with the point `blocked`, when one of them can end it
+with success:
+
+- `exec <program>` anywhere. An `exec` that only redirects (`exec < /dev/tty`)
+  is accepted.
+- any `exit` that could leave with success: `exit 0`, an `exit` whose status
+  is a variable, and an `exit` with no status or with `$?` anywhere but the
+  last part of `|| exit` (`|| exit $?`, `|| exit`), where the status it
+  carries is a failure.
+- any `return`, judged exactly as an `exit` is. Outside every function a
+  `return` ends a script that dash, ksh or zsh runs (measured; bash reports
+  it and carries on), and dash is `sh` on most Linux systems, so
+  `[ -n "$RUN_ALL" ] || return 0` above the call ends such a hook with
+  success. A `return` inside a function ends only that function, and is
+  refused too: where a function starts and ends is not followed. The reason
+  given says so, and does not claim that such a `return` ends the hook. An
+  `exit` inside a function is refused because calling the function ends the
+  hook.
+- a `trap` that can turn a failure into success. What a trap on `EXIT` (or
+  `0`) runs is run after the added lines have failed, and an `exit 0` in it
+  is the status git sees: the check runs, fails, and the commit goes through
+  (measured in sh, dash, bash, ksh and zsh). Such a trap is refused when what
+  it runs holds an `exit` or a `return` this list refuses, an `exec` of a
+  program, or text that cannot be read. So is one on a condition the shell
+  raises itself while the hook runs: `ERR` and `ZERR` (a command failed),
+  `DEBUG` (before each command) and `RETURN`. A condition that is not known
+  to be a signal, such as one held in a variable, is taken for one of these.
+  A trap on a signal (`INT`, `TERM`, a number) is accepted, and so is one
+  that only cleans up, or exits with a written non-zero status.
+
+An `exit` or a `return` with a written non-zero status (`exit 1`) is accepted
+wherever it stands, inside an `if` included: every way it leaves fails the
+hook, so git stops the commit itself and nothing passes unchecked. An
+`exit $?` inside an `if` is refused. It may be safe, but proving it means
+following the shell's control flow, and a wrong proof is a commit that passes
+unchecked; refusing costs one paste. One of these words with something the
+shell works out written into it (`exit$1`, `$1exit`, `ex${x}it`) is taken for
+that word and refused: it is the word itself whenever what the shell works
+out holds nothing.
+
+The reader follows quotes, comments and here-documents, so `npm exec` and an
+`exit` in a message are not taken for commands. It follows a command
+substitution inside double quotes when that is written on one line, with the
+quotes inside it, so the double quote in `"$(sed 's/"//g' file)"` does not
+end the outer one; and it does not take `<<` for a here-document inside
+`$(( ))` written on one line, or on a comment line. It does not follow a file
+the hook reads in, `eval`, a function called later, a trap whose action is
+held in a variable, or a command whose name a command substitution works out
+or completes (`$(printf exit)`, `ex$(true)it`).
+
+**A hook it cannot read is refused as not read.** The reason names the line
+the reader lost track on, and says that either a quote, a here-document or a
+parenthesis that starts there is still open where the call goes, or the line
+is written in a way the reader does not follow. These end that way:
+
+- a quote, a here-document or a parenthesis that really is left open. Lines
+  added inside one are text, or run in a shell of their own.
+- a dollar sign directly in front of a quote, where the hook's text does not
+  say what the word is. `$'it\'s'` is a quote left open to dash and a
+  finished one to bash, and `$'exit' 0` is `exit 0` to bash, ksh and zsh and
+  a program called `$exit` to dash. That matters, and is refused, where the
+  word names the command or is given to `exit`, `return`, `exec` or `trap`;
+  as a value (`IFS=$'\n'`) or an argument of another command it is accepted.
+- a `<<` the reader cannot be sure about, which is one that stands inside a
+  quote or after a `#` further along a line, has no closing word on its
+  line, or has a closing word of nothing. It is not guessed at: read as a
+  here-document it would blank out the lines under it, an `exit 0` among
+  them, and read as text it would take a here-document's body for commands.
+- a blank other than a space or a tab outside quotes and comments (a form
+  feed, a no-break space), which a shell takes for part of a word.
+
+Every blocked point of this kind names the line and carries the lines to add
+by hand, the two marker lines included. Placed above that line they are
+reached and heeded whatever it does, a later run finds them by the markers,
+reads only what stands above them, and reports the point as wired, and
+`lisa controls reconcile` reads them as Lisa's.
+
+The same questions are asked of a hook that already holds the lines. A hook
+changes after it was wired: someone adds an `exit 0` above the lines, or the
+file loses its permission to be started. Such a point is `blocked`, not
+`already-wired`.
+
+**The call holds in a checkout it was not written for.** Git's own hooks
+folder serves every working tree of a repository and every branch checked out
+in one, so the lines added there outlive the commit they were added on. They
+depend on neither the folder the shell is in nor the carrier being there:
+
+- They ask git for the top folder of the checkout and start the carrier from
+  there. They ask twice. In a linked working tree git names its own folder to
+  the hook and not the top folder, so once the hook has changed folder git
+  answers with the folder the shell is in (measured on git 2.56); asked again
+  without what git named, it finds the top folder from where the shell is.
+  The first answer that counts and holds the carrier is used.
+- The carrier is there: it runs, and its exit status is the hook's.
+- The carrier is not there, and the commit checked out does not contain it:
+  one sentence on standard error says the declared checks did not run in this
+  checkout and why, and the commit or push goes through. A branch that never
+  had Lisa's files has to stay usable.
+- The carrier is not there in any other case: the commit or push stops with a
+  sentence. That is a carrier removed from a checkout whose commit has it.
+
+The commit is what is asked because carrier files are committed: "this
+checkout never had the carrier" is "the checked-out commit does not contain
+`.lisa/hooks/pre-commit`".
+
+**An answer counts only when it is about the repository being committed
+to.** Git answers every one of those questions for whichever repository the
+shell is in, and a hook's own lines may end with `cd` into another one: a
+nested repository, a submodule. Asked there, "the commit checked out does not
+contain the carrier" is true of the nested repository, and the commit to the
+outer one went through unchecked with that sentence, whether or not it had
+the carrier. So before an answer is used, the lines establish which
+repository it is about, in the way git told the hook:
+
+| How the hook is started (measured on git 2.56, at commit and at push) | What tells the lines the repository | A folder git answers with counts when |
+| --- | --- | --- |
+| In a linked working tree, or where `.git` is a file: `GIT_DIR` is set to the repository's git folder, absolute | `GIT_DIR` | git, started in that folder with nothing named, finds the same repository |
+| In a main working tree, by a path from the top folder: `.git/hooks/pre-commit`, `.githooks/pre-commit`, `.husky/pre-commit` (Husky 8.0.3 and 9.1.7) | the hook file | the hook file is in that folder under the path it was started by, and holds the marker line |
+| In a main working tree, by an absolute path (an absolute `core.hooksPath`) | the hook file | it is the file git would run as that hook in that folder (`git rev-parse --git-path`) |
+
+A path is absolute, in both rows that say so, when it begins with a slash
+or with a drive letter, a colon and a slash of either kind. Git for Windows
+hands a hook `GIT_DIR=C:/…` and starts one by `C:/…/pre-commit`; read as
+paths from the top folder, neither is ever found there, and every commit and
+push would stop. Nobody has run the lines on Windows: the drive-letter form
+is held by `tests/unit/controls/carrier-call-drive-letter.test.ts`, which
+runs the generated lines under each shell on the machine against a stand-in
+for git that answers with such paths.
+
+Git starts every hook in the top folder, whichever folder the operation was
+started from. With that established:
+
+| Where the hook's own lines leave the shell | Branch with the carrier | Branch without it |
+| --- | --- | --- |
+| the top folder, or a folder of the checkout | the checks run | let through, with the sentence |
+| a nested repository or a submodule, main working tree | stopped | stopped |
+| a nested repository or a submodule, linked working tree | stopped | let through: `GIT_DIR` makes the answer one about this repository |
+| outside every repository | stopped | stopped (linked working tree: let through, as above) |
+
+A stop here says that the hook can no longer tell which repository the commit
+is made in, and what to change: go back to the folder the hook started in
+before the added lines, or run the commands that need another folder in a
+subshell. The carrier is looked for only in a folder that counts, so a nested
+repository's own carrier is not started in place of this one.
+
+One case is not told apart. A nested repository that has a hook file under
+the same path as this hook, itself holding Lisa's lines, looks from inside
+exactly like the repository that started the hook. A hook that ends there
+runs that repository's checks, or is let through on its commit. Stopping
+instead would stop every commit made in such a nested repository itself.
+Lefthook and the pre-commit framework are not affected by any of this: they
+start the carrier, which goes to its own top folder and asks git nothing.
+
+**Where a project type's own hook already calls the runner with
+`--coverage`, nothing is added.** A second call would run every gate twice.
+Those points are reported `already-wired`, through `lisa-stack-hook`.
+
+**Rails Lefthook coverage.** The managed commit and push jobs run declared gates first.
+RuboCop stands down when code style was proved, and RSpec stands down when both test
+correctness and coverage were proved. The other built-in jobs keep running. Run
+`lefthook install` after applying this version to refresh older installed Git hooks.
+The installed hook shares coverage in a per-run temporary directory. A direct
+`lefthook run` still runs both the registry and the built-in checks.
+
+**`core.hooksPath` is not committed.** A new clone has the files and not the
+setting, so git runs no carrier there until the command has run once in that
+checkout. `--check` exits 3 in such a clone and names the setting, which is
+how a later reconcile step can tell. The same holds for a hook manager that
+is set up in the repository but not switched on in a checkout: the carrier is
+declared, and the point is `blocked` with the manager's own install command.
+A manager counts as switched on when the hook git runs is the one the manager
+itself generates, told by what only the manager writes there: the line
+`File generated by pre-commit`, or Lefthook's `call_lefthook` (in its earliest
+versions `lefthook run`) on a line that is not a comment. The manager's name
+alone proves nothing: a hook written by hand can mention it in a comment.
+
+**What one checkout wires, every working tree of the repository may use.**
+Git's own hooks folder and the repository's configuration belong to the
+repository, not to one working tree. Installing through a linked working tree
+writes the hook in the main repository's hooks folder, and where nothing owns
+hooks `core.hooksPath` is set in the configuration all of them read. Both are
+still written, because the call holds in the other checkouts (above), and the
+result says so in one sentence whenever the repository has more than one
+working tree: that the hook is shared by every checkout of this repository,
+or that the setting is.
+
+**No path of the operator's machine is printed.** A result is saved, passed
+to the enforce report and shown to people. A path inside the checkout is
+written from the repository root. A hook in git's shared folder, which is
+outside the top folder in a linked working tree, is written
+`<git-common-dir>/hooks/pre-commit` (`git rev-parse --git-common-dir` prints
+the folder). Anything else outside the checkout is named by its file name
+alone, `<outside the checkout>/pre-commit`.
+
+**The pre-commit framework's stages are written in the names the file uses.**
+The framework renamed its stages in 3.2.0 (`commit` to `pre-commit`, `push`
+to `pre-push`), and a version before that refuses a whole configuration that
+names a stage it does not know. Which version each person runs cannot be seen
+from the file, so nothing is guessed. The old names are written when the file
+asks for a version before 3.2.0 (`minimum_pre_commit_version`) or already
+uses an old name (`commit` or `push` in `default_stages` or in a hook's
+`stages`): such a file works today with whatever version its people run, and
+the carriers are added in the names it already works with. In every other
+file the new names are written. Neither case was measured against an old
+version of the framework; the rule only keeps the carriers from being the
+first entry in a file to use a name the rest of it does not.
+
+The command prints one JSON document on stdout: one entry per enforcement
+point, carrying the `location` and `moment` the register uses for the same
+point and one of `installed`, `updated`, `already-wired` or `blocked` with a
+reason. It exits 0 when git runs the declared checks at both moments, 2 when
+a point is blocked, 3 under `--check` when a run would write something, and 1
+when it could produce no result. Edit-time carriers for coding agents are a
+further kind of carrier on the same command and result
+(`CARRIER_PLANNERS` in `src/controls/carriers.ts`); the next section
+describes them.
+
+## Edit-time carriers for coding agents
+
+The earliest place to stop a bad change is the moment an agent writes the
+file. That moment is `post-tool`, and what carries it is the agent's own hook,
+not git's. `--agents` adds that kind of carrier to the same command:
+
+```
+lisa controls install-carriers [path] --agents                # the agents the "harness" setting names
+lisa controls install-carriers [path] --agents=claude,codex   # the agents named
+```
+
+**The roster is read or named, never guessed.** On its own, `--agents` reads
+the `harness` setting of `.lisa.config.json`: `fleet` (or `all`) is every
+agent, any other value is that one agent. With names it takes any of `claude`,
+`codex`, `cursor`, `agy`, `copilot`, `opencode`, `devin`, or `fleet`, separated
+by commas; that is the only form that works where there is no `harness`
+setting. Lisa's other commands read a missing `harness` as Claude Code. Doing
+that here would write down, as the repository's roster, an agent nobody named
+and leave every other agent unrecorded, so a roster that cannot be read gives
+no result (exit 1) and says how to name it. Without `--agents` the command
+does, prints and writes exactly what it did before the flag existed.
+
+**The registration lives in the repository, not in a plugin.** A repository on
+no project type may have Lisa's plugin installed for an agent and nothing
+applied to it, and a teammate may have no plugin at all. So each agent's hook
+is registered in the file that agent reads from the repository, which is
+committed and is there for everyone who clones it. Every such hook starts one
+carrier, `.lisa/hooks/post-tool`, placed beside the commit and push carriers
+and listed in the same record.
+
+**What "has a hook" means.** An agent can be made to refuse a write when three
+things hold: it runs a hook after one of its file-writing tools finishes; that
+hook can be registered in a file the agent reads from the repository; and the
+hook's result reaches the agent as a failure it has to act on. The table is
+`AGENT_SURFACES` in `src/controls/carrier-agent-surfaces.ts`, and a suite holds
+it to what Lisa already ships: an agent has the surface exactly where Lisa
+ships its own blocking post-edit hook (the threshold ratchet) to it.
+
+| Agent | Hook after a write | Where the carrier is registered | What a refusal looks like | How that is known | Tested |
+| --- | --- | --- | --- | --- | --- |
+| Claude Code (`claude`) | `PostToolUse` | `.claude/settings.json`, one entry merged into `hooks.PostToolUse`, matcher `Write\|Edit\|MultiEdit\|NotebookEdit` | exit status 2, the failure on standard error | documented | the registered command is started with a synthetic write event |
+| Codex (`codex`) | `PostToolUse` | `.codex/hooks.json`, one entry merged into `hooks.PostToolUse`, matcher `Edit\|Write\|apply_patch` | exit status 2, the failure on standard error | documented | same, with an `apply_patch` event |
+| Cursor (`cursor`) | `postToolUse` | `.cursor/hooks.json`, one entry merged into `hooks.postToolUse`, matcher `Write\|Edit` | exit status 0 and one JSON object on standard output whose `additional_context` holds the failure | read from the agent's shipped program | same |
+| OpenCode (`opencode`) | `tool.execute.after` | `.opencode/plugin/lisa-controls-carrier.js`, a file Lisa owns | an error thrown from the plugin, holding the failure | measured (recorded in the wiki) | the plugin is loaded from the repository and its hook is called |
+| Copilot (`copilot`) | `postToolUse` | `.github/hooks/lisa-controls.json`, a file Lisa owns | exit status 2, the failure on standard error | assumed | the registered command is started with a synthetic write event |
+| Devin (`devin`) | `PostToolUse` | `.devin/hooks.v1.json`, one entry merged into `PostToolUse`, matcher `^(write\|apply_patch\|edit\|notebook_edit)$` | exit status 2, the failure on standard error | assumed | same |
+| Antigravity (`agy`) | none that can refuse | nothing is installed | not possible: its hook after a tool must answer with an empty result | its own hooks guide | the gap is recorded, and the register names the agent |
+
+"Tested" means the suite reads the command back out of the file the agent
+reads, starts it the way the agent does with a made-up write event on standard
+input, and checks the refusal that row describes; the carrier, the gate runner
+and the declared check all really run. It does not mean the agent itself was
+run. The two rows marked `assumed` are where to look first if an agent seems
+to ignore a failing write: Lisa's other hooks for those agents rely on the
+same convention, and nobody has measured it after a file write. The result
+carries the row's last two columns on every agent point (`refusal`,
+`refusal_evidence`) so a reader can decide how far to trust each one.
+
+**A settings file is added to, never rewritten.** Claude Code, Codex, Cursor
+and Devin read a file the repository may already own. One entry is added to
+the one list it belongs in, in the file's own indentation, and every other
+byte stays: other keys, other hooks, comments, and an entry beside Lisa's
+that the repository wrote on one line. The entry goes after everything the
+repository wrote in that list, a comment after its last entry included, and
+the comma it needs is written directly after the entry before it, in front
+of such a comment. Where an older entry of Lisa's is replaced, what is taken
+out is that entry, one comma, and the whitespace only it needed (the line it
+stood alone on); a comment between it and a neighbour stays where it is. The
+text is edited by position
+(`src/controls/carrier-json-place.ts`) and not through a JSON editor that
+formats what it writes, because such an editor formats whole lines and
+reflows whatever shares a line with the entry. The edited text is used only
+when it parses to exactly what the file meant before, with Lisa's own
+handlers taken out and the entry added. Lisa's entry is recognised by its
+command, compared exactly, so no marker key is added to a schema Lisa does
+not own. A file that is not JSON, whose list is not a list, or that cannot be
+added to without changing what it means, is left as it is; that agent's point
+is `blocked` and the reason holds the exact entry to add by hand. Copilot and OpenCode read a file of their own from a folder, so
+Lisa places a whole file there under its own name and lists it in the record.
+
+**What the carrier does.** It checks for Node and refuses, naming Node, when
+it is missing. It reads the event on standard input, runs
+`scripts/lisa-run-gates.mjs --moment=post-tool --builtins=none` from the
+repository root, and treats any exit but 0 as a refusal, along with a missing
+runner and a run of more than two minutes. The write has already happened; a
+refusal is the agent being told, in the one way its hook contract passes on,
+that the file does not pass.
+
+**Every check declared at `post-tool` runs after every write.** The runner
+leaves out an untouched part at commit and at push only, where git says what
+changed; at any other moment "not known" runs every part, and nothing here
+adds a second way to skip. What the carrier does pass on is the written file's
+path, in `LISA_EDITED_FILE`, the variable Lisa's own on-edit hooks already set
+for a declared task: a check that wants to look at one file can, and one that
+ignores it checks its whole folder. A check too slow for that belongs at
+commit.
+
+**It is for a repository on no project type.** On a supported project type
+Lisa's plugin hooks already run a task declared at `post-tool` for the
+properties they prove. Installing the edit-time carrier there as well runs
+that task a second time after each write; nothing breaks, and nothing is
+gained. A check declared as `parts` is run by the carrier alone.
+
+**An agent with no such hook is written down, not skipped.** Nothing is
+installed for it. `unenforceable_on` is added to the `post-tool` entry of
+every gate checked there:
+
+```json
+"post-tool": { "level": "required", "unenforceable_on": ["agy"] }
+```
+
+| Rule | Why |
+| --- | --- |
+| A non-empty list of agent names, each once, from the names the `harness` setting uses | One spelling, so `Agy` cannot be read as an agent other than `agy`. |
+| Only at `session-start`, `pre-tool` and `post-tool` | Those are the moments an agent's own hooks carry. Every other moment is carried by git, the hosting platform or a pipeline, so the key would say nothing there. |
+| On the moment entry, in its long form | An older Lisa ignores a moment key it does not know; a gate-level key would make it refuse the whole gates block. |
+
+The gate registry validates the key and it changes nothing about what the
+moment resolves to. The control register carries the list onto the
+enforcement point at that moment, on every entry of the gate, in one fixed
+order. `.lisa.config.json` is edited in place: only that value is added, a
+short entry (`"post-tool": "required"`) becomes the long form because the
+short form has nowhere to hold a list, an agent is only ever added, and a
+second run changes nothing. When nothing is declared at `post-tool` there is
+nothing to record on; the point says so, and a later run records it.
+
+**The result.** Agent points follow the commit and push points in
+`enforcement_points`, one per agent on the roster, with `kind: "agent-hook"`,
+`location: "coding-agent"`, `moment: "post-tool"`, the agent's own name for
+its `hook`, and `agent`. An agent with no hook has the outcome
+`unenforceable`, with `hook: null`, the reason, and `recorded_on` naming the
+gates that now carry it. `unenforceable` is not a failure: the command still
+exits 0. `roster` says which agents were asked for and whether they were read
+or named.
+
 ## Open items
 
 - Tests are excluded from the typecheck program (`tsconfig.json` is
   `include: ["src/**/*"]`, `exclude: ["**/*.test.ts", ...]`), so the
   `🔍 Type Check` gate has never checked a test file. Three agents shipped
   `@returns {object}` without CI noticing.
-- `security:audit` has no package script, so the `dependency-vulnerability`
-  gate cannot yet be wired and its required context cannot be derived.
-  `check:work-item` and `check:thresholds` now exist in `package.json`.
+- The former missing `security:audit` task is supplied by the canonical
+  audit runner introduced for #4521. It shares package/version/path matching
+  with the built-in consumers; see [audit exclusions](../dependency-audit-exclusions.md).
+  `check:work-item` and `check:thresholds` also exist in `package.json`.
 - Count-shaped hollow detection is **specified but not implemented** for `run`
   gates. `lisa-run-gates.mjs` carries each gate's `work` phrase through
   `resolveMoment` and never inspects it — it classifies purely on the exit

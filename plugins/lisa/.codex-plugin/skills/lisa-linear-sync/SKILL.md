@@ -20,7 +20,7 @@ Callers (planning skills, lifecycle skills) invoke this skill at:
 
 | Milestone | What to post | Suggested role |
 |-----------|--------------|----------------|
-| Plan created | Plan contents (sections + ordered tasks) as a comment | `ready` |
+| Plan created | Plan contents (sections + ordered tasks) as a comment | `claimed` |
 | Implementation in progress | Branch URL + first commit | `claimed` |
 | PR ready for review | PR URL + summary, the implementation handoff comment | `review` — **optional; omitted by most projects, in which case there is no transition to suggest** |
 | PR merged | Merge SHA + deploy environment (if known) | env-keyed `done`, **then run Phase 4b — mandatory when the merge target is a non-terminal env branch** |
@@ -73,7 +73,7 @@ Sections:
 
 Tasks: 7 ordered items.
 
-Next: implementation begins. Suggested state: **Ready**.
+Next: implementation begins. Suggested state: **<state resolved from linear.workflow.claimed>**.
 ```
 
 ## Phase 3 — Post Comment
@@ -103,7 +103,7 @@ Resolve the suggestion by role, and **say nothing when the role is unset**:
 
 | Milestone | Role to resolve | When the role is unset |
 |---|---|---|
-| `plan-created` | `ready` | required — report a setup defect |
+| `plan-created` | `claimed` | required — report a setup defect |
 | `implementation-in-progress` | `claimed` | required — report a setup defect |
 | `pr-ready` | `review` | **optional — suggest no transition; the Issue stays in `claimed`** |
 | `pr-merged` | `done` for the PR's target env (via `deploy.branches`) | required — report a setup defect |

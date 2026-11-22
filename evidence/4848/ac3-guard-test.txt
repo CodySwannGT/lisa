@@ -1,0 +1,10 @@
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4848-cdk-devengines-bun
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  19:06:10
+   Duration  467ms (transform 75ms, setup 127ms, import 163ms, tests 3ms, environment 0ms)
+

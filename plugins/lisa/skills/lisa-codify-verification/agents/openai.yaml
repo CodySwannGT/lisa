@@ -1,4 +1,4 @@
 display_name: "Codify Verification"
-short_description: "Convert empirical verification into a regression test so it never has to be re-proven manually"
+short_description: "Turn a passing manual verification into an automated regression test with the right framework, wire it into the test runner, and confirm it…"
 default_prompt:
-  - "Use $lisa-codify-verification: Convert empirical verification into a regression test so it never has to be re-proven manually."
+  - "Use $lisa-codify-verification: Turn a passing manual verification into an automated regression test with the right framework, wire it into the test runner, and confirm it…."

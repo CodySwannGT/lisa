@@ -17,8 +17,8 @@ import { assertPatchedFloors } from "../../fixtures/shared-runtime-hosts/asserti
 const installed = (
   overrides: Readonly<Record<string, string>> = {}
 ): Readonly<Record<string, string>> => ({
-  vitest: "4.1.11",
-  "@vitest/coverage-v8": "4.1.11",
+  vitest: "5.1.0",
+  "@vitest/coverage-v8": "5.1.0",
   vite: "8.3.3",
   ...overrides,
 });
@@ -33,8 +33,6 @@ describe("shared-runtime patched floors", () => {
   });
 
   it("refuses a vitest below its declared floor", () => {
-    expect(() =>
-      assertPatchedFloors(installed({ vitest: "4.1.10" }))
-    ).toThrow();
+    expect(() => assertPatchedFloors(installed({ vitest: "5.0.9" }))).toThrow();
   });
 });

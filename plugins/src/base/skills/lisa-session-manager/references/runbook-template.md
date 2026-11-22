@@ -9,6 +9,9 @@ the project: edit the prose to match how you run it. The loop follows the
 
 Keeps Ready work moving on this machine: each Ready item gets its own fresh coding session, and the
 operator answers that session's questions, from their phone when the project has a Telegram bot.
+Each cycle it also sweeps items left claimed with no live worker (finishing, returning or
+re-dispatching them) and re-judges human holds: it lifts the ones an agent may decide and sends the
+operator one list of the rest, only when that list changes.
 
 ## Sources of truth
 
@@ -16,10 +19,16 @@ The configured tracker's lanes (the `ready`, `claimed` and `blocked` roles from 
 read through the tracker access layer; the manager's ledger in `.lisa/session-manager/`; the live
 session list from `claude agents`; and, when `sessionManager.notify.provider` is `telegram`, the
 project's own Telegram chat. Telegram is optional: with no channel, questions wait in the ledger.
+Read `notifyLevel` from `status` each cycle. `all` sends questions and routine notices to a paired
+chat. `asks-only` sends questions, requests for operator action, duplicate-manager warnings and the
+hold digest. Routine worker starts, outcomes, tracker changes and acknowledgements go to the
+transcript in that mode. Reply in the paired chat when the operator sends a `status` command
+at either notification level.
 
 ## Candidate selection
 
-Leaf items in the `ready` role, ordered: assigned to an operator (`sessionManager.operatorIds`),
+Leaf items in the `ready` role, ordered: assigned to an operator (`sessionManager.operatorIds`; a
+`login:` entry matches a GitHub assignee login, an `id:` entry an assignee account id),
 then to the manager's own tracker identity, then unassigned; within each, by priority, then oldest.
 Items assigned to someone else, containers, human-held items, items waiting on a human's answer
 in the ledger and (when configured) items by untrusted authors are skipped. As many as the machine has capacity for.
@@ -27,8 +36,9 @@ in the ledger and (when configured) items by untrusted authors are skipped. As m
 When `sessionManager.backlogPickup` is on and capacity remains after every Ready item, a lowest tier
 follows: backlog items (open leaves in no lifecycle role) in the same order, minus those with an
 unfinished blocker and those that already failed validation and have not changed since. Each one
-must pass the full tracker validation before it is assigned to the first operator, moved to Ready
-and dispatched like any other item.
+must pass the full tracker validation before it is moved to Ready and dispatched like any other
+item. An item that is already assigned keeps its assignee; an unassigned one is assigned to the
+manager's own tracker identity.
 
 ## Scope/bounds
 
@@ -40,26 +50,33 @@ than `capacity` allows.
 
 A worker counts as started only when it is visible as a live session. A Blocked→Ready release counts
 only after the item is read back in the `ready` role. An answer counts only once it was delivered to
-the worker.
+the worker, or, when no worker will receive it (the worker finished, or the item was exhausted),
+once it was posted on the item and read back there.
 
 ## Autonomous-vs-approval boundary
 
 Alone: claim, start workers, retry a stalled item with a fresh session, release a blocked item whose
-dependencies are all contained in its base branch. Requires the operator: any question a worker
-asks, any item whose repo is unclear, and any item that failed `stall.maxAttempts` times.
+dependencies are all contained in its base branch, and decide a design, product or repo-route
+question itself when the evidence supports a call, recording the choice and its reasoning on the
+item. Requires the operator: an access gap the agent cannot close, a hold the operator explicitly
+asked for, and any item that failed `stall.maxAttempts` times. Under `humanGate.mode: "strict"` every worker question, unclear repo and design or product
+decision also requires the operator.
 
 ## Escalation
 
-When an item needs a human (a worker's question, an unclear repo, an item that failed
-`stall.maxAttempts` times, or a design or product decision), the manager marks it with the
+When an item needs a human (a worker's question that needs access the agent lacks or an operator
+hold, an item that failed `stall.maxAttempts` times, or — under `strict` only — any worker
+question, unclear repo, or design or product decision), the manager marks it with the
 configured human-needed marker, posts the question on the item with how to answer it, records it
 pending in the ledger, and keeps dispatching other items: one item waiting on a person never stops
 the queue. An item that failed `stall.maxAttempts` times also moves to the `blocked` role. With
 Telegram the question goes there too; `/lisa:session-manager status` lists every pending question.
 The operator answers with the CLI `answer` command that `status` lists, on Telegram, or on the
-item (a reply from an operator or trusted author, matched on stable tracker ids; with neither
-`operatorIds` nor `trustedAuthorIds` set, replies on the item are not read); the next cycle
-delivers the answer, removes the marker and clears the question. No question is ever asked in the
+item (a reply from an operator or trusted author, matched on stable tracker ids, each
+`login:` / `id:` entry by its own kind; with neither
+`operatorIds` nor `trustedReleaseIds` / `trustedAuthorIds` set, replies on the item are not read); the next cycle
+delivers the answer (or, for a finished worker or an exhausted item, records it on the item for the
+next attempt and reads it back), removes the marker and clears the question. No question is ever asked in the
 manager's terminal. When the manager itself cannot proceed it records `recovery-required` with a one-line
 reason. Having no notification channel is not such a reason; a configured Telegram that is broken
 or unpaired is.

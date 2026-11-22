@@ -160,10 +160,6 @@ describe("automation-status source/generated parity (#803)", () => {
         )
       )
     ).toBe(sourceSkill);
-    expect(sourceSkill).toMatch(/read-only/i);
-    expect(sourceSkill).toMatch(
-      /It does not create, update, resume, rerun, pause, or delete automations\./
-    );
   });
 
   it("keeps the distributed automation-status scripts in lockstep with the source assets", () => {

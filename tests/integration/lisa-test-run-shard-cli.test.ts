@@ -61,6 +61,8 @@ function project(): string {
     path.join(root, "jest.config.js"),
     `module.exports = ${JSON.stringify({
       rootDir: root,
+      // See lisa-test-run-jest-shards-fixture.ts (CodySwannGT/lisa#4790).
+      watchman: false,
       collectCoverageFrom: ["src/**/*.js"],
       coverageReporters: ["json-summary"],
       coverageThreshold: { global: { lines: 60 } },

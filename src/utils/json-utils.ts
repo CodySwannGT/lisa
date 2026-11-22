@@ -50,20 +50,6 @@ export async function writeJson(
 }
 
 /**
- * Check if a file contains valid JSON
- * @param filePath Path to file to check
- * @returns True if file contains valid JSON
- */
-export async function isValidJson(filePath: string): Promise<boolean> {
-  try {
-    await readJson(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
  * Deep merge two objects (Lisa values take precedence on conflicts)
  * Uses lodash.merge for deep merging
  * @param base Base object (project values)

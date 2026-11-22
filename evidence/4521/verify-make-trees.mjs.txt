@@ -1,0 +1,206 @@
+// Builds the independent fixture trees for #4521 consumer-parity verification.
+// CONTROLLED FIXTURE DATA: every bun.lock, exclusion file and the bun audit
+// report below are hand-written by the verifier. The report mirrors the shape
+// of a genuine live `bun audit --json` zod record captured in step 3, but it is
+// NOT live advisory access.
+import {
+  mkdirSync,
+  rmSync,
+  writeFileSync,
+  copyFileSync,
+  symlinkSync,
+} from "node:fs";
+import { join } from "node:path";
+
+const [, , outRoot, worktree] = process.argv;
+const GHSA = "GHSA-mrhx-c7xc-m3w5";
+const REASON = "Verifier fixture: reviewed dev-only lint plugin copy";
+
+const report = {
+  zod: [
+    {
+      id: 1243066,
+      url: `https://github.com/advisories/${GHSA}`,
+      title:
+        "Zod can exhaust memory while validating oversized constrained collections",
+      severity: "high",
+      vulnerable_versions: "<4.6.6",
+      cwe: ["CWE-770"],
+      cvss: {
+        score: 7.5,
+        vectorString: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      },
+    },
+  ],
+};
+
+const pkg = (identity, deps = {}) => [
+  identity,
+  "",
+  Object.keys(deps).length ? { dependencies: deps } : {},
+  "sha512-verifierfixture",
+];
+const base = {
+  zod: pkg("zod@4.6.6"),
+  "lint-plugin": pkg("lint-plugin@1.0.0", { zod: "^3.22.4" }),
+  "lint-plugin/zod": pkg("zod@3.25.76"),
+};
+const extra = {
+  uncovered: {
+    "app-dep": pkg("app-dep@2.0.0", { zod: "^3.22.4" }),
+    "app-dep/zod": pkg("zod@3.25.76"),
+  },
+  zod450: {
+    "app-dep": pkg("app-dep@2.0.0", { zod: "4.5.0" }),
+    "app-dep/zod": pkg("zod@4.5.0"),
+  },
+  alias: { "schema-alias": pkg("zod@3.25.76") },
+};
+
+/** bun.lock text JSONC with bun's trailing commas. */
+function bunLock(packages) {
+  const rows = Object.entries(packages)
+    .map(([key, tuple]) => `    ${JSON.stringify(key)}: ${JSON.stringify(tuple)},`)
+    .join("\n");
+  return `{\n  "lockfileVersion": 1,\n  "workspaces": {\n    "": {\n      "name": "verify-host",\n    },\n  },\n  "packages": {\n${rows}\n  }\n}\n`;
+}
+
+const scoped = (more = {}) => ({
+  id: GHSA,
+  package: "zod",
+  versions: ">=3.0.0 <4.0.0",
+  paths: ["lint-plugin/zod"],
+  reason: REASON,
+  ...more,
+});
+
+// name -> { lock: packages|"missing"|string, local, managed?, expect }
+const cases = {
+  "control-no-exclusion": { lock: base, local: [], expect: "fail" },
+  "covered-only": { lock: base, local: [scoped()], expect: "pass" },
+  "uncovered-production": {
+    lock: { ...base, ...extra.uncovered },
+    local: [scoped()],
+    expect: "fail",
+  },
+  "version-boundary-zod-4.5.0": {
+    lock: { ...base, ...extra.zod450 },
+    local: [scoped()],
+    expect: "fail",
+  },
+  "npm-alias": {
+    lock: { ...base, ...extra.alias },
+    local: [scoped()],
+    expect: "fail",
+  },
+  "package-mismatch": {
+    lock: base,
+    local: [scoped({ package: "other-lib" })],
+    expect: "fail",
+  },
+  "empty-paths": { lock: base, local: [scoped({ paths: [] })], expect: "fail" },
+  "missing-lockfile": { lock: "missing", local: [scoped()], expect: "fail" },
+  "garbage-lockfile": {
+    lock: "this is { not :: jsonc ]]\n",
+    local: [scoped()],
+    expect: "fail",
+  },
+  "legacy-id-only": {
+    lock: { ...base, ...extra.uncovered },
+    local: [{ id: GHSA, reason: REASON }],
+    expect: "pass",
+  },
+  "misspelled-path-key": {
+    lock: base,
+    local: [
+      {
+        id: GHSA,
+        package: "zod",
+        versions: ">=3.0.0 <4.0.0",
+        path: ["lint-plugin/zod"],
+        reason: REASON,
+      },
+    ],
+    expect: "fail",
+  },
+  "harmless-url-key": {
+    lock: base,
+    local: [scoped({ url: `https://github.com/advisories/${GHSA}` })],
+    expect: "pass",
+  },
+  "managed-wide-plus-local-scoped": {
+    lock: { ...base, ...extra.uncovered },
+    managed: [{ id: GHSA, reason: "Managed id-wide decision (fixture)" }],
+    local: [scoped()],
+    expect: "fail",
+  },
+};
+
+rmSync(outRoot, { recursive: true, force: true });
+mkdirSync(outRoot, { recursive: true });
+writeFileSync(join(outRoot, "bun-audit-report.json"), JSON.stringify(report));
+const manifest = [];
+for (const [name, spec] of Object.entries(cases)) {
+  const root = join(outRoot, name);
+  mkdirSync(join(root, "scripts"), { recursive: true });
+  mkdirSync(join(root, "node_modules", "@codyswann"), { recursive: true });
+  writeFileSync(
+    join(root, "package.json"),
+    JSON.stringify(
+      {
+        name: "verify-host",
+        private: true,
+        type: "module",
+        scripts: {
+          "security:audit": "$npm_execpath run security:audit:lisa",
+          "security:audit:lisa": "node scripts/lisa-audit.mjs",
+        },
+      },
+      null,
+      2
+    )
+  );
+  copyFileSync(
+    join(worktree, "all/copy-overwrite/scripts/lisa-audit.mjs"),
+    join(root, "scripts/lisa-audit.mjs")
+  );
+  symlinkSync(worktree, join(root, "node_modules/@codyswann/lisa"));
+  if (spec.lock !== "missing")
+    writeFileSync(
+      join(root, "bun.lock"),
+      typeof spec.lock === "string" ? spec.lock : bunLock(spec.lock)
+    );
+  writeFileSync(
+    join(root, "audit.ignore.local.json"),
+    JSON.stringify({ exclusions: spec.local }, null, 2)
+  );
+  if (spec.managed)
+    writeFileSync(
+      join(root, "audit.ignore.config.json"),
+      JSON.stringify({ exclusions: spec.managed }, null, 2)
+    );
+  // Hand the push moment to the registry: the audit gate required, the other
+  // built-in push properties explicitly off so only the audit gate runs.
+  const off = { push: "off" };
+  writeFileSync(
+    join(root, ".lisa.config.json"),
+    JSON.stringify(
+      {
+        gates: {
+          runner: "bun run",
+          "dependency-vulnerability": { push: "required" },
+          "coverage-adequacy": off,
+          "test-correctness": off,
+          "test-integration": off,
+          traceability: off,
+          "type-correctness": off,
+        },
+      },
+      null,
+      2
+    )
+  );
+  manifest.push(`${name}\t${spec.expect}`);
+}
+writeFileSync(join(outRoot, "cases.tsv"), `${manifest.join("\n")}\n`);
+console.log(manifest.join("\n"));

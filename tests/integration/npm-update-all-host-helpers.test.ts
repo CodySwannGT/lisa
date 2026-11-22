@@ -8,7 +8,6 @@ import {
   mkdirSync,
   readFileSync,
   realpathSync,
-  symlinkSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -50,6 +49,7 @@ vi.mock(
   })
 );
 import { qualifiedControllerGraph } from "../../all/copy-overwrite/scripts/lib/npm-update-helper.mjs";
+import { createSymlink } from "../support/borrowed-node-modules.mjs";
 
 const ENTRIES = [
   "lisa-work-item.mjs",
@@ -58,7 +58,6 @@ const ENTRIES = [
 ];
 const NEWLY_COMMON = [
   "lisa-clean-git-env.sh",
-  "lisa-scratch-run.sh",
   "check-threshold-ratchet.mjs",
   "threshold-ratchet-families.mjs",
   "threshold-ratchet-compare.mjs",
@@ -165,7 +164,17 @@ describe("all-only npm host controller materialization", () => {
       expect(graph).toHaveProperty(
         join(cwd, "scripts/lib/npm-update-checkpoint-codec.mjs")
       );
-      expect(managedTemplateMembers().size).toBe(122);
+      // 127 -> 131: CodySwannGT/lisa#4859 adds npm-update-tracker,
+      // -tracker-jira, -tracker-linear and -tracker-wire to the helper closure;
+      // 131 -> 138: the fast-push gate helpers (CodySwannGT/lisa#4582);
+      // 139: CodySwannGT/lisa#4873 adds npm-update-tracker-cancel;
+      // 140: CodySwannGT/lisa#4988 adds lib/changed-paths, which the gate
+      // runner imports;
+      // 145: CodySwannGT/lisa#4956 adds the five work-item-estimate modules
+      // completion imports for its done gate, and 146 the tracker-row-fold
+      // the usage and estimate projections share; 147: CodySwannGT/lisa#5092
+      // adds npm-update-cache-seed, which prepare imports.
+      expect(managedTemplateMembers().size).toBe(147);
     },
     ioLatencyBudgetMs(30_000)
   );
@@ -173,7 +182,7 @@ describe("all-only npm host controller materialization", () => {
   it.each(["absent", "mutated", "symlink"] as const)(
     "refuses a newly universal member that is %s before returning controller authority",
     async mode => {
-      const target = join(cwd, "scripts/lisa-scratch-run.sh");
+      const target = join(cwd, "scripts/lisa-clean-git-env.sh");
       const bytes = readFileSync(target);
       if (mode === "mutated")
         writeFileSync(
@@ -183,10 +192,10 @@ describe("all-only npm host controller materialization", () => {
       else {
         unlinkSync(target);
         if (mode === "symlink")
-          symlinkSync(
+          createSymlink(
             join(
               owner.root,
-              managedTemplateMembers().get("lisa-scratch-run.sh")!
+              managedTemplateMembers().get("lisa-clean-git-env.sh")!
             ),
             target
           );

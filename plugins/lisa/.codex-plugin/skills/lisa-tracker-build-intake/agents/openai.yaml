@@ -1,4 +1,4 @@
 display_name: "Tracker Build Intake"
-short_description: "Vendor-neutral wrapper for the…"
+short_description: "Scan the build queue of…"
 default_prompt:
-  - "Use $lisa-tracker-build-intake: Vendor-neutral wrapper for the…."
+  - "Use $lisa-tracker-build-intake: Scan the build queue of…."

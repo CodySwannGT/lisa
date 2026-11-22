@@ -16,8 +16,8 @@
  * apply runs on postinstall, and a wrong silent edit to a host-owned workflow
  * is worse than a report.
  *
- * Waking is not enough to call a copy current, so five readings are taken,
- * and a copy is current only when all five hold:
+ * Waking is not enough to call a copy current, so seven readings are taken,
+ * and a copy is current only when all seven hold:
  *
  *  - it wakes on a completed check run;
  *  - the prover's job holds a token that may read check runs, statuses and
@@ -32,7 +32,16 @@
  *  - it does not check out the event's head, because a `check_run` run starts
  *    in this repository's context for any pull request — a fork's included —
  *    and checking out the head would run that pull request's own code with
- *    this repository's token and cache scope.
+ *    this repository's token and cache scope;
+ *  - it publishes the verdict on the head it judged, with a token that may
+ *    write check runs. A `status` or `check_run` run belongs to the default
+ *    branch's latest commit, so a verdict that is only the job's own
+ *    conclusion never reaches the pull request (CodySwannGT/lisa#4630);
+ *  - a manual run can name the reviewer it publishes for: `workflow_dispatch`
+ *    takes a `context` input and the job's reviewer value reads it. The
+ *    copy-overwrite prover republishes every declared reviewer's check on any
+ *    publishing run, but without the input a manual run cannot target one
+ *    reviewer's check and always adds a bare-name check (CodySwannGT/lisa#4738).
  *
  * The readings are textual and say so: they look for the event fields a copy
  * must reference, not for every spelling a copy could use to reach them.
@@ -63,6 +72,12 @@ export const CHECK_RUN_HEAD = "github.event.check_run.head_sha";
 /** Where a check-run event carries the reviewer's name. */
 export const CHECK_RUN_NAME = "github.event.check_run.name";
 
+/** Where a manual run carries the reviewer it names. */
+export const DISPATCH_CONTEXT = "inputs.context";
+
+/** The `workflow_dispatch` input a manual run names its reviewer in. */
+const DISPATCH_CONTEXT_INPUT = "context";
+
 /** The scopes the prover reads with: its two evidence routes and the PR. */
 const PROVER_SCOPES = ["checks", "statuses", "pull-requests"] as const;
 
@@ -71,6 +86,12 @@ const READS = new Set(["read", "write"]);
 
 /** Shorthand `permissions:` values that grant every scope. */
 const GRANTS_EVERYTHING = new Set(["read-all", "write-all"]);
+
+/** Where a step's `run:` hands a saved verdict to the prover to publish. */
+const PUBLISH_FLAG = "--publish=";
+
+/** The step output the prover's exit code travels to the publish step in. */
+const EXIT_CODE_OUTPUT = "exit_code";
 
 /**
  * An event field a checkout ref could take a commit from. The repository's
@@ -94,6 +115,19 @@ export interface EvidenceSeedReading {
   readonly checksOutEventHead: boolean;
   /** A `permissions:` block governs that job at all. */
   readonly declaresPermissions: boolean;
+  /** That job's token may create check runs. */
+  readonly writesChecks: boolean;
+  /**
+   * That job saves the prover's `--json` verdict and writes its exit code to
+   * `$GITHUB_OUTPUT` as `exit_code` in a step with an `id`, and a later step
+   * reads `steps.<id>.outputs.exit_code` and runs the prover's `--publish`.
+   */
+  readonly publishesVerdict: boolean;
+  /**
+   * `workflow_dispatch` takes a `context` input, and that job reads
+   * `inputs.context`, so a manual run can publish under a reviewer's name.
+   */
+  readonly acceptsDispatchContext: boolean;
 }
 
 /** The slice of a workflow document this module reads. */
@@ -145,6 +179,24 @@ function wakesOnCompletedCheckRun(on: unknown): boolean {
 }
 
 /**
+ * Whether a trigger block's manual run takes a `context` input.
+ *
+ * Only the mapping spelling can declare inputs, so a list or scalar `on:`
+ * never does.
+ * @param on - The parsed `on:` value, in any of its three spellings
+ * @returns True when `workflow_dispatch.inputs` declares `context`
+ */
+function takesDispatchContext(on: unknown): boolean {
+  if (!isMapping(on)) return false;
+  const dispatch: unknown = on.workflow_dispatch;
+  return (
+    isMapping(dispatch) &&
+    isMapping(dispatch.inputs) &&
+    Object.hasOwn(dispatch.inputs, DISPATCH_CONTEXT_INPUT)
+  );
+}
+
+/**
  * Whether one `permissions:` value lets the token read one scope.
  *
  * An absent block is not a grant here. It hands the token the repository's
@@ -161,6 +213,16 @@ function grantsRead(permissions: unknown, scope: string): boolean {
   if (!isMapping(permissions)) return false;
   const value: unknown = permissions[scope];
   return typeof value === "string" && READS.has(value);
+}
+
+/**
+ * Whether one `permissions:` value lets the token create check runs.
+ * @param permissions - A parsed `permissions:` value
+ * @returns True when `checks` is writable under it
+ */
+function grantsChecksWrite(permissions: unknown): boolean {
+  if (typeof permissions === "string") return permissions === "write-all";
+  return isMapping(permissions) && permissions.checks === "write";
 }
 
 /**
@@ -181,6 +243,55 @@ function runsProver(job: WorkflowJob): boolean {
   return stepsOf(job).some(
     step => typeof step.run === "string" && step.run.includes(PROVER)
   );
+}
+
+/**
+ * Whether one step saves the prover's JSON verdict, and its exit code, under
+ * an `id`.
+ *
+ * A step that runs the prover with `--json` but never writes the exit code to
+ * `$GITHUB_OUTPUT` is half converted: the publish step after it has no exit
+ * code to check the verdict against, and refuses every run. It does not count.
+ * @param step - One parsed step
+ * @returns The step's id, or null when it saves no verdict and exit code
+ */
+function verdictCaptureId(step: Record<string, unknown>): string | null {
+  const { id, run } = step;
+  return typeof id === "string" &&
+    typeof run === "string" &&
+    run.includes(PROVER) &&
+    run.includes("--json") &&
+    run.includes("GITHUB_OUTPUT") &&
+    run.includes(`${EXIT_CODE_OUTPUT}=`)
+    ? id
+    : null;
+}
+
+/**
+ * Whether a job saves the prover's JSON verdict and then publishes it.
+ *
+ * Textual, like every reading here: a step with an `id` runs the prover with
+ * `--json`, and a step after it reads that step's outputs and hands a saved
+ * verdict to the prover's `--publish`.
+ * @param job - One parsed job
+ * @returns True when the verdict reaches a publish step
+ */
+function publishesVerdict(job: WorkflowJob): boolean {
+  const steps = stepsOf(job);
+  return steps.some((capture, index) => {
+    const id = verdictCaptureId(capture);
+    if (id === null) return false;
+    return steps
+      .slice(index + 1)
+      .some(
+        publish =>
+          typeof publish.run === "string" &&
+          publish.run.includes(PUBLISH_FLAG) &&
+          JSON.stringify(publish).includes(
+            `steps.${id}.outputs.${EXIT_CODE_OUTPUT}`
+          )
+      );
+  });
 }
 
 /**
@@ -259,18 +370,20 @@ export function readEvidenceSeed(workflowText: string): EvidenceSeedReading {
     judged.every(job =>
       scopes.every(scope => grantsRead(permissionsOf(job), scope))
     );
+  // The values and steps a job's prover and publish steps can read.
+  const textOf = (job: WorkflowJob): string =>
+    JSON.stringify([workflow.env, job.env, stepsOf(job)]);
+  const everyJobText = (holds: (text: string) => boolean): boolean =>
+    judged.length > 0 && judged.every(job => holds(textOf(job)));
+  // `on:` is YAML 1.1 truthy, so a parser may key the trigger block `true`.
+  const on = workflow.on ?? workflow.true;
   return {
-    // `on:` is YAML 1.1 truthy, so a parser may key the trigger block `true`.
-    wakesOnCheckRun: wakesOnCompletedCheckRun(workflow.on ?? workflow.true),
+    wakesOnCheckRun: wakesOnCompletedCheckRun(on),
     readsChecks: grants(["checks"]),
     readsStatusesAndPullRequests: grants(
       PROVER_SCOPES.filter(scope => scope !== "checks")
     ),
-    readsRunIdentity:
-      judged.length > 0 &&
-      judged.every(job =>
-        namesRunIdentity(JSON.stringify([workflow.env, job.env, stepsOf(job)]))
-      ),
+    readsRunIdentity: everyJobText(namesRunIdentity),
     keysConcurrencyPerRun:
       keysPerRun(workflow.concurrency) &&
       judged.every(job => keysPerRun(job.concurrency)),
@@ -278,21 +391,33 @@ export function readEvidenceSeed(workflowText: string): EvidenceSeedReading {
     declaresPermissions:
       judged.length > 0 &&
       judged.every(job => permissionsOf(job) !== undefined),
+    writesChecks:
+      judged.length > 0 &&
+      judged.every(job => grantsChecksWrite(permissionsOf(job))),
+    publishesVerdict: judged.length > 0 && judged.every(publishesVerdict),
+    acceptsDispatchContext:
+      takesDispatchContext(on) &&
+      everyJobText(text => text.includes(DISPATCH_CONTEXT)),
   };
 }
 
 /**
- * Whether a copy wakes on, can read, and safely judges the reviewer's run.
+ * Whether a copy wakes on, can read, and safely judges the reviewer's run, and
+ * publishes its verdict on the head it judged — under a reviewer's name on a
+ * manual run too, when the run names one.
  * @param reading - What the copy does
  * @returns True when nothing needs to change
  */
 export function isCurrentEvidenceSeed(reading: EvidenceSeedReading): boolean {
   return (
+    reading.acceptsDispatchContext &&
     reading.wakesOnCheckRun &&
     reading.readsChecks &&
     reading.readsStatusesAndPullRequests &&
     reading.readsRunIdentity &&
     reading.keysConcurrencyPerRun &&
-    !reading.checksOutEventHead
+    !reading.checksOutEventHead &&
+    reading.writesChecks &&
+    reading.publishesVerdict
   );
 }

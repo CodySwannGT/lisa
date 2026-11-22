@@ -21,19 +21,14 @@
  * classification suite.
  * @module tests/unit/hooks/block-direct-issue-create-missing-interpreter
  */
-import {
-  existsSync,
-  mkdtempSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const SCRIPT_PATH = path.resolve(
   "plugins/src/base/hooks/block-direct-issue-create.sh"
@@ -100,7 +95,7 @@ const shimWithout = (omitted: string): string => {
   for (const tool of SHIM_TOOLS) {
     if (tool === omitted) continue;
     const found = locate(tool);
-    if (found) symlinkSync(found, path.join(dir, tool));
+    if (found) createSymlink(found, path.join(dir, tool));
   }
   return dir;
 };

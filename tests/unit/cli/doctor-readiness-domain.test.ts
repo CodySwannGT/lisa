@@ -34,6 +34,17 @@ import {
   writeWorkflow,
 } from "../../helpers/readiness-workflow-fixtures.js";
 
+/**
+ * The first entry of a list, failing loudly when the list is empty.
+ * @param items - The list under test
+ * @returns Its first entry
+ */
+const firstEntry = <T>(items: readonly T[]): T => {
+  const [first] = items;
+  if (first === undefined) throw new Error("expected at least one entry");
+  return first;
+};
+
 /** The dimension this producer owns. */
 const DIMENSION_ID = "domain-ownership";
 
@@ -243,12 +254,12 @@ describe("assessDomainOwnershipDimension — reports silence as silence", () => 
     expect(record.status).toBe(SKIP);
     const findings = asFindings(record.findings);
     expect(findings.length).toBeGreaterThan(0);
-    expect(typeof findings[0].reason).toBe("string");
-    expect(String(findings[0].reason)).toContain(
+    expect(typeof firstEntry(findings).reason).toBe("string");
+    expect(String(firstEntry(findings).reason)).toContain(
       "No GitHub Actions workflow files were found"
     );
-    expect(findings[0].skip).toBe(true);
-    expect(Object.hasOwn(findings[0], "blocker")).toBe(false);
+    expect(firstEntry(findings).skip).toBe(true);
+    expect(Object.hasOwn(firstEntry(findings), "blocker")).toBe(false);
   });
 
   it("never claims PASS, because danger-zone ownership is not provable offline", async () => {

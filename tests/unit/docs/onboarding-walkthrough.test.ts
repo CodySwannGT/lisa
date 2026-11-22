@@ -7,7 +7,9 @@
  * mentioning the three exports a repo-less session cannot run without.
  *
  * So these assert the walkthrough against the surfaces registry and the command
- * table, rather than against a copy of what someone meant to write.
+ * table, rather than against a copy of what someone meant to write: every
+ * surface the code can configure must be named. The surrounding prose is
+ * guidance and is reviewed, not pinned (#4867).
  * @module tests/unit/docs/onboarding-walkthrough
  */
 
@@ -32,28 +34,6 @@ describe("the README walkthrough", () => {
       expect(README).toContain(`environment ${surface}`);
     }
   });
-
-  it("says the machine commands need no checkout", () => {
-    // The property that makes the ordering work at all, and the one every
-    // earlier version of this documentation got wrong.
-    expect(README).toMatch(/neither needs a checkout|needs no checkout/i);
-  });
-
-  it("requires --tenant where the command requires it", () => {
-    expect(README).toMatch(/environment local --tenant=/);
-  });
-
-  it("tells operators to give each place its own token", () => {
-    // A shared token makes any compromise a multi-place outage and every audit
-    // entry anonymous.
-    expect(README).toMatch(/own access token/i);
-  });
-
-  it("keeps the layers in order: machine, then repo", () => {
-    expect(README.indexOf("### 2. The machine")).toBeLessThan(
-      README.indexOf("### 3. Each repository")
-    );
-  });
 });
 
 describe("the skill's surface table", () => {
@@ -64,13 +44,5 @@ describe("the skill's surface table", () => {
       if (!capability.materialized) continue;
       expect(SKILL).toContain(name);
     }
-  });
-
-  it("explains why --tenant is mandatory rather than only stating it", () => {
-    expect(SKILL).toMatch(/another tenant's sessions read/);
-  });
-
-  it("records that the old spelling still works", () => {
-    expect(SKILL).toContain("remote-env --emit=");
   });
 });

@@ -1,4 +1,4 @@
 display_name: "Playwright Selectors"
-short_description: "Best practices for writing reliable Playwright E2E tests and adding testID/aria-label selectors in Expo web applications using GlueStack UI…"
+short_description: "Write reliable Playwright E2E tests and add testID/aria-label selectors in Expo web apps using GlueStack UI and NativeWind"
 default_prompt:
-  - "Use $playwright-selectors: Best practices for writing reliable Playwright E2E tests and adding testID/aria-label selectors in Expo web applications using GlueStack UI…."
+  - "Use $playwright-selectors: Write reliable Playwright E2E tests and add testID/aria-label selectors in Expo web apps using GlueStack UI and NativeWind."

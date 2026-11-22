@@ -1,0 +1,33 @@
+# AC-5: PR #4714 body 'Files left in place' section vs actual kept candidates
+# source: gh pr view 4714 --json body (headRefOid 964fd3b7d665afb87ad003e924c6f77a67336de9)
+PR-listed kept paths: 216
+actual kept candidates (211 - 7 merged): 204
+listed in PR but not a kept candidate:
+tests/unit/cli/doctor-apply-freshness.test.ts
+tests/unit/cli/doctor-session-manager.test.ts
+tests/unit/cli/doctor.test.ts
+tests/unit/codex/skill-agents-walk.test.ts
+tests/unit/scripts/lisa-gates.test.ts
+tests/unit/scripts/lisa-mutation-gate.test.ts
+tests/unit/scripts/skipped-required-checks.test.ts
+tests/unit/session-manager/human-answer.test.ts
+tests/unit/strategies/copy-overwrite.test.ts
+tests/unit/strategies/package-lisa.test.ts
+tests/unit/strategies/scoping-label-vocabulary-contract.test.ts
+tests/unit/transaction/backup.test.ts
+kept candidate missing from PR list:
+per-section path counts vs declared:
+44 | ### is the module's primary test file (44)
+56 | ### merged file would exceed max-lines 300 (28)
+6 | ### merge adds sonarjs/no-duplicate-string errors (3)
+22 | ### moved code would lose type-checking (candidate checked, primary in typecheck-quarantine) (11)
+4 | ### candidate quarantined, primary type-checked (2)
+21 | ### tests several modules (21)
+10 | ### no other test file covers the same module (10)
+7 | ### pinned by path in a CI workflow (7)
+60 | ### no production import (tests file contents/workflow/skill text) (60)
+10 | ### integration test; target is a unit file (10)
+8 | ### integration workflow/contract test (8)
+bite: drop one path from the PR list -> missing must be 1
+       1
+# note: the 12 'listed but not a kept candidate' paths are the named target/primary files on 'candidate -> primary' lines (sections with doubled path counts); declared section counts sum to 204

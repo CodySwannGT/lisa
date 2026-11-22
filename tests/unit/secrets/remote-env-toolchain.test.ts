@@ -87,8 +87,8 @@ describe("required tools", () => {
     // The base image is not a contract. A vendor change must surface here, not
     // as an unexplained failure mid-task weeks later.
     const plan = planToolchain(tools, probeFrom({}));
-    expect(plan[0].action).toBe("missing");
-    expect(plan[0].reason).toMatch(/base image is not a contract/i);
+    expect(plan[0]?.action).toBe("missing");
+    expect(plan[0]?.reason).toMatch(/base image is not a contract/i);
   });
 
   it("fails when present but older than the declared minimum", () => {

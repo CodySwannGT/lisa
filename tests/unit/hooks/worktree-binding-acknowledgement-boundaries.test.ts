@@ -30,6 +30,27 @@ const boundRoot = (fixture: Fixture): string =>
     )
   ).boundRoot;
 
+/** A command for a root, and the verdict a displaced session gets for it. */
+type NonAcknowledgement = readonly [(root: string) => string, number];
+
+// Commands that carry acknowledgement text without being an acknowledgement.
+const NON_ACKNOWLEDGEMENTS: readonly NonAcknowledgement[] = [
+  [(root: string) => `\u00a0echo '${ACCEPT} ${root}'`, BLOCKED],
+  [(_root: string) => `echo '${ACCEPT} '`, ALLOWED],
+  [(root: string) => `printf '%s' '${ACCEPT} ${root}'`, ALLOWED],
+  [(root: string) => `echo '${ACCEPT} ${root}' && echo extra`, ALLOWED],
+  [(root: string) => `echo '${ACCEPT} ${root}'; echo extra`, ALLOWED],
+  [(root: string) => `echo "${ACCEPT} $(printf '%s' '${root}')"`, BLOCKED],
+  [(root: string) => `cat <<'EOF'\n${ACCEPT} ${root}\nEOF`, BLOCKED],
+  [(root: string) => `cd '~' && echo '${ACCEPT} ${root}'`, BLOCKED],
+  [(root: string) => `cd '-' && echo '${ACCEPT} ${root}'`, BLOCKED],
+  [(root: string) => `cd '--' && echo '${ACCEPT} ${root}'`, BLOCKED],
+  [(root: string) => `cd '${root}' '&&' echo '${ACCEPT} ${root}'`, ALLOWED],
+  [(root: string) => `cd '${root}' \\&\\& echo '${ACCEPT} ${root}'`, ALLOWED],
+  [(root: string) => `cd && && echo '${ACCEPT} ${root}'`, ALLOWED],
+  [(root: string) => `echo '${ACCEPT} ${root}' && touch written.txt`, BLOCKED],
+];
+
 describe("literal acknowledgement command boundaries", () => {
   it.each(["\n", "\r", "\u00a0"])(
     "does not turn a non-shell word separator %j into an acknowledgement",
@@ -45,32 +66,28 @@ describe("literal acknowledgement command boundaries", () => {
     }
   );
 
-  it.each([
-    (root: string) => `\u00a0echo '${ACCEPT} ${root}'`,
-    (_root: string) => `echo '${ACCEPT} '`,
-    (root: string) => `printf '%s' '${ACCEPT} ${root}'`,
-    (root: string) => `echo '${ACCEPT} ${root}' && echo extra`,
-    (root: string) => `echo '${ACCEPT} ${root}'; echo extra`,
-    (root: string) => `echo "${ACCEPT} $(printf '%s' '${root}')"`,
-    (root: string) => `cat <<'EOF'\n${ACCEPT} ${root}\nEOF`,
-    (root: string) => `cd '~' && echo '${ACCEPT} ${root}'`,
-    (root: string) => `cd '-' && echo '${ACCEPT} ${root}'`,
-    (root: string) => `cd '--' && echo '${ACCEPT} ${root}'`,
-    (root: string) => `cd '${root}' '&&' echo '${ACCEPT} ${root}'`,
-    (root: string) => `cd '${root}' \\&\\& echo '${ACCEPT} ${root}'`,
-    (root: string) => `cd && && echo '${ACCEPT} ${root}'`,
-  ])("does not consume data, suffixes, or expansions", commandFor => {
-    const fixture = buildFixture();
-    bindTo(fixture, fixture.a);
-    expect(
-      runGuard({
+  // Since CodySwannGT/lisa#4816 the displaced call that does NOT acknowledge
+  // is refused only when it is not provably read-only: a plain echo/printf/cd
+  // is a read and passes with the read warning. Either way the property under
+  // test holds: the text is never consumed as an acknowledgement, so the
+  // binding stays on A. The verdict column pins which of the two it is. The
+  // `cd '~' | '-' | '--'` rows parse as acknowledgements with an invalid move,
+  // so acknowledgement validation refuses them before classification runs.
+  it.each(NON_ACKNOWLEDGEMENTS)(
+    "does not consume data, suffixes, or expansions (%#)",
+    (commandFor, verdict) => {
+      const fixture = buildFixture();
+      bindTo(fixture, fixture.a);
+      const result = runGuard({
         cwd: fixture.b,
         state: fixture.state,
         input: { command: commandFor(fixture.b) },
-      }).status
-    ).toBe(BLOCKED);
-    expect(boundRoot(fixture)).toBe(realpathSync(fixture.a));
-  });
+      });
+      expect(result.status).toBe(verdict);
+      expect(result.stderr.includes("READ-ONLY")).toBe(verdict === ALLOWED);
+      expect(boundRoot(fixture)).toBe(realpathSync(fixture.a));
+    }
+  );
 
   it.each([
     (root: string) => `echo\t"${ACCEPT} ${root}"`,

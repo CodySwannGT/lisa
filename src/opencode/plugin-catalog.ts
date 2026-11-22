@@ -30,14 +30,13 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
     forProjectTypes: ["*"],
   },
   {
-    // Harmless compatibility entry retained for persisted native registrations.
-    id: "parity-safety-net",
-    templateFilename: "lisa-parity-safety-net.ts",
+    id: "block-no-verify",
+    templateFilename: "lisa-block-no-verify.ts",
     forProjectTypes: ["*"],
   },
   {
-    id: "block-no-verify",
-    templateFilename: "lisa-block-no-verify.ts",
+    id: "block-host-name-leak",
+    templateFilename: "lisa-block-host-name-leak.ts",
     forProjectTypes: ["*"],
   },
   {

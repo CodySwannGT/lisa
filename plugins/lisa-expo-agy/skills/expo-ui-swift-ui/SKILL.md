@@ -36,4 +36,4 @@ import { Pressable } from "react-native";
 </Host>;
 ```
 
-- If a required modifier or View is missing in Expo UI, it can be extended via a local Expo module. See: https://docs.expo.dev/guides/expo-ui-swift-ui/extending/index.md. Confirm with the user before extending.
+- If a required modifier or View is missing in Expo UI, it can be extended via a local Expo module. See: https://docs.expo.dev/guides/expo-ui-swift-ui/extending/index.md. Extend it when the feature needs it, and record why in the module's header comment.

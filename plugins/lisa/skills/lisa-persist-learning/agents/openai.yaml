@@ -1,4 +1,4 @@
 display_name: "Persist Learning"
-short_description: "a candidate learning (from a failure signal, rejection, or debrief) needs to be judged and routed"
+short_description: "Judge a candidate learning and act on the verdict: drop it with a note, file an upstream Lisa ticket, or open a pull request adding it to…"
 default_prompt:
-  - "Use $lisa-persist-learning: a candidate learning (from a failure signal, rejection, or debrief) needs to be judged and routed."
+  - "Use $lisa-persist-learning: Judge a candidate learning and act on the verdict: drop it with a note, file an upstream Lisa ticket, or open a pull request adding it to…."

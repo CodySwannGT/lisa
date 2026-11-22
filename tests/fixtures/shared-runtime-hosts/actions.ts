@@ -57,7 +57,14 @@ export async function checkpoint(
 }
 
 /**
- * Run the real CLI only after proving the host is clean.
+ * Run the real CLI the way the README's `bunx lisa apply .` does, only after
+ * proving the host is clean.
+ *
+ * Bun launches it, so the CLI sees the `npm_config_user_agent` an operator's
+ * apply carries and can tell a fresh host, which has no lockfile yet, that
+ * Bun is adopting it (CodySwannGT/lisa#4941). `--no-install` with the packed
+ * tool's bin directory on `PATH` keeps bunx on the exact installed candidate;
+ * it can never fetch some other `lisa` from a registry.
  * @param candidate - Exact packed candidate and child environment
  * @param host - Generated host directory
  * @param stack - Supported host stack
@@ -71,6 +78,7 @@ export async function apply(
 ): Promise<void> {
   const git = resolveGit();
   const sentinel = path.join(candidate.root, "github-was-invoked");
+  const toolBin = path.join(candidate.root, "tool", "node_modules", ".bin");
   expect(
     boundedSpawnSync({
       label: "actual apply clean-tree prerequisite",
@@ -80,9 +88,10 @@ export async function apply(
     }).stdout
   ).toBe("");
   await run(
-    process.execPath,
+    "bunx",
     [
-      candidate.entry,
+      "--no-install",
+      "lisa",
       "apply",
       host,
       "--yes",
@@ -90,7 +99,10 @@ export async function apply(
       "--harness=cursor",
     ],
     host,
-    candidate.env,
+    {
+      ...candidate.env,
+      PATH: [toolBin, candidate.env["PATH"] ?? ""].join(path.delimiter),
+    },
     candidate.logs,
     `${stack}-${label}`,
     60_000

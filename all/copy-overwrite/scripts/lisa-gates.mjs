@@ -69,18 +69,42 @@
  */
 
 import { createHash } from "node:crypto";
-import {
-  appendFileSync,
-  existsSync,
-  readdirSync,
-  readFileSync,
-  statSync,
-} from "node:fs";
+import { appendFileSync, existsSync, readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, isAbsolute, join, parse, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { CACHE_FIELD } from "./lib/gate-pass-cache.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+
+/**
+ * One built-in invocation in {@link HARDCODED_INVOCATIONS}: a command written
+ * into a shipped artifact rather than resolved from the project's declaration.
+ * @typedef {object} InventoryEntry
+ * @property {string} gate Registry gate id that should govern it.
+ * @property {string} moment The moment it runs at.
+ * @property {string} surface Which kind of artifact carries it.
+ * @property {string} artifact Repository-relative path to that artifact.
+ * @property {string|null} job The workflow job id, or null off a workflow.
+ * @property {string} command What the built-in runs, descriptively.
+ * @property {readonly string[]} steps Workflow step names on its fallback path.
+ * @property {readonly string[]|null} seedRun Candidate seed tasks; null for the registry default, empty for none.
+ * @property {string} facade Whether the artifact consults a declaration first.
+ * @property {boolean} [unconditional] The fallback fails when its prover cannot run.
+ * @property {string} [hookEvent] The harness event a hook entry registers for.
+ */
+
+/**
+ * One moment's declaration for a gate: a bare level, or an object naming the
+ * level and, optionally, the task or the external check to await.
+ * @typedef {string | {level?: string, run?: string, await?: unknown}} MomentDeclaration
+ */
+
+/**
+ * A `gates` block: the optional task runner, then one entry per gate id
+ * mapping moment names to their declarations.
+ * @typedef {{runner?: string} & Record<string, Record<string, MomentDeclaration>>} GatesBlock
+ */
 
 /**
  * The npm manifest filename, named once.
@@ -92,6 +116,9 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
  * to treat as an ordinary absence.
  */
 const PACKAGE_MANIFEST = "package.json";
+
+/** The file the gates are declared in, as `readGates` names it to a person. */
+const CONFIG_FILE = ".lisa.config.json";
 
 /** Enforcement levels a moment may carry. */
 export const LEVELS = ["required", "optional", "off"];
@@ -270,8 +297,30 @@ function awaitUnkeepableReason(moment) {
  */
 export const STATE_FAMILIES = [CONTINUOUS];
 
-/** Keys on a gate entry that are settings rather than moments. */
-export const GATE_FIELDS = new Set(["run", "needs", "task", "reuse"]);
+/**
+ * Keys on a gate entry that are settings rather than moments.
+ *
+ * The retired `reuse` setting is not among them. Its release-reuse checker was
+ * removed in CodySwannGT/lisa#4794, and the key itself in
+ * CodySwannGT/lisa#4899, after no Lisa-managed host was found declaring it, so
+ * a leftover declaration is now refused like any other unknown key.
+ *
+ * `criteria`, `owner`, `tier` and `parts` are the control keys: which
+ * requirements the gate serves, who answers for it, whether the author of a
+ * change can get around it, and — for a repository with more than one part —
+ * the folder and command that prove it in each. They are read by the control
+ * register, and only `parts` changes what a moment resolves to; see
+ * {@link PART_FIELDS}.
+ */
+export const GATE_FIELDS = new Set([
+  "run",
+  "needs",
+  "task",
+  "criteria",
+  "owner",
+  "tier",
+  "parts",
+]);
 
 /**
  * The per-moment field saying how this gate's prover prints a MEASURED failure.
@@ -420,6 +469,156 @@ export const CALLER_CHAIN_FIELD = "caller_chain";
 export const CUSTOM_PREFIX = "x-";
 
 /**
+ * The enforcement tiers a gate may declare.
+ *
+ * `authoritative` is enforced where the author of a change cannot get around
+ * it; `advisory` is feedback the author can bypass. Recorded for the control
+ * register and never read by resolution — whether a failing gate stops a
+ * change at a given moment is still that moment's `level`.
+ */
+export const TIERS = Object.freeze(["authoritative", "advisory"]);
+
+/**
+ * How a criterion id is written: `AC5.4`, `SI2`, `DP1`, `UX3`.
+ *
+ * A gate's `criteria` names the requirements it serves by their ids in the
+ * criterion catalogue (`spec/tasc-criteria.json` in Lisa). This registry ships
+ * to repositories that do not carry that catalogue, so it checks how an id is
+ * WRITTEN and nothing else; whether the id exists is checked where the
+ * catalogue is in reach, when the control register is generated. A test holds
+ * this pattern to every id the catalogue contains.
+ */
+export const CRITERION_ID_PATTERN =
+  /^(?:AC[1-9]\d*\.[1-9]\d*|(?:SI|DP|UX)[1-9]\d*)$/;
+
+/** The `scope` that means the whole repository rather than one folder. */
+export const WHOLE_REPOSITORY = ".";
+
+/**
+ * The folder a part's paired-proof patch files live under, written from the
+ * repository root.
+ *
+ * A proof is a pair of small changes — one that breaks the rule, one that does
+ * not — applied to a disposable copy of the repository to see the gate refuse
+ * the first and accept the second. Confining both to one known folder means
+ * the step that applies them never reads a path a declaration merely names.
+ */
+export const PROOF_DIRECTORY = ".lisa/controls/proofs/";
+
+/**
+ * The keys one entry of a gate's `parts` may carry.
+ *
+ * - `scope` — the folder this part covers, written from the repository root,
+ *   or {@link WHOLE_REPOSITORY}. Required.
+ * - `command` — what checks it, as an ARGUMENT LIST: one item per argument,
+ *   the program first. Required. Never a single string, because the command is
+ *   started directly and a string is what a shell would have to split.
+ * - `parameters` — named settings of the check, each `{ value, direction }`;
+ *   see {@link PARAMETER_FIELDS}. Optional.
+ * - `proof` — the paired proof; see {@link PROOF_FIELDS}. Optional, because a
+ *   part is declared before its proof is written and a part without one is
+ *   reported as unproved rather than refused.
+ * - `evidence` — what supports declaring this part at all; see
+ *   {@link PART_EVIDENCE_FIELDS}. Optional HERE, because the commands that run a
+ *   part never read it. The control register is where a part without it is
+ *   refused.
+ *
+ * ## A key that is not on this list is REFUSED
+ *
+ * That is a decision, and the alternative — passing an unknown key through —
+ * was weighed. A part is read by several tools that never see each other: the
+ * runner reads `scope` and `command`, the register reads all of it, the
+ * threshold check reads `parameters`. A misspelt `paramaters` passed through
+ * would be a threshold nothing holds, and a misspelt `proof` a control nothing
+ * proves, with every tool reporting the declaration as valid. Refusing is the
+ * same rule `GATE_FIELDS` applies one level up, for the same reason.
+ *
+ * Two consequences follow, and both are intended:
+ *
+ * - **A new key is added HERE, with its validator in `validatePart`**, in the
+ *   change that introduces its reader. Until then it is a typo by definition.
+ * - **A project's own key passes through untouched when it starts with
+ *   {@link CUSTOM_PREFIX}** — the marker this file already uses for anything a
+ *   project invented. Lisa reads none of them and refuses none of them.
+ *
+ * The same rule applies inside `proof` and inside each parameter.
+ */
+export const PART_FIELDS = Object.freeze([
+  "scope",
+  "command",
+  "parameters",
+  "proof",
+  "evidence",
+]);
+
+/**
+ * The keys a part's `evidence` may carry. At least one of them is present.
+ *
+ * A part is declared because something supports it: the audit found the check
+ * in the repository, or a person answered a question the audit asked. This is
+ * where the declaration says which, so that a control nobody evidenced cannot
+ * be written down as if it had been.
+ *
+ * - `locators` — where the audit found the check: a non-empty list of places,
+ *   each written as {@link PART_EVIDENCE_LOCATOR_FIELDS}, copied from the audit
+ *   report's findings.
+ * - `questions` — the ids of the audit questions a person answered: a
+ *   non-empty list of ids, each written exactly as the audit report writes it.
+ *
+ * Only how each is WRITTEN is checked here. Whether a place is one the audit
+ * reported, and whether a question has been answered, are facts about the
+ * audit report, which this registry never reads; `lisa controls
+ * declaration-check` holds the declaration to the report.
+ */
+export const PART_EVIDENCE_FIELDS = Object.freeze(["locators", "questions"]);
+
+/**
+ * The keys one place in a part's `evidence.locators` carries. Both are
+ * required: `path`, a file written from the repository root, and `line`,
+ * counted from 1. It is the audit report's own locator, so one can be copied
+ * from a finding without rewriting it.
+ */
+export const PART_EVIDENCE_LOCATOR_FIELDS = Object.freeze(["path", "line"]);
+
+/**
+ * The keys a part's `proof` may carry. All are optional.
+ *
+ * - `violation` and `clean` — the two halves of the paired proof, each the
+ *   path of a patch file under {@link PROOF_DIRECTORY}.
+ * - `failure_shape` — literal strings the command prints when it measures the
+ *   property and finds it wanting; the same meaning, and the same rules, as
+ *   the per-moment {@link FAILURE_SHAPE_FIELD}.
+ * - `timeout_seconds` — how long one half of the proof may run.
+ * - `external_effects` — plain-language statements of anything the proof does
+ *   outside the repository, each quoted to the operator who must allow it. An
+ *   empty list says it has none.
+ */
+export const PROOF_FIELDS = Object.freeze([
+  "violation",
+  "clean",
+  FAILURE_SHAPE_FIELD,
+  "timeout_seconds",
+  "external_effects",
+]);
+
+/**
+ * The keys one named parameter of a part may carry.
+ *
+ * `value` is required: a number, text, or true or false. `direction` is
+ * optional and marks a number as a threshold — see
+ * {@link PARAMETER_DIRECTIONS}.
+ */
+export const PARAMETER_FIELDS = Object.freeze(["value", "direction"]);
+
+/**
+ * Which way a threshold parameter is allowed to move.
+ *
+ * A `floor` may rise and never fall (a minimum coverage percentage); a
+ * `ceiling` may fall and never rise (a maximum number of warnings).
+ */
+export const PARAMETER_DIRECTIONS = Object.freeze(["floor", "ceiling"]);
+
+/**
  * `needs.deps: false`, named once.
  *
  * Written as a shared constant rather than repeated inline so that the set of
@@ -533,6 +732,9 @@ const KNIP = "knip";
  *   stack, and says what to do about it.
  * - `shippedAs` names the script a template already ships for that concern,
  *   where one exists, so an operator can point `run:` straight at it.
+ * - `fallbackWhenTaskMissing` retains an unconditional owned facade for
+ *   callers whose older templates do not yet install a now-universal task.
+ *   It never replaces an explicit task or a default the caller supplies.
  *
  * `shippedAs` is RESOLVED THROUGH, not merely documented — see `resolveMoment`.
  * Recording the alias and then never reading it (#2916) left the registry
@@ -848,14 +1050,16 @@ export const REGISTRY = Object.freeze({
     summary:
       "Schema migrations are generated from the model, not hand-written.",
     task: "check:migrations",
-    // Also a `PreToolUse` refusal: the shipped hook blocks a write to a
-    // migration file outright, because a hand-edited migration drifts from the
-    // entity metadata it is supposed to describe and the drift is not visible
-    // until a deploy applies it. Stack-flavoured but registry-resident, the
+    // Also a `PreToolUse` hook: the shipped one WARNS on a write to a
+    // migration file and lets it through (operator decision, 2026-11-08). A
+    // hand-edited migration drifts from the entity metadata when the change
+    // could have been expressed in an entity; one that could not (grants,
+    // functions, policies, backfills) is legitimate. A declared task here
+    // refuses on failure, so a project can still enforce. Stack-flavoured but registry-resident, the
     // same way `e2e-native` is — the property is "this migration came from the
     // model", which is true of any ORM that generates them.
     declareOnly:
-      "No npm stack ships a prover. One stack ships `migration:generate`, but that is the generator this gate assumes was used, not a check that it was — and what a migration must be generated FROM is ORM-specific, so there is no one script to ship. The shipped prover is an agent hook that refuses the hand-edit outright; declaring this gate at a later moment means pointing `run:` at your own check.",
+      "No npm stack ships a prover. One stack ships `migration:generate`, but that is the generator this gate assumes was used, not a check that it was — and what a migration must be generated FROM is ORM-specific, so there is no one script to ship. The shipped agent hook only warns on a hand-edit and permits it; declaring this gate at `pre-tool` makes your own check decide (non-zero refuses), and declaring it at a later moment means pointing `run:` at your own check.",
     moments: PRE_TOOL_ONWARD,
     work: "migrations checked",
   },
@@ -892,12 +1096,24 @@ export const REGISTRY = Object.freeze({
     label: "🔒 Security Scan",
     summary: "No known high or critical advisory in shipped dependencies.",
     task: SECURITY_AUDIT_TASK,
-    declareOnly:
-      "The prover is the package manager's own `audit`, which CI invokes natively alongside an exclusion list. There is no script form to ship.",
+    fallbackWhenTaskMissing: true,
     // Continuous matters most here: a CVE published today makes yesterday's
     // green wrong with no change to trigger a re-scan.
     moments: [...PUSH_ONWARD, CONTINUOUS],
     work: "manifests scanned",
+    // The canonical audit's own verdict lines (scripts/lisa-audit.mjs). The
+    // shipped classifier reads vitest and tsc, not this audit, so without them
+    // a real finding was reported UNPROVABLE — "nothing here is a verdict about
+    // the code" — about an audit that had named the uncovered copy (#4521).
+    // Deliberately NOT "Security audit failed closed": that is a capture that
+    // audited nothing (registry outage, garbage output), which must stay
+    // UNPROVABLE so the operator re-runs rather than hunts for a defect.
+    // A project's own `failure_shape` replaces this default; like any declared
+    // shape it is consulted only when nothing else classified the output.
+    failureShape: [
+      "❌ High or critical vulnerabilities found",
+      "Security audit configuration invalid",
+    ],
   },
   "static-security": {
     label: "🔍 Static Security Analysis",
@@ -1302,6 +1518,7 @@ function isNonRunnerProverMode(mode) {
  * @param {string} options.moment The moment to resolve.
  * @param {string} [options.runner] The task runner.
  * @param {object|null} [options.scripts] The project's package scripts.
+ * @param {string|null} [options.hostWorkflow] A standalone GitHub workflow's declared path.
  * @returns {object[]} One leg per context this moment must post.
  */
 export function momentLegs({
@@ -1309,7 +1526,19 @@ export function momentLegs({
   moment,
   runner = DEFAULT_RUNNER,
   scripts = null,
+  hostWorkflow = null,
 }) {
+  if (hostWorkflow !== null) {
+    if (
+      moment !== PULL_REQUEST ||
+      !/^\.github\/workflows\/[\w.-]+\.ya?ml$/u.test(hostWorkflow)
+    ) {
+      throw new Error(
+        "Use --host-workflow=.github/workflows/<file>.yml with --moment=pull-request."
+      );
+    }
+    return hostWorkflowLegs({ gates, moment, runner, scripts, hostWorkflow });
+  }
   const spokenFor = new Set(jobBackedGates());
   const legs = [];
   for (const gate of resolvedForLegs({ gates, moment, runner, scripts })) {
@@ -1369,6 +1598,60 @@ export function momentLegs({
     });
   }
   return legs;
+}
+
+/**
+ * Plan one GitHub job per gate the host's workflow owns. Scoped parts share
+ * that job and the gate runner judges them together.
+ * @param {object} options Resolution inputs.
+ * @param {object} options.gates The project gates block.
+ * @param {string} options.moment The pull-request moment.
+ * @param {string} options.runner The task runner.
+ * @param {object|null} options.scripts The project's package scripts.
+ * @param {string} options.hostWorkflow The project-owned workflow's path.
+ * @returns {object[]} One leg per declared gate for this workflow.
+ */
+function hostWorkflowLegs({ gates, moment, runner, scripts, hostWorkflow }) {
+  const seen = new Set();
+  const prefix = DEFAULT_CALLER_CHAIN.join(CONTEXT_SEPARATOR);
+  return resolveMoment({
+    gates,
+    moment,
+    runner,
+    scripts,
+    includeOff: true,
+  }).flatMap(gate => {
+    const executor = gates?.[gate.id]?.[moment]?.[EXECUTOR_FIELD];
+    if (
+      executor?.platform !== LISA_EXECUTOR_PLATFORM ||
+      executor.path !== hostWorkflow ||
+      seen.has(gate.id) ||
+      isNonRunnerProverMode(gate.mode)
+    )
+      return [];
+    seen.add(gate.id);
+    const action =
+      gate.level === "off"
+        ? "report"
+        : gate.scope !== undefined || gate.task
+          ? "run"
+          : "unproved";
+    return [
+      {
+        gate: gate.id,
+        label: gate.label,
+        context: runContext(gate, prefix),
+        level: gate.level,
+        action,
+        runner: action === "run" ? "node" : "",
+        task:
+          action === "run"
+            ? `scripts/lisa-run-gates.mjs --moment=${PULL_REQUEST} --builtins=none --parts=all --gate=${gate.id}`
+            : "",
+        timeout: gate.costly ? COSTLY_LEG_TIMEOUT_MINUTES : LEG_TIMEOUT_MINUTES,
+      },
+    ];
+  });
 }
 
 /**
@@ -1743,12 +2026,11 @@ const QUALITY_FALLBACKS = Object.freeze({
     steps: ["🌱 No environment reseed adapter declared"],
   },
   npm_security_scan: {
-    // Every package-manager branch fails when the audit yields no report
-    // (retried first — it is a network call), so a mode-only declaration may
-    // delegate here. Without the flag it fell through to `security:audit`, a
-    // descriptive task Lisa does not ship (#3359).
+    // The workflow-owned action uses the canonical audit implementation and
+    // fails when the provider yields no complete report. Older callers may
+    // therefore delegate here before apply installs the now-shipped task.
     unconditional: true,
-    command: "<package-manager> audit, filtered through audit.ignore*.json",
+    command: "workflow-owned canonical dependency-audit action",
     seedRun: [SECURITY_AUDIT_TASK],
     steps: ["📋 Load audit exclusions", "🔒 Run security audit"],
   },
@@ -1958,7 +2240,7 @@ const QUALITY_FALLBACKS = Object.freeze({
  * `QUALITY_JOB_GATES` — the same table `lisa doctor` and a consumer migrating
  * off `skip_jobs` read — instead of being spelled out a second time here where
  * the two copies could disagree.
- * @returns {object[]} One frozen entry per façade job.
+ * @returns {InventoryEntry[]} One frozen entry per façade job.
  */
 function qualityInvocations() {
   return Object.entries(QUALITY_FALLBACKS).map(([job, entry]) => {
@@ -1996,7 +2278,7 @@ function qualityInvocations() {
  * @param {string} gate Registry gate id.
  * @param {string} command What the built-in else-branch runs.
  * @param {string[]|null} seedRun Candidate task names, or null for the registry default.
- * @returns {object} A frozen inventory entry.
+ * @returns {InventoryEntry} A frozen inventory entry.
  */
 function prePushInvocation(gate, command, seedRun) {
   return Object.freeze({
@@ -2022,7 +2304,7 @@ function prePushInvocation(gate, command, seedRun) {
  * @param {string} command What the built-in else-branch runs.
  * @param {string[]|null} seedRun Candidate task names, or null for the registry default.
  * @param {boolean} [unconditional] The fallback fails when its prover cannot run.
- * @returns {object} A frozen inventory entry.
+ * @returns {InventoryEntry} A frozen inventory entry.
  */
 function preCommitInvocation(gate, command, seedRun, unconditional = false) {
   return Object.freeze({
@@ -2044,7 +2326,7 @@ function preCommitInvocation(gate, command, seedRun, unconditional = false) {
  * @param {string} gate Registry gate id the tool proves.
  * @param {string} artifact Repository-relative path to the source hook.
  * @param {string} command The tool written into the script.
- * @returns {object} A frozen inventory entry.
+ * @returns {InventoryEntry} A frozen inventory entry.
  */
 function onEditInvocation(gate, artifact, command) {
   return Object.freeze({
@@ -2110,7 +2392,7 @@ function onEditInvocation(gate, artifact, command) {
  * @param {string} gate Registry gate id the built-in proves.
  * @param {string} artifact Repository-relative path to the source hook.
  * @param {string} command The check written into the script.
- * @returns {object} A frozen inventory entry.
+ * @returns {InventoryEntry} A frozen inventory entry.
  */
 function preToolRefusalInvocation(gate, artifact, command) {
   return Object.freeze({
@@ -2170,6 +2452,7 @@ function preToolRefusalInvocation(gate, artifact, command) {
  * an entry naming a step that is gone fails, and a façade job, a
  * `lisa_gate_covers` call, or an `-on-edit.sh` source script with no entry
  * fails too.
+ * @type {readonly InventoryEntry[]}
  */
 export const HARDCODED_INVOCATIONS = Object.freeze([
   // ── Class A: the pre-push hook. Nine gated steps, nine written-in else
@@ -2301,7 +2584,10 @@ export const HARDCODED_INVOCATIONS = Object.freeze([
   // of any kind AND had no entry, so `unconfigured --moment=pre-tool` was
   // silent about two shipped enforcements rather than reporting them as
   // ungoverned. Silence and "nothing to report" are indistinguishable, which
-  // is the failure mode this table exists to remove.
+  // is the failure mode this table exists to remove. Since 2026-11-08 the
+  // migration built-in warns and permits instead of refusing; it stays here
+  // because a declared `migration-provenance` task still decides — and refuses
+  // — at this moment.
   preToolRefusalInvocation(
     "suppression-residue",
     "plugins/src/typescript/hooks/block-suppress-directives.sh",
@@ -2310,7 +2596,7 @@ export const HARDCODED_INVOCATIONS = Object.freeze([
   preToolRefusalInvocation(
     "migration-provenance",
     "plugins/src/nestjs/hooks/block-migration-edits.sh",
-    "refuse any write matching */migrations/*.ts|*/migrations/*.js"
+    "warn on (permit) any write matching */migrations/*.ts|*/migrations/*.js"
   ),
   // The Codex copies, recorded separately for the same reason the Codex
   // on-edit copies are: they DIFFER from the originals — a shared path
@@ -2324,7 +2610,7 @@ export const HARDCODED_INVOCATIONS = Object.freeze([
   preToolRefusalInvocation(
     "migration-provenance",
     `${CODEX_SCRIPTS}/block-migration-edits.sh`,
-    "refuse any write matching */migrations/*[0-9]*-*.ts"
+    "warn on (permit) any write matching */migrations/*[0-9]*-*.ts"
   ),
   // ── Class A: the pre-commit hook. Three `lisa_gate_covers` sites guarding
   // five properties, each with a written-in else branch, and no report step —
@@ -2394,7 +2680,7 @@ export function isDeclarableAt(gate, moment) {
  * @param {string} [options.moment] Only invocations at this moment.
  * @param {string} [options.surface] Only invocations on this surface.
  * @param {string} [options.gate] Only invocations for this gate.
- * @returns {object[]} Matching entries, in table order.
+ * @returns {InventoryEntry[]} Matching entries, in table order.
  */
 export function hardcodedAt({ moment, surface, gate } = {}) {
   return HARDCODED_INVOCATIONS.filter(
@@ -2543,30 +2829,6 @@ function reasonFor(entry, hit, declarable, moment) {
 }
 
 /**
- * A `gates` block that declares what the built-ins are proving today.
- *
- * SEEDING IS THE MECHANISM THAT RETIRES A FALLBACK, and it is only safe if the
- * seeded declaration runs the same thing the fallback did. Two rules enforce
- * that, and they are why this returns less than the full registry:
- *
- *   * A gate is seeded only when the task that reproduces the built-in is a
- *     script the project ACTUALLY HAS. Twenty of the registry's default tasks
- *     are shipped by no template, so seeding by default would declare gates
- *     whose prover does not exist — a red fleet, delivered by a version bump.
- *   * A gate is seeded only at a moment the registry says it may be declared
- *     at. `test-meaningfulness` runs at push and cannot be declared there;
- *     seeding it would produce a config `validate` refuses.
- *
- * What is NOT seeded stays ungoverned, and stays reported by `unconfiguredAt`.
- * That is the honest outcome: this closes the gap it can prove it closes, and
- * leaves the rest visible rather than declaring it away.
- * @param {object} options Inputs.
- * @param {object} [options.gates] The existing gates block; its declarations win.
- * @param {Record<string, string>} [options.scripts] The project's package.json scripts.
- * @param {string} [options.runner] Task runner to record, when none is declared.
- * @returns {{gates: object, seeded: Array<{gate: string, moment: string, run: string|null}>, skipped: Array<{gate: string, moment: string, reason: string}>}} The merged block and what it did.
- */
-/**
  * The pull-request jobs #3052 deleted because a declared gate leg proves the
  * same property, with the gate each one proved and how that gate is seeded.
  *
@@ -2599,6 +2861,30 @@ function runnerOwnedJobs() {
   );
 }
 
+/**
+ * A `gates` block that declares what the built-ins are proving today.
+ *
+ * SEEDING IS THE MECHANISM THAT RETIRES A FALLBACK, and it is only safe if the
+ * seeded declaration runs the same thing the fallback did. Two rules enforce
+ * that, and they are why this returns less than the full registry:
+ *
+ *   * A gate is seeded only when the task that reproduces the built-in is a
+ *     script the project ACTUALLY HAS. Twenty of the registry's default tasks
+ *     are shipped by no template, so seeding by default would declare gates
+ *     whose prover does not exist — a red fleet, delivered by a version bump.
+ *   * A gate is seeded only at a moment the registry says it may be declared
+ *     at. `test-meaningfulness` runs at push and cannot be declared there;
+ *     seeding it would produce a config `validate` refuses.
+ *
+ * What is NOT seeded stays ungoverned, and stays reported by `unconfiguredAt`.
+ * That is the honest outcome: this closes the gap it can prove it closes, and
+ * leaves the rest visible rather than declaring it away.
+ * @param {object} options Inputs.
+ * @param {GatesBlock} [options.gates] The existing gates block; its declarations win.
+ * @param {Record<string, string>} [options.scripts] The project's package.json scripts.
+ * @param {string} [options.runner] Task runner to record, when none is declared.
+ * @returns {{gates: GatesBlock, seeded: Array<{gate: string, moment: string, run: string|null}>, skipped: Array<{gate: string, moment: string, reason: string}>}} The merged block and what it did.
+ */
 export function seedGates({ gates = {}, scripts = {}, runner } = {}) {
   const seeded = [];
   const skipped = [];
@@ -2989,119 +3275,12 @@ export const INTERCEPTORS = Object.freeze({
     "Structured formats are parsed with real parsers.",
 });
 
-/**
- * The shape every gate's implementation emits, whatever tool produced it.
- *
- * The task name alone is not an interface. If Lisa standardises only *how to
- * invoke*, the attestation records "test:cov passed" and cites nothing — true
- * of a scrupulous project as much as a careless one. Standardising what comes
- * *back* is what lets jest and vitest both satisfy `coverage-adequacy`, and
- * what lets the register quote a number instead of a verdict.
- *
- * Four fields, each earning its place:
- *
- * - `status` — three-valued. `unknown` is not a synonym for `fail`.
- * - `work` — the count that proves it RAN. `null` forces `unknown`, which is
- *   the `passWithNoTests` hole closed structurally rather than by vigilance.
- * - `measures` — what an attestation actually cites.
- * - `prover` — which implementation produced it. Vendor-neutrality means Lisa
- *   does not *mandate* a tool, not that it declines to *record* one; an auditor
- *   asking "what measured this?" deserves an answer.
- *
- * `observed_at` and `max_age_minutes` exist for continuous gates. A gate tied
- * to a change carries inherently fresh evidence — it ran on that diff. A gate
- * that runs on a schedule does not, and a green from six days ago proves
- * nothing about today. Evidence read past its bound yields `unknown`, never
- * `pass`: a scheduler that quietly died must block promotion rather than let
- * last week's result stand in for this week's.
- */
-export const EVIDENCE_FIELDS = Object.freeze({
-  gate: "string",
-  status: "pass | fail | unknown",
-  work: "number | null",
-  measures: "object",
-  prover: "{ tool, version }",
-  observed_at: "ISO-8601",
-  max_age_minutes: "number | null",
-});
-
-/** Verdict an evidence envelope can carry. */
-export const EVIDENCE_STATUS = ["pass", "fail", "unknown"];
-
-/**
- * Read a verdict from an evidence envelope, honouring work and freshness.
- *
- * Two demotions to `unknown`, both deliberate, both cases where the naive read
- * is `pass`:
- *
- * - the gate declares a work count and the implementation emitted none, so
- *   nothing shows it ran;
- * - the evidence is older than its own bound, so it describes a state that may
- *   no longer exist.
- *
- * Neither is a failure and neither is a pass. Collapsing either into `pass` is
- * the defect this whole subsystem exists to prevent; collapsing either into
- * `fail` blames a project for a gap in observation.
- * @param {object} evidence The emitted envelope.
- * @param {object} [definition] Registry entry, for whether work is expected.
- * @param {number} [nowMs] Clock, injected for tests.
- * @returns {{status: string, reason: string|null}} Effective verdict.
- */
-export function readEvidence(evidence, definition = {}, nowMs = Date.now()) {
-  if (!evidence || !EVIDENCE_STATUS.includes(evidence.status)) {
-    return { status: "unknown", reason: "no evidence was emitted" };
-  }
-  if (evidence.status !== "pass") {
-    return { status: evidence.status, reason: null };
-  }
-  if (definition.work && (evidence.work ?? null) === null) {
-    return {
-      status: "unknown",
-      reason: `reported pass but no ${definition.work} count, so nothing shows it ran`,
-    };
-  }
-  const bound = evidence.max_age_minutes;
-  if (bound) {
-    const observedAtMs = Date.parse(evidence.observed_at ?? "");
-    if (!Number.isFinite(observedAtMs)) {
-      return {
-        status: "unknown",
-        reason:
-          "freshness is bounded but observed_at is missing or invalid, so its age cannot be proved",
-      };
-    }
-    const ageMinutes = (nowMs - observedAtMs) / 60000;
-    if (ageMinutes > bound) {
-      return {
-        status: "unknown",
-        reason: `evidence is ${Math.round(ageMinutes)} minutes old, past its ${bound}-minute bound`,
-      };
-    }
-  }
-  return { status: "pass", reason: null };
-}
-
-// ─── Release evidence reuse (CodySwannGT/lisa#3013) ─────────────────────────
+// ─── Evidence digests ─────────────────────────────────────────────────────
 //
-// Release calls the full quality workflow again after merge, on a tree that
-// already passed the same contract on its pull request. Reuse is allowed only
-// when a VERIFIED `lisa.gate-evidence/v1` envelope proves the same tree under
-// the same-or-stricter contract, and every unproved dimension makes the gate
-// RUN. The design, including the permission wall that shaped it, is in
-// `docs/design/release-evidence-reuse.md`.
-
-/**
- * The schema token, spelled here as well as in the producer.
- *
- * This is a deliberate SECOND ADDRESS for one string, and it is forced rather
- * than sloppy: `.github/workflows/gates.yml` tells an old runner apart from a
- * current one by grepping the runner file for this literal, so the literal
- * cannot move out of `lisa-run-gates.mjs`. A verifier that imported it from
- * there would make this module depend on the runner, inverting the dependency.
- * `tests/unit/scripts/lisa-gates-reuse-plan.test.ts` pins the two together, so
- * they cannot drift even though they are written twice.
- */
-export const EVIDENCE_SCHEMA_TOKEN = "lisa.gate-evidence/v1";
+// `lisa-run-gates.mjs` records `contract.gates_digest` in the gate evidence
+// envelope so a reader can tell which declared rule set a run was held to. The
+// release-reuse checker that once consumed the envelope was removed
+// (CodySwannGT/lisa#4794); only the digest helpers remain.
 
 /**
  * Compare strings by UTF-16 code units, independent of the host locale.
@@ -3211,581 +3390,6 @@ export function planDigest({ gates, moment, runner, scripts = null }) {
     // An unresolvable plan — an invalid runner, a refused configuration — has
     // no contract to digest. Null says so; it does not guess one.
     return null;
-  }
-}
-
-/**
- * What kind of thing a gate's verdict is, which decides whether it may be
- * reused and for how long.
- *
- * Three values, and the default for anything not named is `never`. That
- * asymmetry is the whole safety posture: a gate becomes reusable only when
- * someone wrote down why it is, and a gate added tomorrow is not reusable by
- * accident.
- */
-export const REUSE_CLASS = Object.freeze({
-  /** Same tree + same contract ⇒ same verdict. No external state consulted. */
-  DETERMINISTIC: "deterministic",
-  /** Never satisfiable by evidence from another run. */
-  NEVER: "never",
-  /** Depends on external state that changes without the tree. Needs a window. */
-  TIME_SENSITIVE: "time-sensitive",
-});
-
-/** Every legal class, for validation. */
-export const REUSE_CLASSES = Object.freeze(Object.values(REUSE_CLASS));
-
-/**
- * The built-in classification, one row per registry gate.
- *
- * `tests/unit/scripts/lisa-gates-reuse-plan.test.ts` derives the key set from
- * `REGISTRY` and fails when they disagree, so a gate cannot be added without a
- * stated class. Deriving the table itself is not possible — whether a verdict
- * depends on external state is a fact about the prover, not about the registry
- * entry — but requiring the row is, and that is what stops a silent default.
- *
- * A project overrides a row with `gates.<id>.reuse` in `.lisa.config.json`.
- */
-export const GATE_REUSE_CLASS = Object.freeze({
-  "introduced-history-credential-leakage": { class: REUSE_CLASS.NEVER },
-  accessibility: { class: REUSE_CLASS.NEVER },
-  // A guard whose job is to detect a stale generated artifact must not itself
-  // be satisfied by a record of a previous run, and it costs seconds.
-  "artifact-freshness": { class: REUSE_CLASS.NEVER },
-  "behavior-contract": { class: REUSE_CLASS.DETERMINISTIC, diff: true },
-  "build-integrity": { class: REUSE_CLASS.DETERMINISTIC },
-  "code-review": { class: REUSE_CLASS.NEVER },
-  "code-style": { class: REUSE_CLASS.DETERMINISTIC },
-  "code-style-slow": { class: REUSE_CLASS.DETERMINISTIC },
-  "commit-conformance": { class: REUSE_CLASS.DETERMINISTIC, diff: true },
-  "conflict-residue": { class: REUSE_CLASS.DETERMINISTIC },
-  "coverage-adequacy": { class: REUSE_CLASS.DETERMINISTIC },
-  "credential-availability": { class: REUSE_CLASS.NEVER },
-  // ── Time-sensitive. 60 minutes throughout, stated rather than inferred: it
-  // sits well above the observed merge→release latency (minutes) and well below
-  // the interval over which a GIVEN lockfile's answer meaningfully changes.
-  // Re-proving these is cheap, so a narrow window costs little.
-  "credential-leakage": {
-    class: REUSE_CLASS.TIME_SENSITIVE,
-    maxAgeMinutes: 60,
-  },
-  "dead-code": { class: REUSE_CLASS.DETERMINISTIC },
-  "dependency-vulnerability": {
-    class: REUSE_CLASS.TIME_SENSITIVE,
-    maxAgeMinutes: 60,
-  },
-  "e2e-browser": { class: REUSE_CLASS.NEVER },
-  "e2e-native": { class: REUSE_CLASS.NEVER },
-  "environment-reseed": { class: REUSE_CLASS.NEVER },
-  "environment-reset": { class: REUSE_CLASS.NEVER },
-  "format-conformance": { class: REUSE_CLASS.DETERMINISTIC },
-  "generative-testing": { class: REUSE_CLASS.DETERMINISTIC },
-  "journey-coverage": { class: REUSE_CLASS.DETERMINISTIC },
-  "learnings-budget": { class: REUSE_CLASS.DETERMINISTIC },
-  "license-compliance": {
-    class: REUSE_CLASS.TIME_SENSITIVE,
-    maxAgeMinutes: 60,
-  },
-  "load-capacity": { class: REUSE_CLASS.NEVER },
-  "migration-provenance": { class: REUSE_CLASS.DETERMINISTIC },
-  // Its measurement varies with runner speed, so it is not a pure function of
-  // the tree. But the property it gates is a property of the CODE, and runner
-  // variance is noise in both directions: rerunning it adds a second sample of
-  // the same noise, not a second proof. A project that disagrees declares
-  // `"reuse": { "class": "time-sensitive", "max_age_minutes": N }`.
-  "performance-budget": { class: REUSE_CLASS.DETERMINISTIC },
-  "runtime-web-vulnerability": { class: REUSE_CLASS.NEVER },
-  "security-floor-integrity": { class: REUSE_CLASS.DETERMINISTIC },
-  "state-classification": { class: REUSE_CLASS.DETERMINISTIC },
-  // The main-branch analysis is a PUBLISHING action — it updates the
-  // server-side baseline every later pull request is measured against — not
-  // only a proof. Skipping it would silently stop maintaining that baseline.
-  "static-security": { class: REUSE_CLASS.NEVER },
-  "structural-rules": { class: REUSE_CLASS.DETERMINISTIC },
-  "suppression-residue": { class: REUSE_CLASS.DETERMINISTIC },
-  "test-correctness": { class: REUSE_CLASS.DETERMINISTIC },
-  // Hermetic in this repository. A project whose integration suite reaches a
-  // live service MUST override this — the built-in cannot know, and the cost of
-  // being wrong is reusing a proof about a system that has since changed.
-  "test-integration": { class: REUSE_CLASS.DETERMINISTIC },
-  "test-meaningfulness": { class: REUSE_CLASS.DETERMINISTIC },
-  "test-node-suites": { class: REUSE_CLASS.DETERMINISTIC },
-  "threshold-monotonicity": { class: REUSE_CLASS.DETERMINISTIC },
-  "tool-availability": { class: REUSE_CLASS.NEVER },
-  // `pull_request`-only by its job condition, so there is nothing to reuse and
-  // nothing to save; declaring it `never` says that rather than implying it.
-  traceability: { class: REUSE_CLASS.NEVER },
-  "type-correctness": { class: REUSE_CLASS.DETERMINISTIC },
-  "version-duplication": { class: REUSE_CLASS.DETERMINISTIC },
-});
-
-/**
- * Why a gate is running rather than reusing, as a stable token.
- *
- * Tokens rather than prose because the ledger is read by a job that must
- * compare two sets, and by an operator who needs the same phrase to mean the
- * same thing across runs.
- */
-export const REUSE_REASON = Object.freeze({
-  CONTRACT_MISMATCH: "contract-mismatch",
-  DERIVATIVE: "derivative",
-  LEVEL_DOWNGRADE: "level-downgrade",
-  MALFORMED: "malformed",
-  NEVER_REUSABLE: "never-reusable",
-  NOT_PROVED: "not-proved",
-  REUSED: "reused",
-  STALE: "stale",
-  SUBJECT_MISMATCH: "subject-mismatch",
-  UNATTRIBUTABLE: "unattributable",
-  UNAVAILABLE: "unavailable",
-  UNCLASSIFIED: "unclassified",
-  UNCOVERED: "uncovered",
-});
-
-/** The largest envelope the verifier will read, in bytes. */
-export const EVIDENCE_BYTE_BUDGET = 1024 * 1024;
-
-/** How deep a caller chain may be and still be primary pull-request proof. */
-const PRIMARY_CALLER_CHAIN_DEPTH = 1;
-
-/** How strong each level is, so evidence can never satisfy a stricter one. */
-const LEVEL_RANK = Object.freeze({ off: 0, optional: 1, required: 2 });
-
-/**
- * The reuse policy for one gate: built-in row, overridden by the project.
- *
- * An unknown gate id resolves to `never`. That is the fail-closed default and
- * it is why the built-in table does not need to anticipate a consumer's own
- * gate: a gate nobody classified is a gate nobody argued was reusable.
- * @param {string} id Gate id.
- * @param {object|null} [gates] The project gates block.
- * @returns {{class: string, diff: boolean, known: boolean, maxAgeMinutes: number|null}} Policy.
- */
-export function reusePolicyFor(id, gates = null) {
-  const builtIn = GATE_REUSE_CLASS[id] ?? null;
-  const declared = gates?.[id]?.reuse ?? null;
-  const known = Boolean(builtIn || declared);
-  const merged = {
-    class: declared?.class ?? builtIn?.class ?? REUSE_CLASS.NEVER,
-    diff: declared?.diff ?? builtIn?.diff ?? false,
-    known,
-    maxAgeMinutes: declared?.max_age_minutes ?? builtIn?.maxAgeMinutes ?? null,
-  };
-  // An unrecognised class is not a licence to guess. `validate` refuses it at
-  // declaration time; this is the runtime arm of the same refusal.
-  return REUSE_CLASSES.includes(merged.class)
-    ? merged
-    : { class: REUSE_CLASS.NEVER, diff: false, known, maxAgeMinutes: null };
-}
-
-/**
- * The tree this evidence is about must be the tree being released.
- *
- * `tree` rather than `commit` is the identity: two commits legitimately share a
- * tree after a rebase or a merge of an up-to-date branch, and that is exactly
- * the case where reuse is sound. A null on either side is a mismatch, not a
- * pass — an unknown tree is not the same tree.
- * @param {object} subject The envelope's subject block.
- * @param {object} observed Locally observed facts.
- * @returns {string|null} A problem, or null.
- */
-function verifySubject(subject, observed) {
-  if (!subject.repository || subject.repository !== observed.repository) {
-    return `evidence is about ${JSON.stringify(subject.repository ?? null)}, not ${JSON.stringify(observed.repository ?? null)}`;
-  }
-  if (!subject.tree || !observed.tree || subject.tree !== observed.tree) {
-    return `evidence is about tree ${JSON.stringify(subject.tree ?? null)}, not ${JSON.stringify(observed.tree ?? null)}`;
-  }
-  return null;
-}
-
-/**
- * Compare two dotted versions numerically, ignoring any pre-release suffix.
- *
- * Deliberately small: the only question asked of it is "is the producer's
- * registry at least as new as mine", and a full semver implementation would be
- * a second answer to a question nothing else asks.
- * @param {string} left Version.
- * @param {string} right Version.
- * @returns {number} Negative, zero or positive.
- */
-function compareVersions(left, right) {
-  const parts = value =>
-    String(value)
-      .split("-")[0]
-      .split(".")
-      .map(part => Number.parseInt(part, 10) || 0);
-  const a = parts(left);
-  const b = parts(right);
-  const width = Math.max(a.length, b.length);
-  for (let index = 0; index < width; index += 1) {
-    const difference = (a[index] ?? 0) - (b[index] ?? 0);
-    if (difference !== 0) return difference;
-  }
-  return 0;
-}
-
-/**
- * The contract that produced this evidence must be the one being planned.
- *
- * `workflow_ref` and `workflow_sha` are not redundant with the tree: consumers
- * call the reusable workflow at `@main`, so its contents can change with NO
- * change to the caller's tree, and tree identity alone would let an older,
- * weaker workflow's proof satisfy a stricter one. `registry_version` may be
- * NEWER than the local one — a stricter producer is acceptable, which is what
- * "same or stricter" means — but never older.
- * @param {object} contract The envelope's contract block.
- * @param {string} moment The moment being planned.
- * @param {object} observed Locally observed facts.
- * @returns {string|null} A problem, or null.
- */
-function verifyContract(contract, moment, observed) {
-  if (contract.moment !== moment) {
-    return `evidence is for moment ${JSON.stringify(contract.moment ?? null)}, not ${JSON.stringify(moment)}`;
-  }
-  const pairs = [
-    ["gates_digest", observed.gatesDigest],
-    ["inputs_digest", observed.inputsDigest],
-    ["workflow_ref", observed.workflowRef],
-    ["workflow_sha", observed.workflowSha],
-  ];
-  for (const [field, expected] of pairs) {
-    if (!contract[field] || !expected || contract[field] !== expected) {
-      return `${field} is ${JSON.stringify(contract[field] ?? null)}, not ${JSON.stringify(expected ?? null)}`;
-    }
-  }
-  if (!contract.registry_version || !observed.registryVersion) {
-    return `registry_version is ${JSON.stringify(contract.registry_version ?? null)}, and an unknown producer version cannot be shown to be same-or-stricter`;
-  }
-  if (
-    compareVersions(contract.registry_version, observed.registryVersion) < 0
-  ) {
-    return `registry_version ${contract.registry_version} is older than this run's ${observed.registryVersion}, so it may declare less or declare it more weakly`;
-  }
-  return null;
-}
-
-/**
- * The evidence must be PRIMARY and attributable.
- *
- * `reused_gates` closes circular reuse: a run that reused evidence and then
- * emitted its own could otherwise be reused in turn, and the chain of proof
- * bottoms out on nothing. `caller_chain` closes it a second time from a
- * different direction — a release-path envelope is nested one level deeper than
- * a pull-request one — and a null chain is ineligible rather than assumed
- * shallow. `run_url` is what makes the ledger auditable: evidence nobody can go
- * and read is not evidence anyone checked.
- * @param {object} producer The envelope's producer block.
- * @returns {{detail: string, reason: string}|null} A refusal, or null.
- */
-function verifyProducer(producer) {
-  const reused = producer.reused_gates;
-  if (!Array.isArray(reused)) {
-    return {
-      detail:
-        "producer.reused_gates is absent or not an array, so this run cannot be shown to be primary proof",
-      reason: REUSE_REASON.DERIVATIVE,
-    };
-  }
-  if (reused.length) {
-    return {
-      detail: `producer reused ${reused.length} gate(s), so this is not primary proof`,
-      reason: REUSE_REASON.DERIVATIVE,
-    };
-  }
-  const chain = producer.caller_chain;
-  if (!Array.isArray(chain) || chain.length !== PRIMARY_CALLER_CHAIN_DEPTH) {
-    return {
-      detail: `producer.caller_chain is ${JSON.stringify(chain ?? null)}; only a chain of depth ${PRIMARY_CALLER_CHAIN_DEPTH} is a primary pull-request path`,
-      reason: REUSE_REASON.UNATTRIBUTABLE,
-    };
-  }
-  if (!producer.run_id || !producer.run_url) {
-    return {
-      detail:
-        "producer.run_id or producer.run_url is absent, so the proof cannot be read back",
-      reason: REUSE_REASON.UNATTRIBUTABLE,
-    };
-  }
-  return null;
-}
-
-/**
- * Whether the envelope as a WHOLE may be used as a source of proof.
- *
- * Every check here discards the entire document, because each one says the
- * evidence is about a different subject, a different contract, or is not
- * primary. A per-gate check cannot rescue any of them.
- * @param {object} options Inputs.
- * @param {unknown} options.envelope The parsed envelope, or null.
- * @param {string} options.moment The moment being planned.
- * @param {object} options.observed Locally observed facts.
- * @returns {{detail: string|null, ok: boolean, reason: string|null}} Verdict.
- */
-function verifyEnvelope({ envelope, moment, observed }) {
-  const refuse = (reason, detail) => ({ detail, ok: false, reason });
-  if (!envelope || typeof envelope !== "object" || Array.isArray(envelope)) {
-    return refuse(REUSE_REASON.MALFORMED, "the envelope is not a JSON object");
-  }
-  if (envelope.schema !== EVIDENCE_SCHEMA_TOKEN) {
-    return refuse(
-      REUSE_REASON.MALFORMED,
-      `schema is ${JSON.stringify(envelope.schema ?? null)}, not ${JSON.stringify(EVIDENCE_SCHEMA_TOKEN)}`
-    );
-  }
-  if (!Array.isArray(envelope.gates)) {
-    return refuse(REUSE_REASON.MALFORMED, "gates is not an array");
-  }
-  if (envelope.verdict !== "proved") {
-    return refuse(
-      REUSE_REASON.NOT_PROVED,
-      `verdict is ${JSON.stringify(envelope.verdict ?? null)}, not "proved"`
-    );
-  }
-  const subjectProblem = verifySubject(envelope.subject ?? {}, observed);
-  if (subjectProblem) {
-    return refuse(REUSE_REASON.SUBJECT_MISMATCH, subjectProblem);
-  }
-  const contractProblem = verifyContract(
-    envelope.contract ?? {},
-    moment,
-    observed
-  );
-  if (contractProblem) {
-    return refuse(REUSE_REASON.CONTRACT_MISMATCH, contractProblem);
-  }
-  const producerProblem = verifyProducer(envelope.producer ?? {});
-  if (producerProblem) {
-    return refuse(producerProblem.reason, producerProblem.detail);
-  }
-  return { detail: null, ok: true, reason: null };
-}
-
-/**
- * The freshness bound to judge a row by: the tighter of the two, never the
- * looser.
- *
- * A producer that stamped its own bound and a policy that declares one are two
- * claims about the same question, and taking the maximum would let a generous
- * producer widen a window the project narrowed.
- * @param {object} row The evidence row.
- * @param {object} policy The gate's reuse policy.
- * @returns {number|null} The bound in minutes, or null for unbounded.
- */
-function effectiveBound(row, policy) {
-  const bounds = [row.max_age_minutes, policy.maxAgeMinutes].filter(
-    value => typeof value === "number" && value > 0
-  );
-  return bounds.length ? Math.min(...bounds) : null;
-}
-
-/**
- * Whether ONE gate's row proves what this moment requires of it.
- *
- * Row-level failures affect one gate and never leak into another's decision —
- * the fixtures assert exactly that, because a verifier whose failures
- * cross-contaminate is one nobody can reason about one dimension at a time.
- * @param {object} options Inputs.
- * @param {object} options.gate The resolved gate at this moment.
- * @param {number} options.nowMs Clock.
- * @param {object} options.observed Locally observed facts.
- * @param {object} options.policy Its reuse policy.
- * @param {object} [options.row] Its evidence row, if any.
- * @returns {{decision: string, detail: string|null, reason: string}} Verdict.
- */
-function verifyRow({ gate, nowMs, observed, policy, row }) {
-  const run = (reason, detail = null) => ({ decision: "run", detail, reason });
-  if (policy.class === REUSE_CLASS.NEVER) {
-    return policy.known
-      ? run(REUSE_REASON.NEVER_REUSABLE, "declared never reusable")
-      : run(
-          REUSE_REASON.UNCLASSIFIED,
-          "no reuse class is declared for this gate, and the default is never"
-        );
-  }
-  if (!row) {
-    return run(REUSE_REASON.UNCOVERED, "the envelope carries no row for it");
-  }
-  const bound = effectiveBound(row, policy);
-  const effective = readEvidence(
-    { ...row, max_age_minutes: bound },
-    gate,
-    nowMs
-  );
-  if (effective.status !== "pass") {
-    const reason = effective.reason ?? "";
-    const stale = reason.includes("past its") || reason.includes("observed_at");
-    return run(
-      stale ? REUSE_REASON.STALE : REUSE_REASON.NOT_PROVED,
-      effective.reason
-    );
-  }
-  if (policy.class === REUSE_CLASS.TIME_SENSITIVE) {
-    if (!bound) {
-      return run(
-        REUSE_REASON.STALE,
-        "time-sensitive with no declared window, so freshness was never bounded"
-      );
-    }
-    if (!row.prover?.version) {
-      return run(
-        REUSE_REASON.UNATTRIBUTABLE,
-        "time-sensitive and prover.version is absent, so the scanner that produced it is unknown"
-      );
-    }
-  }
-  const rank = LEVEL_RANK[row.level];
-  const requiredRank = LEVEL_RANK[gate.level];
-  if (rank === undefined || requiredRank === undefined || rank < requiredRank) {
-    return run(
-      REUSE_REASON.LEVEL_DOWNGRADE,
-      `proved at ${JSON.stringify(row.level ?? null)} but this moment requires ${gate.level}`
-    );
-  }
-  // A diff gate resolved a BASE revision, which the tree hash does not carry.
-  // Two commits sharing a tree do not share a diff, so this sub-class binds to
-  // the commit as well — a strictly stronger requirement than the rest.
-  if (policy.diff && !observed.commitMatches) {
-    return run(
-      REUSE_REASON.SUBJECT_MISMATCH,
-      "a diff gate is bound to the commit it diffed, and the commit differs"
-    );
-  }
-  return { decision: "reuse", detail: null, reason: REUSE_REASON.REUSED };
-}
-
-/**
- * Plan which gates at a moment may stand down on verified prior evidence.
- *
- * FAIL-CLOSED IS THE WHOLE CONTRACT. Every path through this function that is
- * not "the envelope passed every check AND this row passed every check" returns
- * `run`. There is no blanket switch, no `skip_jobs` equivalent, and no branch
- * where the ABSENCE of evidence produces anything but a full plan.
- * @param {object} options Inputs.
- * @param {unknown} options.envelope The parsed inbound envelope, or null.
- * @param {object|null} [options.gates] The project gates block.
- * @param {string} options.moment The moment being planned.
- * @param {number} [options.nowMs] Clock, injected for tests.
- * @param {object} options.observed Locally observed facts.
- * @param {{detail: string, reason: string}|null} [options.refusal] A refusal the caller already reached.
- * @param {string} [options.runner] The task-runner prefix.
- * @param {Record<string,string>|null} [options.scripts] Project scripts.
- * @returns {{decisions: object[], detail: string|null, verdict: string}} Plan.
- */
-export function reusePlan({
-  envelope,
-  gates = null,
-  moment,
-  nowMs = Date.now(),
-  observed,
-  refusal = null,
-  runner = undefined,
-  scripts = null,
-}) {
-  const resolveOptions = { gates, moment, scripts };
-  const resolved = resolveMoment(
-    runner === undefined ? resolveOptions : { ...resolveOptions, runner }
-  );
-  // A refusal the CALLER already reached outranks anything this function could
-  // work out. "The file was not there" and "the file was there and wrong" are
-  // different facts about the same absent proof, and only the caller that tried
-  // to open it knows which — reporting the wrong one sends an operator looking
-  // at the wrong thing, and the ledger compares these tokens.
-  const envelopeVerdict = refusal
-    ? { detail: refusal.detail, ok: false, reason: refusal.reason }
-    : verifyEnvelope({ envelope, moment, observed });
-  const rows = new Map(
-    envelopeVerdict.ok
-      ? envelope.gates
-          .filter(row => row && typeof row.gate === "string")
-          .map(row => [row.gate, row])
-      : []
-  );
-  const commitMatches = Boolean(
-    envelope?.subject?.commit &&
-    observed.commit &&
-    envelope.subject.commit === observed.commit
-  );
-  const decisions = resolved.map(gate => {
-    const policy = reusePolicyFor(gate.id, gates);
-    const outcome = envelopeVerdict.ok
-      ? verifyRow({
-          gate,
-          nowMs,
-          observed: { ...observed, commitMatches },
-          policy,
-          row: rows.get(gate.id),
-        })
-      : {
-          decision: "run",
-          detail: envelopeVerdict.detail,
-          reason: envelopeVerdict.reason,
-        };
-    return {
-      class: policy.class,
-      decision: outcome.decision,
-      detail: outcome.detail,
-      gate: gate.id,
-      label: gate.label,
-      level: gate.level,
-      proof:
-        outcome.decision === "reuse"
-          ? (envelope.producer?.run_url ?? null)
-          : null,
-      reason: outcome.reason,
-    };
-  });
-  return {
-    decisions,
-    detail: envelopeVerdict.detail,
-    verdict: envelopeVerdict.ok ? "verified" : envelopeVerdict.reason,
-  };
-}
-
-/**
- * Read an envelope from disk for the verifier, refusing anything it cannot
- * safely read.
- *
- * A read failure and a parse failure both return null plus a reason, because
- * the caller does the same thing with both: run everything. They carry
- * DIFFERENT refusal tokens, because an absent record and a corrupt one are
- * different things to go and fix. The byte budget lives here rather than in the
- * caller so every entry point shares one limit.
- * @param {string} path File to read.
- * @param {object} [io] Injected fs, for tests.
- * @returns {{envelope: object|null, reason: string|null, refusal: string|null}} The parsed envelope.
- */
-export function readEvidenceFile(path, io = {}) {
-  const { readFile = readFileSync, statFile = statSync } = io;
-  let raw = null;
-  try {
-    const { size } = statFile(path);
-    if (size > EVIDENCE_BYTE_BUDGET) {
-      return {
-        envelope: null,
-        reason: `evidence at ${path} is ${size} bytes, past the ${EVIDENCE_BYTE_BUDGET}-byte budget`,
-        refusal: REUSE_REASON.UNAVAILABLE,
-      };
-    }
-    raw = readFile(path, "utf8");
-  } catch (err) {
-    return {
-      envelope: null,
-      reason: `evidence at ${path} could not be opened: ${err.message}`,
-      refusal: REUSE_REASON.UNAVAILABLE,
-    };
-  }
-  try {
-    return { envelope: JSON.parse(raw), reason: null, refusal: null };
-  } catch (err) {
-    // Split from the open failure deliberately. Bytes that exist and do not
-    // parse are a MALFORMED record; bytes that are not there are an ABSENT one.
-    // Both run everything, and an operator needs to know which to go and fix.
-    return {
-      envelope: null,
-      reason: `evidence at ${path} is not JSON: ${err.message}`,
-      refusal: REUSE_REASON.MALFORMED,
-    };
   }
 }
 
@@ -3911,6 +3515,7 @@ export const KNOWN_CONFIG_KEYS = Object.freeze([
   "deploy",
   "quality",
   "gates",
+  "controls",
   "policy",
   "intake",
   "monitor",
@@ -3919,10 +3524,17 @@ export const KNOWN_CONFIG_KEYS = Object.freeze([
   "automations",
   "usage",
   "wiki",
+  // Core knowledge-role selection and the sync registry read this backend.
+  "knowledge",
   "learnings",
   "health",
   "verification",
   "thresholdRatchet",
+  // The work-item traceability contract reads `workItem.verify`.
+  "workItem",
+  // `pushGate.cache` switches on the push-gate pass cache; see
+  // `lib/gate-pass-cache.mjs` (CodySwannGT/lisa#4594).
+  "pushGate",
 ]);
 
 /**
@@ -4015,6 +3627,24 @@ export function isRunner(value) {
 }
 
 /**
+ * What a parsed JSON value is, in the words an operator would use for it.
+ *
+ * `typeof` calls a list and `null` both "object", which is the one word that
+ * would mislead here: the sentence this finishes is telling someone their
+ * file is NOT an object.
+ * @param {unknown} value A value `JSON.parse` returned.
+ * @returns {string} What it is, for the middle of a sentence.
+ */
+function jsonKind(value) {
+  if (value === null) return "null";
+  if (Array.isArray(value)) return "a list";
+  if (typeof value === "string") return "text";
+  if (typeof value === "number") return "a number";
+  if (typeof value === "boolean") return "true or false";
+  return "an object";
+}
+
+/**
  * Read the config, splitting the runner out of the gates block.
  *
  * Refuses a runner that cannot run a task, rather than passing it through.
@@ -4026,12 +3656,24 @@ export function isRunner(value) {
  * `gates."unproven" is not a gate Lisa knows` — a BLOCKING problem — so a
  * project that set the control would have `validate` refuse it and get no
  * enforcement either.
+ *
+ * Refuses a file that is valid JSON and is not a configuration, for the same
+ * reason. The file holds one JSON object, and so does its `gates` key. A
+ * list, a number or `null` in either place parses without complaint, and
+ * read loosely it is a project that declares no gates: `[]` has no `gates`
+ * key, and spreading a list or a number yields no gate. Every reader then
+ * reports "nothing declared" about a file somebody damaged — the runner lets
+ * the commit through, and the register is rewritten empty. `"gates": null`
+ * and a missing key stay what they have always been, a project that declares
+ * none.
  * @param {string} [cwd] Directory to look in.
  * @returns {{runner: string, unproven: string, gates: object, policy: object, config: object}} Parsed config.
- * @throws {Error} When `gates.runner` is not a runner, or `gates.unproven` is not a permitted response.
+ * @throws {Error} When the file or its `gates` key is not a JSON object,
+ *   `gates.runner` is not a runner, or `gates.unproven` is not a permitted
+ *   response.
  */
 export function readGates(cwd = process.cwd()) {
-  const path = join(cwd, ".lisa.config.json");
+  const path = join(cwd, CONFIG_FILE);
   if (!existsSync(path)) {
     return {
       runner: DEFAULT_RUNNER,
@@ -4045,7 +3687,21 @@ export function readGates(cwd = process.cwd()) {
   try {
     config = JSON.parse(readFileSync(path, "utf8"));
   } catch (err) {
-    throw new Error(`.lisa.config.json is not readable: ${err.message}`);
+    throw new Error(`${CONFIG_FILE} is not readable: ${err.message}`);
+  }
+  if (!isKeyed(config)) {
+    throw new Error(
+      `${CONFIG_FILE} holds ${jsonKind(config)}. It has to hold one JSON ` +
+        `object: { ... }. Nothing was read from it.`
+    );
+  }
+  const declaredGates = config.gates ?? null;
+  if (declaredGates !== null && !isKeyed(declaredGates)) {
+    throw new Error(
+      `"gates" in ${CONFIG_FILE} is ${jsonKind(declaredGates)}. It has to ` +
+        `be one JSON object holding a gate per key: { ... }. No gate was ` +
+        `read from it.`
+    );
   }
   const {
     runner: declared,
@@ -4530,6 +4186,7 @@ function declaredLevel(entry) {
  * @param {object} options.gates The gates block.
  * @param {Record<string, string>|null} [options.scripts] The project's package scripts, or null when unknown.
  * @param {Record<string, string>} [options.outsideFacade] Gates proved by a step the façade does not represent. A SEAM, not configuration: the shipped table is empty today, and a branch nothing can reach is a branch nothing tests.
+ * @param {{moments?: string[], families?: string[]}} [options.executedMoments] Moments this repository actually runs gates at; defaults to none.
  * @returns {Array<{gate: string, moment: string, level: string, verdict: string, detail: string}>} One finding per declaration that is not plainly executable.
  */
 export function classifyDeclaredExecutors({
@@ -4566,7 +4223,7 @@ export function classifyDeclaredExecutors({
  * One declaration's verdict, or null when it is plainly executable.
  * @param {object} options The declaration.
  * @param {string} options.gate Gate id.
- * @param {object} options.block The gate's block.
+ * @param {Record<string, unknown>} options.block The gate's block.
  * @param {string} options.moment Declared moment.
  * @param {string} options.level Declared level.
  * @param {Record<string, string>|null|undefined} options.scripts Project scripts.
@@ -4644,6 +4301,12 @@ function verdictFor({
   // reproducing its task precedence here is how a new execution mode can be
   // mistaken for a missing package script.
   if (scripts === null || scripts === undefined) return null;
+  // A gate with parts carries its own command for each part, so "does this
+  // project have the script" is not a question it can fail: no script is
+  // looked up. Whether those commands are well-formed is `validateGates`'
+  // question and is answered there — asking the resolver here as well would
+  // throw on a malformed part and replace that answer with a stack trace.
+  if (block.parts !== undefined) return null;
   const [resolved] = resolveMoment({
     gates: { [gate]: block },
     moment,
@@ -4672,10 +4335,44 @@ function verdictFor({
  * A resolver that only looks at `gate[moment]` can make a typo'd config key look
  * like a truthful absence at that moment. Validation is therefore part of
  * resolution, not just the standalone `validate` command.
+ *
+ * Malformed `parts` are refused in the same breath, for a stronger reason. A
+ * resolved part carries the argument list a runner starts as a process and
+ * the folder it starts it in. Every other field of a resolved entry describes
+ * what to run; these two ARE what runs, so resolution never hands out one that
+ * `validateGates` would have refused — a command still written as a string, a
+ * scope that climbs out of the repository. Checking it here rather than
+ * trusting that `validate` ran first is what lets a runner treat `argv` and
+ * `scope` as already checked.
+ *
+ * Both kinds of problem are thrown together, so an operator fixing a block
+ * the resolver refuses sees all of them in one run. The parts check costs
+ * nothing for a block with no `parts`: `validateParts` returns at its first
+ * line for every gate that does not declare the key.
+ *
+ * The parts are checked as the block reads AT THE MOMENT BEING RESOLVED,
+ * through `declarationsAt`, for the reason the gate runner narrows its own
+ * validity check that way. One of the parts rules is about a single moment:
+ * a `run` or an `await` written on one moment of a gate that has parts. That
+ * is a real problem at that moment, and no reason to refuse every other one —
+ * the runner had already said "this run continued" about it, and then
+ * stopped here with a crash. Everything about a part itself (its scope, its
+ * command, its proof) and a task named for the whole gate sit on the gate,
+ * survive the narrowing, and are refused at every moment as before.
+ * `validate` reads the whole block and still lists the problem.
+ *
+ * The moment-key check reads the whole block on purpose. A misspelt moment
+ * is a problem at no moment in particular, so no narrowing may drop it.
  * @param {object} gates The gates block.
+ * @param {string} moment The moment being resolved.
  */
-function assertValidMomentKeys(gates) {
-  const problems = validateGateMomentKeys(gates);
+function assertResolvable(gates, moment) {
+  const problems = [
+    ...validateGateMomentKeys(gates),
+    ...Object.entries(declarationsAt({ gates, moment })).flatMap(
+      ([id, gate]) => (isKeyed(gate) ? validateParts(id, gate) : [])
+    ),
+  ];
   if (!problems.length) return;
   throw new Error(
     `Invalid gates configuration:\n${problems
@@ -4711,7 +4408,7 @@ function validateGateMomentKeys(gates) {
 /**
  * Validate one gate entry.
  * @param {string} id Gate id.
- * @param {object} gate The entry.
+ * @param {Record<string, any>} gate The entry.
  * @returns {string[]} Problems.
  */
 function validateGate(id, gate) {
@@ -4749,7 +4446,10 @@ function validateGate(id, gate) {
     );
   }
   problems.push(...validateNeeds(id, gate));
-  problems.push(...validateReuse(id, gate.reuse));
+  problems.push(...validateCriteria(id, gate.criteria));
+  problems.push(...validateOwner(id, gate.owner));
+  problems.push(...validateTier(id, gate.tier));
+  problems.push(...validateParts(id, gate));
 
   for (const [moment, value] of Object.entries(gate)) {
     // A key that is neither a known field nor a well-formed moment is a typo,
@@ -4799,7 +4499,16 @@ function validateGate(id, gate) {
       continue;
     }
     problems.push(
-      ...validateMoment(id, moment, value, known, interceptor, gate.run)
+      ...validateMoment(
+        id,
+        moment,
+        value,
+        known,
+        interceptor,
+        // Either one is a prover named once for every moment of the gate: a
+        // task, or a command per part.
+        Boolean(gate.run) || gate.parts !== undefined
+      )
     );
   }
   return problems;
@@ -4818,14 +4527,17 @@ function validateGate(id, gate) {
  *   contained in every line, so every unrecognised failure would report FAILED
  *   against whichever gate declared it. That is this mechanism's own inverse
  *   defect, and shipping it by accident is one keystroke away.
- * @param {string} id Gate id.
- * @param {string} moment Moment key.
+ *
+ * One validator for both places a shape is declared — on a moment, and in a
+ * part's `proof` — because both are read the same way against the same kind
+ * of transcript, so a value refused in one must be refused in the other.
+ * @param {string} where The key being validated, as an operator would find
+ *   it: `gates."<id>"."<moment>".failure_shape`, or the same key in a proof.
  * @param {*} shape The declared value, if any.
  * @returns {string[]} Problems.
  */
-function validateFailureShape(id, moment, shape) {
+function validateFailureShape(where, shape) {
   if (shape === undefined) return [];
-  const where = `gates."${id}"."${moment}".${FAILURE_SHAPE_FIELD}`;
   if (!Array.isArray(shape)) {
     return [
       `${where} is ${JSON.stringify(shape)}; expected a list of literal ` +
@@ -4861,54 +4573,234 @@ function validateFailureShape(id, moment, shape) {
 }
 
 /**
- * Validate a gate's reuse declaration (#3013).
+ * Validate the per-moment `cache` flag (CodySwannGT/lisa#4594).
  *
- * A half-written declaration here is the dangerous kind: a `time-sensitive`
- * class with no window would either be unbounded — the freshness requirement
- * resolving against nothing, which is the failure the gate façade exists to
- * refuse — or silently fall back to `never`, which is safe but leaves the
- * author believing they configured something. Refusing at declaration time is
- * the only reading that tells them.
- *
- * A window on a class that does not use one is refused for the mirror reason:
- * it reads as a bound that is being applied, and it is not.
+ * `"cache": false` beside `level` and `run` says this moment's verdict can
+ * depend on something the push-gate pass cache does not key on — the tracker,
+ * live machine state, history beyond the tree — so the gate always runs. It
+ * sits on the MOMENT entry, beside `failure_shape`, for the same reason that
+ * field does: an older Lisa ignores an unknown moment key but refuses an
+ * unknown gate-level one, along with the whole gates block. Only a boolean is
+ * accepted; anything else would silently read as "cacheable".
  * @param {string} id Gate id.
- * @param {*} reuse The declared block, if any.
+ * @param {string} moment Moment key.
+ * @param {*} value The declared value, if any.
  * @returns {string[]} Problems.
  */
-function validateReuse(id, reuse) {
-  if (reuse === undefined) return [];
-  const where = `gates."${id}"."reuse"`;
-  if (!reuse || typeof reuse !== "object" || Array.isArray(reuse)) {
-    return [`${where} must be an object`];
+function validateCacheFlag(id, moment, value) {
+  if (value === undefined || typeof value === "boolean") return [];
+  return [
+    `gates."${id}"."${moment}".${CACHE_FIELD} is ${JSON.stringify(value)}; ` +
+      `expected false (this verdict depends on more than the pushed tree, ` +
+      `so it must always run) or true.`,
+  ];
+}
+
+/**
+ * The pull-request moment's field naming the file that runs the gates on the
+ * platform hosting the repository (CodySwannGT/lisa#4991).
+ *
+ * Lisa ships that file for one platform, {@link LISA_EXECUTOR_PLATFORM}. On
+ * any other the host's agent writes it, and this is where the declaration
+ * says so: `"pull-request": { "level": "required", "executor": { "platform":
+ * "gitlab", "path": ".gitlab-ci.yml" } }`. The control register records it on
+ * the entry's pull-request enforcement point, and reads an entry whose
+ * executor Lisa did not write as unproved until a proof is on record.
+ *
+ * Nothing here runs the file or reads it, and the key changes nothing about
+ * what the moment resolves to. It sits on the MOMENT entry, where an older
+ * Lisa ignores a key it does not know; a gate-level key would make an older
+ * Lisa refuse the whole gates block.
+ */
+export const EXECUTOR_FIELD = "executor";
+
+/**
+ * The keys Lisa reads in an `executor`: the hosting platform's name, and the
+ * file, written from the repository root. Closed the way {@link PART_FIELDS}
+ * is: any other key is refused unless it starts with {@link CUSTOM_PREFIX}.
+ */
+export const EXECUTOR_FIELDS = Object.freeze(["platform", "path"]);
+
+/** The one hosting platform Lisa ships the pull-request executor for. */
+export const LISA_EXECUTOR_PLATFORM = "github";
+
+/**
+ * How a platform is named: lower-case letters and digits, in words joined by
+ * single hyphens. One spelling, so `GitHub` cannot be read as a platform
+ * other than `github`.
+ */
+const EXECUTOR_PLATFORM_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
+
+/**
+ * Validate the hosting platform an executor names.
+ * @param {string} where The key being validated.
+ * @param {*} platform The declared value.
+ * @returns {string[]} Problems.
+ */
+function validateExecutorPlatform(where, platform) {
+  if (
+    typeof platform === "string" &&
+    EXECUTOR_PLATFORM_PATTERN.test(platform)
+  ) {
+    return [];
   }
-  const problems = [];
-  if (!REUSE_CLASSES.includes(reuse.class)) {
-    problems.push(
-      `${where}.class is ${JSON.stringify(reuse.class ?? null)}; ` +
-        `expected one of ${REUSE_CLASSES.join(", ")}.`
-    );
+  return [
+    `${where} is ${JSON.stringify(platform)}; expected the name of the ` +
+      `platform that hosts the repository, in lower-case letters and ` +
+      `digits with hyphens between words: "${LISA_EXECUTOR_PLATFORM}" for ` +
+      `the one platform Lisa ships this file for, or the platform's own ` +
+      `name for any other, for example "gitlab" or "azure-devops".`,
+  ];
+}
+
+/**
+ * Validate the file an executor names.
+ *
+ * Only the path is checked. Whether the file exists is a fact about a
+ * checkout, not about a declaration.
+ * @param {string} where The key being validated.
+ * @param {*} file The declared value.
+ * @returns {string[]} Problems.
+ */
+function validateExecutorPath(where, file) {
+  const advice =
+    `Write the file from the repository root: for example ` +
+    `".gitlab-ci.yml" or "ci/pull-request.yml".`;
+  if (file === undefined) return [`${where} is missing. ${advice}`];
+  if (typeof file !== "string" || file.trim() === "") {
+    return [
+      `${where} is ${JSON.stringify(file)}; expected the path of the file ` +
+        `that runs the gates on a pull request. ${advice}`,
+    ];
   }
-  const window = reuse.max_age_minutes;
-  if (reuse.class === REUSE_CLASS.TIME_SENSITIVE) {
-    if (!Number.isFinite(window) || window <= 0) {
-      problems.push(
-        `${where}.max_age_minutes is ${JSON.stringify(window ?? null)}; ` +
-          `a time-sensitive gate depends on external state that changes ` +
-          `without the tree, so it must say how stale an answer it accepts. ` +
-          `An unbounded window is not freshness, it is an unmeasured claim.`
-      );
-    }
-  } else if (window !== undefined) {
-    problems.push(
-      `${where}.max_age_minutes is declared on a "${reuse.class}" gate, ` +
-        `where nothing reads it. Either the class is wrong or the window is.`
-    );
+  if (file === WHOLE_REPOSITORY) {
+    return [
+      `${where} is ${JSON.stringify(file)}, which names the repository ` +
+        `itself rather than a file in it. ${advice}`,
+    ];
   }
-  if (reuse.diff !== undefined && typeof reuse.diff !== "boolean") {
-    problems.push(`${where}.diff must be true or false`);
+  const problem = repositoryPathProblem(file);
+  return problem === null
+    ? []
+    : [`${where} is ${JSON.stringify(file)}, which ${problem}. ${advice}`];
+}
+
+/**
+ * Validate the executor a moment names.
+ * @param {string} id Gate id.
+ * @param {string} moment Moment key.
+ * @param {*} executor The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateExecutor(id, moment, executor) {
+  if (executor === undefined) return [];
+  const where = `gates."${id}"."${moment}".${EXECUTOR_FIELD}`;
+  if (moment !== PULL_REQUEST) {
+    return [
+      `${where} names a file that runs the gates, but only the ` +
+        `"${PULL_REQUEST}" moment has one: it is the pipeline file the ` +
+        `hosting platform runs on a pull request. Move it to ` +
+        `gates."${id}"."${PULL_REQUEST}", or remove it.`,
+    ];
   }
-  return problems;
+  if (!isKeyed(executor)) {
+    return [
+      `${where} is ${JSON.stringify(executor)}; expected an object naming ` +
+        `the hosting platform and the file that runs the gates there, for ` +
+        `example { "platform": "gitlab", "path": ".gitlab-ci.yml" }.`,
+    ];
+  }
+  return [
+    ...unknownKeyProblems(where, executor, EXECUTOR_FIELDS),
+    ...validateExecutorPlatform(`${where}.platform`, executor.platform),
+    ...validateExecutorPath(`${where}.path`, executor.path),
+  ];
+}
+
+/**
+ * The moment field naming the coding agents a rule cannot be enforced on at
+ * that moment (CodySwannGT/lisa#4990).
+ *
+ * A check declared at an agent moment runs because the agent's own hook calls
+ * the gate runner. Some agents have no hook that can refuse what they just
+ * did, so on those nothing calls it, and that has to be written down rather
+ * than left for a reader to work out: `"post-tool": { "level": "required",
+ * "unenforceable_on": ["agy"] }`. The control register records the list on
+ * the entry's enforcement point at that moment.
+ *
+ * Nothing here checks which agents have such a hook; that is a fact about
+ * each agent, held where the carriers are installed. The key changes nothing
+ * about what the moment resolves to, and it sits on the MOMENT entry for the
+ * reason {@link EXECUTOR_FIELD} does: an older Lisa ignores a moment key it
+ * does not know, where a gate-level key would refuse the whole gates block.
+ */
+export const UNENFORCEABLE_ON_FIELD = "unenforceable_on";
+
+/**
+ * The coding agents Lisa supports, by the names the `harness` setting of
+ * `.lisa.config.json` uses for them. A suite holds this list to that setting's
+ * own values, so the two cannot drift apart.
+ */
+export const CODING_AGENTS = Object.freeze([
+  "claude",
+  "codex",
+  "cursor",
+  "agy",
+  "copilot",
+  "opencode",
+  "devin",
+]);
+
+/**
+ * The moments a coding agent's own hooks carry: the start of a session, and
+ * before and after one of its tools runs. Every other moment is carried by
+ * something that is not an agent (git, the hosting platform, a pipeline), so
+ * "cannot be enforced on this agent" would say nothing there.
+ */
+export const AGENT_MOMENTS = Object.freeze([SESSION_START, ...TOOL_MOMENTS]);
+
+/**
+ * Validate the agents a moment says it cannot be enforced on.
+ * @param {string} id Gate id.
+ * @param {string} moment Moment key.
+ * @param {*} agents The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateUnenforceableOn(id, moment, agents) {
+  if (agents === undefined) return [];
+  const where = `gates."${id}"."${moment}".${UNENFORCEABLE_ON_FIELD}`;
+  if (!AGENT_MOMENTS.includes(momentFamily(moment))) {
+    return [
+      `${where} names coding agents, but no coding agent's hook runs at ` +
+        `"${moment}", so there is nothing an agent could fail to enforce ` +
+        `there. The key belongs to these moments: ${AGENT_MOMENTS.join(", ")}. ` +
+        `Move it to one of them, or remove it.`,
+    ];
+  }
+  if (!Array.isArray(agents) || agents.length === 0) {
+    return [
+      `${where} is ${JSON.stringify(agents)}; expected a list of the coding ` +
+        `agents this moment cannot be enforced on, for example ["agy"]. ` +
+        `Remove the key when there are none.`,
+    ];
+  }
+  const unknown = agents.flatMap((agent, index) =>
+    CODING_AGENTS.includes(agent)
+      ? []
+      : [
+          `${where}[${index}] is ${JSON.stringify(agent)}, which is not a ` +
+            `coding agent Lisa knows. Write one of: ` +
+            `${CODING_AGENTS.join(", ")}.`,
+        ]
+  );
+  const repeated = [
+    ...new Set(
+      agents.filter((agent, index) => agents.indexOf(agent) !== index)
+    ),
+  ]
+    .filter(agent => CODING_AGENTS.includes(agent))
+    .map(agent => `${where} names "${agent}" twice. Name each agent once.`);
+  return [...unknown, ...repeated];
 }
 
 /**
@@ -4918,10 +4810,11 @@ function validateReuse(id, reuse) {
  * @param {*} value Level string, or a prover object.
  * @param {boolean} known Whether the gate is in the registry.
  * @param {boolean} interceptor Whether the gate intercepts.
- * @param {string} [gateRun] A task declared once for the whole gate.
+ * @param {boolean} gateProver Whether the gate names a prover once for every
+ *   moment: a `run` task, or `parts`.
  * @returns {string[]} Problems.
  */
-function validateMoment(id, moment, value, known, interceptor, gateRun) {
+function validateMoment(id, moment, value, known, interceptor, gateProver) {
   const problems = [];
   const entry = typeof value === "string" ? { level: value } : (value ?? {});
 
@@ -4953,6 +4846,7 @@ function validateMoment(id, moment, value, known, interceptor, gateRun) {
       );
     }
     problems.push(...validateEvidence(id, moment, entry.evidence ?? {}));
+    problems.push(...validateReviewByPin(id, moment, entry));
   } else if (entry.evidence !== undefined) {
     // Evidence describes what an AWAITED signal's description proves. Declared
     // without an `await`, there is no signal and no description, so the block
@@ -4965,11 +4859,19 @@ function validateMoment(id, moment, value, known, interceptor, gateRun) {
     );
   }
   problems.push(
-    ...validateFailureShape(id, moment, entry[FAILURE_SHAPE_FIELD])
+    ...validateFailureShape(
+      `gates."${id}"."${moment}".${FAILURE_SHAPE_FIELD}`,
+      entry[FAILURE_SHAPE_FIELD]
+    )
+  );
+  problems.push(...validateCacheFlag(id, moment, entry[CACHE_FIELD]));
+  problems.push(...validateExecutor(id, moment, entry[EXECUTOR_FIELD]));
+  problems.push(
+    ...validateUnenforceableOn(id, moment, entry[UNENFORCEABLE_ON_FIELD])
   );
   problems.push(...validatePostedBy(id, moment, entry));
   problems.push(...validateCallerChain(id, moment, entry));
-  if (!known && !interceptor && !entry.await && !entry.run && !gateRun) {
+  if (!known && !interceptor && !entry.await && !entry.run && !gateProver) {
     problems.push(
       `gates."${id}"."${moment}" names no prover and Lisa has no default task ` +
         `for a custom gate, so nothing would execute.`
@@ -5121,10 +5023,21 @@ function validateEvidence(id, moment, evidence) {
     }
   }
   for (const field of ["proof", "no_work"]) {
-    if (evidence[field] !== undefined && !Array.isArray(evidence[field])) {
+    if (evidence[field] === undefined) continue;
+    if (!Array.isArray(evidence[field])) {
       problems.push(`${where}.${field} must be an array of phrases`);
+    } else if (
+      evidence[field].some(
+        phrase => typeof phrase !== "string" || phrase.trim() === ""
+      )
+    ) {
+      problems.push(
+        `${where}.${field} must hold only non-empty phrases. An empty ` +
+          `no-work phrase matches every description.`
+      );
     }
   }
+  problems.push(...validatePhraseOverlap(where, evidence));
   problems.push(...validateReviewerFlag(where, evidence));
   return problems;
 }
@@ -5145,7 +5058,8 @@ function validateEvidence(id, moment, evidence) {
  * @returns {string[]} Problems.
  */
 function validateReviewerFlag(where, evidence) {
-  if (evidence.reviewer === undefined) return [];
+  // review_by without reviewer: true is read by nothing; say so (#4916).
+  if (evidence.reviewer === undefined) return validateReviewBy(where, evidence);
   if (typeof evidence.reviewer !== "boolean") {
     return [
       `${where}.reviewer is ${JSON.stringify(evidence.reviewer)}; expected ` +
@@ -5153,8 +5067,13 @@ function validateReviewerFlag(where, evidence) {
         `third-party code review, so any other value silently declares nothing.`,
     ];
   }
+  const reviewBy = validateReviewBy(where, evidence);
+  if (reviewBy.length > 0) return reviewBy;
   if (evidence.reviewer !== true) return [];
   if (Array.isArray(evidence.proof) && evidence.proof.length > 0) return [];
+  // A reviewer proven by its own submitted review states its evidence by
+  // naming the account, so it needs no status phrase (#4909).
+  if (typeof evidence.review_by === "string") return [];
   return [
     `${where}.reviewer is true but no ${where}.proof phrase is declared. The ` +
       `reviewed-when phrase is an ALLOWLIST — only a description that matches ` +
@@ -5162,6 +5081,98 @@ function validateReviewerFlag(where, evidence) {
       `defaults alone means this project never stated what its own reviewer ` +
       `says when it has actually read the code.`,
   ];
+}
+
+/**
+ * Refuse a no-work phrase that a proof phrase contains (#4909).
+ *
+ * A description is denied when it CONTAINS a no-work phrase and credited when
+ * it EQUALS a proof phrase, so a proof phrase holding a no-work phrase can
+ * never be credited, and a project that wrote both meant something it will
+ * not get. Shipped phrases count on both sides, since both lists are merged.
+ * @param {string} where - The declaration path, for the message.
+ * @param {object} evidence - The evidence block.
+ * @returns {string[]} Problems.
+ */
+function validatePhraseOverlap(where, evidence) {
+  const phrases = (/** @type {unknown} */ list) =>
+    (Array.isArray(list) ? list : [])
+      .filter(phrase => typeof phrase === "string" && phrase.trim() !== "")
+      .map(phrase => phrase.trim().replace(/\s+/gu, " ").toLowerCase());
+  const proof = [...EVIDENCE_DEFAULTS.proof, ...phrases(evidence.proof)];
+  const noWork = [...EVIDENCE_DEFAULTS.no_work, ...phrases(evidence.no_work)];
+  const clashes = proof.flatMap(reviewed =>
+    noWork
+      .filter(denied => reviewed.includes(denied))
+      .map(denied => `"${reviewed}" contains "${denied}"`)
+  );
+  if (clashes.length === 0) return [];
+  return [
+    `${where}: a proof phrase contains a no_work phrase (${clashes.join(", ")}). ` +
+      `A description holding a no-work phrase is always read as no work, so ` +
+      `that proof phrase could never count.`,
+  ];
+}
+
+/**
+ * Refuse `review_by` alongside `posted_by` (#4909).
+ *
+ * `posted_by` says only that app's check run speaks for the reviewer. A review
+ * route would accept a submitted review instead, which carries no app id, so
+ * the two together would quietly widen the pin.
+ * @param {string} id - Gate id.
+ * @param {string} moment - Moment key.
+ * @param {object} entry - The moment's declaration.
+ * @returns {string[]} Problems.
+ */
+function validateReviewByPin(id, moment, entry) {
+  if (entry?.evidence?.review_by === undefined) return [];
+  if (entry.posted_by === undefined) return [];
+  return [
+    `gates.${id}.${moment}: evidence.review_by and posted_by cannot both be ` +
+      `set. posted_by accepts only that app's check run, and a review carries ` +
+      `no app id, so declaring both would weaken the pin.`,
+  ];
+}
+
+/**
+ * Validate `evidence.review_by`, the account whose submitted pull-request
+ * review at the head is the reviewer's evidence (#4909).
+ *
+ * It must be a non-empty login, and it means something only on a third-party
+ * reviewer: on any other awaited signal nothing reads it, and a key that looks
+ * obeyed and is not is refused rather than ignored.
+ * @param {string} where - The declaration path, for the message.
+ * @param {object} evidence - The evidence block.
+ * @returns {string[]} Problems.
+ */
+function validateReviewBy(where, evidence) {
+  if (evidence.review_by === undefined) return [];
+  if (
+    typeof evidence.review_by !== "string" ||
+    evidence.review_by.trim() === ""
+  ) {
+    return [
+      `${where}.review_by is ${JSON.stringify(evidence.review_by)}; expected ` +
+        `the reviewer's GitHub login, such as "greptile-apps[bot]".`,
+    ];
+  }
+  if (!evidence.review_by.trim().endsWith("[bot]")) {
+    return [
+      `${where}.review_by is ${JSON.stringify(evidence.review_by)}; expected ` +
+        `a GitHub App's bot login ending in "[bot]", such as ` +
+        `"greptile-apps[bot]". A plain account name could be any user, and ` +
+        `anyone can submit a review on a public repository.`,
+    ];
+  }
+  if (evidence.reviewer !== true) {
+    return [
+      `${where}.review_by is set but ${where}.reviewer is not true. Only a ` +
+        `third-party code reviewer is proven by its own review, so nothing ` +
+        `would read this key.`,
+    ];
+  }
+  return [];
 }
 
 /**
@@ -5204,6 +5215,720 @@ function validateNeeds(id, gate) {
         );
       }
     }
+  }
+  return problems;
+}
+
+/**
+ * Whether a value is an object with keys of its own, and not a list.
+ * @param {*} value Candidate value.
+ * @returns {value is Record<string, any>} True for an object that is neither null nor an array.
+ */
+function isKeyed(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+/**
+ * Report every key an object carries that Lisa does not read there.
+ *
+ * The rule {@link PART_FIELDS} states, in one place for the three levels it
+ * applies at: a key outside the closed set is refused, and a key starting with
+ * {@link CUSTOM_PREFIX} is the project's own and passes through unread.
+ * @param {string} where The object being validated, as an operator finds it.
+ * @param {object} declared The object as declared.
+ * @param {readonly string[]} known The keys Lisa reads on it.
+ * @returns {string[]} Problems.
+ */
+function unknownKeyProblems(where, declared, known) {
+  return Object.keys(declared)
+    .filter(key => !known.includes(key) && !key.startsWith(CUSTOM_PREFIX))
+    .map(key => {
+      const near = nearest(key, [...known]);
+      const suggestion = near ? `. Did you mean "${near}"?` : ".";
+      return (
+        `${where}.${key} is not a key Lisa reads here${suggestion} The keys ` +
+        `it reads are ${known.join(", ")}. Nothing would use this one, so ` +
+        `whatever it was meant to set is unset. A key of the project's own ` +
+        `must start with "${CUSTOM_PREFIX}".`
+      );
+    });
+}
+
+/**
+ * Validate the requirement ids a gate says it serves.
+ *
+ * Checked for how each id is written, not for whether it exists — see
+ * {@link CRITERION_ID_PATTERN} for why the catalogue is not consulted here.
+ * @param {string} id Gate id.
+ * @param {*} criteria The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateCriteria(id, criteria) {
+  if (criteria === undefined) return [];
+  const where = `gates."${id}".criteria`;
+  if (!Array.isArray(criteria)) {
+    return [
+      `${where} is ${JSON.stringify(criteria)}; expected a list of the ` +
+        `requirement ids this gate serves, for example ["AC5.4"].`,
+    ];
+  }
+  if (criteria.length === 0) {
+    return [
+      `${where} is empty, so it says nothing while looking filled in. ` +
+        `Remove it, or list the requirement ids this gate serves.`,
+    ];
+  }
+  const problems = [];
+  const firstSeenAt = new Map();
+  for (const [index, criterion] of criteria.entries()) {
+    if (
+      typeof criterion !== "string" ||
+      !CRITERION_ID_PATTERN.test(criterion)
+    ) {
+      problems.push(
+        `${where}[${index}] is ${JSON.stringify(criterion)}, which is not a ` +
+          `requirement id. An id is written exactly as the specification ` +
+          `writes it, for example "AC5.4" or "SI2".`
+      );
+      continue;
+    }
+    if (firstSeenAt.has(criterion)) {
+      problems.push(
+        `${where}[${index}] repeats ${JSON.stringify(criterion)} from ` +
+          `${where}[${firstSeenAt.get(criterion)}]. List each id once.`
+      );
+      continue;
+    }
+    firstSeenAt.set(criterion, index);
+  }
+  return problems;
+}
+
+/**
+ * Validate the accountable party a gate names.
+ * @param {string} id Gate id.
+ * @param {*} owner The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateOwner(id, owner) {
+  if (owner === undefined) return [];
+  if (typeof owner === "string" && owner.trim() !== "") return [];
+  return [
+    `gates."${id}".owner is ${JSON.stringify(owner)}; expected the name of ` +
+      `the person or team that answers for this gate.`,
+  ];
+}
+
+/**
+ * Validate a gate's enforcement tier.
+ * @param {string} id Gate id.
+ * @param {*} tier The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateTier(id, tier) {
+  if (tier === undefined || TIERS.includes(tier)) return [];
+  return [
+    `gates."${id}".tier is ${JSON.stringify(tier)}; expected authoritative ` +
+      `(enforced where the author of a change cannot get around it) or ` +
+      `advisory (feedback the author can bypass).`,
+  ];
+}
+
+/**
+ * The one way to write a repository-relative path: folders joined by `/`,
+ * with nothing that adds no folder — no leading `./`, no trailing or doubled
+ * `/`, no `.` in the middle.
+ * @param {string} value A path as declared.
+ * @returns {string} The same path in its one spelling.
+ */
+function shortestSpelling(value) {
+  return (
+    value
+      .split("/")
+      .filter(segment => segment !== "" && segment !== ".")
+      .join("/") || WHOLE_REPOSITORY
+  );
+}
+
+/**
+ * Why a declared path cannot be used as a path inside the repository, in
+ * words that finish the sentence "<key> is <value>, which …".
+ *
+ * Three ways out of the repository are refused — a backslash (which is a
+ * separator on one operating system and a letter on the others), a path that
+ * starts at the top of the disk, and `..` — and so is any second spelling of
+ * a path that is otherwise fine. The last one is what lets every reader
+ * compare two paths as text: `api`, `api/` and `./api` are one folder, and
+ * only the first is accepted.
+ * @param {string} value A non-blank path as declared.
+ * @returns {string|null} The reason, or null when the path is usable.
+ */
+function repositoryPathProblem(value) {
+  if (value.includes("\\")) {
+    return 'uses a backslash. Separate folders with "/" on every system';
+  }
+  if (value.startsWith("/") || /^[A-Za-z]:/u.test(value)) {
+    return "starts at the top of the disk rather than inside the repository";
+  }
+  if (value.split("/").includes("..")) {
+    return 'contains "..", so it points outside the repository';
+  }
+  const shortest = shortestSpelling(value);
+  if (shortest !== value) {
+    return (
+      `is ${JSON.stringify(shortest)} written a longer way. Write it as ` +
+      `${JSON.stringify(shortest)}, so everything that reads it sees one ` +
+      `spelling`
+    );
+  }
+  return null;
+}
+
+/** What a scope is, said once for every message that refuses one. */
+const SCOPE_ADVICE =
+  `A scope is a folder inside the repository, written from the repository ` +
+  `root: for example "api", or "${WHOLE_REPOSITORY}" for the whole repository.`;
+
+/**
+ * Validate the folder a part covers.
+ * @param {string} where The key being validated.
+ * @param {*} scope The declared value.
+ * @returns {string[]} Problems.
+ */
+function validateScope(where, scope) {
+  if (scope === undefined) return [`${where} is missing. ${SCOPE_ADVICE}`];
+  if (typeof scope !== "string" || scope.trim() === "") {
+    return [
+      `${where} is ${JSON.stringify(scope)}; expected the folder this part ` +
+        `covers. ${SCOPE_ADVICE}`,
+    ];
+  }
+  const problem = repositoryPathProblem(scope);
+  return problem === null
+    ? []
+    : [
+        `${where} is ${JSON.stringify(scope)}, which ${problem}. ${SCOPE_ADVICE}`,
+      ];
+}
+
+/** How a command is written, said once for every message that refuses one. */
+const COMMAND_ADVICE =
+  `Write the command as a list with one item per argument, the program ` +
+  `first: for example ["npm", "run", "lint"].`;
+
+/**
+ * Validate the command that checks a part.
+ *
+ * An ARGUMENT LIST and nothing else. The command is started directly, with no
+ * shell between Lisa and the program, so nothing in it is ever interpreted:
+ * `;`, `&&`, `$(…)` and a quoted space are all just characters in one
+ * argument. That only holds while the declaration cannot be a string — a
+ * string has to be split by something, and whatever splits it is a shell or
+ * an imitation of one. So a string is refused here rather than split, and
+ * `resolveMoment` refuses to hand out an `argv` that did not pass this check.
+ *
+ * An empty item is allowed anywhere but first: an empty argument is a real
+ * thing to pass a program, and a blank program name is not a program.
+ * @param {string} where The key being validated.
+ * @param {*} command The declared value.
+ * @returns {string[]} Problems.
+ */
+function validateCommand(where, command) {
+  if (command === undefined) {
+    return [
+      `${where} is missing. Every part names the command that checks it. ` +
+        `${COMMAND_ADVICE}`,
+    ];
+  }
+  if (typeof command === "string") {
+    return [
+      `${where} is the single string ${JSON.stringify(command)}; expected a ` +
+        `list with one item per argument, the program first: for example ` +
+        `["npm", "run", "lint"]. The command is started directly, never ` +
+        `through a shell, so a single string is never split into a program ` +
+        `and its arguments.`,
+    ];
+  }
+  if (!Array.isArray(command)) {
+    return [
+      `${where} is ${JSON.stringify(command)}; expected a list. ` +
+        `${COMMAND_ADVICE}`,
+    ];
+  }
+  if (command.length === 0) {
+    return [`${where} is empty, so there is nothing to run. ${COMMAND_ADVICE}`];
+  }
+  const problems = [];
+  for (const [index, argument] of command.entries()) {
+    if (typeof argument === "string") continue;
+    problems.push(
+      `${where}[${index}] is ${JSON.stringify(argument)}; expected text. ` +
+        `Write a number in quotes, for example "3".`
+    );
+  }
+  if (typeof command[0] === "string" && command[0].trim() === "") {
+    problems.push(
+      `${where}[0] is blank. The first item is the program to run.`
+    );
+  }
+  return problems;
+}
+
+/** A well-formed parameter, shown in every message that refuses one. */
+const PARAMETER_EXAMPLE = '{ "value": 80, "direction": "floor" }';
+
+/**
+ * Validate one named parameter of a part.
+ *
+ * A direction is refused on anything but a number, because "may not fall" has
+ * no meaning between two pieces of text — and a threshold that cannot be
+ * compared is one nothing holds, while reading as held.
+ * @param {string} where The parameter being validated.
+ * @param {*} parameter The declared value.
+ * @returns {string[]} Problems.
+ */
+function validateParameter(where, parameter) {
+  if (!isKeyed(parameter)) {
+    return [
+      `${where} is ${JSON.stringify(parameter)}; expected an object such as ` +
+        `${PARAMETER_EXAMPLE}.`,
+    ];
+  }
+  const problems = unknownKeyProblems(where, parameter, PARAMETER_FIELDS);
+  const { value, direction } = parameter;
+  const worded = typeof value === "string" || typeof value === "boolean";
+  if (value === undefined) {
+    problems.push(
+      `${where}.value is missing. Every parameter states its value, for ` +
+        `example ${PARAMETER_EXAMPLE}.`
+    );
+  } else if (!worded && !Number.isFinite(value)) {
+    problems.push(
+      `${where}.value is ${JSON.stringify(value)}; expected a number, text, ` +
+        `or true or false.`
+    );
+  }
+  if (direction === undefined) return problems;
+  if (!PARAMETER_DIRECTIONS.includes(direction)) {
+    problems.push(
+      `${where}.direction is ${JSON.stringify(direction)}; expected floor ` +
+        `(the value may rise and never fall) or ceiling (it may fall and ` +
+        `never rise).`
+    );
+  } else if (worded) {
+    problems.push(
+      `${where}.direction is ${JSON.stringify(direction)}, but ` +
+        `${where}.value is ${JSON.stringify(value)}, which is not a number. ` +
+        `Only a number can be held to a floor or a ceiling.`
+    );
+  }
+  return problems;
+}
+
+/**
+ * Validate the named settings of a part's check.
+ * @param {string} where The key being validated.
+ * @param {*} parameters The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateParameters(where, parameters) {
+  if (parameters === undefined) return [];
+  if (!isKeyed(parameters)) {
+    return [
+      `${where} is ${JSON.stringify(parameters)}; expected an object with ` +
+        `one named entry per setting, each written like ${PARAMETER_EXAMPLE}.`,
+    ];
+  }
+  return Object.entries(parameters).flatMap(([name, parameter]) =>
+    validateParameter(`${where}.${JSON.stringify(name)}`, parameter)
+  );
+}
+
+/**
+ * Validate one half of a paired proof: the path of its patch file.
+ *
+ * Only the path is checked. Whether the file exists is a fact about a
+ * checkout, not about a declaration, and a missing half is reported where the
+ * proof is run — as unproved — rather than refused here.
+ * @param {string} where The key being validated.
+ * @param {*} file The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateProofFile(where, file) {
+  if (file === undefined) return [];
+  const advice =
+    `A proof file is a patch under ${PROOF_DIRECTORY}, written from the ` +
+    `repository root: for example "${PROOF_DIRECTORY}lint.violation.patch".`;
+  if (typeof file !== "string" || file.trim() === "") {
+    return [
+      `${where} is ${JSON.stringify(file)}; expected the path of a patch ` +
+        `file. ${advice}`,
+    ];
+  }
+  const problem = repositoryPathProblem(file);
+  if (problem !== null) {
+    return [`${where} is ${JSON.stringify(file)}, which ${problem}. ${advice}`];
+  }
+  if (!file.startsWith(PROOF_DIRECTORY)) {
+    return [
+      `${where} is ${JSON.stringify(file)}, which is not a file under ` +
+        `${PROOF_DIRECTORY}. ${advice}`,
+    ];
+  }
+  return [];
+}
+
+/**
+ * Validate how long one half of a proof may run.
+ * @param {string} where The key being validated.
+ * @param {*} timeout The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateProofTimeout(where, timeout) {
+  if (timeout === undefined) return [];
+  if (Number.isInteger(timeout) && timeout > 0) return [];
+  return [
+    `${where} is ${JSON.stringify(timeout)}; expected a whole number of ` +
+      `seconds above zero, for example 120.`,
+  ];
+}
+
+/**
+ * Validate what a proof says it does outside the repository.
+ *
+ * Each entry is a sentence, because it is quoted to the person asked to allow
+ * the proof to run. A blank one would ask for that permission and say nothing
+ * about what it is for.
+ * @param {string} where The key being validated.
+ * @param {*} effects The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateExternalEffects(where, effects) {
+  if (effects === undefined) return [];
+  if (!Array.isArray(effects)) {
+    return [
+      `${where} is ${JSON.stringify(effects)}; expected a list of ` +
+        `sentences, each saying one thing the proof does outside the ` +
+        `repository, or an empty list when it does nothing there.`,
+    ];
+  }
+  const problems = [];
+  for (const [index, effect] of effects.entries()) {
+    if (typeof effect === "string" && effect.trim() !== "") continue;
+    problems.push(
+      `${where}[${index}] is ${JSON.stringify(effect)}; expected a sentence ` +
+        `saying what the proof does outside the repository. It is shown to ` +
+        `the person asked to allow it.`
+    );
+  }
+  return problems;
+}
+
+/**
+ * Validate a part's paired proof.
+ * @param {string} where The key being validated.
+ * @param {*} proof The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateProof(where, proof) {
+  if (proof === undefined) return [];
+  if (!isKeyed(proof)) {
+    return [
+      `${where} is ${JSON.stringify(proof)}; expected an object naming the ` +
+        `two halves of the proof, "violation" and "clean".`,
+    ];
+  }
+  const problems = [
+    ...unknownKeyProblems(where, proof, PROOF_FIELDS),
+    ...validateProofFile(`${where}.violation`, proof.violation),
+    ...validateProofFile(`${where}.clean`, proof.clean),
+  ];
+  if (typeof proof.clean === "string" && proof.clean === proof.violation) {
+    problems.push(
+      `${where}.clean is the same file as ${where}.violation. The two ` +
+        `halves are different changes: one that breaks the rule and one ` +
+        `that does not.`
+    );
+  }
+  return [
+    ...problems,
+    ...validateFailureShape(
+      `${where}.${FAILURE_SHAPE_FIELD}`,
+      proof[FAILURE_SHAPE_FIELD]
+    ),
+    ...validateProofTimeout(`${where}.timeout_seconds`, proof.timeout_seconds),
+    ...validateExternalEffects(
+      `${where}.external_effects`,
+      proof.external_effects
+    ),
+  ];
+}
+
+/** A well-formed place, shown in every message that refuses one. */
+const LOCATOR_EXAMPLE = '{ "path": "api/ruff.toml", "line": 1 }';
+
+/**
+ * Validate one place a part's evidence points at.
+ *
+ * Only how it is written is checked. Whether the file exists, and whether the
+ * audit reported that line, are facts about a checkout and about the audit
+ * report; neither is this registry's to read.
+ * @param {string} where The place being validated.
+ * @param {*} locator The declared value.
+ * @returns {string[]} Problems.
+ */
+function validatePartEvidenceLocator(where, locator) {
+  if (!isKeyed(locator)) {
+    return [
+      `${where} is ${JSON.stringify(locator)}; expected an object such as ` +
+        `${LOCATOR_EXAMPLE}.`,
+    ];
+  }
+  const problems = unknownKeyProblems(
+    where,
+    locator,
+    PART_EVIDENCE_LOCATOR_FIELDS
+  );
+  const { path: file, line } = locator;
+  const advice =
+    `A place names the file the audit found the check in, written from the ` +
+    `repository root: for example ${LOCATOR_EXAMPLE}.`;
+  if (typeof file !== "string" || file.trim() === "") {
+    problems.push(
+      `${where}.path is ${JSON.stringify(file)}; expected the path of a ` +
+        `file. ${advice}`
+    );
+  } else if (file === WHOLE_REPOSITORY) {
+    problems.push(
+      `${where}.path is ${JSON.stringify(file)}, which is the whole ` +
+        `repository rather than a file in it. ${advice}`
+    );
+  } else {
+    const problem = repositoryPathProblem(file);
+    if (problem !== null) {
+      problems.push(
+        `${where}.path is ${JSON.stringify(file)}, which ${problem}. ${advice}`
+      );
+    }
+  }
+  if (!Number.isInteger(line) || line < 1) {
+    problems.push(
+      `${where}.line is ${JSON.stringify(line)}; expected the number of the ` +
+        `line in that file, counted from 1.`
+    );
+  }
+  return problems;
+}
+
+/**
+ * Validate a list a part's evidence carries, refusing one that is not a list,
+ * is empty, or says the same thing twice.
+ * @param {string} where The key being validated.
+ * @param {*} list The declared value, if any.
+ * @param {object} kind What the list holds.
+ * @param {string} kind.expected What the list is, to finish "expected …".
+ * @param {(where: string, item: *) => string[]} kind.validate Validates one item.
+ * @returns {string[]} Problems.
+ */
+function validatePartEvidenceList(where, list, { expected, validate }) {
+  if (list === undefined) return [];
+  if (!Array.isArray(list)) {
+    return [`${where} is ${JSON.stringify(list)}; expected ${expected}.`];
+  }
+  if (list.length === 0) {
+    return [
+      `${where} is empty, so it says nothing while looking filled in. ` +
+        `Remove it, or give ${expected}.`,
+    ];
+  }
+  const problems = [];
+  const firstSeenAt = new Map();
+  for (const [index, item] of list.entries()) {
+    const found = validate(`${where}[${index}]`, item);
+    problems.push(...found);
+    if (found.length > 0) continue;
+    const key = JSON.stringify(isKeyed(item) ? [item.path, item.line] : [item]);
+    if (firstSeenAt.has(key)) {
+      problems.push(
+        `${where}[${index}] repeats ${where}[${firstSeenAt.get(key)}]. ` +
+          `List each one once.`
+      );
+      continue;
+    }
+    firstSeenAt.set(key, index);
+  }
+  return problems;
+}
+
+/**
+ * Validate what a part says supports it.
+ *
+ * `evidence` is optional here and never read by anything that runs a part, so
+ * leaving it off changes nothing at any moment. What is refused is one that is
+ * present and points at nothing: it would read as "this control was
+ * evidenced" to everyone who saw the key, which is the one thing the key
+ * exists to make checkable.
+ * @param {string} where The key being validated.
+ * @param {*} evidence The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validatePartEvidence(where, evidence) {
+  if (evidence === undefined) return [];
+  const example = `{ "locators": [${LOCATOR_EXAMPLE}] }`;
+  if (!isKeyed(evidence)) {
+    return [
+      `${where} is ${JSON.stringify(evidence)}; expected an object such as ` +
+        `${example}.`,
+    ];
+  }
+  const problems = unknownKeyProblems(where, evidence, PART_EVIDENCE_FIELDS);
+  if (evidence.locators === undefined && evidence.questions === undefined) {
+    problems.push(
+      `${where} names neither a place the audit found this check ` +
+        `("locators") nor a question a person answered ("questions"), so ` +
+        `the part looks supported while pointing at nothing. Give one of ` +
+        `them, for example ${example}.`
+    );
+  }
+  return [
+    ...problems,
+    ...validatePartEvidenceList(`${where}.locators`, evidence.locators, {
+      expected:
+        `a list of the places the audit found this check, each written ` +
+        `like ${LOCATOR_EXAMPLE}`,
+      validate: validatePartEvidenceLocator,
+    }),
+    ...validatePartEvidenceList(`${where}.questions`, evidence.questions, {
+      expected:
+        `a list of the ids of the audit questions a person answered, each ` +
+        `written exactly as the audit report writes it`,
+      validate: (item, id) =>
+        typeof id === "string" && id.trim() !== ""
+          ? []
+          : [
+              `${item} is ${JSON.stringify(id)}; expected the id of an ` +
+                `audit question, written exactly as the audit report ` +
+                `writes it.`,
+            ],
+    }),
+  ];
+}
+
+/**
+ * Validate one entry of a gate's `parts`.
+ * @param {string} where The entry being validated.
+ * @param {*} part The declared value.
+ * @returns {string[]} Problems.
+ */
+function validatePart(where, part) {
+  if (!isKeyed(part)) {
+    return [
+      `${where} is ${JSON.stringify(part)}; expected an object naming a ` +
+        `scope and a command.`,
+    ];
+  }
+  return [
+    ...unknownKeyProblems(where, part, PART_FIELDS),
+    ...validateScope(`${where}.scope`, part.scope),
+    ...validateCommand(`${where}.command`, part.command),
+    ...validateParameters(`${where}.parameters`, part.parameters),
+    ...validateProof(`${where}.proof`, part.proof),
+    ...validatePartEvidence(`${where}.evidence`, part.evidence),
+  ];
+}
+
+/**
+ * Refuse a second prover on a gate that has parts.
+ *
+ * With parts, each part's command is what proves the gate, at every moment
+ * the gate is declared at. A task or an awaited signal beside them would give
+ * one declaration two things that claim to prove it, and resolution would
+ * have to pick — silently, which is how a declared check ends up never run.
+ * The existing rule one level down, "a moment has one prover", is the same
+ * rule. A property proved by a command in one place and by an external signal
+ * in another is two gates.
+ * @param {string} id Gate id.
+ * @param {Record<string, unknown>} gate The entry, which declares `parts`.
+ * @returns {string[]} Problems.
+ */
+function validatePartsAreTheOnlyProver(id, gate) {
+  const problems = [];
+  if (Object.hasOwn(INTERCEPTORS, id)) {
+    problems.push(
+      `gates."${id}".parts gives this gate commands to run, but it stops ` +
+        `an action before it happens and cannot be handed to a command: by ` +
+        `the time a command could run, the thing it prevents has happened.`
+    );
+  }
+  if (gate.run !== undefined && gate.run !== null) {
+    problems.push(
+      `gates."${id}".run names one task for the whole gate, and the gate ` +
+        `also has parts. With parts, each part's command is what proves ` +
+        `the gate, so the task would never run. Remove one of the two.`
+    );
+  }
+  for (const [moment, value] of Object.entries(gate)) {
+    if (!isMoment(moment) || !isKeyed(value)) continue;
+    for (const prover of ["run", "await"]) {
+      if (value[prover] === undefined || value[prover] === null) continue;
+      problems.push(
+        `gates."${id}"."${moment}".${prover} is declared on a gate that has ` +
+          `parts. With parts, each part's command is what proves the gate ` +
+          `at every moment, so a second prover at one moment would never ` +
+          `be used. Remove it, or declare that moment on a gate of its own.`
+      );
+    }
+  }
+  return problems;
+}
+
+/**
+ * Validate a gate's `parts`: the folders of the repository it covers, and
+ * the command that proves it in each.
+ *
+ * Two parts of one gate may not cover the same folder. Everything downstream
+ * identifies a part by its gate and its scope, so two that share one cannot
+ * be told apart — one of them would be reported under the other's name.
+ * Folders that merely overlap are fine: a rule for the whole repository and a
+ * stricter one for a single folder are two different parts.
+ * @param {string} id Gate id.
+ * @param {Record<string, unknown>} gate The entry.
+ * @returns {string[]} Problems, empty when the gate declares no parts.
+ */
+function validateParts(id, gate) {
+  const { parts } = gate;
+  if (parts === undefined) return [];
+  const where = `gates."${id}".parts`;
+  if (!Array.isArray(parts)) {
+    return [
+      `${where} is ${JSON.stringify(parts)}; expected a list with one entry ` +
+        `for each part of the repository this gate covers, each naming a ` +
+        `scope and a command.`,
+    ];
+  }
+  if (parts.length === 0) {
+    return [
+      `${where} is empty, so the gate covers nothing while looking filled ` +
+        `in. Remove it, or add an entry naming a scope and a command.`,
+    ];
+  }
+  const problems = validatePartsAreTheOnlyProver(id, gate);
+  const firstSeenAt = new Map();
+  for (const [index, part] of parts.entries()) {
+    problems.push(...validatePart(`${where}[${index}]`, part));
+    const scope = isKeyed(part) ? part.scope : undefined;
+    if (typeof scope !== "string") continue;
+    const folder = shortestSpelling(scope);
+    if (!firstSeenAt.has(folder)) {
+      firstSeenAt.set(folder, index);
+      continue;
+    }
+    problems.push(
+      `${where}[${index}].scope is ${JSON.stringify(scope)}, the same ` +
+        `folder as ${where}[${firstSeenAt.get(folder)}].scope. Each part of ` +
+        `a gate covers its own folder. Give this part a different scope, or ` +
+        `merge the two.`
+    );
   }
   return problems;
 }
@@ -5429,8 +6154,8 @@ export function auditConfigKeys(config) {
     findings.push({
       key,
       level: "warn",
-      message: `${key} is not a key Lisa reads${
-        near ? `. Did you mean "${near}"?` : ""
+      message: `${key} is not a key Lisa reads.${
+        near ? ` Did you mean "${near}"?` : ""
       } Nothing consumes it, so whatever it was meant to configure is unset.`,
     });
   }
@@ -5442,18 +6167,18 @@ export function auditConfigKeys(config) {
  * @param {object} options Resolution inputs.
  * @param {object} options.gates The gates block.
  * @param {string} options.moment The moment to resolve.
- * @param {string} [options.runner] Task-runner prefix.
+ * @param {string|undefined} [options.runner] Task-runner prefix.
  * @param {boolean} [options.includeOff] Also report gates declared `off`, as
  *   entries with `level: "off"` and no task. Default false, because every
  *   consumer that RUNS these entries must not see a gate the project turned
  *   off. Callers that need to tell "declared off" from "never declared" — the
  *   CI façade does — pass true and branch on the level themselves.
- * @param {Record<string, string>|null} [options.scripts] The project's
+ * @param {Record<string, string>|null|undefined} [options.scripts] The project's
  *   `package.json` scripts, from `projectScripts`. Omitted or `null` means
  *   UNKNOWN, and an unknown manifest resolves exactly as it did before this
  *   option existed — a caller that has not been taught to read the manifest
  *   must not have its answers changed by silence.
- * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, postedBy: number|null, declared: string|null, task: string|null, command: string|null, label: string, work: string|null, alias: {from: string, to: string}|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null, callerChain: string[]|null, failureShape: string[]|null, mayRewrite: boolean, costly: boolean}>} Resolved provers, sorted by gate id. `declared` is the project's own `run:` — the PROVENANCE of the command, which `task` alone cannot carry because a project may spell its `run:` exactly as the registry default.
+ * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, postedBy: number|null, declared: string|null, task: string|null, command: string|null, label: string, work: string|null, alias: {from: string, to: string}|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null, callerChain: string[]|null, failureShape: string[]|null, mayRewrite: boolean, costly: boolean, scope?: string, argv?: string[]|null}>} Resolved provers, sorted by gate id. `declared` is the project's own `run:` — the PROVENANCE of the command, which `task` alone cannot carry because a project may spell its `run:` exactly as the registry default. `scope` and `argv` are present ONLY on an entry resolved from a gate's `parts` — one entry per part, in declared order; see `resolveParts`. An entry for a gate with no parts has neither key.
  */
 export function resolveMoment({
   gates,
@@ -5484,7 +6209,7 @@ export function resolveMoment({
       `"${moment}" ${unknownMomentMessage(moment)} ${knownMomentsMessage()}`
     );
   }
-  assertValidMomentKeys(gates);
+  assertResolvable(gates, moment);
 
   const resolved = [];
   for (const [id, gate] of Object.entries(gates ?? {})) {
@@ -5492,6 +6217,15 @@ export function resolveMoment({
     if (raw === undefined) continue;
     const entry = typeof raw === "string" ? { level: raw } : raw;
     if (!entry?.level) continue;
+    // A gate with parts takes its own path and never reaches the code below,
+    // so everything from here down is what it was before `parts` existed. A
+    // gate with no parts resolves exactly as it always has, field for field.
+    if (gate.parts !== undefined) {
+      resolved.push(
+        ...resolveParts({ id, entry, parts: gate.parts, includeOff })
+      );
+      continue;
+    }
     // Read before the `off` branch so every resolved entry carries it. A
     // project's `run:` is a fact about the DECLARATION, not about the resolved
     // command, so an entry that runs nothing still has a truthful answer.
@@ -5551,9 +6285,9 @@ export function resolveMoment({
     const task = declared ?? alias?.to ?? registryTask;
     const intercepts = Object.hasOwn(INTERCEPTORS, id);
     // A bare level declaration governs the façade that already proves this
-    // property; it does not invent a package script. `declareOnly` is the
-    // registry's explicit statement that the default task is descriptive and
-    // is not shipped. When the matching hard-coded invocation exists, keep the
+    // property; it does not invent a package script. `declareOnly` identifies
+    // an unshipped default; `fallbackWhenTaskMissing` retains the same route
+    // for older callers when a default starts shipping. Keep the
     // declaration visible (so contexts and requiredness still derive from it)
     // but only delegate to an explicitly unconditional prover. A fallback that
     // skips for missing credentials or files cannot carry a required property.
@@ -5564,7 +6298,8 @@ export function resolveMoment({
       !entry.await &&
       !intercepts &&
       declared === null &&
-      definition?.declareOnly !== undefined &&
+      (definition?.declareOnly !== undefined ||
+        definition?.fallbackWhenTaskMissing === true) &&
       definition?.shippedAs === undefined &&
       ((scripts !== null &&
         typeof scripts === "object" &&
@@ -5619,8 +6354,10 @@ export function resolveMoment({
       // Carried on every resolved entry, including an awaited one. It describes
       // what the project SAID about this moment's prover, and the project said
       // it whatever mode the moment resolves to — the same argument `declared`
-      // makes one field up.
-      failureShape: entry[FAILURE_SHAPE_FIELD] ?? null,
+      // makes one field up. Absent a declaration, a built-in's own known
+      // verdict lines apply (today only the canonical dependency audit's).
+      failureShape:
+        entry[FAILURE_SHAPE_FIELD] ?? definition?.failureShape ?? null,
       mayRewrite: definition?.mayRewrite === true,
       costly: definition?.costly === true,
     });
@@ -5650,6 +6387,77 @@ export function resolveMoment({
       Number(left.costly) - Number(right.costly) ||
       left.id.localeCompare(right.id)
   );
+}
+
+/**
+ * Resolve a gate that declares `parts` at one moment: one entry per part.
+ *
+ * Each entry carries every field an entry has always had, then two more:
+ *
+ * - `scope` — the folder the part covers, as declared.
+ * - `argv` — the argument list to start, as a copy. `null` when the moment is
+ *   declared `off`, for the reason `task` and `command` are: those say what
+ *   WOULD run, and nothing does.
+ *
+ * `task` and `command` are always `null`. `command` is the `<runner> <task>`
+ * STRING a runner hands to a shell, and a part's command must never become
+ * one: a consumer that only knows `command` therefore finds nothing to run
+ * and reports the part as not proved, which is true of that consumer. A
+ * consumer that can start an argument list reads `argv`.
+ *
+ * `declared` is `null` because it means the project's own `run:` task, and a
+ * gate with parts has none — `validateGates` refuses the two together.
+ *
+ * `failureShape` reads the moment's own declaration first, then the part's
+ * `proof.failure_shape`, then the registry's. The part's sits where a gate's
+ * `run:` would: it describes the command the project named.
+ *
+ * Parts stay in the order they were declared. The caller's sort is stable and
+ * orders by gate, never by part.
+ * @param {object} options Inputs.
+ * @param {string} options.id Gate id.
+ * @param {{level: string, [key: string]: unknown}} options.entry The gate's
+ *   declaration at this moment, already an object.
+ * @param {Array<{scope: string, command: string[], proof?: {failure_shape?: string[]}}>} options.parts
+ *   The gate's parts, already validated by `assertResolvable`.
+ * @param {boolean} options.includeOff Whether to report a moment declared off.
+ * @returns {object[]} One resolved entry per part; none for a moment declared
+ *   off unless `includeOff`.
+ */
+function resolveParts({ id, entry, parts, includeOff }) {
+  const off = entry.level === "off";
+  if (off && !includeOff) return [];
+  // A project's own gate is not in the registry, so the lookup is by a plain
+  // string and may find nothing.
+  /** @type {Record<string, {label: string, work?: string, failureShape?: readonly string[], mayRewrite?: boolean, costly?: boolean} | undefined>} */
+  const registry = REGISTRY;
+  const definition = registry[id];
+  const momentShape = entry[FAILURE_SHAPE_FIELD] ?? null;
+  return parts.map(part => ({
+    id,
+    level: entry.level,
+    mode: off ? "off" : "run",
+    awaits: null,
+    postedBy: null,
+    declared: null,
+    task: null,
+    command: null,
+    label: definition?.label ?? id,
+    work: off ? null : (definition?.work ?? null),
+    alias: null,
+    evidence: null,
+    callerChain: off ? null : (entry[CALLER_CHAIN_FIELD] ?? null),
+    failureShape: off
+      ? momentShape
+      : (momentShape ??
+        part.proof?.[FAILURE_SHAPE_FIELD] ??
+        definition?.failureShape ??
+        null),
+    mayRewrite: !off && definition?.mayRewrite === true,
+    costly: !off && definition?.costly === true,
+    scope: part.scope,
+    argv: off ? null : [...part.command],
+  }));
 }
 
 /**
@@ -5808,6 +6616,20 @@ function declaredCallerChain(value) {
 }
 
 /**
+ * Use the same spelling for a job's emitted name and its required context.
+ * @param {{callerChain: string[]|string|null, label: string}} gate The resolved gate.
+ * @param {string} prefix The workflow's default caller chain.
+ * @returns The check run's name.
+ */
+function runContext(gate, prefix) {
+  const chain =
+    gate.callerChain === null
+      ? prefix
+      : declaredCallerChain(gate.callerChain).join(CONTEXT_SEPARATOR);
+  return `${chain}${CONTEXT_SEPARATOR}${gate.label}`;
+}
+
+/**
  * The prefix one declaration's derived context carries, from its own chain.
  *
  * Exported for the SECOND derivation of the same string. `contextsFor` is not
@@ -5908,11 +6730,7 @@ export function contextsFor(gates, options = {}) {
       // so the caller-wide chain describes a route to it that does not exist.
       // Everything below this line is identical either way, which is what
       // keeps an override from becoming a second way to spell a context.
-      const chain =
-        gate.callerChain === null
-          ? prefix
-          : declaredCallerChain(gate.callerChain).join(CONTEXT_SEPARATOR);
-      return `${chain}${CONTEXT_SEPARATOR}${gate.label}`;
+      return runContext(gate, prefix);
     });
 
   // Explicitly requested overlap remains additive. This option answers a
@@ -6736,8 +7554,13 @@ function main() {
       // as `(intercepted by Lisa)` — a line that reads like success to the
       // person running `list` to check their config. Interception is a
       // property of the gate id, so ask the mode, not the command.
-      const how =
-        gate.mode === "await"
+      // A part has no `<runner> <task>` string by design, so without its own
+      // branch it would print as NO PROVER beside the command that proves it.
+      // The argument list is shown as the list it is, never joined into text
+      // that reads like something a shell was given.
+      const how = Array.isArray(gate.argv)
+        ? `in ${gate.scope}: ${JSON.stringify(gate.argv)}`
+        : gate.mode === "await"
           ? `await ${gate.awaits}`
           : gate.mode === "intercept"
             ? "(intercepted by Lisa)"
@@ -6768,8 +7591,13 @@ function main() {
   if (command === "legs") {
     const moment = flag("moment");
     if (!moment)
-      throw new Error("usage: lisa-gates.mjs legs --moment=<moment> [--json]");
-    const legs = momentLegs({ gates, moment, runner, scripts });
+      throw new Error(
+        "usage: lisa-gates.mjs legs --moment=<moment> [--json] [--host-workflow=<path>]"
+      );
+    const hostWorkflow = rest.includes("--host-workflow")
+      ? ""
+      : flag("host-workflow");
+    const legs = momentLegs({ gates, moment, runner, scripts, hostWorkflow });
     if (rest.includes("--json")) {
       // ONE LINE, deliberately. This is read by `fromJSON()` in a workflow
       // through a job output, and a job output is a single line — a
@@ -6978,69 +7806,6 @@ function main() {
     return;
   }
 
-  // ─── reuse-plan (#3013) ────────────────────────────────────────────────
-  // Answers ONE question: which gates at this moment may stand down because a
-  // VERIFIED envelope already proves them for this exact tree under this exact
-  // contract. Every ambiguity — an unreadable file, a mismatched dimension, a
-  // gate nobody classified — resolves to `run`, so the worst this command can
-  // do is describe today's behaviour. It never exits non-zero on a refusal: an
-  // optimization that can redden a release is not an optimization.
-  if (command === "reuse-plan") {
-    const moment = flag("moment");
-    if (!moment) {
-      throw new Error(
-        "usage: lisa-gates.mjs reuse-plan --moment=<moment> --evidence=<file> --repository=<o/r> --tree=<sha> [--commit=<sha>] [--workflow-ref=<ref>] [--workflow-sha=<sha>] [--inputs-digest=<sha256:…>] [--registry-version=<v>] [--json]"
-      );
-    }
-    const evidencePath = flag("evidence");
-    const read = evidencePath
-      ? readEvidenceFile(evidencePath)
-      : {
-          envelope: null,
-          reason: "no --evidence path was given, so nothing was verified",
-          refusal: REUSE_REASON.UNAVAILABLE,
-        };
-    const plan = reusePlan({
-      envelope: read.envelope,
-      gates,
-      moment,
-      observed: {
-        commit: flag("commit") ?? null,
-        gatesDigest: planDigest({ gates, moment, runner, scripts }),
-        inputsDigest: flag("inputs-digest") ?? null,
-        registryVersion: flag("registry-version") ?? null,
-        repository: flag("repository") ?? null,
-        tree: flag("tree") ?? null,
-        workflowRef: flag("workflow-ref") ?? null,
-        workflowSha: flag("workflow-sha") ?? null,
-      },
-      refusal: read.refusal
-        ? { detail: read.reason, reason: read.refusal }
-        : null,
-      runner,
-      scripts,
-    });
-    if (rest.includes("--json")) {
-      console.log(JSON.stringify(plan, null, 2));
-      return;
-    }
-    console.log(`reuse verdict: ${plan.verdict}`);
-    if (plan.detail) console.log(`  ${plan.detail}`);
-    for (const entry of plan.decisions) {
-      const proof = entry.proof ? `  ← ${entry.proof}` : "";
-      console.log(
-        `  ${entry.decision === "reuse" ? "♻️ " : "▶️ "} ${entry.gate.padEnd(28)} ${entry.reason}${proof}`
-      );
-    }
-    const reused = plan.decisions.filter(
-      entry => entry.decision === "reuse"
-    ).length;
-    console.log(
-      `\n${reused} of ${plan.decisions.length} gate(s) at ${moment} are proved by prior evidence.`
-    );
-    return;
-  }
-
   if (command === "audit-config") {
     const findings = auditConfigKeys(config);
     for (const finding of findings) console.error(`  ${finding.message}`);
@@ -7049,7 +7814,7 @@ function main() {
   }
 
   throw new Error(
-    "usage: lisa-gates.mjs validate|list|legs|quality-plan|reuse-plan|needs|contexts|retired-contexts|verify-contexts|skip-jobs|audit-config|inventory|unconfigured|identity|seed"
+    "usage: lisa-gates.mjs validate|list|legs|quality-plan|needs|contexts|retired-contexts|verify-contexts|skip-jobs|audit-config|inventory|unconfigured|identity|seed"
   );
 }
 

@@ -21,10 +21,12 @@
       "measure:tmpdir-growth": "node scripts/measure-tmpdir-growth.mjs",
       "prepare": "$npm_execpath run build && husky install || true",
       "lisa:update": "npx @codyswann/lisa@latest .",
-      "policy:reconcile": "node scripts/lisa-reconcile-policy.mjs"
+      "policy:reconcile": "node scripts/lisa-reconcile-policy.mjs",
+      "security:audit:lisa": "node scripts/lisa-audit.mjs"
     },
     "exports": {
-      "./health": "./dist/health/index.js"
+      "./health": "./dist/health/index.js",
+      "./audit": "./dist/core/audit.js"
     },
     "devDependencies": {
       "@actions/expressions": "0.3.61",
@@ -45,9 +47,9 @@
       "eslint-plugin-jsdoc": "^61.5.0",
       "eslint-plugin-prettier": "^5.5.0",
       "eslint-plugin-sonarjs": "4.0.3",
-      "eslint-plugin-oxlint": "1.62.0",
+      "eslint-plugin-oxlint": ">=1.62.0 <1.86.0",
       "esbuild": "^0.28.2",
-      "oxlint": "1.62.0",
+      "oxlint": ">=1.62.0 <1.86.0",
       "oxlint-tsgolint": "^0.22.1",
       "jscodeshift": "0.15.2",
       "glob": "^13.0.6",
@@ -63,10 +65,11 @@
       "@types/lodash.merge": "^4.6.0",
       "@types/node": "^24.0.0",
       "tsx": "^4.0.0",
-      "knip": "5.82.1",
+      "knip": "6.44.1",
       "@ast-grep/cli": "^0.40.4",
       "vite": "^8.3.3",
-      "tailwindcss": "^3.4.19"
+      "tailwindcss": "^3.4.19",
+      "@types/yarnpkg__lockfile": "^1.1.9"
     },
     "overrides": {
       "smol-toml": "1.7.1",
@@ -75,16 +78,24 @@
       "nanoid": "^3.3.18",
       "vite": "$vite",
       "esbuild": "$esbuild",
-      "qs": "^6.16.0"
+      "qs": "^6.16.0",
+      "zod": "^4.6.7"
     },
     "resolutions": {
       "vite": "$vite",
       "esbuild": "$esbuild",
       "nanoid": "^3.3.18",
-      "qs": "^6.16.0"
+      "qs": "^6.16.0",
+      "zod": "^4.6.7"
+    },
+    "dependencies": {
+      "@yarnpkg/lockfile": "^1.1.0"
     }
   },
   "defaults": {
+    "devDependencies": {
+      "prettier-compat-3-9": "npm:prettier@3.9.10"
+    },
     "engines": {
       "npm": "please-use-bun",
       "yarn": "please-use-bun",
@@ -98,7 +109,8 @@
       "lint:slow": "$npm_execpath run lint:slow:lisa",
       "typecheck": "$npm_execpath run typecheck:lisa",
       "knip": "$npm_execpath run knip:lisa",
-      "sg:scan": "$npm_execpath run sg:scan:lisa"
+      "sg:scan": "$npm_execpath run sg:scan:lisa",
+      "security:audit": "$npm_execpath run security:audit:lisa"
     }
   },
   "merge": {

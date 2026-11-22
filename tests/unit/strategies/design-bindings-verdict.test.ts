@@ -149,6 +149,9 @@ describe("judgeProbe — owner attribution and the threshold", () => {
   });
 });
 
+/** Why a case that asserted a skip cannot read the skip's reason. */
+const EXPECTED_SKIP = "expected a skip decision";
+
 describe("skipReason — the design source is optional", () => {
   const env = { FIGMA_ACCESS_TOKEN: "tok" };
 
@@ -157,6 +160,9 @@ describe("skipReason — the design source is optional", () => {
     // and a mandatory gate on an absent integration breaks every one of them.
     const result = skipReason({}, env, ID_MAP);
     expect(result.skip).toBe(true);
+    if (!result.skip) {
+      throw new Error(EXPECTED_SKIP);
+    }
     expect(result.reason).toMatch(/no design source is configured/u);
   });
 
@@ -167,6 +173,9 @@ describe("skipReason — the design source is optional", () => {
       ID_MAP
     );
     expect(result.skip).toBe(true);
+    if (!result.skip) {
+      throw new Error(EXPECTED_SKIP);
+    }
     expect(result.reason).toMatch(/FIGMA_ACCESS_TOKEN/u);
   });
 
@@ -177,6 +186,9 @@ describe("skipReason — the design source is optional", () => {
       null
     );
     expect(result.skip).toBe(true);
+    if (!result.skip) {
+      throw new Error(EXPECTED_SKIP);
+    }
     expect(result.reason).toMatch(/design-variable-ids\.mjs/u);
   });
 

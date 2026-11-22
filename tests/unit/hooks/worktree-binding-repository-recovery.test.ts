@@ -231,9 +231,19 @@ describe("worktree binding acknowledgement recovery", () => {
       runGuard({
         cwd: fixture.b,
         state: fixture.state,
-        input: { command: `printf '%s' '${ACCEPT} ${fixture.b}'` },
+        input: { command: `printf '%s' '${ACCEPT} ${fixture.b}' > ack.txt` },
       }).status
     ).toBe(BLOCKED);
+    expect(boundRoot(fixture)).toBe(realpathSync(fixture.a));
+    // A provable read printing the same text is allowed with the read warning
+    // since CodySwannGT/lisa#4816 — and still does not rebind.
+    const read = runGuard({
+      cwd: fixture.b,
+      state: fixture.state,
+      input: { command: `printf '%s' '${ACCEPT} ${fixture.b}'` },
+    });
+    expect(read.status).toBe(ALLOWED);
+    expect(read.stderr).toContain("READ-ONLY");
     expect(boundRoot(fixture)).toBe(realpathSync(fixture.a));
   });
 });

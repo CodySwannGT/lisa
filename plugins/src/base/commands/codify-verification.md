@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Convert empirical verification into a regression test (Playwright for UI, integration test for API/DB, benchmark for performance, etc.) so it doesn't regress. Mandatory step after verification passes — invoked from verification-lifecycle and from each Build/Fix/Improve flow."
 argument-hint: "<verification-type> <what-was-verified>"
 ---

@@ -45,7 +45,10 @@ const ADVISORIES = [
     ghsa: "GHSA-c4qx-w738-7hr3",
     range: ">= 10.10.1, <= 12.0.1",
     patched: "12.0.2",
-    sites: ["nestjs/package-lisa/package.lisa.json:force.dependencies"],
+    sites: [
+      "nestjs/package-lisa/package.lisa.json:force.overrides",
+      "nestjs/package-lisa/package.lisa.json:force.resolutions",
+    ],
   },
 ] as const;
 

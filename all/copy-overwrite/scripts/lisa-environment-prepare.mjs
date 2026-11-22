@@ -237,12 +237,12 @@ function spawnExec(argv) {
  * emptied a shared environment and left it empty, which is a worse state than
  * the one it started in and one no later step can undo.
  * @param {object} options Options.
- * @param {string} [options.env] Target environment name. Mandatory.
+ * @param {string|undefined} [options.env] Target environment name. Mandatory; an absent one is refused, not defaulted.
  * @param {readonly string[]} [options.verbs] Lifecycle verbs. Both are required;
  * a caller may retain this compatibility input, but it cannot select a subset.
  * @param {Record<string, string>} [options.scripts] The project's npm scripts.
  * @param {string} [options.runner] Task-runner prefix, e.g. `bun run`.
- * @param {(command: string) => number|null} [options.exec] Executor.
+ * @param {(argv: string[]) => number|null} [options.exec] Executor; receives the argument vector, never a command line.
  * @returns {{ok: boolean, reason: string|null, message: string, ran: string[]}} Outcome.
  */
 export function prepareEnvironment({

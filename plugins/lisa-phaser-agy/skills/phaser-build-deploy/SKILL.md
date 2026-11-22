@@ -1,6 +1,6 @@
 ---
 name: phaser-build-deploy
-description: This skill should be used when configuring the production build or deploying a Phaser 4 game — the Vite prod config (manualChunks to split the phaser vendor chunk, terser two-pass minification), content-hashed assets with immutable caching, the base path per host, vite-plugin-pwa (autoUpdate + globPatterns covering game assets), a bundle-size budget, and static hosting. Use it when setting up the build, fixing caching/base-path issues, adding the PWA, or enforcing bundle size. Pairs with phaser-asset-pipeline, phaser-project-structure, and phaser-testing.
+description: "Configure the production build and deploy of a Phaser 4 game: Vite chunking and minification, hashed assets and caching, base paths, the PWA plugin, bundle-size budget, and static hosting."
 ---
 
 # Phaser 4 Build and Deploy
@@ -81,6 +81,9 @@ env var so the same build config serves every host.
 ## PWA: vite-plugin-pwa (on by default)
 
 The PWA is on by default: install-to-home-screen, offline play, and auto-update.
+Add the plugin with `bun add -d vite-plugin-pwa` in the change that wires it into
+`vite.config.ts`. Lisa does not preinstall it, because a package nothing imports
+yet is exactly what the dead-code gate reports.
 `registerType: "autoUpdate"` ships new versions without a manual prompt; the
 critical part is extending `globPatterns` to precache **game assets** (atlases,
 audio sprites, fonts) — the Workbox default only catches JS/CSS/HTML and would

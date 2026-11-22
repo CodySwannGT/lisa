@@ -12,8 +12,7 @@
  * not have become a required context anywhere by being registered.
  * @module tests/unit/config/performance-budget-gate
  */
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -23,6 +22,10 @@ import {
   boundedExecFileSync,
   boundedSpawnSync,
 } from "../../helpers/io-latency-budget.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../..");
@@ -60,7 +63,7 @@ describe("performance-budget gate reach", () => {
       const config = {
         gates: { runner: "bun run", [GATE]: { [moment]: "optional" } },
       };
-      const dir = mkdtempSync(path.join(tmpdir(), "lisa-perf-"));
+      const dir = ownedDir("lisa-perf-");
       writeFileSync(
         path.join(dir, ".lisa.config.json"),
         JSON.stringify(config, null, 2)

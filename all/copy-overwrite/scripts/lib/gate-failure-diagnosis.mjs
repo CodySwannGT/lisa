@@ -83,30 +83,26 @@ const TSC_ERROR_PATTERN =
   /^[ \t]*(?<file>[^\s(][^(\n]*?)\(\d+,\d+\): error TS\d+:/gmu;
 
 /**
- * The test-quarantine wrapper's own two failure headers.
+ * The test type-check wrapper's own failure header.
  *
- * `scripts/check-typecheck-tests.mjs` exits 1 on either, and both are measured
- * type-correctness failures naming exact files:
+ * `scripts/check-typecheck-tests.mjs` exits 1 under it, naming every file the
+ * compiler put in error, and that is a measured type-correctness failure:
  *
- *   ❌ 1 file(s) outside the quarantine have type errors:
- *   ❌ 2 quarantined file(s) now type-check and must leave the list:
+ *   ❌ 1 file(s) have type errors:
  *
- * The second is included even though CodySwannGT/lisa#3946 only reports the
- * first, because it is the identical defect one fix away: the moment somebody
- * repairs a quarantined file, that branch exits 1 with a named file list and
- * — without this — lands in the residual bucket wearing `UNPROVABLE`, which is
- * the word this fleet reads as "re-run it".
+ * Without this the run lands in the residual bucket wearing `UNPROVABLE`,
+ * which is the word this fleet reads as "re-run it" (CodySwannGT/lisa#3946).
  */
-const QUARANTINE_FAILURE_PATTERN =
-  /^[ \t]*\u274C[ \t]*\d+ (?:file\(s\) outside the quarantine have type errors|quarantined file\(s\) now type-check and must leave the list):[ \t]*$/gmu;
+const TYPECHECK_WRAPPER_FAILURE_PATTERN =
+  /^[ \t]*\u274C[ \t]*\d+ file\(s\) have type errors:[ \t]*$/gmu;
 
 /**
- * One file the quarantine wrapper listed under a header, e.g. `   path.ts (1)`.
+ * One file the type-check wrapper listed under its header, e.g. `   path.ts (1)`.
  *
  * Indentation is the delimiter because that is what the wrapper emits, and the
- * trailing count is optional because only the offenders branch prints one.
+ * trailing count is optional so a list printed without counts still reads.
  */
-const QUARANTINE_FILE_PATTERN =
+const TYPECHECK_WRAPPER_FILE_PATTERN =
   /^[ \t]+(\S+\.[cm]?[jt]sx?)(?:[ \t]+\(\d+\))?[ \t]*$/u;
 
 /**
@@ -660,7 +656,7 @@ function tailLines(output) {
  * Every file a type checker's output names as having errors.
  *
  * Two sources, unioned: tsc's own diagnostic lines, and the file list the test
- * quarantine wrapper prints under its own header. The wrapper's list is read
+ * type-check wrapper prints under its own header. The wrapper's list is read
  * by walking forward from the header until the indentation stops, which is
  * exactly how the wrapper emits it.
  * @param {string} output The gate command's combined output.
@@ -672,10 +668,10 @@ function findTypeErrorFiles(output) {
     (match.groups?.file ?? "").trim()
   );
   for (const [index, line] of lines.entries()) {
-    if (!new RegExp(QUARANTINE_FAILURE_PATTERN.source, "u").test(line))
+    if (!new RegExp(TYPECHECK_WRAPPER_FAILURE_PATTERN.source, "u").test(line))
       continue;
     for (const listed of lines.slice(index + 1)) {
-      const match = QUARANTINE_FILE_PATTERN.exec(listed);
+      const match = TYPECHECK_WRAPPER_FILE_PATTERN.exec(listed);
       if (match === null) break;
       files.push(match[1] ?? "");
     }

@@ -1,0 +1,23 @@
+// Consumer 4: a host-project prover importing the exported helper exactly as a
+// project would — `@codyswann/lisa/audit`, resolved from the fixture's own
+// node_modules (a link to the build under test), not a relative dist path.
+import { createRequire } from "node:module";
+import { join, relative } from "node:path";
+import { pathToFileURL } from "node:url";
+
+const tree = process.argv[2];
+const worktree = process.argv[3];
+try {
+  const resolved = createRequire(join(tree, "package.json")).resolve(
+    "@codyswann/lisa/audit"
+  );
+  console.log(`[helper] resolved @codyswann/lisa/audit -> <worktree>/${relative(worktree, resolved)}`);
+  const { runDependencyAudit } = await import(pathToFileURL(resolved).href);
+  const verdict = await runDependencyAudit(tree, "bun");
+  for (const message of verdict.messages) console.log(message);
+  console.log(verdict.passed ? "[helper] passed=true" : "[helper] passed=false");
+  process.exitCode = verdict.passed ? 0 : 1;
+} catch (error) {
+  console.error(`[helper] failed closed: ${error.message}`);
+  process.exitCode = 1;
+}

@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 257,
-  "$names": 1855,
+  "$modules": 339,
+  "$names": 2599,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -69,27 +69,38 @@
       "parseArgs"
     ],
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs": [
+      "ARM_ACTIONS",
       "COMPLETED_REVIEW_RESULT",
       "EVIDENCE_OUTCOMES",
       "EVIDENCE_READINGS",
       "EVIDENCE_SOURCES",
+      "PUBLISHED_CHECK_NAME",
       "READING_SENTENCES",
       "REVIEW_OBJECT_VERDICTS",
       "SUBSTITUTE_MARKER",
+      "SUBSTITUTE_REFUSALS",
+      "armDecision",
       "checkRunResult",
       "classifyReviewObject",
       "configuredReviewers",
+      "fencedReport",
       "humanReport",
+      "judgeSubstitutes",
       "main",
       "normalizeDescription",
       "parseArgs",
+      "readAllComments",
       "readReviewerEvidence",
+      "readStatuses",
       "reviewEvidenceVerdict",
       "reviewStanding",
       "reviewsAtHead",
       "selectReviewerCheckRun",
+      "standingObjections",
       "substituteMarker",
-      "substitutePosted"
+      "substitutePosted",
+      "verdictPublication",
+      "writerSubstitutes"
     ],
     "all/copy-overwrite/scripts/check-threshold-ratchet.mjs": [
       "invokedAsScript"
@@ -101,19 +112,76 @@
       "main",
       "runCli"
     ],
+    "all/copy-overwrite/scripts/fetch-test-access-map.mjs": [
+      "formatAge",
+      "main",
+      "mergeMaps",
+      "mergedTriggers",
+      "parseArgs",
+      "parseArtifacts",
+      "piecesRefusal",
+      "rankRuns",
+      "repositoryFromRemote",
+      "runRefusal",
+      "selectRun"
+    ],
+    "all/copy-overwrite/scripts/lib/affected-tests.mjs": [
+      "AFFECTED_COVERAGE_KEY",
+      "AFFECTED_TESTS_KEY",
+      "COVERAGE_MODES",
+      "DEFAULT_MAX_AGE_DAYS",
+      "FULL_SUITE_TRIGGERS",
+      "MAX_AGE_ENV",
+      "NOT_READ_BY_TESTS",
+      "PARTIAL_COVERAGE_SKIP_REASON",
+      "RECORDED_TRIGGER_REASON",
+      "SELECTION_REPORT_ENV",
+      "affectedTestsSettings",
+      "changedFileCoverage",
+      "coverageDeclaredAtPush",
+      "coverageEscalationLines",
+      "coverageLeftToCi",
+      "excludedBy",
+      "expandBraces",
+      "explainSelection",
+      "firedTrigger",
+      "fullSuiteEscalation",
+      "globToRegExp",
+      "measuresCoverage",
+      "narrowable",
+      "openSelectionReports",
+      "partialArgv",
+      "readersByFile",
+      "recordedTriggers",
+      "selectAffectedTests",
+      "staleMapReason"
+    ],
     "all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs": [
       "DESCRIPTOR_KEYS",
       "FILES",
       "HEX",
       "OBJECT_ID",
+      "assertCommittedTarget",
       "canonicalJson",
+      "directoryBunAbsent",
+      "directoryOf",
       "exactKeys",
+      "hashCohort",
+      "historyPaths",
+      "installInputs",
+      "npmPath",
       "npmProposal",
+      "optionalDirectoryFields",
       "optionalLockFields",
       "optionalRuntimeFields",
+      "optionalTargetFields",
+      "policyEntry",
       "proposalFileNames",
+      "proposalPolicy",
       "signedProposalFields",
-      "trustedConfiguration"
+      "targetField",
+      "trustedConfiguration",
+      "validDirectory"
     ],
     "all/copy-overwrite/scripts/lib/automation-provenance-files.mjs": [
       "fileAbsent",
@@ -125,7 +193,8 @@
       "localDescriptor",
       "predictedCommit",
       "privateBytes",
-      "proofSnapshot"
+      "proofSnapshot",
+      "resolverTimeoutMs"
     ],
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs": [
       "DEFAULT_CHILD_BUDGET_MS",
@@ -134,6 +203,33 @@
       "isChildTimeout",
       "rethrowIfChildTimeout"
     ],
+    "all/copy-overwrite/scripts/lib/build-marker.mjs": [
+      "BUILD_MARKER_ENV",
+      "BUILD_MARKER_PATH",
+      "BUILD_MARKER_SCHEMA",
+      "BUILD_ONCE_ID",
+      "buildOnceEnabled",
+      "checkBuildMarker",
+      "currentFingerprint",
+      "lockfileHash",
+      "markerMatches",
+      "pluginsClean",
+      "readBuildMarker",
+      "runBuildOnce",
+      "workingTreeHash",
+      "writeBuildMarker"
+    ],
+    "all/copy-overwrite/scripts/lib/changed-paths.mjs": [
+      "DECLARATION_FILE",
+      "PUSH_REFS_ENV",
+      "PUSH_REFS_STDIN",
+      "PUSH_REF_LIMIT",
+      "changeAt",
+      "parsePushRefs",
+      "pathsOutside",
+      "readPushRefs",
+      "touchesFolder"
+    ],
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs": [
       "authorizeCompletion",
       "completionDenial",
@@ -141,6 +237,15 @@
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs": [
       "completionContext"
+    ],
+    "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.mjs": [
+      "ACCOUNT_ID_PATTERN",
+      "CODEPIPELINE",
+      "DELIVERY_MECHANISMS",
+      "PIPELINE_NAME_PATTERN",
+      "REGION_PATTERN",
+      "describeCodePipelineDelivery",
+      "validateCodePipelineDelivery"
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs": [
       "validateConformance"
@@ -157,17 +262,31 @@
       "requireProof"
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs": [
-      "githubProofTransport"
+      "EVIDENCE_RELEASE_ASSET_LIMIT",
+      "EVIDENCE_RELEASE_MAX_OVERFLOW",
+      "EVIDENCE_RELEASE_NEAR_FULL",
+      "LEGACY_EVIDENCE_RELEASE",
+      "acceptedEvidenceReleases",
+      "evidenceReleaseOverride",
+      "githubProofTransport",
+      "isAcceptedEvidenceRelease",
+      "overflowReleaseTag",
+      "resolveEvidenceRelease",
+      "targetEvidenceRelease",
+      "usableTag"
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs": [
       "markdownSection",
+      "nearMissHeading",
       "topLevelLines"
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs": [
       "canonicalCompletionBlock",
+      "estimateSpecRemainder",
       "usageSpecRemainder"
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs": [
+      "ensureEvidenceRelease",
       "publishCompletionProof"
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs": [
@@ -184,6 +303,7 @@
       "MAX_NATIVE_JSON_BYTES",
       "MAX_RECORD_BYTES",
       "MAX_TOTAL_BYTES",
+      "NO_RUNTIME_REASONS",
       "PROOF_KIND",
       "PROOF_MARKER",
       "declaredScope",
@@ -194,6 +314,7 @@
       "isText",
       "isTime",
       "localMarkers",
+      "matchesPrimarySpecDigest",
       "parseLocator",
       "primarySpecProjection",
       "requireProof",
@@ -207,6 +328,44 @@
       "validateFrontier",
       "validateSource"
     ],
+    "all/copy-overwrite/scripts/lib/evidence-prune-apply.mjs": [
+      "applyPrune",
+      "nearlyFullMessage"
+    ],
+    "all/copy-overwrite/scripts/lib/evidence-prune-config.mjs": [
+      "parseFlags",
+      "readLisaConfig",
+      "resolveReleases",
+      "resolveRepository"
+    ],
+    "all/copy-overwrite/scripts/lib/evidence-prune-gh.mjs": [
+      "ghAccess",
+      "hashBytes",
+      "pruneGitHub"
+    ],
+    "all/copy-overwrite/scripts/lib/evidence-prune-records.mjs": [
+      "evidenceSnapshot",
+      "recordRescanner"
+    ],
+    "all/copy-overwrite/scripts/lib/evidence-prune.mjs": [
+      "COMPLETION_RECORD",
+      "DEFAULT_MIN_AGE_DAYS",
+      "EvidencePruneError",
+      "archiveReleaseTag",
+      "collectPins",
+      "formatReport",
+      "isPinned",
+      "mergePins",
+      "planPrune",
+      "reportedSha256"
+    ],
+    "all/copy-overwrite/scripts/lib/evidence-release-capacity.mjs": [
+      "ensureEvidenceRelease",
+      "excerpt",
+      "fullReleaseMessage",
+      "releaseAssets",
+      "uploadHitLimit"
+    ],
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": [
       "ATTRIBUTION",
       "DIAGNOSIS",
@@ -218,12 +377,37 @@
       "tempRootPopulation",
       "terminatedDocComments"
     ],
+    "all/copy-overwrite/scripts/lib/gate-pass-cache.mjs": [
+      "CACHE_ENV",
+      "CACHE_FIELD",
+      "ENV_ALLOWLIST",
+      "KEY_SCHEMA",
+      "LOCKFILES",
+      "MAX_AGE_MS",
+      "SECRET_NAME_PATTERN",
+      "STORE_DIR_MODE",
+      "STORE_FILE_MODE",
+      "VOLATILE_LISA_ENV",
+      "cacheDirectory",
+      "cacheSetting",
+      "canonicalJson",
+      "environmentFingerprint",
+      "gateKey",
+      "openGatePassCache",
+      "provedTree",
+      "relevantEnvironment",
+      "sharedInputs"
+    ],
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs": [
       "verifyAssignable",
       "verifyCurrentProvider",
+      "verifyCurrentRun",
       "verifyHistoricalProvider",
+      "verifyHistoricalRun",
+      "verifyRecoveryDestination",
       "verifyRecoveryProvider",
-      "verifyStaleOriginProvider"
+      "verifyStaleOriginProvider",
+      "verifyStaleOriginRun"
     ],
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs": [
       "assertHistoricalAttestation",
@@ -237,6 +421,7 @@
     ],
     "all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs": [
       "ACTIONS_ISSUER",
+      "DEFAULT_TARGET",
       "PROPOSAL_PREDICATE",
       "RECOVERY_PREDICATE",
       "assertPinnedVerifier",
@@ -247,8 +432,11 @@
       "officialResult",
       "requireProof",
       "sha256",
+      "targetBranch",
+      "validBranchName",
       "verifiedRole",
       "verifyCurrentProvider",
+      "verifyCurrentRun",
       "verifyDescriptorAttestation"
     ],
     "all/copy-overwrite/scripts/lib/history-secret-evidence-shape.mjs": [
@@ -295,6 +483,42 @@
       "recentKillMarks",
       "recordKillMark"
     ],
+    "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep-processes.mjs": [
+      "DEFAULT_GRACE_MS",
+      "OWNER_ENV",
+      "UNKNOWN_START",
+      "formatOwnerMarker",
+      "isAlive",
+      "listProcesses",
+      "liveSweeper",
+      "ownerMarkerFor",
+      "parseDarwinProcessTable",
+      "parseDarwinStartTimes",
+      "parseLinuxEnviron",
+      "parseLinuxStat",
+      "parseOwnerMarker",
+      "processStartTimes",
+      "selectOrphans",
+      "sweepOrphans"
+    ],
+    "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs": [
+      "DEFAULT_MAX_AGE_HOURS",
+      "LISA_OWNED_TEMP_PREFIXES",
+      "LISA_PROTECTED_TEMP_NAMES",
+      "LISA_PROTECTED_TEMP_PREFIXES",
+      "SWEPT_ENV",
+      "SWEPT_ROOTS_ENV",
+      "formatAlreadySwept",
+      "formatSummary",
+      "isLisaOwnedTempName",
+      "main",
+      "parseSweepArgs",
+      "planStartOfRunSweep",
+      "runStartOfRunSweep",
+      "sweep",
+      "sweepTemp",
+      "tempRootOf"
+    ],
     "all/copy-overwrite/scripts/lib/npm-update-allocate.mjs": [
       "allocateLeaf",
       "discoverPrior",
@@ -311,10 +535,18 @@
       "invokeControllerRecipe"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-bun.mjs": [
+      "bunOnlyRoot",
       "committedBun",
+      "directoryBun",
       "frozenBun",
+      "frozenRootBun",
       "qualifiedBun",
       "verifyBunLock"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-cache-seed.mjs": [
+      "bunCacheIn",
+      "seedPrivateRoot",
+      "validCacheSeed"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-cancel-origin.mjs": [
       "assertOriginTransport",
@@ -359,6 +591,7 @@
     ],
     "all/copy-overwrite/scripts/lib/npm-update-contract.mjs": [
       "CLAIM",
+      "DEFAULT_TARGET",
       "FILES",
       "NAME",
       "OBJECT",
@@ -366,10 +599,13 @@
       "UpdaterError",
       "VERSION",
       "keys",
+      "policyTarget",
       "proposalFileNames",
       "proposalFrom",
       "required",
+      "selectPolicy",
       "selectionKey",
+      "validBranchName",
       "validateHost",
       "validateLock",
       "validateManifest",
@@ -392,6 +628,7 @@
       "executeRecipe"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-execution-adapter.mjs": [
+      "childEnvironment",
       "initializeAdapter"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-gate-hooks.mjs": [
@@ -440,7 +677,8 @@
       "prepareGhRequest"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-github.mjs": [
-      "GitHub"
+      "GitHub",
+      "missingTarget"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs": [
       "assertManagedSelection",
@@ -484,6 +722,7 @@
     "all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs": [
       "assertHostedGate",
       "createHostedGate",
+      "installHostedDependencies",
       "originalHookEnvironment",
       "prepareRailsApplication",
       "remainingGateTime"
@@ -502,6 +741,7 @@
       "UpdaterError",
       "inheritProvenanceFailure",
       "keys",
+      "operatorRefusal",
       "provenanceFailure",
       "publicFailure",
       "recordNativeFailure",
@@ -521,6 +761,7 @@
     "all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs": [
       "buildDraft",
       "environment",
+      "environmentDeclaration",
       "leafRoles"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-leaf.mjs": [
@@ -565,8 +806,13 @@
       "validateOwnerReceipt"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-policy.mjs": [
+      "DEFAULT_TARGET",
       "NAME",
       "VERSION",
+      "cancelOperatorOf",
+      "policyTarget",
+      "selectPolicy",
+      "validBranchName",
       "validatePolicy"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-prepare.mjs": [
@@ -703,6 +949,58 @@
       "literalArguments",
       "toolInvocation"
     ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-cancel.mjs": [
+      "canceledName",
+      "isoTime",
+      "jiraAssertCancelled",
+      "jiraCancel",
+      "linearAssertCancelled",
+      "linearCancel",
+      "linearCanceledState"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-jira.mjs": [
+      "JiraTracker"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-linear.mjs": [
+      "LinearTracker"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker-wire.mjs": [
+      "LINEAR_CONNECTIONS",
+      "adfCodeBlock",
+      "adfProse",
+      "adfText",
+      "assertClaimAuthor",
+      "assertDeclaredActor",
+      "completeLinearConnections",
+      "declaredActor",
+      "fence",
+      "jsonCall",
+      "lifecycleName",
+      "linearClosed",
+      "linearSearchResult",
+      "strandedRefusal",
+      "trackerCredentials",
+      "unfence",
+      "vendorLabels",
+      "vocabularyRefusal",
+      "withinJiraLimit"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-tracker.mjs": [
+      "allocationWorkItem",
+      "assertManagedClosure",
+      "createTracker",
+      "expectedWorkItem",
+      "githubTracker",
+      "managedActor",
+      "proveTrackerProvider",
+      "refuseUnreleasableHold",
+      "trackerFor",
+      "trackerOf",
+      "trackerPublishAuthority",
+      "trustedHumanActorIds",
+      "vendorBacklink",
+      "verifySignedWorkItem"
+    ],
     "all/copy-overwrite/scripts/lib/npm-update-worker-environment.mjs": [
       "assertRubyEnvironment",
       "inspectedEnvironment",
@@ -733,6 +1031,9 @@
       "isWellFormedKey",
       "placeholderKeys"
     ],
+    "all/copy-overwrite/scripts/lib/private-key-redaction.mjs": [
+      "redactPrivateKeyBlocks"
+    ],
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs": [
       "interruptionReason",
       "interruptionReport",
@@ -746,6 +1047,38 @@
       "supervise",
       "timeoutVerdictForPlatform",
       "windowsTreeExists"
+    ],
+    "all/copy-overwrite/scripts/lib/push-admission.mjs": [
+      "ADMITTED_GATES",
+      "PUSH_CONTEXT",
+      "admissionEnabled",
+      "admittedCommand",
+      "lisaCliPrefix",
+      "shellQuote",
+      "withAdmission"
+    ],
+    "all/copy-overwrite/scripts/lib/push-gate-defaults.mjs": [
+      "RAILS_PUSH_GATE_DEFAULTS",
+      "TYPESCRIPT_PUSH_GATE_DEFAULTS",
+      "isRailsProject",
+      "isTypeScriptProject",
+      "pushGateDefaultsFor",
+      "withDefaults",
+      "withPushGateDefaults"
+    ],
+    "all/copy-overwrite/scripts/lib/push-timing.mjs": [
+      "KEEP_REPORTS",
+      "MAX_FAILING_TEST_FILES",
+      "TIMING_DIR",
+      "failingTestFiles",
+      "formatDuration",
+      "formatLoad",
+      "formatTimingLine",
+      "hostReading",
+      "recordPushTiming",
+      "reportFileName",
+      "timingReport",
+      "writeTimingReport"
     ],
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs": [
       "RUNS_PER_PAGE",
@@ -762,6 +1095,47 @@
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs": [
       "scanForLoadFailures"
     ],
+    "all/copy-overwrite/scripts/lib/rspec-selection.mjs": [
+      "ALWAYS_RUN_DIRS",
+      "ARTIFACT_NAME",
+      "MAP_DIR",
+      "MAP_TRUST",
+      "MAX_MAP_RUN_CHECKS",
+      "RAILS_DEFAULT_COVERAGE",
+      "RAILS_FULL_SUITE_TRIGGERS",
+      "RSPEC_SUBJECT",
+      "SPEC_FILE",
+      "THRESHOLDS_FILE",
+      "alwaysRunSpecs",
+      "associatedSpec",
+      "changedRubyCoverage",
+      "chooseMapRun",
+      "deletedSpecReason",
+      "explainRspecSelection",
+      "filePercentages",
+      "fullSuite",
+      "isRailsProject",
+      "mapPiecesRefusal",
+      "mapRunRefusal",
+      "mergeMapDocuments",
+      "nocovLines",
+      "parseMapArtifacts",
+      "railsCoverageEscalation",
+      "railsFullSuiteEscalation",
+      "railsTrigger",
+      "rankMapRuns",
+      "rspecSelectionSettings",
+      "selectRailsSpecs",
+      "taggedAlwaysRun"
+    ],
+    "all/copy-overwrite/scripts/lib/tracker-row-fold.mjs": [
+      "trackerRowKey"
+    ],
+    "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs": [
+      "LINEAR_REQUIRED_FORM",
+      "assertCanonicalArtifactRef",
+      "canonicalArtifactRefViolation"
+    ],
     "all/copy-overwrite/scripts/lib/usage-effectiveness.mjs": [
       "isEvidenceString",
       "isEvidenceTime",
@@ -769,6 +1143,7 @@
       "parseEffectivenessTokens"
     ],
     "all/copy-overwrite/scripts/lib/usage-ledger-integrity.mjs": [
+      "isLisaUsageLedgerIntact",
       "verifyLisaUsageSectionIntegrity"
     ],
     "all/copy-overwrite/scripts/lib/usage-ledger.mjs": [
@@ -778,8 +1153,56 @@
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs": [
       "startWindowsProcessJob"
     ],
+    "all/copy-overwrite/scripts/lib/work-item-estimate-actual.mjs": [
+      "actualTokenFields",
+      "formatTokens",
+      "parseActualToken",
+      "renderActual"
+    ],
+    "all/copy-overwrite/scripts/lib/work-item-estimate-calibration.mjs": [
+      "calibrateEstimate",
+      "historyBodies",
+      "itemRatio"
+    ],
+    "all/copy-overwrite/scripts/lib/work-item-estimate-check.mjs": [
+      "checkEstimate"
+    ],
+    "all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs": [
+      "DEFAULT_ESTIMATE_MODELS",
+      "DEFAULT_ESTIMATE_PRICING",
+      "DEFAULT_TOKEN_MIX",
+      "DEFAULT_WORK_ITEM_ESTIMATE",
+      "EstimateConfigError",
+      "costCents",
+      "priceFor",
+      "resolveEstimateConfig",
+      "resolveEstimateGate",
+      "validateEstimateConfig"
+    ],
+    "all/copy-overwrite/scripts/lib/work-item-estimate-tally.mjs": [
+      "doneProblems",
+      "ledgerActual",
+      "tallyEstimate"
+    ],
+    "all/copy-overwrite/scripts/lib/work-item-estimate.mjs": [
+      "ESTIMATE_HEADING",
+      "buildEstimate",
+      "humanLines",
+      "managedEstimateLines",
+      "parseEstimateSection",
+      "parseTokenCount",
+      "renderEstimateSection",
+      "upsertEstimateSection"
+    ],
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs": [
       "worktreeDependencyProblem"
+    ],
+    "all/copy-overwrite/scripts/lisa-affected-tests.mjs": [
+      "MAP_DIR",
+      "PUSH_ONLY_FLAG",
+      "main",
+      "parseArgs",
+      "plan"
     ],
     "all/copy-overwrite/scripts/lisa-automation-provenance.mjs": [
       "automationReference",
@@ -818,6 +1241,13 @@
       "prepareEnvironment",
       "runCli"
     ],
+    "all/copy-overwrite/scripts/lisa-estimate.mjs": [
+      "readProjectConfig",
+      "runCli"
+    ],
+    "all/copy-overwrite/scripts/lisa-evidence-prune.mjs": [
+      "main"
+    ],
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs": [
       "collisions",
       "directDependencies",
@@ -826,11 +1256,14 @@
     ],
     "all/copy-overwrite/scripts/lisa-gates.mjs": [
       "ADVISORY_PROVERS",
+      "AGENT_MOMENTS",
       "CALLER_CHAIN_FIELD",
+      "CODING_AGENTS",
       "CONSULTS_THEN_FALLS_BACK",
       "CONTEXT_SEPARATOR",
       "CONTEXT_VERDICTS",
       "COSTLY_LEG_TIMEOUT_MINUTES",
+      "CRITERION_ID_PATTERN",
       "CUSTOM_PREFIX",
       "DECLARATION_REQUIRED_JOBS",
       "DEFAULT_RUNNER",
@@ -838,16 +1271,13 @@
       "DRIFT_RESPONSES",
       "DUAL_ADOPTION_CONTROLS",
       "ENFORCEMENTS",
-      "EVIDENCE_BYTE_BUDGET",
       "EVIDENCE_DEFAULTS",
-      "EVIDENCE_FIELDS",
-      "EVIDENCE_SCHEMA_TOKEN",
-      "EVIDENCE_STATUS",
+      "EXECUTOR_FIELD",
+      "EXECUTOR_FIELDS",
       "EXECUTOR_VERDICTS",
       "FACADE_CLASSES",
       "FAILURE_SHAPE_FIELD",
       "GATE_FIELDS",
-      "GATE_REUSE_CLASS",
       "HARDCODED_INVOCATIONS",
       "HOLLOW_RESPONSES",
       "IDENTITY_UNKNOWN",
@@ -856,29 +1286,37 @@
       "LEG_ACTIONS",
       "LEG_TIMEOUT_MINUTES",
       "LEVELS",
+      "LISA_EXECUTOR_PLATFORM",
       "MOMENTS",
       "MOMENT_EXECUTOR_DIR",
       "MOMENT_FAMILIES",
       "NEVER_CONSULTS",
       "NON_DECLARABLE_JOBS",
       "NO_OP_RUNNERS",
+      "PARAMETER_DIRECTIONS",
+      "PARAMETER_FIELDS",
+      "PART_EVIDENCE_FIELDS",
+      "PART_EVIDENCE_LOCATOR_FIELDS",
+      "PART_FIELDS",
       "POLICY_ENFORCED",
       "POLICY_SCHEMA",
+      "PROOF_DIRECTORY",
+      "PROOF_FIELDS",
       "PROVED_OUTSIDE_FACADE",
       "PULL_REQUEST",
       "QUALITY_JOB_GATES",
       "REGISTRY",
       "RETIRED_CONFIG_KEYS",
       "RETIRED_SKIP_JOB_TOKENS",
-      "REUSE_CLASS",
-      "REUSE_CLASSES",
-      "REUSE_REASON",
       "SECONDARY_PROVER_JOBS",
       "SKIP_JOB_STATUS",
       "SKIP_JOB_TOKENS",
       "STATE_FAMILIES",
+      "TIERS",
+      "UNENFORCEABLE_ON_FIELD",
       "UNGATED_QUALITY_JOBS",
       "UNPROVEN_RESPONSES",
+      "WHOLE_REPOSITORY",
       "artifactDigest",
       "auditConfigKeys",
       "auditProvers",
@@ -908,15 +1346,11 @@
       "postedCallerChains",
       "projectScripts",
       "qualityJobPlan",
-      "readEvidence",
-      "readEvidenceFile",
       "readGates",
       "readScripts",
       "registryVersion",
       "resolveMoment",
       "retiredContexts",
-      "reusePlan",
-      "reusePolicyFor",
       "seedGates",
       "skipJobMigration",
       "unconfiguredAt",
@@ -938,12 +1372,22 @@
       "tasksOf"
     ],
     "all/copy-overwrite/scripts/lisa-npm-updater.mjs": [
+      "assertTargetBranchExists",
+      "assertWorkflowTarget",
       "cancellationRequest",
       "main"
+    ],
+    "all/copy-overwrite/scripts/lisa-plugin-registration-notice.mjs": [
+      "pluginRegistrationNotice"
     ],
     "all/copy-overwrite/scripts/lisa-postinstall.mjs": [
       "APPLY_FAILURE_MARKER",
       "runPostinstall"
+    ],
+    "all/copy-overwrite/scripts/lisa-push-timing-report.mjs": [
+      "main",
+      "median",
+      "summariseReports"
     ],
     "all/copy-overwrite/scripts/lisa-rails-prepush.mjs": [
       "main"
@@ -975,6 +1419,13 @@
       "sameDeclaredValue",
       "unobservablePolicyFields"
     ],
+    "all/copy-overwrite/scripts/lisa-rspec-select.mjs": [
+      "PARTIAL_COVERAGE_HELPER",
+      "main",
+      "planRspecRun",
+      "rspecArgv",
+      "runRspecPlan"
+    ],
     "all/copy-overwrite/scripts/lisa-run-gates.mjs": [
       "BUILTIN_FLOOR",
       "CONDITIONAL_FLOOR",
@@ -985,11 +1436,15 @@
       "compareCodeUnits",
       "coveredFloor",
       "evidenceDocument",
+      "judgePart",
       "main",
+      "partDirectory",
       "provenFloor",
       "runGates",
+      "spawnArgv",
       "spawnExec",
       "undeclaredFloor",
+      "unreachedFloor",
       "wiredConditionalFloor"
     ],
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs": [
@@ -1009,6 +1464,7 @@
     "all/copy-overwrite/scripts/lisa-work-item.mjs": [
       "LANE_ID_VARIABLES",
       "LANE_TRAILER",
+      "PENDING_PROOF_IS_SUCCESS_FOR",
       "TrackerUnreachableError",
       "WORK_ITEM_CONTRACT_VERSION",
       "ancestryUnreachable",
@@ -1029,6 +1485,7 @@
       "githubFailureReason",
       "githubHierarchyArgs",
       "githubIssueViewArgs",
+      "jiraServerOrigin",
       "judgeLane",
       "labelNamesOf",
       "mergeOnlyRange",
@@ -1066,18 +1523,28 @@
     "all/copy-overwrite/scripts/threshold-ratchet-compare.mjs": [
       "applyAllowList",
       "compareConstraints",
+      "compareDeclaredThresholds",
       "compareFile",
       "describeAllowList",
-      "formatReport"
+      "describeNearMisses",
+      "describeUnmergedCover",
+      "formatReport",
+      "settleAddedExceptions",
+      "splitMergedEntries"
     ],
     "all/copy-overwrite/scripts/threshold-ratchet-families.mjs": [
       "ALLOW_STATE",
+      "DECLARED_DIRECTIONS",
       "FAMILIES",
+      "HUMAN_GATE_ACCESS_ONLY",
+      "HUMAN_GATE_STRICT",
       "LIGHTHOUSE_ASSERTION_DIRECTIONS",
       "allowEntryExpiry",
       "classifyAllowEntry",
+      "declaredThresholdKey",
       "describeAllowScope",
       "extractAllowEntries",
+      "extractDeclaredThresholds",
       "extractK6Constraints",
       "extractLighthouseAssertions",
       "extractNumericLeaves",
@@ -1085,9 +1552,14 @@
       "extractStrykerConstraints",
       "extractStrykerMutate",
       "familyFor",
+      "findDeclaredParameter",
       "globRoot",
+      "humanGateModeOf",
+      "humanGateModeOfText",
+      "isDeclaredDirection",
       "parseJson",
-      "parseK6Expression"
+      "parseK6Expression",
+      "reasonInWords"
     ],
     "expo/copy-overwrite/scripts/bdd-matrix.mjs": [
       "renderMatrix"
@@ -1283,8 +1755,118 @@
     "expo/copy-overwrite/scripts/lib/invoked-as-script.mjs": [
       "invokedAsScript"
     ],
+    "rails/copy-overwrite/scripts/check-nightly-e2e-health.mjs": [
+      "ABSOLUTE_MAX_API_ATTEMPTS",
+      "ABSOLUTE_MAX_API_PAGES",
+      "ABSOLUTE_MAX_FRESHNESS_HOURS",
+      "ABSOLUTE_MAX_RETRY_SECONDS",
+      "BOOTSTRAP_ABSOLUTE_MAX_DAYS",
+      "BYPASS_ABSOLUTE_MAX_HOURS",
+      "BYPASS_LABEL_STATE",
+      "BYPASS_PERMISSIONS",
+      "COUNTED_EVENTS",
+      "DECISIVE_CONCLUSIONS",
+      "DEFAULT_BYPASS_LABEL",
+      "DEFAULT_BYPASS_REASON_PATTERN",
+      "DEFAULT_GATE_CONTEXT",
+      "DEFAULT_SUITE_GRACE_DAYS",
+      "FILTERED_RUN_REASON",
+      "FLOW_COUNT_ARTIFACT_PATTERN",
+      "FLOW_SHORTFALL_REASON",
+      "GREEN_CONCLUSION",
+      "GateApiError",
+      "GateConfigError",
+      "INCOMPLETE_EVIDENCE_REASON",
+      "ISSUE_ACTIONS",
+      "NIGHTLY_E2E_CONTRACT_VERSION",
+      "REQUIREDNESS",
+      "REQUIRED_BYPASS_REASON_PATTERN",
+      "RUN_CANDIDATE_PAGE_SIZE",
+      "SCOPE_ARTIFACT_PATTERN",
+      "SCOPE_UNREADABLE_REASON",
+      "SUITE_STATES",
+      "TRACKING_ISSUE_LABEL",
+      "WAIVER_RECORD_BEGIN",
+      "WAIVER_RECORD_END",
+      "WAIVER_RECORD_MARKER",
+      "WAIVER_STATES",
+      "ZERO_FLOWS_REASON",
+      "apiGet",
+      "apiWrite",
+      "applyIssuePlan",
+      "assessSuite",
+      "assessSuiteScope",
+      "classifyWaiver",
+      "contextMatchesGate",
+      "countDecisiveJobs",
+      "decide",
+      "describeRulesets",
+      "evaluateBypass",
+      "fetchActorPermission",
+      "fetchAllJobs",
+      "fetchBypassLabelState",
+      "fetchLabelEvent",
+      "fetchPullRequestState",
+      "fetchRequiredness",
+      "fetchRunArtifacts",
+      "fetchRunCandidates",
+      "fetchTrackingIssues",
+      "formatFinding",
+      "formatIssueReport",
+      "formatReport",
+      "formatSelection",
+      "formatVerdictReport",
+      "formatWaiverRecord",
+      "formatWaiverVerdict",
+      "isCompleteEvidence",
+      "isFresh",
+      "observe",
+      "observeWaiver",
+      "parseWaiverTrailer",
+      "planIssueActions",
+      "planReport",
+      "publishReport",
+      "readSuiteScope",
+      "readTimeoutEvidence",
+      "reportIssues",
+      "resolveBootstrap",
+      "resolveSecurityLimits",
+      "resolveSettings",
+      "resolveSuiteGrace",
+      "resolveWaiverSettings",
+      "retryDelayMs",
+      "runGate",
+      "runProducedEvidence",
+      "runReport",
+      "runWaiverVerdict",
+      "setIssuePin",
+      "stateForConclusion",
+      "stripMarkdownCode",
+      "suiteMarker",
+      "suiteRequiredness",
+      "unreadablePullRequestBypass",
+      "validateSuites",
+      "waiverVerdict"
+    ],
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs": [
       "invokedAsScript"
+    ],
+    "rails/copy-overwrite/scripts/lisa-rails-gates.mjs": [
+      "ADMISSION_REFUSED_EXIT",
+      "CHECK_GATES",
+      "RAILS_GATES",
+      "RSPEC_WORKERS_ENV",
+      "declaredWorkers",
+      "grantedWorkers",
+      "isRailsProject",
+      "main",
+      "mutationEnabled",
+      "parallelDatabaseReady",
+      "railsEffectiveConfig",
+      "railsLisaCli",
+      "rspecCommand",
+      "runPayload",
+      "runRailsGates"
     ],
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs": [
       "MAX_SHARDS",
@@ -1313,18 +1895,28 @@
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs": [
       "applyAllowList",
       "compareConstraints",
+      "compareDeclaredThresholds",
       "compareFile",
       "describeAllowList",
-      "formatReport"
+      "describeNearMisses",
+      "describeUnmergedCover",
+      "formatReport",
+      "settleAddedExceptions",
+      "splitMergedEntries"
     ],
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs": [
       "ALLOW_STATE",
+      "DECLARED_DIRECTIONS",
       "FAMILIES",
+      "HUMAN_GATE_ACCESS_ONLY",
+      "HUMAN_GATE_STRICT",
       "LIGHTHOUSE_ASSERTION_DIRECTIONS",
       "allowEntryExpiry",
       "classifyAllowEntry",
+      "declaredThresholdKey",
       "describeAllowScope",
       "extractAllowEntries",
+      "extractDeclaredThresholds",
       "extractK6Constraints",
       "extractLighthouseAssertions",
       "extractNumericLeaves",
@@ -1332,9 +1924,21 @@
       "extractStrykerConstraints",
       "extractStrykerMutate",
       "familyFor",
+      "findDeclaredParameter",
       "globRoot",
+      "humanGateModeOf",
+      "humanGateModeOfText",
+      "isDeclaredDirection",
       "parseJson",
-      "parseK6Expression"
+      "parseK6Expression",
+      "reasonInWords"
+    ],
+    "scripts/build-unless-marked.mjs": [
+      "main"
+    ],
+    "scripts/check-control-command-parity.mjs": [
+      "main",
+      "parseArguments"
     ],
     "scripts/check-delivery-deletion-conflicts.mjs": [
       "DELIVERY_LANES",
@@ -1358,6 +1962,7 @@
       "requiresLedgerCheck",
       "requiresManifestCheck",
       "requiresNightlyGuardCertificateCheck",
+      "requiresReadinessQuestionnaireCheck",
       "stagedPaths",
       "staleArtifacts"
     ],
@@ -1438,6 +2043,14 @@
       "inspectMergeDrivers",
       "runCheckMergeDrivers"
     ],
+    "scripts/check-npm-install-compat.mjs": [
+      "DEFAULT_NPM_VERSIONS",
+      "evaluateInstall",
+      "formatReport",
+      "main",
+      "parseArgs",
+      "runChecks"
+    ],
     "scripts/check-orphan-test-processes.mjs": [
       "FIXTURE_PREFIXES",
       "excerptCommand",
@@ -1487,6 +2100,9 @@
       "refusalFor",
       "sweep"
     ],
+    "scripts/check-release-commit-listed.mjs": [
+      "checkReleaseCommitListed"
+    ],
     "scripts/check-release-package-identity.mjs": [
       "assertCheckoutIdentity",
       "assertReleaseCommit",
@@ -1519,14 +2135,18 @@
       "withinRange"
     ],
     "scripts/check-self-dependency-pin.mjs": [
+      "PACKUMENT_ATTEMPT_TIMEOUT_MS",
       "SELF_PACKAGE",
+      "awaitListed",
       "checkSelfPin",
       "compareSpec",
       "locateSelfPin",
       "main",
+      "newestInstallableVersion",
       "publishedVersionsDescending"
     ],
     "scripts/check-shell-guard-refusal-coverage.mjs": [
+      "HAND_RUN_SUITES",
       "candidateSuites",
       "main"
     ],
@@ -1570,6 +2190,11 @@
       "parseArguments",
       "reportedCases"
     ],
+    "scripts/check-test-files-executed.mjs": [
+      "checkTestFilesExecuted",
+      "parseArguments",
+      "unexecutedFiles"
+    ],
     "scripts/check-third-party-action-pins.mjs": [
       "UsageError",
       "buildReport",
@@ -1582,12 +2207,10 @@
       "parseArgs"
     ],
     "scripts/check-typecheck-tests.mjs": [
+      "describeProgram",
       "main",
+      "projectFrom",
       "rootFrom"
-    ],
-    "scripts/check-ui-demo-data.mjs": [
-      "extractUiCatalogProgram",
-      "inspectUiDemoData"
     ],
     "scripts/check-whole-output-guards.mjs": [
       "ACCOUNTABLE_CALLS",
@@ -1626,29 +2249,13 @@
       "releaseContains",
       "splitIntoSteps"
     ],
-    "scripts/deployed-guard-advice.mjs": [
-      "ADVICE_SWEEP_VERDICTS",
-      "FORBIDDEN_ADVISORY_PATTERNS",
-      "SOURCE_GUARD_ROOTS",
-      "cacheChannels",
-      "deployedGuardAdviceExitCode",
-      "formatDeployedGuardAdviceReport",
-      "invokedAsScript",
-      "marketplaceChannel",
-      "matchAdvisory",
-      "pluginManifestChannel",
-      "repositoryChannel",
-      "resolveGuardChannels",
-      "resolveSourceChannels",
-      "scanDeployedGuardAdvice",
-      "sessionChannel"
-    ],
     "scripts/detect-stale-workflow-inputs.mjs": [
       "UsageError",
       "buildReport",
       "diffStaleKeys",
       "extractCallerJobs",
       "extractDeclaredInputs",
+      "findUnparsedLisaCallerLines",
       "main",
       "parseArgs",
       "parseReusableReference"
@@ -1656,19 +2263,6 @@
     "scripts/downstream-name-digest.mjs": [
       "entryFor",
       "normalize"
-    ],
-    "scripts/fixtures/native-safety-net-retirement/probes.mjs": [
-      "CONTROL",
-      "ORDINARY",
-      "TARGET",
-      "commands",
-      "load",
-      "ok",
-      "openCodeProbe",
-      "pluginProbe",
-      "repositoryProbe",
-      "run",
-      "sha"
     ],
     "scripts/generate-agy-plugin-artifacts.mjs": [
       "generateAgyVariant"
@@ -1680,6 +2274,7 @@
       "convertCommandToCodexSkill",
       "deriveSkillInterface",
       "emitCodexHooks",
+      "emitCodexSharedScripts",
       "emitCodexSkillVariants",
       "emitCommandSkills",
       "filterCodexHooks",
@@ -1700,6 +2295,7 @@
     ],
     "scripts/generate-export-surface.mjs": [
       "changelogSection",
+      "confirmedRemovals",
       "currentSurface",
       "exportedNames",
       "parseArtifact",
@@ -1709,7 +2305,6 @@
       "shippedScripts"
     ],
     "scripts/generate-lisa-owned-hash-ledger.mjs": [
-      "$",
       "DEFAULT_REPO_ROOT",
       "HISTORY_EXPORT",
       "LEDGER_EXPORT",
@@ -1728,8 +2323,6 @@
       "runLedgerCli"
     ],
     "scripts/generate-nightly-e2e-guard-certificate.mjs": [
-      "NIGHTLY_E2E_GUARD_BEHAVIOR_CERTIFICATES",
-      "NIGHTLY_E2E_GUARD_CERTIFICATE_SCHEMA_VERSION",
       "RETAINED_RELEASES",
       "certifyNightlyGuardPackageArtifact",
       "generateNightlyGuardBehaviorCertificate",
@@ -1740,18 +2333,23 @@
       "auditedHelperEdges",
       "generatedHelperGraph"
     ],
-    "scripts/generate-scratch-supervisor-profile.mjs": [
-      "renderScratchProfile"
-    ],
-    "scripts/generate-upstream-evidence-manifest.mjs": [
-      "UPSTREAM_EVIDENCE_MANIFEST",
-      "UPSTREAM_PUBLIC_COMMITS",
-      "UPSTREAM_SURFACE_MANIFEST"
+    "scripts/generate-readiness-questionnaire.mjs": [
+      "CATALOGUE_PATH",
+      "GENERATOR_COMMAND",
+      "QUESTIONNAIRE_PATH",
+      "familyOf",
+      "familyTitles",
+      "inspectQuestionnaire",
+      "renderQuestionnaire",
+      "writeQuestionnaire"
     ],
     "scripts/install-generated-artifact-merge-driver.mjs": [
       "DRIVER_COMMAND",
       "GENERATED_ARTIFACT_DRIVER",
       "installGeneratedArtifactMergeDriver"
+    ],
+    "scripts/integration-shard-build.mjs": [
+      "main"
     ],
     "scripts/lib/bounded-spawn.mjs": [
       "DEFAULT_CHILD_BUDGET_MS",
@@ -1760,6 +2358,26 @@
       "isChildTimeout",
       "rethrowIfChildTimeout"
     ],
+    "scripts/lib/codex-shared-scripts.mjs": [
+      "emitCodexSharedScripts",
+      "extractRelativeSpecifiers"
+    ],
+    "scripts/lib/control-command-parity.mjs": [
+      "CONTROL_COMMANDS",
+      "DIFFERENCES_HEADING",
+      "FAILURE_HEADING",
+      "PARITY_FIXTURE",
+      "REPO_ROOT",
+      "RUNNING_HEADING",
+      "SUPPORTED_AGENTS",
+      "VIOLATION",
+      "auditControlCommandParity",
+      "controlCommandFiles",
+      "exitStatusOf",
+      "formatControlCommandParity",
+      "readParityFixture",
+      "skillNameOf"
+    ],
     "scripts/lib/dependency-tree.mjs": [
       "CANNOT_MEASURE",
       "INSTALL_COMMAND",
@@ -1767,8 +2385,14 @@
       "missingDependencies",
       "ranVacuously"
     ],
+    "scripts/lib/docker-cli.mjs": [
+      "resolveDockerCli"
+    ],
     "scripts/lib/gitattributes-merge-drivers.mjs": [
       "mergeDriversIn"
+    ],
+    "scripts/lib/history-scanner-suites.mjs": [
+      "HISTORY_SCANNER_SUITES"
     ],
     "scripts/lib/hook-registration-audit.mjs": [
       "REPO_ROOT",
@@ -1788,6 +2412,11 @@
     "scripts/lib/host-name-field-occurrence-cases.mjs": [
       "hostNameFieldOccurrenceCases"
     ],
+    "scripts/lib/host-name-launcher-cases.mjs": [
+      "hostNameLauncherBoundaryCases",
+      "hostNameLauncherCases",
+      "verifyLauncherScriptSlot"
+    ],
     "scripts/lib/host-name-review-cases.mjs": [
       "hostNameReviewCases"
     ],
@@ -1797,12 +2426,71 @@
     "scripts/lib/invoked-as-script.mjs": [
       "invokedAsScript"
     ],
+    "scripts/lib/markdown-assertions/classify.mjs": [
+      "classifyCheck",
+      "knownNames",
+      "literalText"
+    ],
+    "scripts/lib/markdown-assertions/context.mjs": [
+      "createClassifier",
+      "isMarkdown"
+    ],
+    "scripts/lib/markdown-assertions/corpus.mjs": [
+      "buildCorpus",
+      "declaredNames",
+      "isCodePath",
+      "scriptLiterals",
+      "searchableText"
+    ],
+    "scripts/lib/markdown-assertions/manifest-cull.mjs": [
+      "CULLED_COMMENT",
+      "cullManifest"
+    ],
+    "scripts/lib/markdown-assertions/record.mjs": [
+      "candidateTestFiles",
+      "recordAssertions"
+    ],
+    "scripts/lib/markdown-assertions/sites.mjs": [
+      "classifySites",
+      "evidenceSites",
+      "exercisesCode",
+      "siteCounts"
+    ],
+    "scripts/lib/markdown-assertions/test-cull.mjs": [
+      "cullTestFiles"
+    ],
+    "scripts/lib/markdown-assertions/tokens.mjs": [
+      "MIN_TOKEN_LENGTH",
+      "patternLiteral",
+      "tokenCandidates"
+    ],
+    "scripts/lib/merge-generated-json.mjs": [
+      "formatGeneratedJson",
+      "isJsonArtifact",
+      "mergeJsonArtifact",
+      "parseJsonArtifact",
+      "renderJsonArtifact"
+    ],
     "scripts/lib/mutation-performance-reporter.mjs": [
       "LisaMeasurementReporter",
       "strykerPlugins"
     ],
     "scripts/lib/nest-plugin-commands.mjs": [
-      "nestCommandsUnderLisa"
+      "nestCommandsUnderLisa",
+      "stripClaudeOnlyCommandKeys"
+    ],
+    "scripts/lib/nightly-slow-suites.mjs": [
+      "NIGHTLY_SLOW_SUITES",
+      "NIGHTLY_SLOW_SUITES_ENV",
+      "NIGHTLY_SLOW_SUITES_RUN",
+      "nightlySlowSuiteExclusions"
+    ],
+    "scripts/lib/packaged-apply-isolation.mjs": [
+      "assertDisposableContainer",
+      "compareSnapshots",
+      "preserveUnexpectedWrite",
+      "refuseHostApply",
+      "snapshotFiles"
     ],
     "scripts/lib/per-agent-hook-filter.mjs": [
       "DEVIN_TOOL_SHIM",
@@ -1816,6 +2504,90 @@
       "translateEventName",
       "translateMatcherForDevin"
     ],
+    "scripts/lib/phrase-tests/ast.mjs": [
+      "PHRASE_MATCHERS",
+      "booleanLiteral",
+      "expectChains",
+      "isExpectCall",
+      "isIncludesCall",
+      "isPhraseChain",
+      "parseSource",
+      "readExpectChain",
+      "walk"
+    ],
+    "scripts/lib/phrase-tests/classify.mjs": [
+      "ALLOWED_MODULES",
+      "READ_CALLS",
+      "classifyTestSource",
+      "resolveTestImport"
+    ],
+    "scripts/lib/phrase-tests/doc-taint.mjs": [
+      "DOCUMENT_ROOT",
+      "MARKDOWN_PATH",
+      "analyseDocTaint",
+      "isDocy",
+      "mentionsDocumentPath",
+      "subjectSource"
+    ],
+    "scripts/lib/phrase-tests/fold.mjs": [
+      "foldPhraseTests"
+    ],
+    "scripts/lib/phrase-tests/inventory.mjs": [
+      "LOAD_BEARING",
+      "REPORT_CLASSES",
+      "classifyAssertions",
+      "classifyCheck",
+      "classifyManifest",
+      "countByClass",
+      "countBySource",
+      "literalPhrase",
+      "mergeManifests",
+      "phraseParts",
+      "pruneManifest",
+      "readsMarkdown",
+      "selectEntries"
+    ],
+    "scripts/lib/phrase-tests/manifest.mjs": [
+      "MANIFEST_COMMENT",
+      "MANIFEST_PATH",
+      "SOURCE_GUARDS_COMMENT",
+      "SOURCE_GUARDS_PATH",
+      "SOURCE_SEPARATOR",
+      "buildManifest",
+      "describePhrase",
+      "entryKey",
+      "manifestEntries",
+      "phraseFailure",
+      "sourceTestFile"
+    ],
+    "scripts/lib/phrase-tests/marker-classes.mjs": [
+      "MARKER_CLASSES",
+      "classifyPhrase",
+      "literalOf",
+      "needlesOf"
+    ],
+    "scripts/lib/phrase-tests/parity.mjs": [
+      "deletedTestFiles",
+      "parityFailures"
+    ],
+    "scripts/lib/phrase-tests/record.mjs": [
+      "recordTestFile"
+    ],
+    "scripts/lib/phrase-tests/redact.mjs": [
+      "SECRET_SHAPES",
+      "redactDeep",
+      "redactText"
+    ],
+    "scripts/lib/phrase-tests/repo.mjs": [
+      "REPO_ROOT",
+      "commitReader",
+      "testFilesAt",
+      "workingTreeReader",
+      "workingTreeTestFiles"
+    ],
+    "scripts/lib/phrase-tests/runner.mjs": [
+      "createRunner"
+    ],
     "scripts/lib/plugin-cache-resolution.mjs": [
       "TOKEN_RE",
       "compareSemver",
@@ -1825,6 +2597,12 @@
     ],
     "scripts/lib/plugin-rule-citations.mjs": [
       "rewritePluginRuleCitations"
+    ],
+    "scripts/lib/publish-plugin-tree.mjs": [
+      "clearStaleStages",
+      "ownerGone",
+      "publishPluginTree",
+      "withPublishLock"
     ],
     "scripts/lib/rails-hooks-command.mjs": [
       "runHookCommand"
@@ -1843,6 +2621,7 @@
       "diffStaleKeys",
       "extractCallerJobs",
       "extractDeclaredInputs",
+      "findUnparsedLisaCallerLines",
       "parseReusableReference"
     ],
     "scripts/lib/shell-guard-refusal-coverage.mjs": [
@@ -1860,9 +2639,13 @@
       "snapshot"
     ],
     "scripts/lib/shell-guard-shards.mjs": [
+      "RECOVERY_PREFIX",
+      "RERUN_ALL",
+      "RERUN_FAILED",
       "completeReportedFiles",
       "identityHash",
       "mergeBundles",
+      "mergeShardDirectories",
       "nativeArgv",
       "parseShard",
       "sha256",
@@ -1884,10 +2667,43 @@
       "removalKey",
       "resolveRelative"
     ],
+    "scripts/lib/test-access-map.mjs": [
+      "ACCESS_MAP_ENV",
+      "TEST_ACCESS_MAP_DIRECTORY",
+      "TEST_ACCESS_MAP_SETUP_FILE",
+      "TEST_ACCESS_MAP_TRACER_VERSION",
+      "accessMapMetadata",
+      "accessMapWanted",
+      "armTestAccessMap",
+      "configuredTriggers",
+      "mergeAccessRecords",
+      "repositoryFile",
+      "testAccessMapEnabled",
+      "testAccessMapPlugin",
+      "testAccessMapReporter",
+      "testAccessMapScope",
+      "testAccessMapSetupFiles",
+      "withTestAccessMapReporter"
+    ],
+    "scripts/lib/test-timings-reporter.mjs": [
+      "TEST_TIMINGS_DIRECTORY",
+      "TEST_TIMINGS_SCOPES",
+      "declaredTestScope",
+      "testTimingsReporter",
+      "testTimingsScope",
+      "withTestTimingsReporter"
+    ],
     "scripts/lib/upstream-manifest-staleness.mjs": [
       "describeStaleManifest",
       "diagnoseStaleManifest",
       "parseManifestInputs"
+    ],
+    "scripts/lib/upstream-public-commits.mjs": [
+      "MANIFEST_PATH",
+      "REFRESH_PUBLIC_COMMITS_COMMAND",
+      "describeUnlistedReleaseCommit",
+      "droppedPublicCommits",
+      "listedPublicCommits"
     ],
     "scripts/lib/workflow-contract-probe.mjs": [
       "CONTRACT_KINDS",
@@ -1911,11 +2727,52 @@
       "problemsWith",
       "resolveProfile"
     ],
+    "scripts/lisa-ci-failure-redispatch.mjs": [
+      "CLEARED_MARKER",
+      "FAILURE_MARKER",
+      "LISA_MARKER",
+      "MARKER_AUTHORS",
+      "TRACEABILITY_CHECK",
+      "applyPlan",
+      "claimOnly",
+      "classifyRequiredChecks",
+      "failureMarker",
+      "isNewestLisaMarker",
+      "liveGh",
+      "main",
+      "markerTrust",
+      "planFromFixture",
+      "planRedispatch",
+      "readItemAuthor",
+      "readItemComments",
+      "readTrustedAuthorIds",
+      "recordedGh",
+      "supersedes",
+      "trustedAuthor",
+      "withTrustedAuthors"
+    ],
+    "scripts/lisa-ci-rework-route.mjs": [
+      "CI_LOOP_BOUND",
+      "decideRoute",
+      "failingChecksFrom",
+      "main",
+      "routeFromFixture"
+    ],
     "scripts/lisa-remote-env/materialized-env-authority.mjs": [
       "createMaterializedEnvAuthority",
       "materializedOwnersMatch",
       "runMaterializedEnvAuthorityCli",
       "validateMaterializedEnvAuthority"
+    ],
+    "scripts/lisa-rollback-release.mjs": [
+      "deprecationNotice",
+      "formatCommand",
+      "main",
+      "packumentUrl",
+      "parseArgs",
+      "planCommands",
+      "resolveGoodVersion",
+      "rollback"
     ],
     "scripts/lisa-ruleset-payload.mjs": [
       "MERGE_DEFAULTS",
@@ -1934,6 +2791,14 @@
       "renderReachReport",
       "rulesetReach",
       "sweepRulesetReach"
+    ],
+    "scripts/lisa-update-projects-plan.mjs": [
+      "DESIGNATION_HELP",
+      "buildPlan",
+      "decide",
+      "main",
+      "parseWorkspaces",
+      "planFromText"
     ],
     "scripts/materialize-copy-overwrite.mjs": [
       "OWNERSHIP_HEADER",
@@ -1996,6 +2861,14 @@
       "validateMeasurement",
       "verifyPreparedManifest"
     ],
+    "scripts/plan-integration-shards.mjs": [
+      "SHARD_PLAN_SCHEMA",
+      "findTimingsRun",
+      "formatPlan",
+      "main",
+      "parseArgs",
+      "planShards"
+    ],
     "scripts/plugin-parity-drift.mjs": [
       "UsageError",
       "buildReport",
@@ -2017,6 +2890,10 @@
       "parseArgs",
       "validateArtifact"
     ],
+    "scripts/raise-self-dependency-pin.mjs": [
+      "main",
+      "raiseSelfPin"
+    ],
     "scripts/reconcile-release-tags.mjs": [
       "VERDICT",
       "classifyProbe",
@@ -2037,10 +2914,6 @@
       "remedyConformanceExitCode",
       "sweepRemedyConformance"
     ],
-    "scripts/retire-native-safety-net.mjs": [
-      "installedPluginRoots",
-      "retireNativeSafetyNet"
-    ],
     "scripts/run-artifact-checks.mjs": [
       "CHECK_BUDGET_MS",
       "FAILURE_HEADER",
@@ -2049,6 +2922,23 @@
       "renderReport",
       "runArtifactChecks",
       "runCheck"
+    ],
+    "scripts/test-timing-report.mjs": [
+      "collectTimings",
+      "formatReport",
+      "main",
+      "parseArgs",
+      "summarize"
+    ],
+    "scripts/verify-self-pin-raise.mjs": [
+      "fetchRegistryIntegrity",
+      "main",
+      "mainLockfile",
+      "mainSpec",
+      "setSelfSpec",
+      "verifyLockfileMatch",
+      "verifySelfLockEntry",
+      "verifySelfPinRaise"
     ],
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs": [
       "ABSOLUTE_MAX_API_ATTEMPTS",
@@ -2151,6 +3041,7 @@
       "ENTITLEMENT_WAIVERS",
       "MERGE_GATE_MOMENT",
       "NEVER_BLOCKING",
+      "NON_MERGE_EVENTS",
       "OUTCOMES_FLAG",
       "OUTCOME_ENV",
       "OUTCOME_REFUSALS",
@@ -2177,6 +3068,7 @@
       "cliPolicy",
       "collectSkipJobTokens",
       "declaredEvidenceChecks",
+      "decodingVocabulary",
       "evaluateAbsentRequiredChecks",
       "evaluateCarriedReview",
       "evaluateRequiredOutcomes",
@@ -2201,6 +3093,7 @@
       "noWorkClaimIsCertain",
       "owningPrefix",
       "producesContext",
+      "pullRequestOnlyExemption",
       "readCarriedReview",
       "readFlagValue",
       "readObjectionAtHead",
@@ -2350,18 +3243,28 @@
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs": [
       "applyAllowList",
       "compareConstraints",
+      "compareDeclaredThresholds",
       "compareFile",
       "describeAllowList",
-      "formatReport"
+      "describeNearMisses",
+      "describeUnmergedCover",
+      "formatReport",
+      "settleAddedExceptions",
+      "splitMergedEntries"
     ],
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs": [
       "ALLOW_STATE",
+      "DECLARED_DIRECTIONS",
       "FAMILIES",
+      "HUMAN_GATE_ACCESS_ONLY",
+      "HUMAN_GATE_STRICT",
       "LIGHTHOUSE_ASSERTION_DIRECTIONS",
       "allowEntryExpiry",
       "classifyAllowEntry",
+      "declaredThresholdKey",
       "describeAllowScope",
       "extractAllowEntries",
+      "extractDeclaredThresholds",
       "extractK6Constraints",
       "extractLighthouseAssertions",
       "extractNumericLeaves",
@@ -2369,9 +3272,14 @@
       "extractStrykerConstraints",
       "extractStrykerMutate",
       "familyFor",
+      "findDeclaredParameter",
       "globRoot",
+      "humanGateModeOf",
+      "humanGateModeOfText",
+      "isDeclaredDirection",
       "parseJson",
-      "parseK6Expression"
+      "parseK6Expression",
+      "reasonInWords"
     ]
   }
 }

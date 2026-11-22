@@ -347,11 +347,11 @@ export const VIOLATION_STATUSES = new Set([
  * @returns {{
  *   verdict: "PASS" | "FAIL" | "SKIPPED",
  *   reasons: string[],
- *   violations: object[],
- *   exceptions: object[],
- *   syncBackPreferred: object[],
- *   sealed: object[],
- *   notApplicable: object[],
+ *   violations: { path: string, uiSurface: boolean, status: string, evidence: string | null, reason: string | null }[],
+ *   exceptions: { path: string, uiSurface: boolean, status: string, evidence: string | null, reason: string | null }[],
+ *   syncBackPreferred: { path: string, uiSurface: boolean, status: string, evidence: string | null, reason: string | null }[],
+ *   sealed: { path: string, uiSurface: boolean, status: string, evidence: string | null, reason: string | null }[],
+ *   notApplicable: { path: string, uiSurface: boolean, status: string, evidence: string | null, reason: string | null }[],
  *   summary: { judged: number, sealed: number, exceptions: number, violations: number }
  * }} The gate result.
  */

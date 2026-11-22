@@ -54,5 +54,5 @@
 # push. The ledger conflicts as it always has — it was in 0 of 7 measured
 # conflicts, so it has nothing to fix and a collision there means something
 # unrecognised. The scoping lives in DERIVED_ENTRY_RESOLUTION_PATHS.
-src/core/upstream-evidence-manifest.ts merge=lisa-generated-artifact
-src/core/lisa-owned-hash-ledger.ts merge=lisa-generated-artifact
+src/core/upstream-evidence-manifest.json merge=lisa-generated-artifact
+src/core/lisa-owned-hash-ledger.json merge=lisa-generated-artifact

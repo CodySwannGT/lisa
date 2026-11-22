@@ -1,4 +1,4 @@
 display_name: "Wiki Add Ingest"
-short_description: "Scaffold a project-specific \"front-door\" ingest skill that does something unique (classify a source, fetch from a special system, stamp…"
+short_description: "Scaffold a project-specific ingest skill for a source the core connectors don't cover; it prepares the source and hands off to…"
 default_prompt:
-  - "Use $lisa-wiki-add-ingest: Scaffold a project-specific \"front-door\" ingest skill that does something unique (classify a source, fetch from a special system, stamp…."
+  - "Use $lisa-wiki-add-ingest: Scaffold a project-specific ingest skill for a source the core connectors don't cover; it prepares the source and hands off to…."

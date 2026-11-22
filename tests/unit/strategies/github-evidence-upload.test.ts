@@ -37,6 +37,9 @@ const FIRST_ASSET_NAME = "pr-123-01-health.json";
 const INPUT_FILE_NAME = "01-health.json";
 const PRIOR_ASSET_NAME = "pr-123-01-health.check.json";
 const PRIOR_CONTENT = "existing evidence\n";
+const HEALTH_CHECK_FILE = "01-health-check.json";
+/** A rotated evidence release, as step 2's `evidence-release --ensure` prints. */
+const ROTATED_RELEASE = "pr-assets-2026-11";
 
 afterEach(() => {
   for (const root of roots.splice(0))
@@ -80,6 +83,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const args = process.argv.slice(2);
 if (args[0] !== "release") process.exit(77);
+if (args[2] !== process.env.RELEASE) process.exit(79);
 if (args[1] === "upload") {
   const [file, label = ""] = args.at(-1).split("#");
   const name = path.basename(file).replaceAll(" ", ".");
@@ -105,12 +109,14 @@ if (args[1] === "upload") {
  * @param value - Owned provider and evidence paths.
  * @param pr - Pull request whose evidence is uploaded.
  * @param failure - Optional provider failure to exercise.
+ * @param release - The evidence release step 2 resolved, or none.
  * @returns Native shell completion and captured diagnostics.
  */
 function runUpload(
   value: ReturnType<typeof fixture>,
   pr: number,
-  failure = ""
+  failure = "",
+  release: string | undefined = ROTATED_RELEASE
 ) {
   return boundedSpawnSync({
     label: "shipped GitHub evidence upload",
@@ -127,11 +133,24 @@ function runUpload(
       EVIDENCE_LOG: value.log,
       EVIDENCE_FAILURE: failure,
       EVIDENCE_POST_MARKER: path.join(value.root, "posted.txt"),
+      RELEASE: release,
     },
   });
 }
 
 describe("documented GitHub evidence upload", () => {
+  it("uploads to the release step 2 resolved, and refuses to guess one", () => {
+    const value = fixture();
+    writeFileSync(path.join(value.evidence, HEALTH_CHECK_FILE), HEALTH_CONTENT);
+    const unresolved = runUpload(value, 123, "", "");
+    expect(unresolved.status).not.toBe(0);
+    expect(unresolved.stderr).toContain("Resolve the evidence release");
+    expect(readdirSync(value.store)).toEqual([]);
+    const result = runUpload(value, 123);
+    expect(result.status, result.stderr).toBe(0);
+    expect(readdirSync(value.store)).toEqual([VALID_ASSET_NAME]);
+  });
+
   it.each(variants)(
     "%s never uses a display label to name an asset",
     directory => {
@@ -144,10 +163,7 @@ describe("documented GitHub evidence upload", () => {
 
   it("stores the prefixed name, preserves source bytes and leaves no display label", () => {
     const value = fixture();
-    writeFileSync(
-      path.join(value.evidence, "01-health-check.json"),
-      HEALTH_CONTENT
-    );
+    writeFileSync(path.join(value.evidence, HEALTH_CHECK_FILE), HEALTH_CONTENT);
     const result = runUpload(value, 123);
     expect(result.status, result.stderr).toBe(0);
     expect(readdirSync(value.store)).toEqual([VALID_ASSET_NAME]);
@@ -159,7 +175,7 @@ describe("documented GitHub evidence upload", () => {
       label: "",
     });
     expect(
-      readFileSync(path.join(value.evidence, "01-health-check.json"), "utf8")
+      readFileSync(path.join(value.evidence, HEALTH_CHECK_FILE), "utf8")
     ).toBe(HEALTH_CONTENT);
     expect(readdirSync(value.scratch)).toEqual([]);
   });

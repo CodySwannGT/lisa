@@ -1,16 +1,11 @@
 /**
- * Shared corpus for the two `runtime_behavior_change` contract suites.
+ * Shared corpus for the `runtime_behavior_change` contract checks.
  *
- * `runtime-behavior-change-decidability.test.ts` asserts the contract wording
- * is **present**; `runtime-behavior-change-consistency.test.ts` asserts no copy
- * of it **contradicts** another. They read the same roots, so the roots live
- * here rather than in two hand-maintained lists — two drifting copies of one
- * rule is the precise defect these suites exist to catch, and repeating it in
- * the harness would be self-parody.
- *
- * The split into two files is the 300-line lint ceiling, not a scope boundary.
- * A coverage probe that scores by filename must read both or it will
- * under-report, which is a known false-negative mode in this repo.
+ * `runtime-behavior-change-consistency.test.ts` asserts no copy of the
+ * contract **contradicts** another. Its roots live here so every suite that
+ * reads the contract reads the same copies — two drifting copies of one rule
+ * is the precise defect these suites exist to catch. (Presence of the
+ * contract's wording is no longer pinned: CodySwannGT/lisa#4867.)
  * @module tests/unit/strategies/runtime-behavior-change-sources
  */
 import { readFileSync } from "node:fs";
@@ -34,13 +29,7 @@ export const RULE_ROOTS = [
   "plugins/lisa-copilot/rules",
 ] as const;
 
-export const SLUG = "derived-branch-plan";
-export const FLAG = "runtime_behavior_change";
-export const SECTION = "Target Backend Environment";
-
-/** The machine discriminator. Its exact spelling is the contract. */
-export const EXEMPT_PREFIX = "None —";
-
+const SLUG = "derived-branch-plan";
 /** The three skills that persist the declaration onto a work item. */
 export const WRITERS = [
   "lisa-github-write-issue",

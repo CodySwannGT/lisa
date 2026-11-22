@@ -87,3 +87,31 @@ describe("official Sentry host preference", () => {
     }
   });
 });
+
+/**
+ * PostHog is the Expo template's analytics default, not a Lisa enforcement
+ * surface. A project on another analytics provider (or none) sets
+ * `observability.analytics.provider` and turns the plugin off; the next apply
+ * must keep that choice rather than re-enable it (CodySwannGT/lisa#4912).
+ */
+describe("official PostHog host preference", () => {
+  const POSTHOG = "posthog@claude-plugins-official";
+  const EXPO_SOURCE = {
+    enabledPlugins: { [POSTHOG]: true, [SAFETY_NET]: false },
+  };
+
+  it("preserves an explicit opt-out across repeated merges", () => {
+    const host = { enabledPlugins: { [POSTHOG]: false, [SAFETY_NET]: true } };
+    const merged = mergeTemplateJson(EXPO_SOURCE, host);
+    expect(merged).toEqual({
+      enabledPlugins: { [POSTHOG]: false, [SAFETY_NET]: false },
+    });
+    expect(mergeTemplateJson(EXPO_SOURCE, merged)).toEqual(merged);
+  });
+
+  it("keeps the template default when the host has not chosen", () => {
+    expect(mergeTemplateJson(EXPO_SOURCE, { enabledPlugins: {} })).toEqual(
+      EXPO_SOURCE
+    );
+  });
+});

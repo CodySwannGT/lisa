@@ -1,10 +1,10 @@
 ---
 name: lisa-improve-max-lines-per-function
-description: "reducing the maximum lines per…"
+description: "Lower the ESLint…"
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
 
 ---
-This skill should be used when reducing the maximum lines per function threshold and fixing all violations. It updates the eslint threshold configuration, identifies functions exceeding the new limit, generates a brief with refactoring strategies, and creates a plan with tasks to split oversized functions.
+Lower the ESLint max-lines-per-function limit and plan the refactors that bring every oversized function under it.
 
 
 # Reduce Max Lines Per Function

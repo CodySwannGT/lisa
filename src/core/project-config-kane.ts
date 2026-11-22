@@ -12,12 +12,12 @@ export interface KaneBrowserConfig {
 }
 
 /** Browser-provider configuration nested under `verification`. */
-export interface BrowserVerificationConfig {
+interface BrowserVerificationConfig {
   readonly kane?: KaneBrowserConfig;
 }
 
 /** Official SonarQube MCP provider configuration (single Sonar substrate). */
-export interface SonarVerificationConfig {
+interface SonarVerificationConfig {
   readonly enabled?: boolean;
   readonly edition?: "cloud" | "server";
   readonly organization?: string;

@@ -1,0 +1,14 @@
+=== c-no-declared-reviewers ===
+$ cd /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738/hostNone && cat .lisa.config.json
+{}
+
+$ cat /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738/verdict-empty.json
+{"outcome":"satisfied","sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","readings":[]}
+$ (cd /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738/hostNone && PATH=<shim>:$PATH node /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/all/copy-overwrite/scripts/check-third-party-review-evidence.mjs --publish=/Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738/verdict-empty.json --prover-exit=0 --sha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --context=ReviewerA --repo=CodySwannGT/lisa)
+SATISFIED at aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+Published "🕵️ Third-party review evidence (ReviewerA)" on aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: success.
+exit=0
+--- gh shim log (every POST the prover made) ---
+gh-shim args=[api repos/CodySwannGT/lisa/check-runs --method POST --input -] body={"name":"🕵️ Third-party review evidence (ReviewerA)","conclusion":"success","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+check-run POST count: 1

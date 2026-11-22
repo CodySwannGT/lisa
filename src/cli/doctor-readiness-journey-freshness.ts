@@ -111,7 +111,7 @@ export async function isQualificationEvidenceFresh(
  * @param value - Value to inspect
  * @returns True for plain object records
  */
-export function isRecord(value: unknown): value is Record<string, unknown> {
+function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 

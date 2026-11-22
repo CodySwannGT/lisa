@@ -1,4 +1,4 @@
 display_name: "Verification Lifecycle"
-short_description: "Verification lifecycle: confirm…"
+short_description: "How to verify work: confirm…"
 default_prompt:
-  - "Use $lisa-verification-lifecycle: Verification lifecycle: confirm…."
+  - "Use $lisa-verification-lifecycle: How to verify work: confirm…."

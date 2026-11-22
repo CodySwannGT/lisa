@@ -22,6 +22,15 @@ const ruleTester = new RuleTester({
   },
 });
 
+/** Fixture roots this file created; removed when it finishes (CodySwannGT/lisa#5095). */
+const fixtureRoots = [];
+
+afterAll(() => {
+  fixtureRoots.forEach(root =>
+    fs.rmSync(root, { force: true, maxRetries: 10, recursive: true })
+  );
+});
+
 /**
  * Creates an index file fixture whose component siblings are intentionally missing.
  * @param {string} componentName Component directory name
@@ -46,6 +55,7 @@ function createComponentIndexFixture(componentName) {
     filename,
     `export { default } from "./${componentName}View";\n`
   );
+  fixtureRoots.push(rootDir);
   return filename;
 }
 

@@ -1,0 +1,9 @@
+# cwd: clean detached worktree /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt
+# HEAD: 1851ff3e61f8f7f44e3795ebbd6ad10e011d15cf
+# tracked changes: 0
+# command: bun run check:learnings-budget
+# started: 2026-11-12T14:23:56Z
+$ bun scripts/check-learnings-budget.ts
+"/Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/all/create-only/.lisa/PROJECT_LEARNINGS.md": learnings budget passed (0/20 entries, 72/14900 maxTokens)
+"/Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/.lisa/PROJECT_LEARNINGS.md": learnings budget saturated (20/20 entries, 14826/14900 maxTokens) — every one of the 20 entry slots is taken, so the next learning captured here will be rejected. Retire or promote an entry with the gardener (`/lisa:learnings:audit`); raising the cap is not the remedy
+EXIT=0

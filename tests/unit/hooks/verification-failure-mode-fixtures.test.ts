@@ -26,14 +26,14 @@ import path from "path";
 
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 
-import { loadFailureModeFixture } from "../../helpers/verification-gate-fixtures";
-import type { GateScenario } from "../../helpers/verification-gate-harness";
+import { loadFailureModeFixture } from "../../helpers/verification-gate-fixtures.js";
+import type { GateScenario } from "../../helpers/verification-gate-harness.js";
 import {
   createGateScenario,
   EXIT_ALLOWED,
   EXIT_BLOCKED,
   MAX_BLOCKS,
-} from "../../helpers/verification-gate-harness";
+} from "../../helpers/verification-gate-harness.js";
 
 /** The ratchet flag every v2 check rides. Named in the advisory output. */
 const RATCHET_FLAG = "verification.gate.enforceBoundaries";

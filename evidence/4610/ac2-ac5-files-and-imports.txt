@@ -1,0 +1,58 @@
+# AC-2 test-file count
+find tests -name '*.test.ts' | wc -l  BEFORE(HEAD export): 1833
+find tests -name '*.test.ts' | wc -l  AFTER(worktree):     1826
+# #NNNN candidate grep (issue Technical Approach command): before=211 after=208
+# comm -3 before after (col1 = only before, col2 = only after)
+tests/unit/codex/skills-installer-internal-skill-policy.test.ts
+	tests/unit/codex/skills-installer.test.ts
+tests/unit/scripts/completion-proof-verify-usage.test.ts
+tests/unit/scripts/gate-diagnosis-type-errors.test.ts
+	tests/unit/scripts/gate-failure-diagnosis.test.ts
+tests/unit/scripts/generate-cursor-plugin-artifacts.artifacts.test.ts
+tests/unit/scripts/lisa-reconcile-policy-units.test.ts
+	tests/unit/scripts/lisa-reconcile-policy.test.ts
+tests/unit/strategies/package-lisa-integration-script-layout.test.ts
+	tests/unit/strategies/package-lisa.test.ts
+tests/unit/strategies/wiki-status-verdicts.test.ts
+# AC-5 module-under-test imports per merged pair (HEAD versions)
+== deleted tests/unit/codex/skills-installer-internal-skill-policy.test.ts
+"../../../src/codex/skills-installer.js";
+"../../helpers/test-utils.js";
+-- primary tests/unit/codex/skills-installer.test.ts
+"../../../src/codex/skills-installer.js";
+"../../helpers/test-utils.js";
+== deleted tests/unit/scripts/completion-proof-verify-usage.test.ts
+"../../../all/copy-overwrite/scripts/lib/completion-proof-content.mjs";
+"../../support/work-item-proof-fixture.js";
+-- primary tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts
+"../../../all/copy-overwrite/scripts/lib/completion-proof-content.mjs";
+"../../../all/copy-overwrite/scripts/lib/completion-proof-shape.mjs";
+== deleted tests/unit/scripts/gate-diagnosis-type-errors.test.ts
+"../../../all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs";
+-- primary tests/unit/scripts/gate-failure-diagnosis.test.ts
+"../../../all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs";
+== deleted tests/unit/scripts/generate-cursor-plugin-artifacts.artifacts.test.ts
+-- primary tests/unit/scripts/generate-cursor-plugin-artifacts.test.ts
+"../../../scripts/generate-cursor-plugin-artifacts.mjs";
+== deleted tests/unit/scripts/lisa-reconcile-policy-units.test.ts
+"../../../all/copy-overwrite/scripts/lisa-reconcile-policy.mjs";
+"../../../scripts/lisa-ruleset-payload.mjs";
+-- primary tests/unit/scripts/lisa-reconcile-policy.test.ts
+"../../../all/copy-overwrite/scripts/lisa-reconcile-policy.mjs";
+== deleted tests/unit/strategies/package-lisa-integration-script-layout.test.ts
+"../../../src/core/config.js";
+"../../../src/strategies/package-lisa.js";
+-- primary tests/unit/strategies/package-lisa.test.ts
+"../../../src/core/config.js";
+"../../../src/strategies/package-lisa.js";
+"../../../src/strategies/strategy.interface.js";
+"../../helpers/template-toolchain.js";
+"../../helpers/test-utils.js";
+== deleted tests/unit/strategies/wiki-status-verdicts.test.ts
+"../../../plugins/src/wiki/scripts/wiki-status.mjs";
+"../../helpers/__fixtures__/wiki-status-fixture";
+-- primary tests/unit/strategies/wiki-status-report-rendering.test.ts
+"../../../plugins/src/wiki/scripts/wiki-status.mjs";
+"../../helpers/__fixtures__/wiki-status-fixture";
+"../../helpers/io-latency-budget.js";
+"../../support/git-executable.js";

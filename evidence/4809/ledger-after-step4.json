@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "items": {},
+  "control": {
+    "paused": false,
+    "maxWorkers": null,
+    "me": null
+  },
+  "validationFailures": {},
+  "cyclers": {
+    "tmux:sm4809verify": "2026-11-12T23:01:26.205Z"
+  }
+}

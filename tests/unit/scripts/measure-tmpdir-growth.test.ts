@@ -20,6 +20,7 @@ import {
   verifyTmpdirGrowthCapBoundary,
 } from "../../helpers/tmpdir-growth-cap-boundary.js";
 import { darwinBirthBatchingEvidence } from "../../helpers/tmpdir-growth-darwin-performance.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const INVALID_RUN_NAME = "run-1-1-invalid";
 const ENTRY_RUN_NAME = "run-1-1-entry";
@@ -799,7 +800,7 @@ describe("temp growth measurement", () => {
     expect(runMeasurement(paths.root, paths.artifact, 1_000).status).toBe(0);
     const original = fs.readFileSync(paths.artifact, "utf8");
     const link = path.join(paths.container, "root-link");
-    fs.symlinkSync(paths.root, link);
+    createSymlink(paths.root, link);
 
     expect(runMeasurement(link, paths.artifact, 2_000).status).toBe(2);
     expect(fs.readFileSync(paths.artifact, "utf8")).toBe(original);

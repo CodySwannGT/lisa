@@ -19,6 +19,10 @@
  * | `knip.json` only   | `Refine entry pattern (no matches)`      |
  * | **both**           | identical to `knip.json` only            |
  *
+ * Re-measured with knip 6.44.1 (CodySwannGT/lisa#4932): `knip.json` still
+ * wins outright, and the only difference is that the outranked `knip.ts` now
+ * also shows up as an unused file.
+ *
  * So the protection that already exists is path-level and this defect is
  * precedence-level. Lisa is not overwriting the host's config; it is
  * **outranking** it.
@@ -78,11 +82,13 @@ interface ConfigFamily {
  *   excluding them is the whole safety argument, not an unfinished edge.
  * - `tsconfig.json` — no alternative spelling exists. TypeScript resolves one
  *   filename, so nothing can outrank it and there is no family to declare.
- * - `.prettierrc.json`, `.lintstagedrc.json` — seed templates whose tools DO
+ * - `.prettierrc.json`, `.lintstagedrc.json` — templates whose tools DO
  *   have precedence orders, so they are candidates. Left out because neither
  *   has been observed shadowing anything, and a guard added on speculation
  *   changes real behaviour on the strength of a guess. They are the natural
  *   second entries once a report or a measurement exists.
+ *   Known `.lintstagedrc.json` defaults now refresh with hash provenance; this
+ *   does not change the existing create-path treatment of alternate filenames.
  */
 const CONFIG_FAMILIES: readonly ConfigFamily[] = [
   {
@@ -90,7 +96,8 @@ const CONFIG_FAMILIES: readonly ConfigFamily[] = [
     template: "knip.json",
     // Read out of the resolver, not out of the report or the docs. knip walks
     // `KNIP_CONFIG_LOCATIONS` in order and takes the FIRST spelling that
-    // exists (`util/create-options.js`, knip 5.82.1), and `knip.json` heads
+    // exists (`util/create-options.js` in knip 5.82.1; the same list, in the
+    // same order, in knip 6.44.1's `constants.js`), and `knip.json` heads
     // that list — so every spelling below it loses its settings the moment
     // Lisa's file lands beside it. Listed in knip's own order, which is also
     // precedence order, so a reader can diff this against the constant.

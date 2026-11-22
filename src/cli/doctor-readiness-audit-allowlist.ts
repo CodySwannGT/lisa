@@ -18,6 +18,11 @@
  * @module cli/doctor-readiness-audit-allowlist
  */
 import { isRecord, readFileOrNull } from "./doctor-readiness-shared.js";
+import {
+  assessExclusionScopes,
+  type LocatedExclusion,
+  type ScopeAssessment,
+} from "./doctor-readiness-audit-scope.js";
 
 /** Audit allowlists whose entries must each carry a decision record. */
 const ALLOWLIST_FILES: readonly string[] = [
@@ -190,28 +195,102 @@ function undocumentedExceptions(
   });
 }
 
+/** Sentinel for a document that is not JSON (distinct from a JSON `null`). */
+const UNPARSEABLE = Symbol("unparseable");
+
 /**
- * Collect the undocumented audit exceptions across every allowlist file.
+ * Parse an allowlist document without throwing.
+ * @param source - Raw file contents
+ * @returns The parsed value, or UNPARSEABLE when the text is not JSON
+ */
+function parseAllowlist(source: string): unknown {
+  try {
+    return JSON.parse(source) as unknown;
+  } catch {
+    return UNPARSEABLE;
+  }
+}
+
+/** One allowlist file's undocumented exceptions and its scope-checkable entries. */
+interface AllowlistFile {
+  readonly undocumented: readonly string[];
+  readonly exclusions: readonly LocatedExclusion[];
+}
+
+/**
+ * Read one allowlist file: undocumented exceptions plus its exclusion entries.
  * @param root - Repository root
- * @returns Evidence lines, one per undocumented exception
+ * @param file - Repository-relative allowlist filename
+ * @returns What this file contributes
+ */
+async function readAllowlistFile(
+  root: string,
+  file: string
+): Promise<AllowlistFile> {
+  const source = await readFileOrNull(root, file);
+  const parsed = source === null ? UNPARSEABLE : parseAllowlist(source);
+  if (parsed === UNPARSEABLE) {
+    // An absent or unparseable allowlist establishes nothing about its
+    // entries, so it is passed over rather than reported as undocumented.
+    return { undocumented: [], exclusions: [] };
+  }
+  return {
+    undocumented: undocumentedExceptions(file, parsed),
+    // audit-ci's `.nsprc` is not read by the canonical matcher, so its entries
+    // carry no Lisa scope to validate.
+    exclusions:
+      file === ".nsprc"
+        ? []
+        : exceptionEntries(parsed).map(entry => ({ file, ...entry })),
+  };
+}
+
+/**
+ * Assess every audit allowlist once, returning blocking and non-blocking lines.
+ *
+ * Scope is assessed across all files together, reading the lockfile at most
+ * once, because a narrower entry in one file changes what a wider entry in the
+ * other file means.
+ * @param root - Repository root
+ * @returns Violations (fail B5) and observations (reported, non-blocking)
+ */
+export async function assessAuditExceptions(
+  root: string
+): Promise<ScopeAssessment> {
+  const files = await Promise.all(
+    ALLOWLIST_FILES.map(file => readAllowlistFile(root, file))
+  );
+  const scopes = assessExclusionScopes(
+    root,
+    files.flatMap(file => file.exclusions)
+  );
+  return {
+    violations: [
+      ...files.flatMap(file => file.undocumented),
+      ...scopes.violations,
+    ],
+    observations: scopes.observations,
+  };
+}
+
+/**
+ * Collect the undocumented or invalidly scoped audit exceptions.
+ * @param root - Repository root
+ * @returns Evidence lines, one per violation
  */
 export async function auditExceptionViolations(
   root: string
 ): Promise<readonly string[]> {
-  const perFile = await Promise.all(
-    ALLOWLIST_FILES.map(async file => {
-      const source = await readFileOrNull(root, file);
-      if (source === null) {
-        return [];
-      }
-      try {
-        return undocumentedExceptions(file, JSON.parse(source));
-      } catch {
-        // An unparseable allowlist establishes nothing about its entries, so it
-        // is passed over rather than reported as an undocumented exception.
-        return [];
-      }
-    })
-  );
-  return perFile.flat();
+  return (await assessAuditExceptions(root)).violations;
+}
+
+/**
+ * Collect the non-blocking observations about advisory-wide exclusions.
+ * @param root - Repository root
+ * @returns Operator-language observations, one per ID-only exclusion
+ */
+export async function auditExceptionObservations(
+  root: string
+): Promise<readonly string[]> {
+  return (await assessAuditExceptions(root)).observations;
 }

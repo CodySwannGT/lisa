@@ -1,4 +1,0 @@
-display_name: "Jira Journey"
-short_description: "Read a JIRA ticket's Validation Journey section, execute the steps using Playwright MCP browser tools across all defined viewports, capture…"
-default_prompt:
-  - "Use $jira-journey: Read a JIRA ticket's Validation Journey section, execute the steps using Playwright MCP browser tools across all defined viewports, capture…."

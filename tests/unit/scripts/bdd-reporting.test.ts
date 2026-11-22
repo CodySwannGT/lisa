@@ -21,7 +21,7 @@ import {
   makeProject,
   runGate,
   runReport,
-} from "./bdd/support";
+} from "./bdd/support.js";
 
 /**
  * Liveness bound for the 2000-scenario case, calibrated to this machine.

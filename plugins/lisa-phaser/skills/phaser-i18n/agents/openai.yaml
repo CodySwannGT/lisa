@@ -1,4 +1,4 @@
 display_name: "Phaser I18n"
-short_description: "localizing a Phaser 4 game — a typed string catalog so no user-facing text is hardcoded, runtime locale switching that re-renders open…"
+short_description: "Localize a Phaser 4 game: typed string catalog, runtime locale switching, interpolation and plurals, and BitmapText vs Text trade-offs"
 default_prompt:
-  - "Use $phaser-i18n: localizing a Phaser 4 game — a typed string catalog so no user-facing text is hardcoded, runtime locale switching that re-renders open…."
+  - "Use $phaser-i18n: Localize a Phaser 4 game: typed string catalog, runtime locale switching, interpolation and plurals, and BitmapText vs Text trade-offs."

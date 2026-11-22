@@ -23,14 +23,14 @@ export const FEATURE_FILES = [
   "middle.feature",
   "omega.feature",
 ];
-export const BASE_COUNTS = [2, 4, 2];
-export const UNION_COUNTS = [3, 4, 4];
+const BASE_COUNTS = [2, 4, 2];
+const UNION_COUNTS = [3, 4, 4];
 export const LEGACY_OUTPUTS = [
   "bdd/coverage-report.json",
   "docs/bdd-scenario-matrix.md",
   "docs/e2e-bdd-coverage.md",
 ];
-export const OUTPUT_DIRS = [
+const OUTPUT_DIRS = [
   "bdd/reports/v1/features",
   "docs/bdd-scenario-matrix",
   "docs/e2e-bdd-coverage",

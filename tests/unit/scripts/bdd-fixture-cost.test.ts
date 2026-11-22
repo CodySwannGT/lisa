@@ -38,7 +38,7 @@ import {
   readMap,
   runGate,
   writeMap,
-} from "./bdd/support";
+} from "./bdd/support.js";
 
 /**
  * The developer-directory gits the shim dispatches to. Both are `root:wheel`

@@ -1,0 +1,607 @@
+{
+  "files": 50,
+  "entries": 54,
+  "counts": {
+    "MACHINE-TOKEN": 54,
+    "STRUCTURAL": 0,
+    "WORDING": 0,
+    "UNRESOLVED": 0,
+    "NOT-MARKDOWN": 0
+  },
+  "verdicts": [
+    {
+      "file": "plugins/lisa-agy/skills/lisa-git-submit-pr/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa-agy/skills/lisa-github-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa-agy/skills/lisa-implement/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa-agy/skills/lisa-jira-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa-agy/skills/lisa-linear-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa-agy/skills/lisa-tracker-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa-copilot/skills/lisa-git-submit-pr/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa-copilot/skills/lisa-github-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa-copilot/skills/lisa-implement/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa-copilot/skills/lisa-jira-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa-copilot/skills/lisa-linear-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa-copilot/skills/lisa-tracker-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa-cursor/skills/lisa-git-submit-pr/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa-cursor/skills/lisa-github-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa-cursor/skills/lisa-implement/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa-cursor/skills/lisa-jira-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa-cursor/skills/lisa-linear-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa-cursor/skills/lisa-tracker-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/.codex-plugin/skills/lisa-git-submit-pr/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/.codex-plugin/skills/lisa-github-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/.codex-plugin/skills/lisa-implement/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/.codex-plugin/skills/lisa-jira-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/.codex-plugin/skills/lisa-linear-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/.codex-plugin/skills/lisa-tracker-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/rules/reference/intent-routing.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "## Lisa Usage",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-usage-heading",
+      "parser": [
+        "all/copy-overwrite/scripts/lib/usage-ledger.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/skills/lisa-debrief/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "## Lisa Usage",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-usage-heading",
+      "parser": [
+        "all/copy-overwrite/scripts/lib/usage-ledger.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/skills/lisa-git-submit-pr/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/skills/lisa-github-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/skills/lisa-implement/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "## Lisa Usage",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-usage-heading",
+      "parser": [
+        "all/copy-overwrite/scripts/lib/usage-ledger.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/skills/lisa-implement/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/skills/lisa-intake/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "## Lisa Usage",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-usage-heading",
+      "parser": [
+        "all/copy-overwrite/scripts/lib/usage-ledger.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/skills/lisa-jira-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/skills/lisa-linear-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/skills/lisa-project-ideation/examples/idempotency-verification-harness.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[EVIDENCE: cli-output: marker-count-one]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "local-evidence-claim",
+      "parser": [
+        "plugins/src/base/skills/lisa-jira-journey/scripts/parse-plan.py"
+      ]
+    },
+    {
+      "file": "plugins/lisa/skills/lisa-project-ideation/examples/idempotency-verification-harness.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[EVIDENCE: cli-output: memory-recreated-after-rerun]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "local-evidence-claim",
+      "parser": [
+        "plugins/src/base/skills/lisa-jira-journey/scripts/parse-plan.py"
+      ]
+    },
+    {
+      "file": "plugins/lisa/skills/lisa-research/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "## Lisa Usage",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-usage-heading",
+      "parser": [
+        "all/copy-overwrite/scripts/lib/usage-ledger.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/skills/lisa-tracker-evidence/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "## Lisa Usage",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-usage-heading",
+      "parser": [
+        "all/copy-overwrite/scripts/lib/usage-ledger.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/skills/lisa-tracker-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/lisa/skills/lisa-verify/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "## Lisa Usage",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-usage-heading",
+      "parser": [
+        "all/copy-overwrite/scripts/lib/usage-ledger.mjs"
+      ]
+    },
+    {
+      "file": "plugins/src/base/rules/reference/intent-routing.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "## Lisa Usage",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-usage-heading",
+      "parser": [
+        "all/copy-overwrite/scripts/lib/usage-ledger.mjs"
+      ]
+    },
+    {
+      "file": "plugins/src/base/skills/lisa-debrief/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "## Lisa Usage",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-usage-heading",
+      "parser": [
+        "all/copy-overwrite/scripts/lib/usage-ledger.mjs"
+      ]
+    },
+    {
+      "file": "plugins/src/base/skills/lisa-git-submit-pr/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/src/base/skills/lisa-github-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/src/base/skills/lisa-implement/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "## Lisa Usage",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-usage-heading",
+      "parser": [
+        "all/copy-overwrite/scripts/lib/usage-ledger.mjs"
+      ]
+    },
+    {
+      "file": "plugins/src/base/skills/lisa-implement/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/src/base/skills/lisa-intake/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "## Lisa Usage",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-usage-heading",
+      "parser": [
+        "all/copy-overwrite/scripts/lib/usage-ledger.mjs"
+      ]
+    },
+    {
+      "file": "plugins/src/base/skills/lisa-jira-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/src/base/skills/lisa-linear-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/src/base/skills/lisa-project-ideation/examples/idempotency-verification-harness.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[EVIDENCE: cli-output: marker-count-one]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "local-evidence-claim",
+      "parser": [
+        "plugins/src/base/skills/lisa-jira-journey/scripts/parse-plan.py"
+      ]
+    },
+    {
+      "file": "plugins/src/base/skills/lisa-project-ideation/examples/idempotency-verification-harness.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[EVIDENCE: cli-output: memory-recreated-after-rerun]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "local-evidence-claim",
+      "parser": [
+        "plugins/src/base/skills/lisa-jira-journey/scripts/parse-plan.py"
+      ]
+    },
+    {
+      "file": "plugins/src/base/skills/lisa-research/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "## Lisa Usage",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-usage-heading",
+      "parser": [
+        "all/copy-overwrite/scripts/lib/usage-ledger.mjs"
+      ]
+    },
+    {
+      "file": "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "## Lisa Usage",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-usage-heading",
+      "parser": [
+        "all/copy-overwrite/scripts/lib/usage-ledger.mjs"
+      ]
+    },
+    {
+      "file": "plugins/src/base/skills/lisa-tracker-sync/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "[lisa-pr-link]",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-pr-link",
+      "parser": [
+        "all/copy-overwrite/scripts/lisa-work-item.mjs"
+      ]
+    },
+    {
+      "file": "plugins/src/base/skills/lisa-verify/SKILL.md",
+      "polarity": "required",
+      "kind": "string",
+      "value": "## Lisa Usage",
+      "cls": "MACHINE-TOKEN",
+      "rule": "lisa-usage-heading",
+      "parser": [
+        "all/copy-overwrite/scripts/lib/usage-ledger.mjs"
+      ]
+    }
+  ]
+}

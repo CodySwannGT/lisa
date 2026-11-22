@@ -1,0 +1,29 @@
+=== (a) short linear:ENG-11 ===
+a.renderLisaUsageEntryToken: THREW -> Usage artifact_ref "linear:ENG-11" is not a canonical Linear reference. Write it as linear:<workspace>/<KEY-N> (for example linear:acme/ENG-11), taking <workspace> from the linear.workspace key in .lisa.config.json. The completion proof never recognises a short linear:<KEY-N> or a lowercase key, so such an entry would later be refused as absent.
+a.renderLisaUsageSection: THREW -> Usage artifact_ref "linear:ENG-11" is not a canonical Linear reference. Write it as linear:<workspace>/<KEY-N> (for example linear:acme/ENG-11), taking <workspace> from the linear.workspace key in .lisa.config.json. The completion proof never recognises a short linear:<KEY-N> or a lowercase key, so such an entry would later be refused as absent.
+a.upsertLisaUsageSection: THREW -> Usage artifact_ref "linear:ENG-11" is not a canonical Linear reference. Write it as linear:<workspace>/<KEY-N> (for example linear:acme/ENG-11), taking <workspace> from the linear.workspace key in .lisa.config.json. The completion proof never recognises a short linear:<KEY-N> or a lowercase key, so such an entry would later be refused as absent.
+=== (b) qualified linear:acme/ENG-11 ===
+b.renderLisaUsageSection: OK
+b.section contains encoded artifact_ref=linear%3Aacme%2FENG-11: true
+b.validateVerifyUsage(ref ENG-11, linear acme/ENG): OK
+b.control validateVerifyUsage(ref ENG-12) [must THROW]: THREW -> Canonical Verify usage entry verify-42 is absent or belongs to another work item.
+b.control validateVerifyUsage(scope other/ENG) [must THROW]: THREW -> Canonical Verify usage entry verify-42 is absent or belongs to another work item.
+=== (c) github ref unchanged ===
+c.renderLisaUsageEntryToken: OK
+c.primary token: <!-- lisa:usage-entry entry_id=verify-42 flow=lisa-verify run_id=run-1 provider=fixture model=m source=unavailable input_tokens=null cached_input_tokens=null output_tokens=null reasoning_tokens=null total_tokens=null cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=github%3ACodySwannGT%2Flisa%234699 parent_artifact_ref= -->
+c.renderLisaUsageSection: OK
+c.validateVerifyUsage(github ctx): OK
+c.upsertLisaUsageSection: OK
+=== (d) lowercase key / whitespace workspace ===
+d[linear:acme/eng-11].renderLisaUsageEntryToken: THREW -> Usage artifact_ref "linear:acme/eng-11" is not a canonical Linear reference. Write it as linear:<workspace>/<KEY-N> (for example linear:acme/ENG-11), taking <workspace> from the linear.workspace key in .lisa.config.json. The completion proof never recognises a short linear:<KEY-N> or a lowercase key, so such an entry would later be refused as absent.
+d[linear:acme/eng-11].renderLisaUsageSection: THREW -> Usage artifact_ref "linear:acme/eng-11" is not a canonical Linear reference. Write it as linear:<workspace>/<KEY-N> (for example linear:acme/ENG-11), taking <workspace> from the linear.workspace key in .lisa.config.json. The completion proof never recognises a short linear:<KEY-N> or a lowercase key, so such an entry would later be refused as absent.
+d[linear:acme/eng-11].upsertLisaUsageSection: THREW -> Usage artifact_ref "linear:acme/eng-11" is not a canonical Linear reference. Write it as linear:<workspace>/<KEY-N> (for example linear:acme/ENG-11), taking <workspace> from the linear.workspace key in .lisa.config.json. The completion proof never recognises a short linear:<KEY-N> or a lowercase key, so such an entry would later be refused as absent.
+d[linear:acme /ENG-11].renderLisaUsageEntryToken: THREW -> Usage artifact_ref "linear:acme /ENG-11" is not a canonical Linear reference. Write it as linear:<workspace>/<KEY-N> (for example linear:acme/ENG-11), taking <workspace> from the linear.workspace key in .lisa.config.json. The completion proof never recognises a short linear:<KEY-N> or a lowercase key, so such an entry would later be refused as absent.
+d[linear:acme /ENG-11].renderLisaUsageSection: THREW -> Usage artifact_ref "linear:acme /ENG-11" is not a canonical Linear reference. Write it as linear:<workspace>/<KEY-N> (for example linear:acme/ENG-11), taking <workspace> from the linear.workspace key in .lisa.config.json. The completion proof never recognises a short linear:<KEY-N> or a lowercase key, so such an entry would later be refused as absent.
+d[linear:acme /ENG-11].upsertLisaUsageSection: THREW -> Usage artifact_ref "linear:acme /ENG-11" is not a canonical Linear reference. Write it as linear:<workspace>/<KEY-N> (for example linear:acme/ENG-11), taking <workspace> from the linear.workspace key in .lisa.config.json. The completion proof never recognises a short linear:<KEY-N> or a lowercase key, so such an entry would later be refused as absent.
+=== (e) repair: short-form stored row replaced by qualified upsert ===
+e.legacy doc stores linear%3AENG-11: true
+e.before-repair validateVerifyUsage [must THROW]: THREW -> Canonical Verify usage entry verify-42 is absent or belongs to another work item.
+e.upsertLisaUsageSection(legacyDoc, qualified same entry_id): OK
+e.repaired doc: short-form row remains: false | qualified row present: true | verify-42 primary tokens: 1
+e.after-repair validateVerifyUsage(ENG-11, linear acme/ENG): OK

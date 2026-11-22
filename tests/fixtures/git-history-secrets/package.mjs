@@ -8,7 +8,6 @@ import { mkdirSync, readFileSync, cpSync } from "node:fs";
 import { join } from "node:path";
 import { load } from "js-yaml";
 import { requireCollectedBudgetObservation } from "./errors.mjs";
-export { runEvidenceCases } from "./portable-evidence.mjs";
 const CONFIG = ".lisa.config.json";
 const HOOK = "lefthook.yml";
 const CI = ".github/workflows/ci.yml";

@@ -66,14 +66,6 @@ export type ReconciliationOutcome =
   /** The child started but did not finish: a regen command failed, or it aborted. */
   | "failed";
 
-/** Outcomes that mean the reconciliation finished and nothing is outstanding. */
-export const SETTLED_RECONCILIATION_OUTCOMES: readonly ReconciliationOutcome[] =
-  ["not-needed", "regenerated"];
-
-/** Outcomes that mean a child has not yet reported a terminal result. */
-export const PENDING_RECONCILIATION_OUTCOMES: readonly ReconciliationOutcome[] =
-  ["scheduled", "started"];
-
 const KNOWN_OUTCOMES: readonly ReconciliationOutcome[] = [
   "scheduled",
   "started",

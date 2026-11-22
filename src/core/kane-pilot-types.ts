@@ -48,7 +48,7 @@ export interface KanePilotRecord {
 }
 
 /** Pilot adoption status. */
-export type KanePilotVerdict = "collecting" | "adopt" | "reject";
+type KanePilotVerdict = "collecting" | "adopt" | "reject";
 
 /** Aggregated metrics and gate verdict. */
 export interface KanePilotReport {

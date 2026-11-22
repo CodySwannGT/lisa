@@ -11,7 +11,7 @@ Lisa is distributed for multiple coding agents. Each agent has its own CLI, plug
 - Installed plugin location: `~/.claude/plugins/`.
 - Plugin-root environment variable for hook commands: `${CLAUDE_PLUGIN_ROOT}`.
 - Unique features: bare mode, `--from-pr` resume, JSON-Schema output validation, JetBrains integration, tmux for worktree, Chrome integration, long-lived setup tokens, fallback model, monitors as plugin component, max-budget-USD limit.
-- Lisa distribution: GitHub marketplace `CodySwannGT/lisa`, eight plugins (lisa, lisa-typescript, lisa-expo, lisa-nestjs, lisa-cdk, lisa-rails, lisa-harper-fabric, lisa-wiki) plus the openclaw plugin.
+- Lisa distribution: GitHub marketplace `CodySwannGT/lisa`, eight plugins (lisa, lisa-typescript, lisa-expo, lisa-nestjs, lisa-cdk, lisa-rails, lisa-harper-fabric, lisa-wiki). The OpenClaw plugin was removed in 2026-11.
 
 ## Codex
 

@@ -96,11 +96,10 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
     // A fix to an enforcement guard could ship in a release and reach nobody,
     // with nothing in the output to say so.
     //
-    // There are two ways to have nobody to ask, and only the first was
-    // recognised. `skipGitCheck` is the postinstall's flag. The second is a
-    // plain `lisa apply` in a shell with no TTY — every agent, script, and CI
-    // run — where `promptOverwrite` is not a question at all: with no usable
-    // stdin the prompter answers without asking anyone. That route fell
+    // `context.unattended` identifies a run with nobody to ask. A plain
+    // `lisa apply` in a shell with no TTY — every agent, script, and CI
+    // run — has no usable
+    // stdin, so the prompter answers without asking anyone. That route once fell
     // through to the prompt branch below and replaced host-customised
     // `knip.json`, `eslint.config.ts`, and `tsconfig.json` outright, reporting
     // them as approved. `core/lisa-owned-templates` had already written down
@@ -122,7 +121,7 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
     // non-interactive apply must never replace them without being asked". The
     // protection existed on the unattended branch and on the ownership branch,
     // and `--yes` reached neither: `preserveOwnedHostCopy` returns early for a
-    // non-owned path, `skipGitCheck` is the postinstall's flag, and
+    // non-owned path, the old `skipGitCheck` branch covered postinstall, and
     // `AutoAcceptPrompter.unattended` is deliberately false. So the file fell
     // through to a prompt that answers itself, and a curated `knip.json` was
     // replaced by a stack template whose `entry` globs named directories the
@@ -142,7 +141,8 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
       return { relativePath, strategy: this.name, action: "stale" };
     }
 
-    if (config.skipGitCheck || context.unattended === true) {
+    // The git waiver is deliberately absent: it cannot change consent (#4759).
+    if (context.unattended === true) {
       return this.applyNonInteractive(
         sourcePath,
         destPath,
@@ -175,8 +175,9 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
    *
    * There is no prompt available here, so a file the project may have
    * customised is left alone and reported as `stale` — unless
-   * `--refresh-templates` covers it, which is the operator deciding in advance
-   * to take upstream's version.
+   * `--refresh-templates` covers it, or the packaged source declares that Lisa
+   * replaces it on each run. The declaration is the same contract honored by
+   * the `--yes` route; freezing it here prevents released fixes from arriving.
    *
    * Lisa's own artifacts are not in that category and never wait for the flag.
    * A version bump is how the fleet takes an upgrade, and it passes no flags, so
@@ -189,8 +190,8 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
    *
    * That refresh is unconditional only where Lisa can prove the installed copy
    * is behind. "Differs from mine" is not that proof — it is equally consistent
-   * with the host being *ahead*, which is how `acmeorga/frontend` had a guard
-   * they had hardened themselves silently replaced by a weaker upstream one.
+   * with the host being *ahead*, which is how a host's hardened guard could
+   * be silently replaced by a weaker upstream one.
    * That classification now runs in `apply`, before any branch here is chosen,
    * so it covers the prompted routes too — see `preserveOwnedHostCopy`.
    * Anything arriving here is either not Lisa's to judge, or provably behind.
@@ -210,7 +211,8 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
 
     if (
       !isLisaOwnedTemplate(relativePath) &&
-      !mayRefreshTemplate(relativePath, config.refreshTemplates)
+      !mayRefreshTemplate(relativePath, config.refreshTemplates) &&
+      !declaresReplacedEveryRun(await readFile(sourcePath, "utf8"))
     ) {
       return { relativePath, strategy: this.name, action: "stale" };
     }

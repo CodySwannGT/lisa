@@ -31,6 +31,12 @@
  * would make the driver run, fail to parse, exit 1 and leave the conflict
  * exactly where it was — a control announcing coverage it does not have.
  *
+ * Since CodySwannGT/lisa#4929 the manifest and the ledger are JSON, and a JSON
+ * artifact is judged by the driver's JSON parser instead: a top-level object of
+ * RECORDS whose entries are scalars or lists of scalars. The same boundary holds
+ * there — `two-channel-couplings.json` nests deeper and `export-surface.json`
+ * carries top-level counts, so both are still refused.
+ *
  * So the unregistered set is a **capability boundary**, not an oversight, and
  * this guard's job is to hold that distinction rather than to erase it.
  *
@@ -58,6 +64,11 @@ import path from "node:path";
 import process from "node:process";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+import {
+  isJsonArtifact,
+  parseJsonArtifact,
+  renderJsonArtifact,
+} from "./lib/merge-generated-json.mjs";
 import { parseArtifact, renderArtifact } from "./merge-generated-artifact.mjs";
 
 /** The driver name `.gitattributes` maps an artifact to. */
@@ -81,20 +92,13 @@ export const DISPOSITION = Object.freeze({
  */
 export const GENERATED_ARTIFACTS = Object.freeze([
   Object.freeze({
-    path: "scripts/lib/retired-safety-net-manifest.json",
-    check: "check:retired-safety-net-manifest",
-    disposition: DISPOSITION.UNSUPPORTED,
-    reason:
-      "nested: each entry contains source, hashes and current shim bytes; the flat merge parser cannot preserve that ownership contract",
-  }),
-  Object.freeze({
-    path: "src/core/upstream-evidence-manifest.ts",
+    path: "src/core/upstream-evidence-manifest.json",
     check: "check:upstream-evidence-manifest",
     disposition: DISPOSITION.DRIVER,
     reason: "",
   }),
   Object.freeze({
-    path: "src/core/lisa-owned-hash-ledger.ts",
+    path: "src/core/lisa-owned-hash-ledger.json",
     check: "check:lisa-owned-hash-ledger",
     disposition: DISPOSITION.DRIVER,
     reason: "",
@@ -104,7 +108,7 @@ export const GENERATED_ARTIFACTS = Object.freeze([
     check: "check:two-channel-couplings",
     disposition: DISPOSITION.UNSUPPORTED,
     reason:
-      "nested: `ratified` / `inspected` / `counts` sub-objects, which the driver's flat one-level parser rejects",
+      "nested: `ratified` / `inspected` / `counts` sub-objects and a top-level `couplings` list, which the driver's record-of-entries JSON parser rejects",
   }),
   Object.freeze({
     path: "src/core/nightly-e2e-guard-behavior-certificate.ts",
@@ -118,7 +122,14 @@ export const GENERATED_ARTIFACTS = Object.freeze([
     check: "check:export-surface",
     disposition: DISPOSITION.UNSUPPORTED,
     reason:
-      "nested: a `surface` sub-object mapping each module path to an array of exported names, which the driver's flat one-level parser rejects",
+      "top-level scalars (`$generatedBy`, and the `$modules` / `$names` counts that change on every surface edit) beside the `surface` record, which the driver's record-of-entries JSON parser rejects",
+  }),
+  Object.freeze({
+    path: "docs/agentic-readiness-questionnaire.md",
+    check: "check:readiness-questionnaire",
+    disposition: DISPOSITION.UNSUPPORTED,
+    reason:
+      "Markdown prose: numbered questions under headings, with no flat `key: value` entry block, so the driver's flat one-level parser structures zero entries in it. A conflict is settled by regenerating the document from the merged catalogue",
   }),
 ]);
 
@@ -178,6 +189,7 @@ export function mapsToDriver(attributes, artifactPath) {
  * @returns {{ok: boolean, reason: string, entries: number}} Verdict, why not, and the entry count.
  */
 export function driverCanStructure(text) {
+  if (isJsonArtifact(text)) return jsonDriverCanStructure(text);
   const parsed = parseArtifact(text);
   if (!parsed.ok) return { ok: false, reason: parsed.reason, entries: 0 };
   if (renderArtifact(parsed.chunks) !== text)
@@ -189,6 +201,35 @@ export function driverCanStructure(text) {
   const entries = parsed.chunks.reduce(
     (total, chunk) =>
       total + (chunk.entries instanceof Map ? chunk.entries.size : 0),
+    0
+  );
+  return entries > 0
+    ? { ok: true, reason: "", entries }
+    : {
+        ok: false,
+        reason: "parsed and round-tripped, but structured ZERO entries",
+        entries: 0,
+      };
+}
+
+/**
+ * {@link driverCanStructure} for a JSON artifact, which the driver merges on a
+ * parsed model: it parses into records of entries, re-renders to the same
+ * bytes, and yields at least one entry.
+ * @param {string} text - The artifact's contents
+ * @returns {{ok: boolean, reason: string, entries: number}} Verdict, why not, and the entry count.
+ */
+function jsonDriverCanStructure(text) {
+  const parsed = parseJsonArtifact(text);
+  if (!parsed.ok) return { ok: false, reason: parsed.reason, entries: 0 };
+  if (renderJsonArtifact(parsed.records) !== text)
+    return {
+      ok: false,
+      reason: "parsed, but re-emitting it changed the bytes",
+      entries: 0,
+    };
+  const entries = [...parsed.records.values()].reduce(
+    (total, record) => total + record.size,
     0
   );
   return entries > 0

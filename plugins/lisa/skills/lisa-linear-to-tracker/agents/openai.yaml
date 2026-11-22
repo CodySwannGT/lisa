@@ -1,4 +1,4 @@
 display_name: "Linear To Tracker"
-short_description: ">"
+short_description: "Turn a Linear PRD (a Linear Project) into epics, stories, and sub-tasks in the project's tracker"
 default_prompt:
-  - "Use $lisa-linear-to-tracker: >."
+  - "Use $lisa-linear-to-tracker: Turn a Linear PRD (a Linear Project) into epics, stories, and sub-tasks in the project's tracker."

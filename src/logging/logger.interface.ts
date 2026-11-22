@@ -1,9 +1,4 @@
 /**
- * Log levels for Lisa operations
- */
-export type LogLevel = "info" | "success" | "warn" | "error" | "dry";
-
-/**
  * Interface for logging implementations
  */
 export interface ILogger {

@@ -52,7 +52,9 @@ function rootWith(
 ): string {
   return makeRoot({
     required: { [context]: ACTIONS_ID },
-    workflows: options.workflows,
+    ...(options.workflows === undefined
+      ? {}
+      : { workflows: options.workflows }),
     ledger: {
       schema_version: 1,
       grandfathered_contexts: options.frozen ?? [],

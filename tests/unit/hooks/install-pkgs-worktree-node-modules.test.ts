@@ -164,6 +164,6 @@ describe("install-pkgs worktree node_modules handoff", () => {
  */
 async function writeExecutable(file: string, content: string): Promise<void> {
   await fs.writeFile(file, content, "utf8");
-  // eslint-disable-next-line sonarjs/file-permissions -- Fixture scripts need execute bits to behave like real CLIs.
-  await fs.chmod(file, 0o755);
+  // Owner-only execute: only this suite's own process runs the helper.
+  await fs.chmod(file, 0o700);
 }

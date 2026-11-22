@@ -143,6 +143,24 @@ function whereOf(node) {
 }
 
 /**
+ * A style value bound to a design variable.
+ * @typedef {object} BoundObservation
+ * @property {string} axis The design axis the property belongs to.
+ * @property {string} property The node property.
+ * @property {string} where Human locator of the node.
+ * @property {string} id The variable id it is bound to.
+ */
+
+/**
+ * A style value written as a literal rather than bound.
+ * @typedef {object} LiteralObservation
+ * @property {string} axis The design axis the property belongs to.
+ * @property {string} property The node property.
+ * @property {string} where Human locator of the node.
+ * @property {string} value The literal, as `#rrggbb` or `<n>px`.
+ */
+
+/**
  * Record every bound style value on one node.
  *
  * Boundness is read from `boundVariables` **directly, never inferred from a
@@ -150,7 +168,7 @@ function whereOf(node) {
  * REST payload, so a padding bound to `space/0` vanishes entirely from the
  * resolved side. Reading it correctly moved one measured frame from 55% to 82%.
  * @param {object} node - A design node.
- * @param {object[]} bound - Accumulator.
+ * @param {BoundObservation[]} bound - Accumulator.
  * @returns {void}
  */
 function collectBound(node, bound) {
@@ -169,7 +187,7 @@ function collectBound(node, bound) {
  * @param {object} node - A design node.
  * @param {string} property - `fills` or `strokes`.
  * @param {number} boundCount - How many paints on this property are bound.
- * @param {object[]} literal - Accumulator.
+ * @param {LiteralObservation[]} literal - Accumulator.
  * @returns {void}
  */
 function collectLiteralPaints(node, property, boundCount, literal) {
@@ -191,7 +209,7 @@ function collectLiteralPaints(node, property, boundCount, literal) {
  * @param {object} node - A design node.
  * @param {string} property - The gated property name.
  * @param {number} boundCount - How many entries on this property are bound.
- * @param {object[]} literal - Accumulator.
+ * @param {LiteralObservation[]} literal - Accumulator.
  * @returns {void}
  */
 function collectLiteralNumbers(node, property, boundCount, literal) {
@@ -216,7 +234,7 @@ function collectLiteralNumbers(node, property, boundCount, literal) {
 /**
  * Walk a node subtree, recording every gated style value as bound or literal.
  * @param {object} root - The subtree root — the node being implemented.
- * @returns {{ bound: object[], literal: object[] }} Observations.
+ * @returns {{ bound: BoundObservation[], literal: LiteralObservation[] }} Observations.
  */
 export function collectValues(root) {
   const bound = [];
@@ -330,9 +348,9 @@ export function tokenNamer(nameMap = {}) {
  * Every literal becomes a `hardcoded-in-design` finding regardless of axis —
  * the probe reports what it saw, and the gate applies the regime. Keeping the
  * regime decision in one place is what stops the two halves from disagreeing.
- * @param {{ bound: readonly object[], literal: readonly object[] }} observed - Observations.
+ * @param {{ bound: readonly BoundObservation[], literal: readonly LiteralObservation[] }} observed - Observations.
  * @param {string} component - Human name of the subtree being implemented.
- * @returns {object[]} Findings.
+ * @returns {Array<{kind: string, axis: string, component: string, value?: string, where?: string}>} Findings.
  */
 export function toFindings(observed, component) {
   const findings = observed.literal.map(entry => ({
@@ -350,7 +368,7 @@ export function toFindings(observed, component) {
 
 /**
  * Summarise coverage per axis.
- * @param {{ bound: readonly object[], literal: readonly object[] }} observed - Observations.
+ * @param {{ bound: readonly BoundObservation[], literal: readonly LiteralObservation[] }} observed - Observations.
  * @returns {Record<string, { bound: number, literal: number, total: number, pct: number | null }>} Per-axis stats.
  */
 export function summarise(observed) {
@@ -556,7 +574,18 @@ export async function fetchNode(fileKey, nodeId, token) {
  *   required?: readonly string[],
  *   min?: number
  * }} input - Everything the evaluation needs.
- * @returns {object} The probe result.
+ * @returns {{
+ *   verdict: "PASS" | "BLOCK",
+ *   owner: "design" | "us" | null,
+ *   failing: string[],
+ *   summary: Record<string, { bound: number, literal: number, total: number, pct: number | null }>,
+ *   unknownIds: string[],
+ *   ambiguousIds: Record<string, string[]>,
+ *   regime: Record<string, "typed" | "untyped">,
+ *   findings: Array<{kind: string, axis: string, component: string, value?: string, where?: string}>,
+ *   tokensUsed: string[],
+ *   bindList: Array<{value: string, occurrences: number}>
+ * }} The probe result.
  */
 export function evaluateSubtree(input) {
   const observed = collectValues(input.document);

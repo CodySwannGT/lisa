@@ -64,16 +64,17 @@ afterEach(async () => {
   jest.clearAllMocks();
 });
 
-// Mock ResizeObserver for tests that use it
-// eslint-disable-next-line functional/no-classes -- Mock implementation required for testing
-global.ResizeObserver = class ResizeObserver {
-  /** Starts observing an element — no-op for tests */
-  observe(): void {}
-  /** Stops observing an element — no-op for tests */
-  unobserve(): void {}
-  /** Disconnects observer — no-op for tests */
-  disconnect(): void {}
-};
+// Mock ResizeObserver for tests that use it. A jest.fn constructor, like the
+// other mocks in this file: `new` on it returns the observer the
+// implementation builds, and its type already satisfies ResizeObserver's
+// constructor, so no class and no type assertion is needed.
+global.ResizeObserver = jest.fn(
+  (): ResizeObserver => ({
+    observe: jest.fn(),
+    unobserve: jest.fn(),
+    disconnect: jest.fn(),
+  })
+);
 
 // Mock expo-router for tests using navigation hooks
 jest.mock("expo-router", () => ({

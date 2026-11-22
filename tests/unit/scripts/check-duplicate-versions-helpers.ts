@@ -11,15 +11,8 @@ import process from "node:process";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 export const REPO_ROOT = path.resolve(__dirname, "../../..");
-export const SCRIPT = path.join(
-  REPO_ROOT,
-  "scripts",
-  "check-duplicate-versions.mjs"
-);
-export const FIXTURES_ROOT = path.join(
-  REPO_ROOT,
-  "tests/fixtures/duplicate-versions"
-);
+const SCRIPT = path.join(REPO_ROOT, "scripts", "check-duplicate-versions.mjs");
+const FIXTURES_ROOT = path.join(REPO_ROOT, "tests/fixtures/duplicate-versions");
 export const CLEAN_FIXTURE = path.join(FIXTURES_ROOT, "clean");
 export const VIOLATION_FIXTURE = path.join(FIXTURES_ROOT, "violation");
 export const EXCEPTION_FIXTURE = path.join(FIXTURES_ROOT, "exception");

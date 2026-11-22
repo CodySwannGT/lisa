@@ -14,6 +14,7 @@ import {
   CLI,
   MANAGER,
   MEMINFO,
+  TAKEN,
   makeSandbox,
   removeSandboxes,
   runCli,
@@ -134,13 +135,24 @@ describe("stop", () => {
 describe("status", () => {
   it("joins the ledger with live sessions and reports the manager", () => {
     const sandbox = makeSandbox();
-    const spawned = runCli(sandbox, ["spawn", "DEMO-7", "--meminfo", MEMINFO]);
+    const spawned = runCli(sandbox, [
+      "spawn",
+      "DEMO-7",
+      ...TAKEN,
+      "--meminfo",
+      MEMINFO,
+    ]);
     const result = runCli(sandbox, ["status"], {
       agents: [activeAgent(spawned.json.name), activeAgent("wk-X-1-1012-0900")],
       env: { STUB_TMUX_HAS_SESSION: "1" },
     });
     expect(result.status).toBe(0);
-    expect(result.json.manager).toEqual({ name: MANAGER, running: true });
+    expect(result.json.manager).toEqual({
+      name: MANAGER,
+      running: true,
+      self: false,
+      otherCyclers: [],
+    });
     expect(result.json.workers).toEqual([
       expect.objectContaining({
         ref: "DEMO-7",
@@ -208,6 +220,7 @@ describe("usage", () => {
       "capacity",
       "spawn",
       "resume",
+      "--assignees",
       "start",
       "stop",
       "status",

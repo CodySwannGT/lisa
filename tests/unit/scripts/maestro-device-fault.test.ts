@@ -46,7 +46,7 @@ import {
   SIGN_IN,
   SIGN_IN_PATH,
   loadClassifier,
-} from "./maestro-flake-helpers";
+} from "./maestro-flake-helpers.js";
 
 /** Marker Maestro's Android driver raises when the uiautomator server dies. */
 const SERVER_DIED = "maestro.android.DeviceServerDiedException";

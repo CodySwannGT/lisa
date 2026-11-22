@@ -5,7 +5,6 @@ import {
   mkdirSync,
   mkdtempSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -15,9 +14,17 @@ import { pathToFileURL } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const FIXTURE_ROOT = "tests/runtime-upstream-attribution";
 const BODY_MODULE_PATH = "src/core/upstream-attribution-body.ts";
+/** The body module plus the sibling modules it imports. */
+const PROJECTION_MODULE_PATHS = [
+  BODY_MODULE_PATH,
+  "src/core/upstream-attribution-fields.ts",
+  "src/core/upstream-attribution-files.ts",
+  "src/core/upstream-attribution-guards.ts",
+] as const;
 const PUBLIC_SHA = "90549e6dae19aa5e53b86908d5050d303b724f55";
 const FILES = [
   "bidi.txt",
@@ -64,7 +71,9 @@ describe("upstream attribution file safety", () => {
     mkdirSync(path.join(packageRoot, "src/core"), { recursive: true });
     mkdirSync(fixtureDirectory, { recursive: true });
     copyFileSync("package.json", path.join(packageRoot, "package.json"));
-    copyFileSync(BODY_MODULE_PATH, path.join(packageRoot, BODY_MODULE_PATH));
+    for (const modulePath of PROJECTION_MODULE_PATHS) {
+      copyFileSync(modulePath, path.join(packageRoot, modulePath));
+    }
     const fixtureContents = {
       "aggregate.txt": `${"a".repeat(5000)}\n`,
       "bidi.txt": "safe\u202eunsafe\n",
@@ -76,7 +85,7 @@ describe("upstream attribution file safety", () => {
       writeFileSync(path.join(fixtureDirectory, filename), contents);
     }
     writeFileSync(path.join(fixtureDirectory, "target.txt"), "target\n");
-    symlinkSync("target.txt", path.join(fixtureDirectory, "link.txt"));
+    createSymlink("target.txt", path.join(fixtureDirectory, "link.txt"));
     boundedExecFileSync({
       label: "mkfifo pipe.txt fixture",
       command: "/usr/bin/mkfifo",

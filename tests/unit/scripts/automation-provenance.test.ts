@@ -5,7 +5,6 @@ import {
   mkdirSync,
   readFileSync,
   renameSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
@@ -45,6 +44,8 @@ const CALLS_FILE = "fake-bin/calls.log";
 const RECOVERY_FILE = "recovery.json";
 const LEAF_BODY = "immutable leaf";
 import { predictedCommit } from "../../../all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs";
+import { resolverTimeoutMs } from "../../../all/copy-overwrite/scripts/lib/automation-provenance-local.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 const ROOT_HOOK = ".husky/commit-msg";
 const HOOKS = [ROOT_HOOK, "typescript/copy-contents/.husky/commit-msg"];
 const CLAIM_ENDPOINT = "repos/acme/widgets/issues/comments/77";
@@ -56,6 +57,10 @@ const RUNTIME = {
   dockerFixtures: false,
 };
 const ORIGINAL_BUN = '{"lockfileVersion":1}\n';
+const LINEAR_REF = "ENG-42";
+const LINEAR_MESSAGE = `chore: update npm dependencies\n\nWork-Item: ${LINEAR_REF}\n`;
+/** A Linear comment id is a UUID; the same value stands in for the automation user id. */
+const LINEAR_CLAIM = "0f3c2a1b-4d5e-4f60-8a7b-9c0d1e2f3a4b";
 
 afterEach(cleanupFixtures);
 afterAll(cleanupTemplates);
@@ -106,7 +111,7 @@ describe("focused provenance module boundaries", () => {
       "invalid regular bounded proof file"
     );
     const alias = path.join(f.root, "private-proof-alias");
-    symlinkSync(file, alias);
+    createSymlink(file, alias);
     expect(() => local.privateBytes(alias, bytes.length)).toThrow();
   });
 });
@@ -188,9 +193,15 @@ console.log(typeof data[key]==='string'?data[key]:JSON.stringify(data[key]));\n`
 /** Materialize a real two-file npm proposal on a committed trusted base. */
 function proposalFixture(
   recovery = false,
-  optional: { bun?: boolean; runtime?: boolean; unbound?: boolean } = {}
+  optional: {
+    bun?: boolean;
+    runtime?: boolean;
+    unbound?: boolean;
+    linear?: boolean;
+  } = {}
 ) {
   const f = fixture();
+  if (optional.linear) bindTo(f, LINEAR_REF, "feature/tracked", "linear");
   const policy = transport(f);
   const config = JSON.parse(readFileSync(path.join(f.root, CONFIG), "utf8"));
   writeFileSync(
@@ -198,6 +209,16 @@ function proposalFixture(
     JSON.stringify({
       ...config,
       automationProvenance: policy,
+      ...(optional.linear
+        ? {
+            tracker: "linear",
+            linear: {
+              workspace: "acme",
+              teamKey: "ENG",
+              claimActorRef: LINEAR_CLAIM,
+            },
+          }
+        : {}),
       ...(recovery || optional.runtime
         ? {
             npmUpdater: {
@@ -285,11 +306,13 @@ function proposalFixture(
     author: git(f.root, ["var", "GIT_AUTHOR_IDENT"], env),
     committer: git(f.root, ["var", "GIT_COMMITTER_IDENT"], env),
     policySha256: sha256(canonicalJson(policy)),
-    messageSha256: sha256(MESSAGE + MARKER),
-    claimCommentId: "77",
+    messageSha256: sha256(
+      (optional.linear ? LINEAR_MESSAGE : MESSAGE) + MARKER
+    ),
+    claimCommentId: optional.linear ? LINEAR_CLAIM : "77",
     claimSha256: sha256(claim),
     queue: "acme/widgets",
-    workItem: REF,
+    workItem: optional.linear ? LINEAR_REF : REF,
     ...bindings,
     proposalKey: sha256(
       canonicalJson({
@@ -513,7 +536,16 @@ describe("full hook and checkout transport fixtures (not live issuance)", () => 
         JSON.stringify({ ...providerData(p), hangIssue: true })
       );
       p.f.env.LISA_WORK_ITEM_TIMEOUT_MS = "0";
+      // The resolver's own 30-second ceiling, shortened through the only knob
+      // that can shorten it, so the case does not sit out 30 seconds
+      // (CodySwannGT/lisa#4616, audit unit row 2). The ceiling itself, and
+      // that nothing can lengthen it, is pinned by `resolverTimeoutMs` below.
+      // The elapsed bound is what proves the resolver used ITS deadline: a
+      // resolver that fell back to the inherited one would take 30 seconds.
+      p.f.env.LISA_PROVENANCE_RESOLVER_TIMEOUT_MS = "1500";
+      const started = Date.now();
       const result = hook(p.f, ROOT_HOOK, MESSAGE + MARKER, 45_000);
+      expect(Date.now() - started).toBeLessThan(20_000);
       expect(result.status).toBe(1);
       expect(result.stdout).toContain("invalid automation provenance");
       expect(readFileSync(path.join(p.f.root, CALLS_FILE), "utf8")).toContain(
@@ -522,6 +554,22 @@ describe("full hook and checkout transport fixtures (not live issuance)", () => 
     },
     ioLatencyBudgetMs(55_000)
   );
+  it("bounds the canonical resolver at 30 seconds, which only a shorter value can change", () => {
+    expect(resolverTimeoutMs({})).toBe(30_000);
+    for (const value of ["0", "-5", "30000", "120000", "2.5", "never", ""])
+      expect(
+        resolverTimeoutMs({ LISA_PROVENANCE_RESOLVER_TIMEOUT_MS: value })
+      ).toBe(30_000);
+    expect(
+      resolverTimeoutMs({
+        LISA_PROVENANCE_RESOLVER_TIMEOUT_MS: "1500",
+        LISA_WORK_ITEM_TIMEOUT_MS: "0",
+      })
+    ).toBe(1500);
+    expect(resolverTimeoutMs({ LISA_WORK_ITEM_TIMEOUT_MS: "999999" })).toBe(
+      30_000
+    );
+  });
   it.each(HOOKS)(
     "reaches verified non-AI branch with exact final proposal: %s",
     hookPath => {
@@ -588,7 +636,7 @@ describe("full hook and checkout transport fixtures (not live issuance)", () => 
       const file = path.join(directory, DESCRIPTOR_FILE);
       const original = path.join(directory, "original.json");
       renameSync(file, original);
-      symlinkSync(original, file);
+      createSymlink(original, file);
     }
     if (boundary === "undeclared") {
       p.descriptor.updates[0]!.to = "8.0.0";
@@ -606,6 +654,29 @@ describe("full hook and checkout transport fixtures (not live issuance)", () => 
         "https://foreign.example.test";
     writeFileSync(path.join(p.f.root, PROVIDER_FILE), JSON.stringify(data));
     expect(hook(p.f, ROOT_HOOK, message).status).toBe(1);
+  });
+});
+
+describe("a Linear-tracked host through the real hook (#4873)", () => {
+  it.each(HOOKS)(
+    "accepts a UUID claim and binds the key offline, reading no GitHub issue or comment: %s",
+    hookPath => {
+      const p = proposalFixture(false, { linear: true });
+      installProof(p);
+      const result = hook(p.f, hookPath, LINEAR_MESSAGE + MARKER);
+      expect(result.stdout + result.stderr).toContain(AUTHENTICATED_OUTPUT);
+      expect(result.status).toBe(0);
+      const calls = readFileSync(path.join(p.f.root, CALLS_FILE), "utf8");
+      expect(calls).not.toMatch(/issues\/comments|issue view/);
+      expect(calls).toContain("actions/runs/123/attempts/1");
+    }
+  );
+
+  it("still refuses a UUID claim id when the committed tracker is GitHub", () => {
+    const p = proposalFixture();
+    p.descriptor.claimCommentId = LINEAR_CLAIM;
+    installProof(p);
+    expect(hook(p.f, ROOT_HOOK, MESSAGE + MARKER).status).toBe(1);
   });
 });
 

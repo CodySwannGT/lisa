@@ -1,7 +1,7 @@
 # Release evidence reuse
 
 **Issue:** CodySwannGT/lisa#3013 — *release replays quality instead of reusing exact-tree evidence*
-**Status:** design, staged. Stage 1 is the verifier; Stage 4 is the first stage that saves a minute.
+**Status:** RETIRED. Stages 2–5 (#3166–#3169) were declined on 2026-09-14, release quality became opt-in (#4781), and the stage-1 verifier (`reuse-plan`, `GATE_REUSE_CLASS`, the per-gate `reuse` declaration) was removed in #4794. Kept as a record of the reasoning, not as a plan.
 **Related:** #2829 (declined — the generic moment-budget direction), #3011 (skips only gates already
 `off`), #3022 / PR #3153 / PR #3156 (the evidence envelope this design reuses), #3039 and #3096
 (check-run name derivation and the per-moment `caller_chain` override), #2049 (the reusable-workflow

@@ -1,4 +1,4 @@
 display_name: "Repair Intake"
-short_description: "Vendor-agnostic repair scanner…"
+short_description: "Find and fix work stuck in the…"
 default_prompt:
-  - "Use $lisa-repair-intake: Vendor-agnostic repair scanner…."
+  - "Use $lisa-repair-intake: Find and fix work stuck in the…."

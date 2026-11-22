@@ -120,10 +120,10 @@ describe("the coverage number moves", () => {
 
     // Was 9/9 at 100%, comfortably over the 54% gate. Is now 0/9, and the gate
     // fails — which is the correct verdict for a suite that visits none of them.
-    expect(verdict.runners.playwright.covered).toBe(0);
-    expect(verdict.runners.playwright.percentage).toBe(0);
-    expect(verdict.runners.playwright.missing).toEqual(FALSELY_CREDITED);
-    expect(verdict.runners.playwright.ok).toBe(false);
+    expect(verdict.runners.playwright?.covered).toBe(0);
+    expect(verdict.runners.playwright?.percentage).toBe(0);
+    expect(verdict.runners.playwright?.missing).toEqual(FALSELY_CREDITED);
+    expect(verdict.runners.playwright?.ok).toBe(false);
   });
 
   it("leaves real coverage of a dynamic route intact", () => {
@@ -140,8 +140,8 @@ describe("the coverage number moves", () => {
       maestroVisited: [],
       thresholds: THRESHOLDS,
     });
-    expect(verdict.runners.playwright.covered).toBe(2);
-    expect(verdict.runners.playwright.ok).toBe(true);
+    expect(verdict.runners.playwright?.covered).toBe(2);
+    expect(verdict.runners.playwright?.ok).toBe(true);
   });
 });
 

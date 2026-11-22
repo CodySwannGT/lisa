@@ -112,8 +112,11 @@ describe("codex/openai-yaml-serializer", () => {
 
     const yaml = serializeInterfaceToYaml(empty);
     const parsed = parseYaml(yaml);
+    if (typeof parsed !== "object" || parsed === null) {
+      throw new Error("serialized interface did not parse to a mapping");
+    }
 
-    expect(parsed.default_prompt).toEqual([]);
+    expect("default_prompt" in parsed && parsed.default_prompt).toEqual([]);
   });
 
   it("produces identical output for two structurally-equal inputs", () => {

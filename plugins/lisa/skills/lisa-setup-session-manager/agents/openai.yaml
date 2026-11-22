@@ -1,4 +1,4 @@
 display_name: "Setup Session Manager"
-short_description: "Set up the local session manager for this project: writes the non-secret `sessionManager` block to `.lisa.config.json` (detecting a…"
+short_description: "Set up this project's local session manager: write its config, optionally connect a Telegram channel, keep its state out of git, start it…"
 default_prompt:
-  - "Use $lisa-setup-session-manager: Set up the local session manager for this project: writes the non-secret `sessionManager` block to `.lisa.config.json` (detecting a…."
+  - "Use $lisa-setup-session-manager: Set up this project's local session manager: write its config, optionally connect a Telegram channel, keep its state out of git, start it…."

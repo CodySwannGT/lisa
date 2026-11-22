@@ -1,9 +1,9 @@
 ---
 name: lisa-setup-remote-aws
-description: "Install and validate Lisa's…"
+description: "Install and check Lisa's AWS…"
 allowed-tools: ["Bash", "Read", "Write", "Glob", "Grep"]
 ---
-Install and validate Lisa's drop-in AWS CLI bootstrap for remote coding environments. Supports Claude, Codex, Cursor, GitHub Copilot, Antigravity on user-managed hosts, OpenCode on user-managed hosts, and future Linux remote agents through one capability contract. Writes no secrets; it installs the common setup script, merges native Cursor/Copilot adapters, and emits exact operator guidance for the selected platform.
+Install and check Lisa's AWS CLI bootstrap for remote coding environments across supported agents. Writes no secrets.
 
 
 # Set up remote-agent AWS access: $ARGUMENTS

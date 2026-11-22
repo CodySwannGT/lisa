@@ -22,13 +22,16 @@
  * request rather than papered over.
  * @module tests/unit/agy/block-managed-file-edits-agy
  */
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const SCRIPT = path.join(
   process.cwd(),
@@ -52,7 +55,7 @@ beforeAll(() => {
   // A host project is a `package.json` that is NOT @codyswann/lisa plus an
   // installed package carrying the copy-overwrite tree the guard resolves
   // against. Both are required; without either the guard stands down.
-  host = mkdtempSync(path.join(tmpdir(), "lisa-agy-managed-"));
+  host = ownedDir("lisa-agy-managed-");
   writeFileSync(
     path.join(host, "package.json"),
     JSON.stringify({ name: "a-host-project", version: "1.0.0" }),

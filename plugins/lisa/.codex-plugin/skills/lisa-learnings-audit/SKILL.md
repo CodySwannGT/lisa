@@ -1,15 +1,18 @@
 ---
 name: lisa-learnings-audit
-description: "The gardener of the learnings…"
+description: "Audit every knowledge surface —…"
 allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 ---
-The gardener of the learnings ladder (PRD #1729). Periodically audits every knowledge surface — ledger, rules trees (including Lisa's own shipped eager rules), skills, wiki index, and mechanical-control surfaces — gathers evidence per item (recurrence, staleness, redundancy, contradiction, budget pressure), classifies each candidate through the ladder router (skill-evaluator, advisory), and communicates exclusively through the tracker: one evidence-bearing ticket per PROMOTE/DEMOTE, one batch ticket per run for CONFIRM/RETIRE, upstream Lisa issues for upstream-scoped patterns. Everything is human-gated at v1 — the skill only files tickets; humans gate by flipping status:ready or closing as rejected, and rejections are remembered. Cron-able via lisa-setup-automations and runnable on demand via /lisa:learnings:audit.
+Audit every knowledge surface — learnings ledger, rules, skills, wiki, and checks — and file a ticket for each promotion, demotion, confirmation, or retirement. Tickets are build-ready except promotions into the always-loaded rules.
 
 
 # Learnings Audit (the gardener): $ARGUMENTS
 
 Run one audit cycle over this project's knowledge surfaces and convert what the
-evidence supports into **human-gated tracker tickets** — nothing else. The
+evidence supports into **tracker tickets** — nothing else. Under the default
+`humanGate.mode: "access-only"` those tickets file build-ready and the factory
+implements them (except a promotion into the always-loaded rules); under
+`humanGate.mode: "strict"` they are **human-gated** (see Ticket emission). The
 gardener is the only flow in Lisa that takes knowledge *back out* or moves it
 *up* the ladder; it closes the loop that capture (learner, debrief-apply, MLD)
 opens.
@@ -25,8 +28,11 @@ not capped), `surface=<ledger|rules|skills|wiki|all>` (default `all`),
 Keep the knowledge system from silting up: every learning lives at the
 cheapest rung that still prevents the mistake (per the six-rung ladder,
 PRD #1729), prose never duplicates a mechanical owner, the eager tier shrinks
-over time, and every change to "what the agents believe" is approved by a
-human through the tracker. A quiet run with nothing to propose is a healthy
+over time, and every change to "what the agents believe" passes through the
+tracker as an evidence-bearing ticket a person can read and reverse — approved
+by a human only for a promotion into the always-loaded rules, under
+`humanGate.mode: "strict"`, or when the destination is a human-authored
+surface. A quiet run with nothing to propose is a healthy
 outcome and says so in its one-line summary.
 
 ## Sources of truth
@@ -59,7 +65,7 @@ memorized list:
    come from exactly there.
 4. **Skills** — `.claude/skills/` and the plugin skill roots the runtime
    exposes (descriptions are eager context; bodies load on invoke).
-5. **The wiki index** — `wiki/index.md` when the project has a wiki.
+5. **The wiki index** — `wiki/index.md`.
 6. **Mechanical-control surfaces** — lint configs (ESLint/oxlint), ast-grep
    rules, git hooks, test suites, and `package.lisa.json` force sections:
    the surfaces that answer "does a mechanical owner already exist?".
@@ -85,17 +91,76 @@ a `last_confirmed` bump), **RETIRE** (provably redundant/stale — proof, not
 vibes), or leave alone. No evidence ⇒ no candidate; the gardener never files
 a recommendation it cannot evidence.
 
+**A RETIRE owned by a test needs a mutation proof.** Naming a test as the
+mechanical owner proves nothing until that test has been seen to fail
+without the rule (CodySwannGT/lisa#4530): a test whose fake returns empty
+results stays green whatever the code does. For every RETIRE whose proof is
+"owned by a test" (or any other mechanical owner that runs as a check), run
+the mutation proof before filing the row: break the rule the named test
+supposedly guards, run that named test and observe it **fail**, then revert
+the mutation. Record the result in the row — the mutation applied, the
+failing test name and its failure line, and the revert. A named owner that
+stays green under the mutation is not the owner: find the test that does
+fail, or drop the RETIRE. No failing observation ⇒ no valid retire proof.
+
+Run that break on a scratch copy,
+never in a worktree another agent is editing — not in the working folder
+this run is using either. The `falsifiable-checks` rule's section
+"Break on a scratch copy, never in a shared worktree" is the full recipe.
+This skill carries the minimum itself, because some agents (Codex,
+Antigravity) receive this skill without the rules tree:
+
+```sh
+tmp=$(mktemp -d)                                  # record this path first (step 1)
+git worktree add --detach "$tmp" HEAD
+git diff --binary HEAD | git -C "$tmp" apply --allow-empty
+# copy untracked new files; install dependencies in "$tmp" (a linked
+# node_modules in a workspace monorepo resolves back to the shared tree)
+# baseline: run the named test in "$tmp" BEFORE breaking anything; it must be green
+# break the rule in "$tmp", run the named test there, read the failure
+git worktree remove --force "$tmp"                # discarding the copy is the revert
+```
+
+Address the copy by absolute path; never switch the session into it with a
+harness tool such as `EnterWorktree`. A red baseline means the copy is
+incomplete, not that the test bites. Discarding the copy is the revert, and
+the green baseline taken in the copy before the break is the pass-again
+evidence, so the shared tree is never written to.
+
+1. **Record where before you break.** Before applying the mutation, write
+   the row's `mutation_location` — the mutated file, the line or section,
+   and the absolute path of the scratch copy — into the run's working notes
+   for that candidate. It goes in the RETIRE row with the rest of the proof,
+   and it exists before the mutation does, so an interrupted run still says
+   what was changed and where.
+2. **A failed restore blocks the row.** If discarding the copy fails (the
+   `git worktree remove` errors, or the copy path still exists afterwards),
+   or anything suggests the mutation reached a tree other than the copy,
+   file **no** RETIRE row for that candidate and run no further mutation
+   proofs. Report `mutation-restore-failed` with the recorded
+   `mutation_location`, escalated per Escalation, so a person can find and
+   repair the change. The run outcome is `recovery-required` (see Run
+   outcomes).
+
 **Learned planning checks.** A ledger entry whose rule begins
-`Planning (prd|decomposition|ready-gate):` is a `planning-miss` learning: the
-check planning should have run before a dispatched worker had to stop for a
+`Planning (prd|decomposition|ready-gate|filing):` is a `planning-miss` learning:
+the check planning should have run before a dispatched worker had to stop for a
 human (CodySwannGT/lisa#4569). When Recurrence shows the same class of gap
 stopping workers on more than one item, it is a PROMOTE candidate into the
-ready gate itself — the `work-item-definition-of-ready` rule or the validators'
-S18 dry-run — rather than one more ledger entry competing for the projection.
+stage its rule names — the owner `lisa-task-decomposition` step 0 binds that
+stage to — rather than one more ledger entry competing for the projection:
+
+- `prd` → PRD intake's requirement checks (`*-to-tracker` Phase 1.45).
+- `decomposition` → the decomposition obligations in `lisa-task-decomposition`.
+- `ready-gate` → the `work-item-definition-of-ready` rule or the validators' S18 stateless-pickup dry-run.
+- `filing` → the `ready-role-filing` rule, as a check a `human_gate:` hold reason must pass.
+
+Never promote a check into a stage other than the one it names.
 A recurring miss counts once per `[lisa-planning-miss]` note on distinct items.
 
 **Auto-merged low-confidence entries are re-reviewed first.** A project
-that sets `learnings.lowConfidence: "auto-merge"` (resolve it with
+whose `learnings.lowConfidence` resolves to `"auto-merge"` — the default
+under `humanGate.mode: "access-only"` — (resolve it with
 `resolveLearningsSettings(config).lowConfidence` from
 `@codyswann/lisa/learnings`) lets `lisa-persist-learning` merge `low`
 learnings without a human reading them (CodySwannGT/lisa#4659). In that mode,
@@ -110,7 +175,8 @@ checked first, never evidence for a change: RETIRE or DEMOTE still needs
 proof (a contradiction, staleness, a mechanical owner), and Recurrence
 evidence that it applied is a CONFIRM. Name these entries in the run proof
 (`low-confidence re-reviewed: <ids>`), so an operator can see that the
-skipped human gate was paid for here. Under the default `human-triage` a
+skipped human gate was paid for here. Under `human-triage` (the default
+only under `humanGate.mode: "strict"`) a
 `low` entry reached the ledger only through a human merge, so it keeps the
 normal order.
 
@@ -139,8 +205,7 @@ evidence:
   inventoried surface, in this repository (`project` scope) or upstream in
   `CodySwannGT/lisa` (`upstream` scope).
 - **Out of scope**: executing any promotion/demotion/retirement (the factory
-  does, per flipped tickets), editing any knowledge surface, auto-apply modes
-  (v1 is fully gated), and the capture streams (learner, debrief, MLD).
+  does, per flipped tickets), editing any knowledge surface itself, and the capture streams (learner, debrief, MLD).
 
 ## Proof
 
@@ -154,6 +219,10 @@ one exists) must show:
   alone.
 - Per skipped candidate: which dedupe hit suppressed it (open ticket URL,
   done ticket, or rejection date).
+- Per PROMOTE/DEMOTE ticket, the destination-validation record (Ticket
+  emission): destinations checked, missing, and created as new; line pointers
+  pinned (with the SHA) or dropped; and counts reconciled — or, for a refused
+  ticket, the refusal and the mismatch that caused it.
 - For `nothing-needed`: the thresholds nothing met, in one line.
 
 The tickets themselves are the durable artifacts; the report is how a human
@@ -196,6 +265,8 @@ audits the auditor without re-running it.
    is **advisory**: it returns `rung`, `scope`, `rationale`, and
    `drafted_artifact`; the gardener decides whether the evidence clears the
    filing bar and attaches the router's draft to the ticket.
+   Before step 4, run the destination-validation check (Ticket emission) on
+   every PROMOTE/DEMOTE draft; a draft that fails it is refused, not filed.
 4. **Emit** (see Ticket emission).
 5. **Report and record** the run outcome and one-line summary — post the
    outcome, then record **exactly one** run-record line through the CLI (see
@@ -205,13 +276,83 @@ audits the auditor without re-running it.
 ## Ticket emission
 
 All project-tracker writes go through **`lisa-tracker-write`** so gardener
-tickets pass the same validation gates as all factory work. Nothing is created
-`status:ready` — the human flips. Per `ready-role-filing` that hold is
-**declared, not implied**: every gardener ticket passes
-`human_gate: "a human decides whether this knowledge is promoted, demoted, or
-retired"` so the writer stamps the auditable `[lisa-human-gate]` marker. An
-omitted flag would be indistinguishable from the accidental non-ready filing
-the rule exists to catch.
+tickets pass the same validation gates as all factory work. Resolve
+`humanGate.mode` from `.lisa.config.json` (default `"access-only"`):
+
+- **`access-only` (default)** — file every PROMOTE / DEMOTE / RETIRE /
+  CONFIRM ticket **build-ready** (`status:ready`), with no `human_gate`. The
+  gardener has the evidence and the access, so it makes the call; the
+  ticket's evidence and rationale are the recorded reasoning a person can
+  reverse later. The one exception is a ticket whose change lands on a
+  **human-authored surface** (`.agents/rules/`, `PROJECT_RULES.md`,
+  `AGENTS.md`, or any surface the project declares human-authored): no agent
+  writes those, so it passes `human_gate: "a person edits <surface>, which is
+  declared human-authored, so no agent may write it"`. That is an authorship
+  rule, not an access gate, and it holds in both modes.
+- **`strict`** — nothing is created `status:ready`; the human flips. Per
+  `ready-role-filing` that hold is **declared, not implied**: every gardener
+  ticket passes `human_gate: "a human decides whether this knowledge is
+  promoted, demoted, or retired"` so the writer stamps the auditable
+  `[lisa-human-gate]` marker. An omitted flag would be indistinguishable from
+  the accidental non-ready filing the rule exists to catch.
+
+In both modes a **PROMOTE into EAGER-RULE** adds to what every session loads,
+so it is filed held with `human_gate: "a human decides whether this learning is promoted
+into the always-loaded rules"`, which stamps the auditable `[lisa-human-gate]`
+marker. Every other build-ready ticket passes `build_ready: true`. The hold is
+declared, never implied by an omitted flag.
+
+<!-- destination-validation:start -->
+**Destination and count validation (before filing any PROMOTE / DEMOTE).**
+The router's draft says *where* the builder should make the change and *how
+much* evidence backs it. Neither is trusted until checked, because a ticket
+pointing at a section that does not exist, or quoting a figure its own
+evidence contradicts, sends the builder to re-derive everything by hand.
+Validate against the default branch of the repository the ticket targets,
+and resolve its head `<sha>` once per run:
+
+- **This repository** (`project` scope) — run `git fetch origin <default>`
+  first, then `git rev-parse origin/<default>` once for the SHA. Read every
+  file at that SHA, never at the moving `origin/<default>`:
+  `git cat-file -t <sha>:<path>` must print `blob` (a `tree` is a directory,
+  not a file), then `git show <sha>:<path>` for its text.
+- **Upstream** (`upstream` scope) — the paths live in `<upstreamRepo>`, not
+  this checkout, and so does its default branch. Resolve that branch first
+  with `gh api repos/<upstreamRepo> --jq .default_branch` — never assume this
+  checkout's branch name, because a wrong name makes every upstream lookup
+  return "not found" and every destination look missing. Then
+  `gh api repos/<upstreamRepo>/commits/<upstreamDefault> --jq .sha`
+  for the SHA, then for each file
+  `gh api -H "Accept: application/vnd.github.raw" repos/<upstreamRepo>/contents/<path>?ref=<sha>`,
+  which returns the raw text so headings are searchable (the default JSON
+  response is base64-encoded). A response that lists entries means the path
+  is a directory, not a file.
+
+1. **Destinations** — fetch every file the ticket names as above; for every
+   heading or section, search that file for it. A destination that exists is
+   cited as existing. A section the builder must *create* is labelled **new**
+   in the ticket, never cited as existing. A file that does not exist is
+   always listed in `destinations_missing`; it is then either relabelled as a
+   **new file** the builder creates (and also listed in `destinations_new`),
+   or, if the draft depends on it already existing, the ticket is **refused**.
+2. **Line pointers** — drop them, or recompute each one against `<sha>` and
+   write that SHA beside it ("line 42 at `<sha>`") so anyone can re-check it
+   later. Never copy a pointer from the draft unchecked.
+3. **Counts** — every count the ticket attributes to its cited evidence
+   ("12 of 12 entries", "17 occurrences") is recounted from that evidence.
+   Template wording such as "all four legs" and pinned line numbers are not
+   counts. On any mismatch the ticket is **refused**: it is not filed, and
+   neither side is quietly corrected. The mismatch (both figures and where
+   each came from) goes in the run report (Proof) so a person can see what
+   disagreed.
+
+A refused ticket is not a run failure: the run continues with the other
+candidates and reports the refusal in the run report (Proof). Record per
+ticket in the run report (Proof): `destinations_checked`,
+`destinations_missing`, `destinations_new`, `pointers` (`pinned` with
+`pointer_sha`, or `dropped`), and `counts_reconciled: yes`, or
+`refused: <reason>`.
+<!-- destination-validation:end -->
 
 **Per-item tickets — PROMOTE / DEMOTE** (`issue_type: Task`; GitHub trackers
 carry the `type:Task` label) — one ticket per recommendation, capped by
@@ -224,7 +365,10 @@ carry the `type:Task` label) — one ticket per recommendation, capped by
   owner).
 - The router's **`drafted_artifact`** verbatim (the lint/hook sketch +
   diagnostic text, proposed rule text, skill outline, page outline, or
-  redundancy proof).
+  redundancy proof), embedded only after the destination-validation edits
+  above are applied to it: a section that does not exist is relabelled
+  **new**, each line pointer is dropped or pinned to `<sha>`, and a draft
+  whose counts disagree with its evidence is refused rather than embedded.
 - For **EXECUTABLE-CONTROL** promotions, embed the promotion-contract AC
   template below **verbatim** (markers included — do not paraphrase, reorder,
   or partially quote it; it is the single source of truth from the
@@ -251,8 +395,16 @@ rejected by rule (see the `promotion-contract` rule):
 **One batch ticket per run — CONFIRM + RETIRE** (`issue_type: Task`): a single
 ticket listing every CONFIRM row (`last_confirmed` bump, with the evidence the
 entry demonstrably applied) and every **provably-redundant** RETIRE row (with
-the mechanical owner / staleness proof per row). Rows are individually
-strikeable — the human deletes rows they reject, then flips the ticket ready.
+the mechanical owner / staleness proof per row, and the mutation proof with its
+`mutation_location` when the owner is a test). Every RETIRE row also carries the entry's full
+`expectedFingerprint`: the live `entry.fingerprint` read from the parsed ledger
+at audit time (`learning-` plus 20 hex digits, or a legacy token). It is not the
+12-hex `<invariant-hash>` in the row's `[lisa-gardener]` marker — the two are
+different identifiers, and only the entry fingerprint shows whether a later
+consolidation rewrote the entry behind the same id. Rows are individually
+strikeable. Under `access-only` the batch files build-ready and a person
+may still strike a row before the factory picks it up; under `strict` the
+human deletes rows they reject, then flips the ticket ready.
 The gardener **never bumps `last_confirmed` itself**: the bumps are executed
 by the **implementing factory run** that picks up the flipped batch ticket.
 Embed the following execution contract **verbatim** (markers included — do
@@ -267,6 +419,20 @@ implementing run receives its instructions inside the work item:
 - Implement each surviving RETIRE row as a proof-citing deletion PR per the
   `promotion-contract` rule's reverse-atomicity clause: the deleting PR must
   cite the row's mechanical owner or staleness proof.
+- Delete each RETIRE entry only by calling
+  `retireLearningEntry(projectRoot, id, expectedFingerprint)` from
+  `@codyswann/lisa/learnings` with the row's full `expectedFingerprint` —
+  never by parse → filter → render in a script, and never by a hand edit.
+  From a shell, the same call is
+  `bunx @codyswann/lisa learnings-retire --id <id> --fingerprint <full fingerprint> --reason "<proof>"`
+  (JSON output; exit 1 on `stale` or `not-found`). Retire works on a ledger
+  that is over its cap, so use it to bring an over-budget ledger back down.
+- A RETIRE that returns `stale` means the entry's fingerprint drifted since
+  the audit (a later learner run changed or merged into it): skip the row, do
+  not delete it, and leave it for the next audit to re-evaluate.
+- A RETIRE that returns `not-found` means the entry is already gone: note it
+  in the PR and skip the row. On a concurrent-write error, retry the call
+  once; never fall back to a manual edit.
 - Struck/deleted rows are human rejections — skip them; they are not re-filed
   without new postdating evidence.
 <!-- gardener-batch-ticket-template:end -->
@@ -346,15 +512,20 @@ it as **Completed** if it was fixed — a later recurrence may be re-filed as a 
 
 ## Autonomous-vs-approval boundary
 
-**Everything is human-gated at v1 — this skill only files tickets.** The
-gardener never edits, writes, or deletes any rule, skill, wiki page, ledger
-entry, lint config, or hook itself; it never merges, transitions, or flips
-anything to `status:ready`; it never bumps `last_confirmed`. Autonomous
-actions are limited to: reading surfaces, gathering evidence, invoking the
-advisory router, and creating/commenting marker-deduped tickets. Humans gate
-by flipping a ticket to `status:ready` (the factory then executes it like any
-work item, honoring the `promotion-contract` rule) or closing it as rejected.
-A future `learnings.autoApply` config may widen this; v1 ships none.
+**This skill only files tickets.** The gardener never edits, writes, or
+deletes any rule, skill, wiki page, ledger entry, lint config, or hook itself;
+it never merges or transitions an existing ticket; it never bumps
+`last_confirmed`. Autonomous actions are limited to: reading surfaces,
+gathering evidence, invoking the advisory router, and creating/commenting
+marker-deduped tickets. The factory then executes each `status:ready` ticket
+like any work item, honoring the `promotion-contract` rule.
+
+Who gates depends on `humanGate.mode` (see Ticket emission). Under the
+default `access-only` the gardener decides: it files build-ready and the
+factory implements, and only a promotion into EAGER-RULE or a change to a
+human-authored surface is human-gated.
+Under `strict` everything is human-gated: humans gate by flipping a ticket to
+`status:ready` or closing it as rejected.
 
 ## Escalation
 
@@ -369,15 +540,20 @@ non-technical operator standing at the gate can act on.
 ## Recovery
 
 Every external write is marker-deduped, so a crashed or interrupted run
-leaves no cleanup debt: re-running is the recovery procedure. A partial run's
+leaves no cleanup debt: re-running is the recovery procedure. The one
+exception is a RETIRE mutation proof's scratch copy: a run interrupted
+mid-proof can leave it on disk, and its recorded `mutation_location` names
+the path to remove before re-running. A partial run's
 already-filed tickets are found by their markers and not duplicated; a batch
 ticket from an interrupted run is reused (append missing rows as a comment)
 rather than reissued. **Filing order**: file the per-item PROMOTE/DEMOTE
 tickets first and the CONFIRM/RETIRE **batch ticket last** — the batch is the
 run's completion signal, so a crash mid-run leaves individually
 marker-recoverable per-item tickets and a missing (not half-filled) batch:
-the most recoverable state. Never attempt to "roll back" filed tickets —
-close-out decisions belong to humans.
+the most recoverable state. Never attempt to "roll back" filed tickets by
+deleting them. Close-out decisions are the agent's: when new evidence shows a
+filed ticket is wrong or redundant, close it with the evidence in a comment so
+a person can reopen it.
 
 ## Run outcomes
 
@@ -396,10 +572,23 @@ exact so nothing regresses:
   recommendation threshold. Report one line: surfaces scanned, entries seen,
   "nothing to propose".
 - `blocked` → **`recovery-required`** when the loop itself could not complete
-  (tracker unreachable, contradictory config, a ledger-contract parse error) —
-  escalated per Escalation with the operator-readable reason; **or**
+  (tracker unreachable, contradictory config, a ledger-contract parse error,
+  or a RETIRE mutation proof whose scratch copy could not be discarded, so a
+  mutation may survive outside the run's control) — escalated per Escalation
+  with the operator-readable reason; **or**
   **`approval-requested`** when the run finished and is waiting on a human gate
   rather than being broken.
+  A run that filed nothing because destination-validation (Ticket emission)
+  refused every PROMOTE/DEMOTE draft records **`approval-requested`** —
+  never `nothing-needed`. Its `--summary` states each mismatch as a question
+  for a person ("evidence says 17, draft says 12 — which is right?") and
+  says that every run will refuse that draft again until someone answers.
+  **Every refusal reaches the `--summary`, whatever the outcome.** A mixed
+  run that files some tickets and refuses others still records
+  **`candidate-proposed`**, and its `--summary` also names each refused
+  PROMOTE/DEMOTE draft and its mismatch as a question for a person. The run
+  report alone is not enough: nobody is prompted to read it, so a refusal
+  left only there is repeated silently on every later run.
 
 The gardener also newly reaches **`policy-obsolete`** — the Retirement
 condition below tripped and it filed its own teardown proposal. It never
@@ -462,10 +651,14 @@ automation, through `lisa-tracker-write` (per `tracked-work` +
   candidate evidence, not the dedupe key. When an existing proposal suppresses
   filing, **the run still records `policy-obsolete` and files nothing** — the
   outcome describes this run, while the ticket is filed exactly once.
-- **Labels** `status:blocked` + `human-needed`, carrying the contract's
-  decision-ready packet. The `human-needed` label marks the proposal
-  human-owned: `lisa-repair-intake` recognizes it and never re-dispatches it as
-  stalled work.
+- **Labels** follow `humanGate.mode`. Under the default `access-only` the loop makes the call
+  itself: it picks one response from the evidence below (tear down, or re-cadence to a named longer
+  cadence), states it with its reasoning, and files the proposal build-ready (`status:ready`), so the
+  factory run that claims it performs that response with the matching command. If that run cannot
+  reach the scheduler, it holds the item naming that access. Under `strict`: `status:blocked` +
+  `human-needed`, carrying the contract's decision-ready packet. The `human-needed` label marks the
+  proposal human-owned: `lisa-repair-intake` recognizes it and never re-dispatches it as stalled
+  work.
 - **Evidence** the date-filtered search result, this run's summary, **the
   loop's current cadence** (the baseline an operator needs to choose a longer
   one), and a one-line summary of recent runs read from
@@ -483,9 +676,10 @@ automation, through `lisa-tracker-write` (per `tracked-work` +
   (`rejection-detection`):
   > To stop this from being raised again, close it as **Not planned**. Close it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.
 
-The gardener **keeps running at its normal cadence** until a human flips that
-ticket — retirement is a recommendation like any other, never a self-executed
-exit — and it never deletes its own
+The gardener **keeps running at its normal cadence** until that ticket is
+acted on (by the factory run that claims it under `access-only`, by a human
+under `strict`) — retirement is never a self-executed exit within the run that
+proposes it — and it never deletes its own
 registration.
 
 ## Scheduling

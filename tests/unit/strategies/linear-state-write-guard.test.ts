@@ -32,16 +32,28 @@ import {
   UNCONFIGURED_REVIEW_ID,
 } from "./linear-state-write-fixtures.js";
 
-/** No local override in these cases; the committed config is the whole truth. */
-const NO_LOCAL = undefined;
+/** The guard's verdict: a resolved target, or a named refusal. */
+type GuardResult = ReturnType<typeof resolveStateWriteTarget>;
+
+/**
+ * Narrow a verdict the test expects to be a refusal.
+ * @param result - The guard's verdict.
+ * @returns The refusal branch.
+ */
+function refused(result: GuardResult): Extract<GuardResult, { ok: false }> {
+  if (result.ok) {
+    throw new Error(`expected a refusal, got ${JSON.stringify(result)}`);
+  }
+  return result;
+}
 
 describe("the guard resolves a target instead of approving one", () => {
   it("returns the configured state for the role, not the state asked for", () => {
     const result = resolveStateWriteTarget({
       role: "claimed",
       states: TEAM_STATES,
+      // No local override: the committed config is the whole truth.
       global: CONFIG,
-      local: NO_LOCAL,
     });
 
     expect(result).toMatchObject({
@@ -74,10 +86,10 @@ describe("it refuses every write that is not the configured target", () => {
     });
 
     expect(result.ok).toBe(false);
-    expect(result.refusal).toBe(REFUSALS.TARGET_MISMATCH);
-    expect(result.message).toContain("'claimed'");
-    expect(result.message).toContain(CLAIMED_NAME);
-    expect(result.message).toContain(UNCONFIGURED_REVIEW_ID);
+    expect(refused(result).refusal).toBe(REFUSALS.TARGET_MISMATCH);
+    expect(refused(result).message).toContain("'claimed'");
+    expect(refused(result).message).toContain(CLAIMED_NAME);
+    expect(refused(result).message).toContain(UNCONFIGURED_REVIEW_ID);
   });
 
   it("refuses a state write that declares no lifecycle role at all", () => {
@@ -87,7 +99,7 @@ describe("it refuses every write that is not the configured target", () => {
       assertStateId: UNCONFIGURED_REVIEW_ID,
     });
 
-    expect(result.refusal).toBe(REFUSALS.MISSING_ROLE);
+    expect(refused(result).refusal).toBe(REFUSALS.MISSING_ROLE);
   });
 
   it("refuses an unbound optional role rather than defaulting it", () => {
@@ -97,8 +109,8 @@ describe("it refuses every write that is not the configured target", () => {
       global: CONFIG,
     });
 
-    expect(result.refusal).toBe(REFUSALS.ROLE_UNCONFIGURED);
-    expect(result.message).toContain("linear.workflow.review");
+    expect(refused(result).refusal).toBe(REFUSALS.ROLE_UNCONFIGURED);
+    expect(refused(result).message).toContain("linear.workflow.review");
   });
 
   it("refuses a required role the project never bound", () => {
@@ -108,7 +120,7 @@ describe("it refuses every write that is not the configured target", () => {
       global: { linear: { workflow: { ready: "Ready" } } },
     });
 
-    expect(result.refusal).toBe(REFUSALS.ROLE_UNCONFIGURED);
+    expect(refused(result).refusal).toBe(REFUSALS.ROLE_UNCONFIGURED);
   });
 
   it("refuses a bare `done` when the project indexes `done` by environment", () => {
@@ -118,8 +130,8 @@ describe("it refuses every write that is not the configured target", () => {
       global: CONFIG,
     });
 
-    expect(result.refusal).toBe(REFUSALS.MISSING_ENV);
-    expect(result.message).toContain("production");
+    expect(refused(result).refusal).toBe(REFUSALS.MISSING_ENV);
+    expect(refused(result).message).toContain("production");
   });
 
   it("refuses an environment key on a role that is not `done`", () => {
@@ -130,8 +142,8 @@ describe("it refuses every write that is not the configured target", () => {
       global: CONFIG,
     });
 
-    expect(result.refusal).toBe(REFUSALS.UNEXPECTED_ENV);
-    expect(result.message).toContain("'claimed'");
+    expect(refused(result).refusal).toBe(REFUSALS.UNEXPECTED_ENV);
+    expect(refused(result).message).toContain("'claimed'");
   });
 
   it("refuses an environment key when `done` is a single state", () => {
@@ -142,8 +154,8 @@ describe("it refuses every write that is not the configured target", () => {
       global: { linear: { workflow: { done: "Done" } } },
     });
 
-    expect(result.refusal).toBe(REFUSALS.UNEXPECTED_ENV);
-    expect(result.message).toContain("single state");
+    expect(refused(result).refusal).toBe(REFUSALS.UNEXPECTED_ENV);
+    expect(refused(result).message).toContain("single state");
   });
 
   it("resolves a flat `done` with no environment key at all", () => {
@@ -163,8 +175,8 @@ describe("it refuses every write that is not the configured target", () => {
       global: { linear: { workflow: { claimed: "Underway" } } },
     });
 
-    expect(result.refusal).toBe(REFUSALS.STATE_ABSENT);
-    expect(result.message).toContain("Underway");
+    expect(refused(result).refusal).toBe(REFUSALS.STATE_ABSENT);
+    expect(refused(result).message).toContain("Underway");
   });
 
   it("refuses an ambiguous configured name instead of picking the first", () => {
@@ -177,21 +189,24 @@ describe("it refuses every write that is not the configured target", () => {
       global: CONFIG,
     });
 
-    expect(result.refusal).toBe(REFUSALS.STATE_AMBIGUOUS);
-    expect(result.message).toContain("st-claimed-dup");
+    expect(refused(result).refusal).toBe(REFUSALS.STATE_AMBIGUOUS);
+    expect(refused(result).message).toContain("st-claimed-dup");
   });
 
   it("refuses a malformed catalog rather than treating it as empty", () => {
     expect(
-      resolveStateWriteTarget({ role: "claimed", states: {}, global: CONFIG })
-        .refusal
+      refused(
+        resolveStateWriteTarget({ role: "claimed", states: {}, global: CONFIG })
+      ).refusal
     ).toBe(REFUSALS.CATALOG_MALFORMED);
     expect(
-      resolveStateWriteTarget({
-        role: "claimed",
-        states: [{ name: CLAIMED_NAME }],
-        global: CONFIG,
-      }).refusal
+      refused(
+        resolveStateWriteTarget({
+          role: "claimed",
+          states: [{ name: CLAIMED_NAME }],
+          global: CONFIG,
+        })
+      ).refusal
     ).toBe(REFUSALS.CATALOG_MALFORMED);
   });
 });

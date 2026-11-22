@@ -65,8 +65,8 @@ describe("toolFloor", () => {
 
   it("names the config key responsible, so the requirement can be argued with", () => {
     const [entry] = toolFloor({ tracker: "github" });
-    expect(entry.reason).toContain("github");
-    expect(entry.reason).toContain("gh");
+    expect(entry?.reason).toContain("github");
+    expect(entry?.reason).toContain("gh");
   });
 
   it("treats a malformed config as deriving nothing rather than throwing", () => {

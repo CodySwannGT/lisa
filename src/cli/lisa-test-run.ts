@@ -1,19 +1,17 @@
 #!/usr/bin/env node
-/** Public entrypoint for birth-bound test supervision and scratch cleanup. */
+/** Public entrypoint: sweep, shard, admit, then run the test payload. */
 import * as os from "node:os";
 import * as path from "node:path";
-import { env } from "node:process";
+import { currentEnvironment, writeEnv } from "../utils/process-environment.js";
 
-// @ts-expect-error -- the shipped JavaScript helper carries the same checked JSDoc signature
 import { invokedAsScript } from "../../scripts/lib/invoked-as-script.mjs";
 import { worktreeDependencyProblem } from "../../all/copy-overwrite/scripts/lib/worktree-dependencies.mjs";
 
-import {
-  resolveScratchRouteProfile,
-  type ScratchRouteProfile,
-} from "../configs/vitest/scratch-route-profile.js";
 import { socketSafeTempBase } from "../configs/vitest/socket-safe-temp-base.js";
+import { admitTestRun } from "./lisa-test-run-admission.js";
 import { mergeJestShards } from "./lisa-test-run-jest-merge.js";
+import { missingToolMessage } from "./lisa-test-run-missing-tool.js";
+import { planFilesShard } from "./lisa-test-run-shard-files.js";
 import {
   gatherVitestBlobs,
   readShardReceipts,
@@ -25,18 +23,37 @@ import {
   writeShardReceipt,
 } from "./lisa-test-run-shard.js";
 import {
-  superviseTestRun,
+  runTestPayload,
   type TestRunAdapter,
-} from "./lisa-test-run-supervisor.js";
-
-export { assertTestRunPlatform } from "./lisa-test-run-process-group.js";
+} from "./lisa-test-run-payload.js";
+import { startOfRunSweep } from "./lisa-test-run-sweep.js";
 
 /** Dedicated operational-failure exit status. */
 const OPERATIONAL_FAILURE_EXIT = 1;
 
-/** Fully parsed public invocation before scratch authority is created. */
+/**
+ * Route names the generated `test*` scripts pass as `--profile`.
+ *
+ * The profile used to select a scratch prefix registry. That registry was
+ * retired with the per-test policing (CodySwannGT/lisa#4602); the name is still
+ * validated so a typo in a script fails loudly instead of being ignored, and so
+ * every shipped script keeps working unchanged.
+ */
+const ROUTE_PROFILES: ReadonlySet<string> = new Set([
+  "lisa",
+  "typescript",
+  "npm-package",
+  "node",
+  "expo",
+  "nestjs",
+  "cdk",
+  "harper-fabric",
+  "phaser",
+]);
+
+/** Fully parsed public invocation. */
 interface TestRunInvocation {
-  readonly profile: ScratchRouteProfile;
+  readonly profile: string;
   readonly adapter: TestRunAdapter;
   readonly argv: readonly [string, ...string[]];
 }
@@ -60,8 +77,11 @@ function commandArgv(argv: readonly string[]): TestRunInvocation {
       "Usage: lisa-test-run --profile <route> --adapter vitest|direct -- <executable> [args...]"
     );
   }
+  if (!ROUTE_PROFILES.has(argv[1])) {
+    throw new Error(`Unknown lisa-test-run profile: ${argv[1]}`);
+  }
   return {
-    profile: resolveScratchRouteProfile(argv[1]),
+    profile: argv[1],
     adapter: argv[3],
     argv: argv.slice(5) as [string, ...string[]],
   };
@@ -93,13 +113,30 @@ function invocationOrExit(): TestRunInvocation | undefined {
 function applyShardPlan(
   argv: readonly [string, ...string[]]
 ): readonly [string, ...string[]] | number {
+  const env = currentEnvironment();
   const plan = shardPlanFrom(env);
-  for (const name of SHARD_ENV_NAMES) delete env[name];
+  for (const name of SHARD_ENV_NAMES) writeEnv(name, undefined);
   if (plan.kind === "none") return argv;
   const runner = shardRunnerOf(argv);
   if (plan.kind === "shard") {
-    writeShardReceipt(plan, runner, argv);
-    return shardArgv(argv, runner, plan);
+    const { filePlan } = plan;
+    if (filePlan === undefined || runner !== "vitest") {
+      if (filePlan !== undefined)
+        process.stderr.write(
+          `lisa-test-run: shard ${plan.index}/${plan.total} runs ${runner}'s own --shard slice; file-list plans apply to vitest only.\n`
+        );
+      writeShardReceipt(plan, runner, argv);
+      return shardArgv(argv, runner, plan);
+    }
+    const leg = planFilesShard(argv, { ...plan, filePlan }, env);
+    process.stderr.write(
+      `lisa-test-run: shard ${plan.index}/${plan.total} runs ${leg.mine} of ${leg.selected} selected files by the timing plan (planned ${leg.plannedSeconds.toFixed(1)} s).\n`
+    );
+    writeShardReceipt(plan, runner, argv, {
+      mode: "files",
+      files: { mine: leg.mine, selected: leg.selected },
+    });
+    return leg.argv;
   }
   const receipts = readShardReceipts(plan.directory, plan.total);
   if (receipts[0]?.runner !== runner) {
@@ -115,19 +152,19 @@ function applyShardPlan(
 
 /**
  * Move the run off a temp base too long for native Unix socket fixtures,
- * before any scratch authority is pinned to it.
+ * before the sweep reads it and the payload inherits it.
  */
 function selectSocketSafeTempBase(): void {
   const current = os.tmpdir();
   const replacement = socketSafeTempBase(current);
   if (replacement === undefined) return;
-  env.TMPDIR = replacement;
+  writeEnv("TMPDIR", replacement);
   process.stderr.write(
     `lisa-test-run: TMPDIR ${current} is too long for native Unix socket fixtures; using ${replacement}.\n`
   );
 }
 
-/** Run the public CLI and preserve the child result only after cleanup. */
+/** Run the public CLI and preserve the payload's result. */
 async function main(): Promise<void> {
   const invocation = invocationOrExit();
   if (invocation === undefined) return;
@@ -135,13 +172,15 @@ async function main(): Promise<void> {
     const dependencyProblem = worktreeDependencyProblem();
     if (dependencyProblem) throw new Error(dependencyProblem);
     selectSocketSafeTempBase();
+    // After the temp base is final, so the sweep reads the TMPDIR the run uses.
+    const swept = await startOfRunSweep(currentEnvironment());
+    for (const [name, value] of Object.entries(swept)) writeEnv(name, value);
+    const env = currentEnvironment();
     const payload = applyShardPlan(invocation.argv);
     if (typeof payload === "number") process.exit(payload);
-    const outcome = await superviseTestRun(
-      payload,
-      invocation.profile,
-      invocation.adapter
-    );
+    const release = await admitTestRun(payload, env, process.cwd());
+    if (typeof release === "number") process.exit(release);
+    const outcome = await runTestPayload(payload, env).finally(release);
     if (outcome.signal !== null) {
       process.removeAllListeners(outcome.signal);
       process.kill(process.pid, outcome.signal);
@@ -150,7 +189,7 @@ async function main(): Promise<void> {
     process.exit(outcome.code ?? OPERATIONAL_FAILURE_EXIT);
   } catch (error) {
     process.stderr.write(
-      `lisa-test-run failed: ${error instanceof Error ? error.message : String(error)}\n`
+      `lisa-test-run failed: ${missingToolMessage(error) ?? (error instanceof Error ? error.message : String(error))}\n`
     );
     process.exit(OPERATIONAL_FAILURE_EXIT);
   }

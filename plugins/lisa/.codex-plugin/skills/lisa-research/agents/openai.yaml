@@ -1,4 +1,4 @@
 display_name: "Research"
-short_description: "Research a problem space and…"
+short_description: "Research a problem and create a…"
 default_prompt:
-  - "Use $lisa-research: Research a problem space and…."
+  - "Use $lisa-research: Research a problem and create a…."

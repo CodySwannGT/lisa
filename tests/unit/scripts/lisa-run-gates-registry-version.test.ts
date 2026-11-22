@@ -1,5 +1,9 @@
 /**
- * The evidence runner names the Lisa registry version in every shipped layout.
+ * The gate runner names the Lisa registry version in every shipped layout.
+ *
+ * Read from the identity line the runner prints before any gate runs. The
+ * evidence envelope used to repeat it in `contract.registry_version`; that copy
+ * was removed when the envelope was slimmed (CodySwannGT/lisa#4794).
  *
  * The source template lives inside Lisa, while the managed copy runs from a
  * host project's `scripts/` directory. A location-relative manifest lookup can
@@ -11,7 +15,6 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -21,6 +24,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { SCRIPT } from "./lisa-run-gates-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const PROJECT = process.cwd();
 const SCRIPTS = path.resolve("all/copy-overwrite/scripts");
@@ -38,19 +42,16 @@ afterEach(() => {
   }
 });
 
-/** Run one layout and return the registry version it recorded. */
+/** Run one layout and return the registry version its identity line names. */
 function recordedVersion(script: string, root: string): string | null {
-  const evidence = path.join(root, "evidence.json");
-  boundedSpawnSync({
+  const child = boundedSpawnSync({
     label: "lisa-run-gates registry version",
     command: process.execPath,
-    args: [script, "--moment=commit", `--evidence=${evidence}`],
+    args: [script, "--moment=commit"],
     cwd: root,
   });
-  const envelope = JSON.parse(readFileSync(evidence, "utf8")) as {
-    contract: { registry_version: string | null };
-  };
-  return envelope.contract.registry_version;
+  const match = /package=@codyswann\/lisa@(\S+)/u.exec(String(child.stdout));
+  return match?.[1] ?? null;
 }
 
 /** A throwaway caller project with a deliberately misleading host version. */
@@ -76,7 +77,7 @@ describe("gate evidence registry version", () => {
     copySync(SCRIPTS, emittedScripts);
     const packageScope = path.join(root, "node_modules", "@codyswann");
     mkdirSync(packageScope, { recursive: true });
-    symlinkSync(PROJECT, path.join(packageScope, "lisa"), "dir");
+    createSymlink(PROJECT, path.join(packageScope, "lisa"), "dir");
 
     expect(
       recordedVersion(path.join(emittedScripts, "lisa-run-gates.mjs"), root)

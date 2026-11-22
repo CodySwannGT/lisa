@@ -8,7 +8,6 @@
  * By using comment tags as section markers, Lisa can govern critical configs (CI/CD scripts,
  * required dependencies) while projects retain freedom to customize other areas.
  */
-/* eslint-disable max-lines -- Large complex strategy with many helper methods */
 import * as fse from "fs-extra";
 import { copyFile } from "node:fs/promises";
 import type { FileOperationResult } from "../core/config.js";
@@ -16,7 +15,18 @@ import type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
 import { ensureParentDir } from "../utils/file-operations.js";
 import { readJson, writeJson } from "../utils/json-utils.js";
 import { JsonMergeError } from "../errors/index.js";
-import type { BehaviorType, TagSection } from "./tagged-merge-types.js";
+import { deduplicateArrays } from "./deduplicate-arrays.js";
+import {
+  findAndExtractDestinationSection,
+  getDestinationObject,
+  hasNestedTags,
+  isOpeningTag,
+  isPlainObject,
+  isTagKey,
+  parseOpeningTag,
+  parseTaggedSections,
+} from "./tagged-merge-sections.js";
+import type { TagSection } from "./tagged-merge-types.js";
 
 /**
  * Implements tagged merge strategy for JSON files with comment-based section control
@@ -48,19 +58,13 @@ export class TaggedMergeStrategy implements ICopyStrategy {
   }
 
   /**
-   * Regex pattern for parsing opening tags
-   * @remarks Captures behavior (force|defaults|merge) and category name for routing to appropriate merge logic
-   */
-  private readonly tagPattern = /^\/\/lisa-(force|defaults|merge)-(.+)$/;
-
-  /**
    * Apply tagged merge strategy to a JSON file
    * @param sourcePath - Absolute path to Lisa template JSON file with tags
    * @param destPath - Absolute path to project JSON file to merge into
    * @param relativePath - Project-relative path for logging
    * @param context - Strategy context with config and backup functions
    * @returns Operation result indicating copied, skipped, or merged action
-   * @throws JsonMergeError if source or destination JSON cannot be parsed
+   * @throws {JsonMergeError} if source or destination JSON cannot be parsed
    * @remarks
    * When destination doesn't exist, copies source directly. When destination exists,
    * performs tagged merge preserving project customizations outside tagged sections.
@@ -135,14 +139,14 @@ export class TaggedMergeStrategy implements ICopyStrategy {
     source: Record<string, unknown>,
     dest: Record<string, unknown>
   ): Record<string, unknown> {
-    const sourceTags = this.parseTaggedSections(source);
+    const sourceTags = parseTaggedSections(source);
     const result: Record<string, unknown> = {};
     const processed = new Set<string>();
     const processedTags = new Set<string>();
 
     // First, process top-level tags
     for (const key in source) {
-      if (this.isOpeningTag(key)) {
+      if (isOpeningTag(key)) {
         this.processTaggedSection(
           key,
           source,
@@ -157,7 +161,7 @@ export class TaggedMergeStrategy implements ICopyStrategy {
 
     // Second, process unprocessed objects that might have nested tags
     for (const key in source) {
-      if (!processed.has(key) && !this.isTagKey(key)) {
+      if (!processed.has(key) && !isTagKey(key)) {
         this.processNestedTaggedObject(key, source, dest, result, processed);
       }
     }
@@ -184,54 +188,20 @@ export class TaggedMergeStrategy implements ICopyStrategy {
   ): void {
     const sourceValue = source[key];
 
-    if (!this.isPlainObject(sourceValue)) {
+    if (!isPlainObject(sourceValue)) {
       return;
     }
 
-    const sourceObj = sourceValue as Record<string, unknown>;
+    const sourceObj = sourceValue;
 
-    if (!this.hasNestedTags(sourceObj)) {
+    if (!hasNestedTags(sourceObj)) {
       return;
     }
 
-    const destObj = this.getDestinationObject(dest, key);
+    const destObj = getDestinationObject(dest, key);
     const mergedObj = this.mergeObjectWithNestedTags(sourceObj, destObj);
     result[key] = mergedObj;
     processed.add(key);
-  }
-
-  /**
-   * Check if a value is a plain object (not array, null, or primitive)
-   * @param value - Value to check
-   * @returns True if value is a plain object
-   */
-  private isPlainObject(value: unknown): boolean {
-    return typeof value === "object" && value !== null && !Array.isArray(value);
-  }
-
-  /**
-   * Check if an object contains any nested tags
-   * @param obj - Object to check
-   * @returns True if object has opening tags as properties
-   */
-  private hasNestedTags(obj: Record<string, unknown>): boolean {
-    return Object.keys(obj).some(k => this.isOpeningTag(k));
-  }
-
-  /**
-   * Get the destination object for a key, or empty object if not found
-   * @param dest - Destination object
-   * @param key - Key to look for
-   * @returns Destination object or empty object
-   */
-  private getDestinationObject(
-    dest: Record<string, unknown>,
-    key: string
-  ): Record<string, unknown> {
-    const destValue = dest[key];
-    return this.isPlainObject(destValue)
-      ? (destValue as Record<string, unknown>)
-      : {};
   }
 
   /**
@@ -244,14 +214,14 @@ export class TaggedMergeStrategy implements ICopyStrategy {
     source: Record<string, unknown>,
     dest: Record<string, unknown>
   ): Record<string, unknown> {
-    const sourceTags = this.parseTaggedSections(source);
+    const sourceTags = parseTaggedSections(source);
     const result: Record<string, unknown> = {};
     const processed = new Set<string>();
     const processedTags = new Set<string>();
 
     // Process tagged sections within this object
     for (const key in source) {
-      if (this.isOpeningTag(key)) {
+      if (isOpeningTag(key)) {
         this.processTaggedSection(
           key,
           source,
@@ -268,11 +238,7 @@ export class TaggedMergeStrategy implements ICopyStrategy {
 
     // Add remaining tags from source
     for (const key in source) {
-      if (
-        this.isTagKey(key) &&
-        !processedTags.has(key) &&
-        !processed.has(key)
-      ) {
+      if (isTagKey(key) && !processedTags.has(key) && !processed.has(key)) {
         result[key] = source[key];
       }
     }
@@ -298,11 +264,7 @@ export class TaggedMergeStrategy implements ICopyStrategy {
     processedTags: Set<string>
   ): void {
     for (const key in dest) {
-      if (
-        !processed.has(key) &&
-        !processedTags.has(key) &&
-        !this.isTagKey(key)
-      ) {
+      if (!processed.has(key) && !processedTags.has(key) && !isTagKey(key)) {
         result[key] = dest[key];
       }
     }
@@ -325,11 +287,7 @@ export class TaggedMergeStrategy implements ICopyStrategy {
     processed: Set<string>
   ): void {
     for (const key in source) {
-      if (
-        this.isTagKey(key) &&
-        !processedTags.has(key) &&
-        !processed.has(key)
-      ) {
+      if (isTagKey(key) && !processedTags.has(key) && !processed.has(key)) {
         result[key] = source[key];
       }
     }
@@ -359,11 +317,10 @@ export class TaggedMergeStrategy implements ICopyStrategy {
     processed: Set<string>,
     processedTags: Set<string>
   ): void {
-    const tagMatch = this.tagPattern.exec(key);
-    if (!tagMatch || !tagMatch[2]) return;
+    const tag = parseOpeningTag(key);
+    if (tag === undefined) return;
 
-    const behavior = tagMatch[1] as BehaviorType;
-    const category = tagMatch[2] as string;
+    const { behavior, category } = tag;
     const section = sourceTags.get(key);
     if (!section) return;
 
@@ -386,38 +343,6 @@ export class TaggedMergeStrategy implements ICopyStrategy {
     }
     processed.add(key);
     processed.add(section.closeKey);
-  }
-
-  /**
-   * Parse JSON object to extract all tagged sections with their boundaries
-   * @param obj - JSON object to parse for tag markers
-   * @returns Map of opening tag keys to section info (behavior, category, content keys, close key)
-   * @remarks
-   * Relies on JSON key ordering being preserved (standard in modern JS engines).
-   * Skips sections without matching closing tags to handle malformed input gracefully.
-   */
-  private parseTaggedSections(
-    obj: Record<string, unknown>
-  ): Map<string, TagSection> {
-    const sections = new Map<string, TagSection>();
-    const keys: string[] = Object.keys(obj);
-
-    keys.forEach((key: string, i: number) => {
-      if (!this.isOpeningTag(key)) return;
-      const match = this.tagPattern.exec(key);
-      if (!match || !match[2]) return;
-
-      const behavior = match[1] as BehaviorType;
-      const category = match[2] as string;
-      const closeKey = `//end-lisa-${behavior}-${category}`;
-      const closeIndex = keys.indexOf(closeKey);
-      if (closeIndex === -1) return;
-
-      const contentKeys = keys.slice(i + 1, closeIndex) as string[];
-      sections.set(key, { behavior, category, contentKeys, closeKey });
-    });
-
-    return sections;
   }
 
   /**
@@ -483,7 +408,7 @@ export class TaggedMergeStrategy implements ICopyStrategy {
     section: TagSection,
     category: string
   ): void {
-    const destSection = this.findAndExtractDestinationSection(
+    const destSection = findAndExtractDestinationSection(
       dest,
       section,
       category
@@ -498,34 +423,6 @@ export class TaggedMergeStrategy implements ICopyStrategy {
     } else {
       this.addSourceContent(result, source, section.contentKeys);
     }
-  }
-
-  /**
-   * Locate and extract the matching tagged section from destination JSON
-   * @param dest - Project JSON to search for matching tags
-   * @param section - Source section info containing behavior type
-   * @param category - Tag category name to match
-   * @returns Extracted section info if found, undefined if project lacks the section
-   */
-  private findAndExtractDestinationSection(
-    dest: Record<string, unknown>,
-    section: TagSection,
-    category: string
-  ): TagSection | undefined {
-    const destSectionStart = this.findSectionStart(
-      dest,
-      section.behavior,
-      category
-    );
-
-    return destSectionStart
-      ? this.extractSectionContent(
-          dest,
-          destSectionStart as string,
-          section.behavior,
-          category
-        )
-      : undefined;
   }
 
   /**
@@ -571,7 +468,7 @@ export class TaggedMergeStrategy implements ICopyStrategy {
       const destValue = dest[key];
 
       if (Array.isArray(sourceValue) && Array.isArray(destValue)) {
-        result[key] = this.deduplicateArrays(sourceValue, destValue);
+        result[key] = deduplicateArrays(sourceValue, destValue);
       } else if (sourceValue !== undefined) {
         result[key] = sourceValue;
       } else if (destValue !== undefined) {
@@ -581,125 +478,4 @@ export class TaggedMergeStrategy implements ICopyStrategy {
 
     result[section.closeKey] = source[section.closeKey];
   }
-
-  /**
-   * Combine two arrays, removing duplicates while preserving order
-   * @param sourceArray - Lisa template array (items added first)
-   * @param destArray - Project array (unique items added after)
-   * @returns Combined array with source items first, then project's unique additions
-   * @remarks
-   * Uses JSON.stringify for value equality, so objects/arrays with same content
-   * are considered duplicates. This allows deduplicating complex items like
-   * package names with version specifiers.
-   */
-  private deduplicateArrays(
-    sourceArray: unknown[],
-    destArray: unknown[]
-  ): unknown[] {
-    const seen = new Set<string>();
-    const result: unknown[] = [];
-
-    for (const item of sourceArray) {
-      const key = JSON.stringify(item);
-      if (!seen.has(key)) {
-        seen.add(key);
-        result.push(item);
-      }
-    }
-
-    for (const item of destArray) {
-      const key = JSON.stringify(item);
-      if (!seen.has(key)) {
-        seen.add(key);
-        result.push(item);
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Test if a key is an opening tag (matches `//lisa-<behavior>-<category>` format)
-   * @param key - JSON key to test
-   * @returns True if key matches the opening tag pattern
-   */
-  private isOpeningTag(key: string): boolean {
-    return this.tagPattern.test(key);
-  }
-
-  /**
-   * Test if a key is any tag-like comment key (starts with `//`)
-   * @param key - JSON key to test
-   * @returns True if key is a JSON comment (convention used for documentation/tags)
-   */
-  private isTagKey(key: string): boolean {
-    return key.startsWith("//");
-  }
-
-  /**
-   * Find opening tag key for a given behavior and category in an object
-   * @param obj - Object to search for the tag
-   * @param behavior - Tag behavior type (force, defaults, merge)
-   * @param category - Tag category name
-   * @returns Tag key string if found, undefined if object lacks this tag
-   */
-  private findSectionStart(
-    obj: Record<string, unknown>,
-    behavior: BehaviorType,
-    category: string
-  ): string | undefined {
-    const tagKey = `//lisa-${behavior}-${category}`;
-    return tagKey in obj ? tagKey : undefined;
-  }
-
-  /**
-   * Extract section boundaries and content keys between opening and closing tags
-   * @param obj - Object containing the tagged section
-   * @param startKey - Opening tag key that marks section start
-   * @param behavior - Tag behavior type (for constructing close key)
-   * @param category - Tag category name (for constructing close key)
-   * @returns Complete section info including content keys between tags
-   */
-  private extractSectionContent(
-    obj: Record<string, unknown>,
-    startKey: string,
-    behavior: BehaviorType,
-    category: string
-  ): TagSection {
-    const closeKey = `//end-lisa-${behavior}-${category}`;
-    const keys: string[] = Object.keys(obj);
-    const startIndex = keys.indexOf(startKey);
-    const closeIndex = keys.indexOf(closeKey);
-    const contentKeys = this.extractContentKeysFromRange(
-      startIndex,
-      closeIndex,
-      keys
-    );
-
-    return {
-      behavior,
-      category,
-      contentKeys,
-      closeKey,
-    };
-  }
-
-  /**
-   * Extract keys between opening and closing tag indices
-   * @param startIndex - Index of opening tag in keys array
-   * @param closeIndex - Index of closing tag in keys array
-   * @param keys - Ordered array of all keys in the object
-   * @returns Array of content keys between the tags, empty if indices invalid
-   */
-  private extractContentKeysFromRange(
-    startIndex: number,
-    closeIndex: number,
-    keys: string[]
-  ): string[] {
-    if (startIndex === -1 || closeIndex === -1 || startIndex >= closeIndex) {
-      return [];
-    }
-    return keys.slice(startIndex + 1, closeIndex) as string[];
-  }
 }
-/* eslint-enable max-lines -- End of TaggedMergeStrategy */

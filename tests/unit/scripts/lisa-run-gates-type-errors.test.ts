@@ -24,31 +24,20 @@ import {
 } from "../../../all/copy-overwrite/scripts/lisa-run-gates.mjs";
 import { COMMIT, RUNNER, sink } from "./lisa-run-gates-fixtures.js";
 
-/**
- * Just the slice of a gate run these cases read.
- *
- * Deliberately NOT the fixtures' `GateRun`. `runGates` comes from an untyped
- * `.mjs`, so its inferred shape and that exported alias are two structurally
- * different types and assigning one to the other is a real TS2322 — which is
- * why every sibling suite doing it sits in `typecheck-quarantine.json`. That
- * list only shrinks, so this declares what it actually uses instead of
- * borrowing a name that does not fit.
- */
-type GateResults = {
-  results: { id: string; state: string; detail: string }[];
-};
-
 const TYPECHECK = "type-correctness";
 const TASK = "typecheck";
 
-/** The transcript from #3946, verbatim. */
-const TYPE_ERRORS = `type-correctness (tests): 371 file(s) with 1568 error(s); 370 quarantined.
+/**
+ * A failing run of the test type-check wrapper, as it prints — the shape of
+ * the transcript #3946 misread, task-runner exit lines included.
+ */
+const TYPE_ERRORS = `type-correctness (tests): 1 file(s) with 1 error(s).
 
-❌ 1 file(s) outside the quarantine have type errors:
+❌ 1 file(s) have type errors:
    tests/unit/config/coverage-scratch-isolation.test.ts (1)
 
-Fix them. Do NOT add them to typecheck-quarantine.json — that list
-only shrinks, and the threshold-ratchet flags additions to it.
+Fix each at its cause. There is no exemption list: every file in the
+test program is type-checked, and one error fails it.
 error: script "typecheck:tests" exited with code 1
 error: script "typecheck" exited with code 1`;
 
@@ -75,7 +64,7 @@ function runWith(
   });
   return {
     transcript: lines.join("\n"),
-    entry: (result as GateResults).results.find(row => row.id === TYPECHECK),
+    entry: result.results.find(row => row.id === TYPECHECK),
   };
 }
 

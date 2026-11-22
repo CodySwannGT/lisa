@@ -1,6 +1,9 @@
 import * as fs from "fs-extra";
 import path from "node:path";
-import { env } from "node:process";
+import {
+  currentEnvironment,
+  readEnv,
+} from "../../src/utils/process-environment.js";
 import { GIT_BIN } from "../support/git-executable.js";
 
 import { boundedExecFileSync, boundedSpawnSync } from "./io-latency-budget.js";
@@ -77,8 +80,8 @@ export async function createRailsHookFixture(): Promise<RailsHookFixture> {
     project,
     bin,
     journal,
-    env: cleanGitEnv(env, {
-      PATH: `${bin}${path.delimiter}${env.PATH ?? ""}`,
+    env: cleanGitEnv(currentEnvironment(), {
+      PATH: `${bin}${path.delimiter}${readEnv("PATH") ?? ""}`,
       LISA_TEST_BUNDLE_JOURNAL: journal,
       CLAUDE_PLUGIN_ROOT: path.join(ROOT, BASE_PLUGIN),
       PLUGIN_ROOT: path.join(ROOT, BASE_PLUGIN),

@@ -37,17 +37,19 @@ export const REPO_ROOT = path.resolve(HARNESS_DIR, "..", "..", "..");
 const REQUIRED_TOOLS = ["cat", "grep", "dirname", "node"];
 
 /** What one script run produced. */
-export interface RunResult {
+interface RunResult {
   /** The script's exit status. */
   readonly status: number;
   /** Everything it wrote to stderr. */
   readonly stderr: string;
+  /** Everything it wrote to stdout — where a Claude hook's JSON goes. */
+  readonly stdout: string;
   /** The trace of what it invoked, one line per invocation. */
   readonly trace: string;
 }
 
 /** Environment overrides one case needs to change. */
-export interface RunOptions {
+interface RunOptions {
   /** Replaces $PATH, which is how jq is made absent. */
   readonly path?: string;
   /** Exit status the declared-task stub returns. */
@@ -218,6 +220,7 @@ async function runScript(
   return {
     status: result.status ?? -1,
     stderr: result.stderr ?? "",
+    stdout: result.stdout ?? "",
     trace: await fs.readFile(layout.traceFile, "utf8"),
   };
 }

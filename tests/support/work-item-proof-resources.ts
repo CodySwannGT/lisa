@@ -1,5 +1,5 @@
 /** Native provider resources staged independently from captured proof payloads. */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { git, type Fixture } from "./work-item-cli.js";
 import { installStatefulProvider } from "./work-item-stateful-provider.js";
@@ -108,6 +108,28 @@ function nativeProofIssue(facts: ProofFacts) {
 }
 
 /**
+ * Shadow any real `aws` with the argv-table fake, so no case reaches AWS.
+ * @param fixture - Owned disposable repository whose fake-bin leads PATH.
+ */
+function installFakeAws(fixture: Fixture): void {
+  const executable = path.join(fixture.root, "fake-bin/aws");
+  copyFileSync(
+    path.join(process.cwd(), "tests/support/work-item-fake-aws.mjs"),
+    executable
+  );
+  chmodSync(executable, 0o755);
+  fixture.env.FAKE_AWS_API_FILE = path.join(fixture.root, "aws-api.json");
+  fixture.env.FAKE_AWS_LOG = path.join(fixture.root, "aws.log");
+  fixture.env.FAKE_AWS_UNHANDLED_FILE = path.join(
+    fixture.root,
+    "aws-unhandled.jsonl"
+  );
+  writeFileSync(fixture.env.FAKE_AWS_API_FILE, "{}");
+  writeFileSync(fixture.env.FAKE_AWS_LOG, "");
+  writeFileSync(fixture.env.FAKE_AWS_UNHANDLED_FILE, "");
+}
+
+/**
  * Install explicit native resources before creating captured attachment bytes.
  * @param fixture - Owned disposable repository.
  * @param facts - Actual fixture Git and provider identities.
@@ -121,6 +143,7 @@ export function prepareProofProvider(
   const REPO = `repos/${repository}`;
   const state = nativeProofIssue(facts);
   installStatefulProvider(fixture, JSON.stringify(state));
+  installFakeAws(fixture);
   fixture.env.FAKE_GH_LOG = path.join(fixture.root, "gh.log");
   fixture.env.FAKE_GH_REPOSITORY = repository;
   fixture.env.FAKE_GH_API_FILE = path.join(fixture.root, "api.json");

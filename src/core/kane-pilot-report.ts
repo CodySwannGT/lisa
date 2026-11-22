@@ -7,7 +7,7 @@ import type {
 } from "./kane-pilot-types.js";
 
 /** Default thresholds from Lisa's approved Kane integration plan. */
-export const DEFAULT_KANE_PILOT_THRESHOLDS = Object.freeze({
+const DEFAULT_KANE_PILOT_THRESHOLDS = Object.freeze({
   minimumRuns: 50,
   minimumDays: 30,
   evidenceCapturePercent: 90,

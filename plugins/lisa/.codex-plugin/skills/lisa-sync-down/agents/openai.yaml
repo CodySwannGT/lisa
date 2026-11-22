@@ -1,4 +1,4 @@
 display_name: "Sync Down"
-short_description: "run a back-sync of an…"
+short_description: "Back-sync an environment branch…"
 default_prompt:
-  - "Use $lisa-sync-down: run a back-sync of an…."
+  - "Use $lisa-sync-down: Back-sync an environment branch…."

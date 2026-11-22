@@ -1,36 +1,36 @@
 ---
 name: lisa-agent-design-best-practices
-description: Best practices for designing Claude Code agent files (.claude/agents/*.md). This skill should be used when writing or reviewing agent markdown files to ensure proper design with focused domains, correct tool access, reusable definitions, and separation of capabilities from lifecycle. Combines Anthropic's official guidance with battle-tested patterns from agent team usage.
+description: "How to design Claude Code agent files (.claude/agents/*.md): focused domains, the right tools, reusable definitions, and capabilities kept separate from lifecycle. Use when writing or reviewing agent files."
 ---
 
 # Agent Design Best Practices
 
 ## Overview
 
-This skill defines best practices for designing Claude Code agent files (`.claude/agents/*.md`). Agent files define reusable roles that can be spawned as subagents or teammates. The core principle is that **agent files define capabilities, not lifecycle** -- the team lead's spawn prompt controls when and how the agent runs.
+This skill defines best practices for designing Claude Code agent files (`.claude/agents/*.md`). Agent files define reusable roles that can be spawned as subagents. The core principle is that **agent files define capabilities, not lifecycle** -- the caller's spawn prompt controls when and how the agent runs.
 
 ## Principles
 
 ### 1. Define Capabilities, Not Lifecycle
 
-Agent files describe *what* an agent can do. The spawn prompt from the team lead controls *when* it runs and *what to focus on*.
+Agent files describe *what* an agent can do. The spawn prompt from the caller controls *when* it runs and *what to focus on*.
 
 ```markdown
 <!-- Wrong: Hardcodes workflow phase and interaction pattern -->
 # Security Planner Agent
 
 You are a security specialist in a plan-create Agent Team.
-Given a Research Brief from the team lead, identify security
+Given a Research Brief from the caller, identify security
 considerations for the planned changes.
 
 ## Output Format
 
-Send your sub-plan to the team lead via `SendMessage` with this structure:
+Send your sub-plan to the caller via `SendMessage` with this structure:
 ...
 ```
 
 ```markdown
-<!-- Correct: Defines domain expertise, team lead controls usage -->
+<!-- Correct: Defines domain expertise, caller controls usage -->
 # Security Specialist Agent
 
 You are a security specialist who identifies vulnerabilities,
@@ -43,11 +43,11 @@ evaluates threats, and recommends mitigations for code changes.
 ...
 ```
 
-The wrong version is coupled to one workflow ("plan-create Agent Team", "Given a Research Brief", "Send via SendMessage"). The correct version works in any context -- planning, review, ad-hoc analysis -- because the team lead's spawn prompt provides the specific instructions.
+The wrong version is coupled to one workflow ("plan-create Agent Team", "Given a Research Brief", "Send via SendMessage"). The correct version works in any context -- planning, review, ad-hoc analysis -- because the caller's spawn prompt provides the specific instructions.
 
 ### 2. One Agent Per Domain, Not Per Phase
 
-Prefer a single agent that covers a domain over multiple agents split by workflow phase. The team lead specializes the agent per phase via the spawn prompt.
+Prefer a single agent that covers a domain over multiple agents split by workflow phase. The caller specializes the agent per phase via the spawn prompt.
 
 | Wrong | Right |
 |-------|-------|
@@ -121,15 +121,15 @@ a `tools:` line.
 
 ### 6. No Hardcoded Interaction Patterns
 
-Do not prescribe how the agent communicates or what input format it expects. The team lead's spawn prompt handles interaction patterns.
+Do not prescribe how the agent communicates or what input format it expects. The caller's spawn prompt handles interaction patterns.
 
 ```markdown
 <!-- Wrong: Hardcodes communication protocol -->
 ## Input
-You receive a **Research Brief** from the team lead containing...
+You receive a **Research Brief** from the caller containing...
 
 ## Output Format
-Send your sub-plan to the team lead via `SendMessage` with this structure:
+Send your sub-plan to the caller via `SendMessage` with this structure:
 ```
 
 ```markdown
@@ -142,19 +142,19 @@ Structure your findings as:
 ...
 ```
 
-The output format itself is fine to define -- it provides structure. But how the agent receives input and delivers output should be left to the team lead.
+The output format itself is fine to define -- it provides structure. But how the agent receives input and delivers output should be left to the caller.
 
 ### 7. Context Window Isolation
 
-Each teammate has its own context window. Teammates do not share context and cannot see what other teammates have done. Account for this in agent design:
+Each subagent has its own context window. Subagents do not share context and cannot see what other subagents have done. Account for this in agent design:
 
 - Do not assume the agent has seen previous analysis from other agents
 - Include enough domain knowledge in the agent file for independent operation
-- The team lead bridges context between agents via spawn prompts and messages
+- The caller bridges context between agents via spawn prompts and messages
 
-### 8. File Ownership in Teams
+### 8. File Ownership in Parallel Work
 
-When agents work in teams, each teammate should own distinct files or directories. Two teammates editing the same file leads to conflicts and lost work.
+When agents work in parallel, each should own distinct files or directories. Two agents editing the same file leads to conflicts and lost work.
 
 Design agent domains so their file ownership naturally separates:
 
@@ -207,7 +207,7 @@ The markdown body becomes the agent's system prompt. Structure it as:
 # Post-Implementation Security Reviewer
 ...
 
-<!-- Correct: One agent, team lead controls timing -->
+<!-- Correct: One agent, caller controls timing -->
 # Security Specialist
 ...
 ```

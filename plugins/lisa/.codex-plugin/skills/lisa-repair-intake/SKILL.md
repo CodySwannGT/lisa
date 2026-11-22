@@ -1,9 +1,9 @@
 ---
 name: lisa-repair-intake
-description: "Vendor-agnostic repair scanner…"
+description: "Find and fix work stuck in the…"
 allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit"]
 ---
-Vendor-agnostic repair scanner — the recovery counterpart to lisa-intake. Finds work that got stuck or was left half-closed across the same queues lisa-intake serves (Notion / Confluence / Linear / GitHub PRDs; JIRA / GitHub / Linear build queues): items left in `blocked`, work stalled in an in-progress role (build `claimed`, PRD `in_review`), terminal-labeled items still natively open, and rollups whose children are all terminal. Repairs every actionable candidate up to `max_candidates`: resumes stalled work in place (diagnosing a stalled build's PR/deploy state first — merged PRs get the missed env transition, behind-base PRs are re-synced, unmergeable PRs or failed deploys get a build-ready fix ticket + `blocked`), re-validates blocked PRDs and build items whose blockers cleared, performs terminal native closure, and reconciles parent rollups to their derived state. Idempotent and loop-protected; never mutates `draft`/`verified` or `ready` leaves. A /schedule cron target alongside lisa-intake.
+Find and fix work stuck in the intake queues: blocked items whose blockers cleared, stalled builds and reviews, items closed in label but open in the tracker, and parents whose children are all done. Scheduled alongside lisa-intake.
 
 
 # Repair Intake: $ARGUMENTS
@@ -135,19 +135,9 @@ The only legitimate reasons to stop early:
 - No stuck/close-out candidates, or none actionable this cycle. Exit cleanly with the idle-case
   summary.
 
-## Orchestration: thin dispatcher (no team of its own)
+## How a cycle runs
 
-Repair-intake follows the same orchestration contract as `lisa-intake`: it creates NO agent team and spawns NO named teammates. It is a bounded scanner/dispatcher — resolve the queue, evaluate staleness, pick the actionable candidates, and run each repair in the current session.
-
-The reasoning is the same as Intake's: a repair that resumes stalled build work may culminate in a team-first lifecycle skill (`lisa-implement`, `lisa-plan`), and those skills can only create their agent team from the lead session — a spawned teammate cannot add named teammates (Claude teams are flat), so pushing the repair into a subagent strands the lifecycle skill without its team and collapses it into a single inline worker. Therefore:
-
-- **Scanning, staleness evaluation, and per-item repairs run inline in this session** (Bash / MCP / vendor skills via the Skill tool — `lisa-<source>-to-tracker` for a PRD, the `<tracker>-agent` workflow's gate skills for a build item).
-- **Any repair that dispatches a lifecycle flow does so via the Skill tool in this same session — never an `Agent` spawn** — so the lifecycle skill's team-first preamble fires exactly as a direct invocation would.
-- The only permissible `Agent` use is a bounded **anonymous** helper (`Agent` with `name` omitted) for scan-side legwork whose result returns directly to this session.
-
-Codex: the same contract applies — run the scan inline in the root session and invoke any lifecycle skill there so it can `multi_agent_v1.spawn_agent` its own team; do not `spawn_agent` the lifecycle flow itself. Other runtimes: apply the same rule through their equivalent delegation surface; if the runtime has no team/subagent tooling at all, the lifecycle skill's own no-team fallback handles it.
-
-If a teammate inside an existing team somehow invokes this skill (it is a session entry point, not a nested flow), do not scan or repair from there: return a structured `delegation-request` to the team lead asking it to run the repair cycle in the lead session, and surface the misrouting.
+Repair-intake is a bounded scanner/dispatcher, like `lisa-intake`: resolve the queue, evaluate staleness, pick the actionable candidates, and run each repair in this session (Bash / MCP / vendor skills — `lisa-<source>-to-tracker` for a PRD, the `<tracker>-agent` workflow's gate skills for a build item). A repair that dispatches a lifecycle flow invokes its skill in this session. A subagent is fine for scan-side legwork whose result comes straight back.
 
 ## Source dispatch
 
@@ -396,10 +386,7 @@ If the PR is healthy in-flight and no blocker is found, the work simply died mid
 the vendor build-intake runs**, skipping the claim transition (the item is already `claimed`):
 
 1. Dispatch the item to the vendor agent — `lisa-jira-agent` / `lisa-github-agent` /
-   `lisa-linear-agent` (matching the queue's tracker) — with the item ref. If repair-intake is
-   running as a teammate rather than the lead/root agent, return a structured `delegation-request`
-   to the lead instead of spawning that named peer yourself; only the lead can add named teammates
-   in Claude's flat roster. This resumes the work in place, preserving its existing branch/PR and
+   `lisa-linear-agent` (matching the queue's tracker) — with the item ref. This resumes the work in place, preserving its existing branch/PR and
    prior comments.
 2. **On agent success**, apply the scanner's post-agent transition yourself: `claimed → done`,
    where `done` is **env-resolved** exactly as `lisa:<tracker>-build-intake` resolves it (per
@@ -410,8 +397,12 @@ the vendor build-intake runs**, skipping the claim transition (the item is alrea
    standing in for the scanner that never got to finish it.
 3. **On a surfaced blocker** (agent reports it cannot proceed), leave/move the item to `blocked`
    with a `[lisa-repair-intake]` note (see Loop prevention). When the surfaced blocker is something
-   **only a human can supply** (credentials, access/permissions, a product or scoping decision), the
-   item also carries the `human_needed` marker — the vendor agent's pre-flight gate applies it; if
+   **only a human can supply** (credentials or access/permissions the agent cannot obtain — an
+   interactive login, a secret store it cannot reach, spending money, a legal signature, an account
+   only a person holds — or a hold the operator explicitly asked for), the item also carries the
+   `human_needed` marker. A product or scoping decision is not on that list: the agent makes it from
+   the evidence, records the reasoning on the item, and continues (under `humanGate.mode: "strict"`
+   it is human-needed as before). The vendor agent's pre-flight gate applies the marker; if
    repair-intake makes the block transition itself for such a reason, it adds the marker too. (A
    block that another tracked ticket or retry will clear is *not* human-needed — that is the
    auto-recoverable fix-ticket path above.)
@@ -696,11 +687,15 @@ LISA_BLOCKER_NODE
    re-formed every cycle and a human had to break the loop. Reading the relation back is what makes
    "I removed the link" distinguishable from "I meant to".
 
-   **An `escalate` verdict holds the item and reports it — never dissolve on it.** The sharp case is
+   **An `escalate` verdict never dissolves the edge as satisfied.** The sharp case is
    a blocker closed `NOT PLANNED`: the work depended on will never be delivered, so dissolving reads
-   as "unblocked" when nothing was built, and holding silently hides a decision only a human can
-   make. Treating closure as satisfaction is the same reason-blind wrong write as
-   CodySwannGT/lisa#3479. A single escalation among otherwise-dissolving edges holds the item.
+   as "unblocked" when nothing was built. Treating closure as satisfaction is the same reason-blind
+   wrong write as CodySwannGT/lisa#3479. Under the default `humanGate.mode: "access-only"` the
+   scoping call is the agent's: re-scope the item to build without the dependency, drop the edge
+   because the item no longer needs it, or close the item as Not planned — and record a
+   `Decision:` line saying which and why. Under `"strict"`, hold and report it: the call is a
+   person's, and holding silently would hide it. Either way, a single escalation among
+   otherwise-dissolving edges holds the item until that call is made and recorded.
 
    **On Linear, dissolve with a relation DELETE.** Do not "update" an edge:
    `issueRelationCreate` CONVERTS an existing relation rather than adding one
@@ -1088,7 +1083,7 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    `intake_mode=build`, every non-PRD issue is normalized as a build ticket. If `intake_mode=both`,
    classify PRDs first and normalize all remaining issues as build tickets.
 2a. **Ask whether a person is holding it, before anything else.** Call
-   `planLabelNormalization({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, lifecycleLabels, readyLabel })` from
+   `planLabelNormalization({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, humanGateMode, lifecycleLabels, readyLabel })` from
    `scripts/intake-blocker-reprobe.mjs` for every candidate and apply exactly the verdict it
    returns. Do **not** re-implement the test here and do **not** decide held-ness from labels
    alone: the vendor writers stamp the `[lisa-human-gate]` marker into the body of a deliberate
@@ -1117,8 +1112,8 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    should never have to comment to release one.
 
    Enumerate open items carrying a `[lisa-human-gate]` marker in the body and, for each, call
-   `planHumanGateLift({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels })`
-   from `scripts/human-gate-lift.mjs`, with `humanOnly` read from `humanGate.humanOnly` in config.
+   `planHumanGateLift({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, humanGateMode, readyLabel, lifecycleLabels })`
+   from `scripts/human-gate-lift.mjs`, with `humanOnly` read from `humanGate.humanOnly` and `humanGateMode` from `humanGate.mode` in config (one call: `node scripts/human-gate-act.mjs policy` prints both; a reader that omits the mode judges under access-only, so a strict project must pass it).
    The planner lifts only when it is sure: a topic-only slug, no act on any hold-related line, and
    no secret or act token anywhere in the hold text (`ready-role-filing`, "Existing invalid holds
    are lifted"). Any doubt keeps the hold. Apply exactly what it returns: post each string in `comments` once (each begins
@@ -1130,9 +1125,12 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    `human_needed` marker this skill did not apply": a lift records that the hold was invalid under
    the contract, so there is nothing for a person to authorize. A lift's authority comes from
    re-classifying the hold, not from who wrote the comment, so a lift naming a valid hold discharges
-   nothing. **Valid holds plan nothing** (credential, spend, external account, legal/compliance
-   sign-off, accountable person, unreachable system, Lisa's own human-only gates, and any
-   project-declared class). **Label-only holds plan nothing** — an access block or blocked verdict
+   nothing. **Valid holds plan nothing.** In both modes those are the access acts (`credential`,
+   `spend`, `external-account`, `legal-signoff`, `person-only-account`, `unreachable-system`,
+   `operator-hold`), `human-authored-surface`, `own-dependency-copy`, and any project-declared
+   `humanGate.humanOnly` class. Under `humanGate.mode: "strict"` the strict-only acts (`compliance-signoff`,
+   `accountable-person`, `lisa-policy`) are valid too; under the default access-only mode a hold
+   that names only one of them is invalid and is lifted. **Label-only holds plan nothing** — an access block or blocked verdict
    declares no reason to judge. A mixed item lifts its invalid reasons and stays held for the valid
    one. Never edit the description. Count these under `lifted_invalid_hold` and name them in the
    cycle summary via `summarizeHumanGateLifts([...])`, printed even when it is zero.
@@ -1146,7 +1144,7 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
 
    Enumerate items carrying the configured `human_needed` marker **or** a `[lisa-human-gate]` marker
    in the body, and for each call
-   `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels, alreadyNotified })`
+   `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, humanGateMode, readyLabel, lifecycleLabels, alreadyNotified })`
    from `scripts/intake-blocker-reprobe.mjs`. Apply exactly the actions it returns: remove the
    human-needed marker, add the configured build `ready` label back, and post
    `formatHumanGateReleaseNote()` once. Do **not** re-implement the discharge test, and do **not**
@@ -1270,7 +1268,8 @@ layer, and test ancestry against the remote.
   record.
 - **Ships no code** — the blocker is closed as completed, positively declares
   `## Target Backend Environment` reading `None — no runtime behavior change: <kind>`
-  with kind `doc-only`, `config-only`, or `type-only`, and has no linked PR and no merge commit →
+  with kind `doc-only`, `config-only`, `type-only`, or `test-only` (the closed set shared with
+  `NO_RUNTIME_REASONS` in `scripts/lib/completion-proof-shape.mjs`), and has no linked PR and no merge commit →
   **cleared** under the rule's carve-out. This is a positive determination, never an absence:
   "no PR found" is `no-pr` and stays blocking. A missing kind does not qualify; any linked
   open or unmerged PR stays blocking under the normal containment test.

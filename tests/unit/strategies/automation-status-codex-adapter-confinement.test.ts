@@ -1,11 +1,12 @@
 /** Scheduler confinement regressions for the authoritative Codex adapter. */
-import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { listCodexAutomations } from "../../../plugins/src/base/scripts/automation-status-codex-adapter.mjs";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const AUTOMATION_PREFIX = "lisa-auto-confined-repo-";
 const AUTOMATION_ID = `${AUTOMATION_PREFIX}intake-tickets`;
@@ -75,7 +76,7 @@ describe("Codex scheduler adapter confinement", () => {
     const directory = await automationDirectory(root);
     const target = path.join(outside, AUTOMATION_TOML);
     await writeFile(target, automationToml());
-    await symlink(target, path.join(directory, AUTOMATION_TOML));
+    createSymlink(target, path.join(directory, AUTOMATION_TOML));
 
     await expect(listFixture(root)).rejects.toThrow(
       /Unsafe Codex scheduler file/u

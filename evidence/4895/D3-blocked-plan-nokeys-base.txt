@@ -1,0 +1,56 @@
+# check: D3-blocked-plan-nokeys-base
+$ cd /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-D3-blocked-plan-nokeys-base/project && HOME=/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-D3-blocked-plan-nokeys-base/home node /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/base/plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs blocked-plan --project-root /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-D3-blocked-plan-nokeys-base/project < /Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/held-item.json
+# .lisa.config.json:
+{
+  "tracker": "github",
+  "github": {
+    "org": "example-org",
+    "repo": "demo-repo",
+    "labels": {
+      "build": {
+        "ready": "status:ready"
+      }
+    }
+  },
+  "sessionManager": {
+    "name": "demo-manager",
+    "interval": "5m",
+    "capacity": {
+      "maxWorkers": 6,
+      "gbPerWorker": 1,
+      "reserveGb": 0,
+      "cpuFraction": 1,
+      "maxLoadPerCore": 1000
+    },
+    "notify": {
+      "provider": "telegram",
+      "stateDir": "/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/sb-D3-blocked-plan-nokeys-base/home/.claude/channels/telegram-demo"
+    }
+  }
+}
+# stdin (/Users/codysai/.claude/jobs/cdde8ddc/tmp/verify-4895/held-item.json):
+{
+  "labels": [],
+  "body": "Waiting on design.\n<!-- [lisa-human-gate] reason=design-call -->",
+  "comments": [
+    {
+      "authorId": "4242",
+      "authorType": "User",
+      "body": "[lisa-human-gate-release] reason=design-call\n\n**The hold on this item is lifted.**\n\n- What was being asked: design-call\n- What was decided: go\n- What happens next: this item goes back into the queue that agents build from."
+    }
+  ],
+  "edges": [
+    {
+      "ref": "<TEAM>-1",
+      "contained": true,
+      "blockerState": "closed",
+      "blockerReason": "completed"
+    }
+  ]
+}
+# --- stdout ---
+{"action":"skip-human-gate","reason":"a person is holding this item and no trusted human has released it, so its edges are not the manager's to judge.","edges":[],"gate":{"held":true,"reason":"hold-outstanding","outstanding":["design-call"],"declared":1,"released":[],"lifted":[],"labelPresent":false}}
+
+# --- stderr ---
+
+# exit: 0

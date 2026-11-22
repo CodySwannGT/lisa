@@ -13,11 +13,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   DEVIN_FALLBACK_COMMAND,
   DEVIN_FALLBACK_MATCHER,
-  hasDevinFallback,
   installDevinEnforcementFallback,
   mergeDevinFallback,
 } from "../../../src/devin/enforcement-fallback-installer.js";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const HOOKS_FILE = path.join(".devin", "hooks.v1.json");
 const HOST_COMMAND = "./host-hook.sh";
@@ -127,45 +127,6 @@ describe("mergeDevinFallback", () => {
   });
 });
 
-describe("hasDevinFallback", () => {
-  it("is false for an absent, empty-object, or unparseable file", () => {
-    expect(hasDevinFallback(undefined)).toBe(false);
-    expect(hasDevinFallback("{}")).toBe(false);
-    expect(hasDevinFallback("{not json")).toBe(false);
-  });
-
-  it("is false when the Lisa command is registered as a non-command hook", () => {
-    expect(
-      hasDevinFallback(
-        JSON.stringify({
-          PreToolUse: [
-            {
-              matcher: DEVIN_FALLBACK_MATCHER,
-              hooks: [{ type: "prompt", command: DEVIN_FALLBACK_COMMAND }],
-            },
-          ],
-        })
-      )
-    ).toBe(false);
-  });
-
-  it("is true only when the exact Lisa handler is registered", () => {
-    expect(hasDevinFallback(JSON.stringify(mergeDevinFallback({})))).toBe(true);
-    expect(
-      hasDevinFallback(
-        JSON.stringify({
-          PreToolUse: [
-            {
-              matcher: DEVIN_FALLBACK_MATCHER,
-              hooks: [{ command: "bash scripts/lisa-enforcement-fallback.sh" }],
-            },
-          ],
-        })
-      )
-    ).toBe(false);
-  });
-});
-
 describe("DEVIN_FALLBACK_COMMAND", () => {
   let dir: string;
 
@@ -252,8 +213,8 @@ describe("DEVIN_FALLBACK_COMMAND", () => {
     try {
       // A PATH holding only what the command needs: on usr-merged Linux
       // /bin IS /usr/bin, which carries jq, so /bin cannot stand for "no jq".
-      await fs.symlink("/usr/bin/sed", path.join(bin, "sed"));
-      await fs.symlink("/bin/cat", path.join(bin, "cat"));
+      createSymlink("/usr/bin/sed", path.join(bin, "sed"));
+      createSymlink("/bin/cat", path.join(bin, "cat"));
       const result = boundedSpawnSync({
         label: "devin fallback command (no jq)",
         command: "/bin/sh",

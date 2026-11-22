@@ -20,6 +20,16 @@ const RANK: Readonly<Record<string, number>> = {
   write: 2,
 };
 
+/**
+ * The rank of a scope level, NaN for a level GitHub does not define.
+ *
+ * NaN keeps an unknown level out of every comparison, exactly as an absent
+ * rank would: both sides of `>` against NaN are false.
+ * @param level A scope level as written in a workflow.
+ * @returns Its rank.
+ */
+const rank = (level: string): number => RANK[level] ?? Number.NaN;
+
 /** A permissions map as it appears in a workflow file. */
 export type ScopeMap = Readonly<Record<string, string>>;
 
@@ -51,7 +61,7 @@ export const declaredScopes = (doc: WorkflowDoc): ScopeMap =>
     .filter(([, level]) => RANK[level] !== undefined)
     .reduce<Record<string, string>>(
       (acc, [scope, level]) =>
-        RANK[level] > RANK[acc[scope] ?? "none"]
+        rank(level) > rank(acc[scope] ?? "none")
           ? { ...acc, [scope]: level }
           : acc,
       {}
@@ -69,7 +79,7 @@ export const missingScopes = (
   declared: ScopeMap
 ): string[] =>
   Object.entries(declared)
-    .filter(([scope, level]) => RANK[level] > RANK[granted[scope] ?? "none"])
+    .filter(([scope, level]) => rank(level) > rank(granted[scope] ?? "none"))
     .map(([scope, level]) => `${scope}:${level}`);
 
 /**

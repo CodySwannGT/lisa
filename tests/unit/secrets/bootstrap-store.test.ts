@@ -22,6 +22,20 @@ import {
   storeKind,
 } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs";
 
+/**
+ * Read one element, failing the test when it is absent.
+ * @param items Items to index.
+ * @param index Position to read.
+ * @returns The element at that position.
+ */
+const at = <T>(items: readonly T[], index: number): T => {
+  const item = items[index];
+  if (item === undefined) {
+    throw new Error(`expected an element at index ${index}`);
+  }
+  return item;
+};
+
 /** A stand-in for the credential, so no real one appears in the repo. */
 const TOKEN = "stand-in-not-a-credential";
 
@@ -160,9 +174,9 @@ describe("the keychain store", () => {
 
     storeBootstrap("K", TOKEN, { kind: "keychain", env, run });
 
-    expect(calls[0].args).toEqual(["-i"]);
-    expect(calls[0].options.input).toContain(TOKEN);
-    expect(calls[0].args.join(" ")).not.toContain(TOKEN);
+    expect(at(calls, 0).args).toEqual(["-i"]);
+    expect(at(calls, 0).options.input).toContain(TOKEN);
+    expect(at(calls, 0).args.join(" ")).not.toContain(TOKEN);
   });
 
   it("updates in place, because rotation is the common case", () => {
@@ -172,7 +186,7 @@ describe("the keychain store", () => {
 
     storeBootstrap("K", TOKEN, { kind: "keychain", env, run });
 
-    expect(calls[0].options.input).toContain("-U");
+    expect(at(calls, 0).options.input).toContain("-U");
   });
 
   it("quotes the value, so a space cannot truncate it", () => {
@@ -186,7 +200,7 @@ describe("the keychain store", () => {
       run,
     });
 
-    expect(calls[0].options.input).toContain(
+    expect(at(calls, 0).options.input).toContain(
       '-w "two words and a \\"quote\\""'
     );
   });

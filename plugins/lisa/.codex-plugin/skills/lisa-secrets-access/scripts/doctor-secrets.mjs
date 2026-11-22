@@ -31,7 +31,7 @@ import { readConfig } from "./surfaces.mjs";
  *
  * Module-level state would make the checks untestable in isolation and would
  * leak findings between runs in any process that calls them twice.
- * @returns {{findings: object[], report: Function}} A collector.
+ * @returns {{findings: Array<{level: string, name: string, message: string}>, report: (level: string, name: string, message: string) => void}} A collector.
  */
 export function collector() {
   const findings = [];

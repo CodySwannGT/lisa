@@ -25,7 +25,7 @@ import {
   healthyProject,
   makeProject,
   runGate,
-} from "./bdd/support";
+} from "./bdd/support.js";
 
 const SHARED_REL = "all/copy-overwrite/scripts/lisa-command-envelope.mjs";
 const GATE_REL = "expo/copy-overwrite/scripts/bdd/envelope.mjs";

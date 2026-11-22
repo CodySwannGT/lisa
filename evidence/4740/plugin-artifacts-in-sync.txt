@@ -1,0 +1,57 @@
+# CodySwannGT/lisa#4740 plugin artifacts in sync (2026-11-12T09:36:09Z); HEAD 6fbd3a09f39cee1bf7346e33fcfea1f065d7a692
+## before build: tracked changes = 0
+$ bun run build:plugins
+build:plugins exit=0
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4740-evidence-release-docs/plugins/lisa-wiki-devin (v4.101.5)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4740-evidence-release-docs/plugins/lisa-openclaw-devin (v4.101.5)
+## after build: $ git status --short --untracked-files=no
+tracked changes after build = 0 (0 = no drift; committed copies equal regenerated output)
+
+$ bun run check:artifacts
+▸ check:export-surface
+▸ check:merge-coverage
+generated-artifact merge coverage: 6 artifact(s) declared, 2 merge-driver covered, 4 declared unsupported and still unparseable by the driver.
+▸ check:retired-safety-net-manifest
+Retired safety-net ownership is current.
+check:artifacts OK - all 8 generated-artifact checks passed.
+check:artifacts exit=0
+
+## generated copies carrying the new stop line (excluding plugins/src):
+plugins/lisa-agy/skills/lisa-jira-evidence/SKILL.md
+plugins/lisa-agy/skills/lisa-jira-journey/SKILL.md
+plugins/lisa-copilot/skills/lisa-jira-evidence/SKILL.md
+plugins/lisa-copilot/skills/lisa-jira-journey/SKILL.md
+plugins/lisa-cursor/skills/lisa-jira-evidence/SKILL.md
+plugins/lisa-cursor/skills/lisa-jira-journey/SKILL.md
+plugins/lisa-devin/skills/lisa-jira-evidence/SKILL.md
+plugins/lisa-devin/skills/lisa-jira-journey/SKILL.md
+plugins/lisa-expo-agy/skills/jira-evidence/SKILL.md
+plugins/lisa-expo-agy/skills/jira-journey/SKILL.md
+plugins/lisa-expo-copilot/skills/jira-evidence/SKILL.md
+plugins/lisa-expo-copilot/skills/jira-journey/SKILL.md
+plugins/lisa-expo-cursor/skills/jira-evidence/SKILL.md
+plugins/lisa-expo-cursor/skills/jira-journey/SKILL.md
+plugins/lisa-expo-devin/skills/jira-evidence/SKILL.md
+plugins/lisa-expo-devin/skills/jira-journey/SKILL.md
+plugins/lisa-expo/.codex-plugin/skills/jira-evidence/SKILL.md
+plugins/lisa-expo/.codex-plugin/skills/jira-journey/SKILL.md
+plugins/lisa-expo/skills/jira-evidence/SKILL.md
+plugins/lisa-expo/skills/jira-journey/SKILL.md
+plugins/lisa-rails-agy/skills/jira-evidence/SKILL.md
+plugins/lisa-rails-copilot/skills/jira-evidence/SKILL.md
+plugins/lisa-rails-cursor/skills/jira-evidence/SKILL.md
+plugins/lisa-rails-devin/skills/jira-evidence/SKILL.md
+plugins/lisa-rails/.codex-plugin/skills/jira-evidence/SKILL.md
+plugins/lisa-rails/skills/jira-evidence/SKILL.md
+plugins/lisa/.codex-plugin/skills/lisa-jira-evidence/SKILL.md
+plugins/lisa/.codex-plugin/skills/lisa-jira-journey/SKILL.md
+plugins/lisa/skills/lisa-jira-evidence/SKILL.md
+plugins/lisa/skills/lisa-jira-journey/SKILL.md
+count=30
+## generated copies of completion-authorization.md with inline-name wording: 6
+
+## doc-only check: script/resolver files changed vs merge-base c8b9c2c341f94b26513f1e0609a95da50e19187b:
+ src/core/upstream-evidence-manifest.ts | 13 +++++++------
+ 1 file changed, 7 insertions(+), 6 deletions(-)
+(non-doc paths changed:)
+none

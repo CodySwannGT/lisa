@@ -123,12 +123,18 @@ _linear_post() {  # $1=key $2=query $3=variables JSON
   # to every user on the machine). Bounded timeouts: an unattended worker has
   # nobody to notice a hung connection, and a hang is the stall this file
   # exists to prevent. A timeout is a failed request (exit 1 from the CLI).
-  jq -cn --arg query "$2" --argjson variables "$3" \
+  local response
+  response=$(jq -cn --arg query "$2" --argjson variables "$3" \
     '{query:$query, variables:$variables}' |
-    curl -sS --connect-timeout 10 --max-time 60 -X POST "https://api.linear.app/graphql" \
+    curl -q -sS --connect-timeout 10 --max-time 60 -X POST "https://api.linear.app/graphql" \
       -H "Content-Type: application/json" \
       -H @<(printf 'Authorization: %s\n' "$1") \
-      --data-binary @-
+      --data-binary @-) || return 1
+  if [[ "$response" == *"$1"* ]]; then
+    echo "Error: Linear returned request authentication in its response. Output discarded." >&2
+    return 1
+  fi
+  printf '%s\n' "$response"
 }
 
 # The plugin copy this file ships in also holds the resolver. Offer it as the
@@ -372,8 +378,8 @@ _linear_main() {
     return 1
   }
   printf '%s\n' "$response"
-  printf '%s' "$response" | jq -e 'type == "object" and (.errors == null or .errors == [])' >/dev/null 2>&1 || {
-    echo "Error: Linear returned errors (or a non-JSON body); see stdout." >&2
+  printf '%s' "$response" | jq -e 'type == "object" and (.data | type == "object") and (.errors == null or .errors == [])' >/dev/null 2>&1 || {
+    echo "Error: Linear returned errors or no GraphQL data. See stdout for the response." >&2
     return 1
   }
   return 0

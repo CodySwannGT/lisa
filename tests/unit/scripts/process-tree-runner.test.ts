@@ -1,11 +1,10 @@
 /** A gate deadline reaps descendants, not only the direct shell. */
-import { spawn } from "node:child_process";
+import { spawn, type spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -24,7 +23,8 @@ import {
 import {
   boundedSpawnSync as boundedTestSpawnSync,
   ioLatencyBudgetMs,
-} from "../../helpers/io-latency-budget";
+} from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const roots: string[] = [];
 const BLOCKING_CHILD_FILENAME = "blocking-child.mjs";
@@ -207,7 +207,7 @@ describe.skipIf(!["linux", "darwin"].includes(process.platform))(
       const marker = path.join(root, "shell-side-effect");
       const entry = path.join(root, "literal fixture.mjs");
       const executable = path.join(root, "real node with spaces");
-      symlinkSync(process.execPath, executable);
+      createSymlink(process.execPath, executable);
       const args = [
         "",
         "a'b",
@@ -480,10 +480,11 @@ describe("process-tree gate deadline", () => {
       killWindowsTree(
         42,
         "SIGKILL",
-        (_command: string, args: readonly string[]) => {
-          invocations.push([...args]);
+        ((_command: string, args?: unknown) => {
+          if (!Array.isArray(args)) throw new Error("taskkill needs an argv");
+          invocations.push(args.map(String));
           return { error: undefined, signal: null, status: 1 } as never;
-        },
+        }) satisfies typeof spawnSync,
         () => true
       )
     ).toThrow("taskkill /pid 42 /T /F failed (1)");
@@ -510,7 +511,7 @@ describe("process-tree gate deadline", () => {
             stdout: "  41 S\n  43 Z\n",
           }) as never
       );
-    const probe = (): void => {
+    const probe = (): true => {
       probes += 1;
       throw probes === 1 ? denied : absent;
     };

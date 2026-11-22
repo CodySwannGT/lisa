@@ -1,0 +1,44 @@
+# foreign-repo-same-tag-link-allowed @ a91cecdbcdb4f60ed7dfe84f1c2c6bd39bf0418e
+=== script: plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh
+=== command: bash plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh TEST-1 <evidence-dir> 101 (gh stubbed)
+=== comment.md:
+![Shot](https://github.com/org/repo/releases/download/pr-assets/pr-101-01-search-step-desktop.png)
+[other repo](https://github.com/org/other/releases/download/pr-assets/pr-55-x.png)
+
+=== exit: 0
+=== stdout:
+Found 1 screenshots and 1 text evidence files to upload
+
+==> Uploading to GitHub release 'pr-assets'...
+  ↑ pr-101-01-search-step-desktop.png
+  ↑ pr-101-01-health-check.json
+  ✓ GitHub release assets uploaded
+
+==> Updating GitHub PR #101 description...
+  ✓ PR description updated with evidence
+
+==> Uploading image attachments to JIRA TEST-1...
+  ↑ 01-search-step-desktop.png
+  ✓ JIRA attachments uploaded
+
+==> Posting JIRA comment on TEST-1...
+  ✓ JIRA comment posted
+
+==> No jira.workflow.review configured; leaving TEST-1 in its current (claimed) status per config-resolution.
+
+==> Done!
+    JIRA:   https://jira.invalid/browse/TEST-1
+    GitHub: https://github.com/org/repo/pull/101
+
+=== stderr:
+  WARNING: Failed to upload 01-search-step-desktop.png (HTTP 201)
+
+=== gh release upload calls (2):
+release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.RGTltvOYJv/pr-101-01-search-step-desktop.png --repo org/repo --clobber 
+release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.RGTltvOYJv/pr-101-01-health-check.json --repo org/repo --clobber 
+=== release assets: ["pr-101-01-health-check.json","pr-101-01-search-step-desktop.png"]
+=== posted PR body:
+existing body
+
+![Shot](https://github.com/org/repo/releases/download/pr-assets/pr-101-01-search-step-desktop.png)
+[other repo](https://github.com/org/other/releases/download/pr-assets/pr-55-x.png)

@@ -33,7 +33,7 @@ export interface WorkspaceMembers {
 }
 
 /** One workspace child manifest that could be parsed offline. */
-export interface WorkspaceMember {
+interface WorkspaceMember {
   /** Repo-relative path to the child package manifest. */
   readonly manifestPath: string;
   /** Child package name when the manifest declares one. */

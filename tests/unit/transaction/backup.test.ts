@@ -21,6 +21,9 @@ describe("BackupService", () => {
   });
 
   afterEach(async () => {
+    // init() makes a lisa-backup-* folder under the temp root; without this
+    // every case left one behind (CodySwannGT/lisa#5095).
+    await service.cleanup();
     await cleanupTempDir(tempDir);
   });
 

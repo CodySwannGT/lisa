@@ -36,8 +36,8 @@ export const MAP_REL = "bdd/coverage-map.json";
 
 /** Discovery vocabulary, so no test repeats a runner or root literal. */
 export const MAESTRO = "maestro";
-export const E2E_ROOT = "e2e";
-export const SPEC_EXTENSION = ".spec.ts";
+const E2E_ROOT = "e2e";
+const SPEC_EXTENSION = ".spec.ts";
 
 /**
  * The playwright discovery block used by every healthy fixture.
@@ -115,18 +115,17 @@ export function hermeticEnv(root: string): Record<string, string> {
 
 /** Envelope statuses this gate emits. */
 export const COMPLETED = "completed";
-export const FAILED = "failed";
 export const INVALID = "invalid";
 
 /** One finding in the standard command envelope. */
-export interface Finding {
+interface Finding {
   readonly code: string;
   readonly subject: string;
   readonly message: string;
 }
 
 /** Lisa's standard command envelope, as this gate emits it. */
-export interface Envelope {
+interface Envelope {
   readonly schemaVersion: string;
   readonly capability: string;
   readonly mode: string;
@@ -154,7 +153,13 @@ export interface Report {
     count: number;
     entries: readonly Record<string, unknown>[];
   };
-  readonly floor: { ok: boolean; unset: readonly string[] };
+  readonly floor: {
+    ok: boolean;
+    unset: readonly string[];
+    byPlatform: Readonly<
+      Record<string, { readonly state: string; readonly ok: boolean }>
+    >;
+  };
   readonly trackers: { tags: readonly { tag: string; url: string | null }[] };
   readonly gaps: readonly Record<string, unknown>[];
   readonly testInventory: {
@@ -267,7 +272,7 @@ export function gitSpawnCount(): number {
  * @param prefix - Short label, so a directory left behind names its origin.
  * @returns Absolute path to the new directory.
  */
-export function fixtureDir(prefix: string): string {
+function fixtureDir(prefix: string): string {
   if (fixtureBase === undefined) {
     fixtureBase = fs.mkdtempSync(path.join(os.tmpdir(), "bdd-fixtures-"));
   }

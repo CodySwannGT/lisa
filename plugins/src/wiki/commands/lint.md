@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Health-check the LLM Wiki: orphan pages, contradictions, stale claims, broken internal links, missing index/log coverage, structure violations, and secret/tenant leaks. Read-only — reports findings, does not fix them."
 argument-hint: ""
 ---

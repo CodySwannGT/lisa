@@ -15,12 +15,15 @@
 
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
-import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
+import { useOwnedTempDirs } from "../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -203,7 +206,7 @@ function scratchProject(options: {
   report?: string;
   debugArtifact?: DebugArtifactFixture;
 }): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "maestro-classify-"));
+  const dir = ownedDir("maestro-classify-");
   const installedClassifier = path.join(dir, SCRIPTS_DIR, CLASSIFIER_FILE);
   const flowsDir = path.join(dir, ".maestro", "flows");
   fs.ensureDirSync(path.join(dir, SCRIPTS_DIR));

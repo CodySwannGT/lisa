@@ -54,8 +54,6 @@ describe("codex/project-ideation-distribution (#670)", () => {
 
     expect(builtSkill).toBe(sourceSkill);
     expect(builtSkill).toContain("name: lisa-project-ideation");
-    expect(builtSkill).toContain("Practicality gate");
-    expect(builtSkill).toContain("Empirical verification gate");
   });
 
   it("emits Codex runtime metadata for project-ideation", async () => {

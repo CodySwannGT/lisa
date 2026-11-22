@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Detect locally-authored agent definitions and regenerate them in the formats of the other coding agents this project supports (per .lisa.config.json)."
 allowed-tools: ["Skill"]
 argument-hint: "[path] [--dry-run] [--write]"

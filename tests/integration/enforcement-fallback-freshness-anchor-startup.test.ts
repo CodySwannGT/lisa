@@ -15,7 +15,32 @@ const MATCHING_TEMPLATE = "matches installed template";
 afterEach(cleanupScratchRoots);
 
 describe("optional freshness anchor startup", () => {
+  it.each([false, true])(
+    "admits the real producer without an extra job-table fork, allowed=%s",
+    async allowed => {
+      const result = await observeDeadline("job-table-fork", allowed);
+      expect(result.phases).toEqual(["job-parent", "job-table-direct"]);
+      expect(result.entered).toBe(true);
+      expect(result.timedOut).toBe(false);
+      expect(result.status).toBe(allowed ? 0 : 2);
+      expect(result.guards).toEqual(SELECTED_GUARDS.map(name => `${name}.sh`));
+      expect(result.diagnosticMs).not.toBeNull();
+      expect(result.diagnosticMs).toBeLessThanOrEqual(3_000);
+      expect(result.survivingPids).toEqual([]);
+      expect(result.diagnosticScratchLeaves).toEqual([]);
+      expect(result.stateUnchanged).toBe(true);
+      expect(result.foreignSentinelUnchanged).toBe(true);
+      expect(result.output).toContain(MATCHING_TEMPLATE);
+      expect(result.output).toContain("4.72.7");
+      expect(result.output).toContain("4.33.1");
+    }
+  );
+
   it.each([
+    ["job-table-empty", false],
+    ["job-table-empty", true],
+    ["job-table-duplicate", false],
+    ["job-table-duplicate", true],
     ["missing-handshake", false],
     ["missing-handshake", true],
     ["partial-handshake", false],

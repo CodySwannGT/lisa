@@ -2,13 +2,16 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import path from "node:path";
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import {
   cleanupFixtures,
   cleanupTemplates,
   git,
 } from "../../support/work-item-cli.js";
-import { proofCli } from "../../support/work-item-proof-fixture.js";
+import {
+  proofCli,
+  proofCliSpawned,
+} from "../../support/work-item-proof-fixture.js";
 import {
   coherentRelatedFixture,
   RELATED_REF,
@@ -19,6 +22,16 @@ import {
   parseLisaUsageSection,
 } from "../../../src/utils/usage-accounting.js";
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
+
+// The controlled provider answers in-process (work-item-inprocess-gh.ts), so a
+// case no longer starts a Node process per provider call. The cases on
+// proofCliSpawned keep the guard and provider as real processes, which is this
+// suite's real-boundary proof (CodySwannGT/lisa#4616, audit unit row 62).
+vi.mock("node:child_process", async original =>
+  (await import("../../support/work-item-inprocess-gh.js")).routeFakeGh(
+    await original()
+  )
+);
 useIoLatencyBudget();
 afterEach(cleanupFixtures);
 afterAll(cleanupTemplates);
@@ -60,7 +73,7 @@ describe.each(["direct", "sweep"])(
       const before = snapshot(fixture);
       const ownUsage = parseLisaUsageSection(before.states["42"].body).entries;
       const relatedArgs = ["complete", "--ref", RELATED_REF];
-      const related = proofCli(fixture, relatedArgs);
+      const related = proofCliSpawned(fixture, relatedArgs);
       const positive = snapshot(fixture);
       const args =
         route === "direct"

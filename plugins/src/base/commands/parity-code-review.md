@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Lisa-native code review of the current git diff — correctness bugs, security issues, and obvious defects, reported as severity-ranked findings with file:line references. Vendor-neutral cross-agent equivalent of the upstream code-review command."
 argument-hint: "[optional: path or scope hint]"
 ---

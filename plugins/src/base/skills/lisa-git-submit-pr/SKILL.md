@@ -1,6 +1,6 @@
 ---
 name: lisa-git-submit-pr
-description: This skill should be used when pushing changes and creating or updating a pull request. It verifies the branch state, pushes to remote, creates or updates a PR with a comprehensive description, optionally coordinates the resulting Pull Request into the configured GitHub ProjectV2, and hands the PR to drive-pr-to-merge, which decides whether auto-merge may be armed. It never arms auto-merge itself.
+description: "Push the branch and create or update its pull request with a full description, add it to the GitHub Project when configured, then hand it to lisa-drive-pr-to-merge. It never arms auto-merge itself."
 allowed-tools: ["Bash", "Skill", "mcp__github__create_pull_request", "mcp__github__get_pull_request", "mcp__github__update_pull_request"]
 ---
 
@@ -31,7 +31,7 @@ Recognized optional hints:
 2a. **Local review before push**: Unless `local_review=done` has current evidence, run `lisa-review-local` over the branch diff, address findings through `convergent-review`, and commit any fixes before step 3. This applies regardless of third-party reviewer availability. Reuse an applicable completed review instead of repeating it.
 
    Report the result as *self-reviewed*; it does not satisfy the ruleset-required third-party review check. If the runtime cannot delegate review, record **local review unavailable**, continue under the existing merge policy, and do not pass `local_review=done`. An unavailable review is not a passing review.
-3. **Push**: Push current branch to remote with `-u` flag and the following environment variable - GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5"
+3. **Push**: First run `lisa check` (or `bunx @codyswann/lisa check` when `lisa` is not on PATH) and fix any failure — fix, commit, re-run — before `git push`. It runs the push gates outside the push and records their passes, so the push that follows reuses them; when the project's gate pass cache is off it exits 0 at once and says to push directly. Then push current branch to remote with `-u` flag and the following environment variable - GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5"
 4. **PR Management**:
    - Check for existing PR on this branch
    - If exists: Update description with latest changes
@@ -130,6 +130,9 @@ Include in the PR description:
 - **Summary**: Brief overview of changes (1-3 bullet points)
 - **Test plan**: How to verify the changes work correctly
 - **Issue / Tracker link**: The provider-specific native linkage line when a source work item is available, placed after the summary and before the test plan.
+- **How we'll know it works in production**: the signal that will show this change working or failing once deployed — the log line, metric, trace, error-report grouping, or analytics event, and where it lands. For a change with no runtime effect (docs, tests, tooling), say so in one line.
+- **How to undo**: the fastest safe way back if it misbehaves — revert this PR, flip a named flag, roll back a migration (and whether that loses data), or anything else a non-author would need to know.
+- **Also fixed**: any defect in code this change touches or depends on that was fixed along the way, one line each (omit the section when there are none).
 
 ### Never
 

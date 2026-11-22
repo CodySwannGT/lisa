@@ -1,4 +1,4 @@
 display_name: "Action View Best Practices"
-short_description: "Build or Refactor Rails views, partials, and templates into clean, maintainable code"
+short_description: "Build or refactor Rails views, partials, and templates with Turbo, Stimulus, ViewComponent, presenters, and strict locals"
 default_prompt:
-  - "Use $action-view-best-practices: Build or Refactor Rails views, partials, and templates into clean, maintainable code."
+  - "Use $action-view-best-practices: Build or refactor Rails views, partials, and templates with Turbo, Stimulus, ViewComponent, presenters, and strict locals."

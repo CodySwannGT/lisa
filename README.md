@@ -186,9 +186,18 @@ any direct override in the current directory's `package.json`. It preserves the
 original error and does not change dependencies. Nested selectors and unreadable
 manifests remain unverified; this diagnostic is not a full lockfile audit.
 
+Dependency-audit exceptions can be restricted to a package, affected versions,
+and the lockfile paths whose risk was accepted. Prefer path scope when the
+vulnerable copy belongs only to a development tool: a new vulnerable production
+copy must still block delivery. Hooks, CI, and project audit commands use the
+same matcher. See [dependency-audit exclusions](docs/dependency-audit-exclusions.md)
+for the file format, lockfile keys, diagnostics, and shared helper.
+
 Clean TypeScript and CDK hosts receive the shared Node 24.21.0 LTS baseline,
-Vitest and coverage-v8 4.1.11 minimums, and a Vite 8.3.3 minimum within Vite 8.
-Lisa retains the TypeScript 6, ESLint 9, Knip 5, Husky 8 and Vitest 4 families.
+Vitest and coverage-v8 5.1.0 minimums, and a Vite 8.3.3 minimum within Vite 8.
+Lisa retains the TypeScript 6, ESLint 9, Knip 5, Husky 8 and Vitest 5 families.
+Vitest 5 is required for npm 10: any Vitest 4 dependency crashes npm 10.9.9's
+installer with `Cannot read properties of null (reading 'edgesOut')`.
 CDK applies force `constructs ^10.7.2` and default `aws-cdk-lib`, which satisfy
 the peers of `aws-cdk-github-oidc` 5.2.0. Lisa does not add opt-in construct
 libraries such as `aws-cdk-github-oidc` or `@aws-cdk/aws-amplify-alpha`: an app
@@ -274,10 +283,21 @@ A successful apply writes `.lisa/apply-receipt.json`. Doctor reports a missing
 or older receipt and incomplete reconciliation from an earlier postinstall-safe
 apply. Dependency installation alone does not mark templates current.
 
-An unattended apply never replaces a managed file your
-project may have customised — that is the point of the mode — so a release that
-changes `eslint.config.ts` leaves yours where it is and names it in the apply
-output. Apply records
+For an intentional apply in CI or a shell without a terminal, use
+`LISA_BOOTSTRAP=1 lisa apply --yes .`. Add `--skip-git-check` when the working tree
+is dirty: that flag waives only the clean-tree check and does not change consent
+or installation protections. Root and `apply` help document the bootstrap opt-in.
+
+Templates whose packaged header says `IS replaced on each` receive updates even
+without a terminal. Provably older Lisa-owned artifacts also refresh; the existing
+protection for unknown or newer host copies remains. With `--yes`, copy-contents
+files such as hooks receive the current managed block while retaining host bytes
+outside it. Without `--yes`, truly unattended runs leave changed copy-contents
+files stale unless a scoped refresh approves them.
+
+Shared configuration your project may have customised, such as `knip.json` and
+`audit.ignore.config.json`, stays intact during unattended and `--yes` applies
+unless explicitly approved for refresh. Apply records
 every such path in the receipt, and doctor names them back with the remedy:
 `lisa apply . --refresh-templates=<path>`, **one path at a time**. Do not reach
 for the bare `--refresh-templates` — it is repo-wide and reverts every
@@ -430,6 +450,72 @@ A greenfield project is agent-ready by construction. An existing codebase carrie
 > **Prompt for your coding agent**
 > "Is this project agent-ready? Run the agent-ready onboarding: inventory every connected source, ingest it read-only with redaction, show me each source's coverage status and the open gaps only I can answer, and tell me exactly what happens after I answer them."
 
+## Checking the controls of any repository
+
+A **control** is a rule about your software plus the check that enforces it: "the code must be formatted", "the tests must pass", "nothing merges without review". Four commands tell you which controls a repository really has. They work on any repository, whatever it is written in, and the first one works where Lisa has never been set up. Together they:
+
+- **find** what already checks the repository, and what is missing;
+- **declare** the checks that govern it in one record a person can review;
+- **wire** those checks in, so that a bad change is actually stopped;
+- give a **verdict** that code computed, not a coding agent's opinion.
+
+Lisa's supported project types remain the repeatable road: there Lisa ships the checks and declares them with no questions asked. On anything else, your own coding agent supplies the knowledge of your tools, and Lisa's code checks the agent's work at every step.
+
+### The four commands, in order
+
+Run them in this order. Each one tells you in plain language what it found and what to run next. None of them commits anything: what they write stays in your working copy for you to review.
+
+1. **Audit** (`/lisa:audit`) reads the repository, part by part, and says for each requirement whether something is in place, missing, not applicable, or could not be checked. It runs none of your tools, and it never says a check works: that is attest's job. It needs no prior `lisa apply`, no configuration file and no supported project type. Where only a person knows the answer, it asks: you type each answer on its line in the report and run the audit again. It writes `.lisa/audit/report.json` (the checked record) and `.lisa/audit/report.md` (the version you read and answer in), and nothing else, except that a repository which already keeps a `wiki/` folder also gets the open questions listed in `wiki/gaps.md`.
+2. **Configure** (`/lisa:configure`) turns the findings and your answers into a declaration of which checks govern the repository, which folder each covers and when each runs. It asks you one decision at a time, and proposes every threshold at the value your repository measures today. It writes the `gates` block in `.lisa.config.json`, the control register at `.lisa/controls/register.json` (generated from that block, never edited by hand), and two small test changes per check under `.lisa/controls/proofs/`: one that breaks the rule and one that does not.
+3. **Enforce** (`/lisa:enforce`) makes the declared checks run: at commit, at push, and after a coding agent writes a file. It keeps every hook you already have. It files one ticket for each requirement the repository has nothing for, in your tracker when one is configured, and compares your merge protection with the register. It asks which coding agents your team uses when the repository does not say, and it asks before changing any merge setting. It writes the hook scripts and the program they run, a record of them at `.lisa/controls/carriers.json`, the tickets, and `.lisa/controls/merge-protection-change.md`, which tells an administrator exactly what to set.
+4. **Attest** (`/lisa:attest`) proves each check. In a temporary copy of your last commit it tries the change that breaks the rule and the change that does not, through a real commit or push. A check passes only when it refused the first, printing the failure text declared for it, and let the second through. It asks before opening pull requests on your hosting platform or running a proof that reaches outside the repository. It writes `.lisa/controls/evidence.json` (what happened) and `.lisa/controls/verdict.json` (the result), and brings the register up to date.
+
+Anyone can check a committed verdict later, without running a proof, with `lisa controls attest --check`. It also compares the content of everything that defines the checks (the `gates` declaration, the proof patches, the hook files and the program they run) with what the proofs ran against, and fails, naming the file, when one has changed. It reads the files and no version history, so you can commit in any order and check in any clone.
+
+### How to start a command
+
+Type it in your coding agent, inside the repository. Lisa's plugin for that agent supplies the commands.
+
+| Coding agent | Audit | Configure | Enforce | Attest |
+| --- | --- | --- | --- | --- |
+| Claude Code | `/lisa:audit` | `/lisa:configure` | `/lisa:enforce` | `/lisa:attest` |
+| Cursor | `/lisa:audit` | `/lisa:configure` | `/lisa:enforce` | `/lisa:attest` |
+| OpenCode | `/lisa:audit` | `/lisa:configure` | `/lisa:enforce` | `/lisa:attest` |
+| Antigravity | `/lisa:audit` | `/lisa:configure` | `/lisa:enforce` | `/lisa:attest` |
+| Copilot | `/lisa:audit` | `/lisa:configure` | `/lisa:enforce` | `/lisa:attest` |
+| Codex | `$lisa-audit` | `$lisa-configure` | `$lisa-enforce` | `$lisa-attest` |
+| Devin | `/lisa:lisa-audit` | `/lisa:lisa-configure` | `/lisa:lisa-enforce` | `/lisa:lisa-attest` |
+
+Codex and Devin have no command files, so there you start the skill by its name and say any options in your message.
+
+### What you need
+
+- **Node.js.** Lisa's package declares Node 24.21.0, the version it is built and tested on. The hooks need a `node` program on the PATH even in a repository that has no JavaScript in it, and they stop the commit or push with a sentence naming Node when it is missing.
+- **git.**
+- **macOS, Linux, or Windows with WSL.** The hooks are shell scripts. Windows without WSL is not supported.
+- **For the steps that read or change GitHub settings:** the GitHub CLI (`gh`), signed in.
+
+### What the verdict means
+
+The verdict measures the repository against Level 1 of the specification in [`spec/tasc-0.1-draft.md`](spec/tasc-0.1-draft.md): 77 requirements, each put to you as a plain question.
+
+- **Unknown is never a pass.** The result is "conforming" only when every requirement is met, or does not apply for a recorded reason.
+- **It says what each answer rests on.** A requirement is met by a check that was really exercised, by a document or platform setting that was observed, or by a person's recorded answer. The verdict names which, for every requirement.
+- **It goes out of date.** Evidence is good for 30 days. After that the requirement reads unknown until attest runs again.
+- **It is a local, unsigned check.** `lisa controls attest --check` shows that the verdict is what the register and the evidence give today, and that the files defining the checks hold what was proved. It does not see a change to a checked tool's own settings, and it cannot show that nobody rewrote all three files together. Version history, or running the proofs again, can.
+
+### Limits to know before you start
+
+- **Proofs run on a clone of your last commit.** Files git ignores, such as installed dependencies and built output, are not in it. A check that needs them cannot be proved there yet and reads unknown.
+- **Supported project types have no proofs yet.** This release writes no test changes for the checks Lisa ships, so those checks read unproved until a proof is declared for them.
+- **Hooks are wired per checkout.** Git does not copy the hook setting into a new clone. In each new checkout run `lisa controls install-carriers` once. `lisa controls reconcile` shows a checkout where it is missing.
+- **Pull-request checks can only be exercised on GitHub**, and only when you opt in. On another platform your agent writes the pipeline file and its checks stay marked unproved.
+
+The [control audit page](wiki/documentation/workflows/control-audit.md) in the wiki has the rest: every file, the vocabulary, the commands underneath, and the full list of limits.
+
+> **Prompt for your coding agent**
+> "Run `lisa controls --help` and each subcommand's `--help`, then tell me what each of audit, configure, enforce and attest would write in this repository, what it would ask me, and which of the documented limits apply here."
+
 ## The work lifecycle
 
 Lisa organizes a piece of work as a pipeline of specialized agent roles — the factories, seen from inside. Conceptually a work item moves through five stages:
@@ -461,10 +547,10 @@ Lisa caps the pool for you, in three layers:
 | layer | what it does | when it applies |
 |---|---|---|
 | **Floor** | Half the machine's cores | Always, when this run is the only one |
-| **Divisor** | Floor ÷ concurrent runs, never below 2 workers | Whenever other Lisa runs are live |
+| **Divisor** | Floor ÷ concurrent runs, never below 2 workers | Whenever you state how many runs share the machine |
 | **Override** | Exactly the number you give it | Whenever you set it |
 
-You do not have to configure any of this. A run discovers how many sibling runs are live by looking at the shared scratch namespace, so the divisor applies to a fleet nobody told it about. Two variables are available when you want to steer it:
+You do not have to configure any of this. Runs no longer count live sibling runs on their own (that count read the per-test scratch folders, which were retired); on a busy machine, headroom admission below is what sizes a run. Two variables are available when you want to steer it:
 
 - **`LISA_FLEET_CONCURRENCY`** — state how many runs are coming, rather than letting the run count what has already started. Useful when you are about to launch six agents and want the first one sized for six.
 - **`LISA_VITEST_MAX_WORKERS`** — set the pool size outright. Wins over both other layers, in both directions: raise it above the floor as readily as you lower it.
@@ -476,7 +562,64 @@ Worker count is not the only thing several runs contend over. Coverage runs writ
 - **`LISA_COVERAGE_REPORTS_DIR`** — put the reports at a fixed path instead. For somewhere only one run happens at a time and something downstream expects to find the report in a known place, such as a CI job that uploads `coverage/lcov.info`.
 
 > **Prompt for your coding agent**
-> "Show me how this project's test worker pool is sized — find the resolver, tell me what each of the three layers would give on this machine right now, and how many sibling runs it currently detects."
+> "Show me how this project's test worker pool is sized — find the resolver, and tell me what each of the three layers would give on this machine right now."
+
+### Starting heavy runs only when the machine has room
+
+Sizing each pool is not enough when many agents start heavy runs at once: a ten-minute suite becomes a multi-hour flaky one. Set `"pushGate": { "admission": true }` in `.lisa.config.json` and every heavy run waits for headroom before it starts: every test suite run through `lisa-test-run`, plus the push gate's slow lint (`code-style-slow`), typecheck (`type-correctness`) and build-once steps. Headroom is the machine's cores, minus its one-minute load average, minus the workers of runs admitted in the last 60 seconds, because load average lags new work. A run starts at once when the headroom covers the workers it declares. A test suite can start with fewer workers, down to two, and passes the number it was given to Vitest as `LISA_ADMITTED_WORKERS`. Every repository and worktree on the machine shares one state directory, `${XDG_CACHE_HOME:-~/.cache}/lisa/admission/`, so a run in one repository counts a run admitted from another. A run that is killed leaves a reservation behind, and the next run ignores and deletes it.
+
+The wait has a limit, and nothing starts quietly when the limit runs out. The run stops with exit status 75 and names the runs that are holding the machine. Inside `git push` the limit is 5 minutes (`LISA_ADMISSION_PUSH_MAX_WAIT`). Elsewhere it is 30 minutes (`LISA_ADMISSION_MAX_WAIT`, which also applies inside a push when set). Scripts can wrap any command themselves with `lisa admit --workers <n> [--max-wait <duration>] -- <command…>`.
+
+- **Thresholds** belong to the machine, not the repository. Put them in `.lisa.config.local.json` under `admission` (`maxLoadPerCore`, default 1; `minFreeMemoryMb`, default 512; `maxWaitSeconds`; `pushMaxWaitSeconds`), or set the `LISA_ADMISSION_MAX_LOAD_PER_CORE` and `LISA_ADMISSION_MIN_FREE_MEMORY_MB` environment variables, which take precedence.
+- **`LISA_ADMISSION=off`** starts every run at once and prints that admission is off. CI skips admission because one job owns the runner. `LISA_ADMISSION=on` forces it on.
+- **Off by default.** If a project does not set the switch, its heavy runs start at once, exactly as before. Lisa turns it on for itself. Host templates turn it on per stack. The gate runner does not admit steps on Windows yet. When the switch is on there, it prints that and runs the steps at once.
+
+This replaces the old fleet admission, which held a Vitest run in a `globalSetup` hook. That hook counted runs instead of measuring load, covered only Vitest runs, and started a run anyway after two minutes.
+
+### Building once per push
+
+A push can build the project several times: each test gate builds before it tests, and a drift check may rebuild again. Set `"pushGate": { "buildOnce": true }` in `.lisa.config.json` and the push gate runner builds once, before the first gate, then writes `.lisa/build-marker.json`, which records the working-tree hash, the lockfile hash and the node and bun versions. It exports that file's path as `LISA_BUILD_MARKER`. A later step can skip its own build only when every recorded value still matches. Any difference, or no marker at all, means it builds exactly as before. If the up-front build fails, the push fails without running any gate. The setting is off by default, and `lisa apply` and the gate runner both reject a value that is not `true` or `false`. Lisa turns it on for itself. Host templates turn it on per stack.
+
+### Checking before you push
+
+With `"pushGate": { "cache": true }`, a push skips any gate that already passed for the exact same tree. `lisa check` (or `bunx @codyswann/lisa check` where `lisa` is not on your PATH) runs the push gates for your last commit before you push, and records their passes so the push that follows takes seconds. It waits up to 30 minutes for the machine to have room (`--max-wait 2h` to change that), which is safe outside a push but not inside one. It refuses to run until you commit everything, and it exits non-zero when a gate fails. When the cache is off for the project it does nothing and tells you to push directly, so agents can always run it first. Lisa's agent skills run it before every push; you can keep pushing normally.
+
+Rails projects get the cache and headroom admission without setting anything: the pre-push RSpec, Brakeman, Reek, Flog and Flay commands run through `scripts/lisa-rails-gates.mjs`, and `lisa check` runs that same set, so a re-push of an unchanged tree reports each as `CACHED PASS`. Set `"cache": false` or `"admission": false` under `pushGate` to turn either off. RSpec, and the mutation gate when you enable it, wait for room on the machine; the static analysers do not. When a full RSpec run is needed and the test database name in `config/database.yml` includes `<%= ENV['TEST_ENV_NUMBER'] %>`, it runs as `bundle exec parallel_rspec -n <workers>`, with as many workers as admission grants (ask for a different number with `LISA_ADMISSION_RSPEC_WORKERS`). Without that name it runs one process and prints a one-line hint. Lisa never edits `config/database.yml`.
+
+### Running only the affected tests at push
+
+Set `"pushGate": { "affectedTests": true }` in `.lisa.config.json` and the unit-test push gate runs only the tests your change can reach. It reads the access map that CI records for every pull request, which lists the files each test touched. It runs the tests that touched a changed file, plus any changed test, and hands the changed files to Vitest's own import-graph selection (`vitest related`). Before it runs, it prints each chosen test and the reason it was chosen.
+
+Whenever the choice could be wrong, it runs the full suite instead and says why in plain words. That happens when the map is missing, when it was recorded for a different base, when it is older than seven days (`LISA_ACCESS_MAP_MAX_AGE_DAYS` changes the limit), or when a changed file is new since the map was recorded. It also happens when `package.json`, a lockfile, the Vitest, TypeScript or ESLint config, or shared test helpers, support code or fixtures change. It never chooses a partial run in CI, so CI still runs every test before merge. The map for a base is downloaded once and kept in `.lisa/test-access-map/`. A download that finds nothing is remembered for 15 minutes.
+
+A partial run cannot measure overall coverage, so `pushGate.affectedCoverage` decides what happens to the `coverage-adequacy` gate at push:
+
+- **`"full"`** (the default): wherever `coverage-adequacy` is declared at push, the full suite runs with coverage measured, exactly as before. With this setting, selection only speeds up projects that do not check coverage at push.
+- **`"changed-files"`**: the chosen tests run with coverage on, and each changed source file is checked against `vitest.thresholds.json` on its own. When every changed file meets it, the push passes on the partial run. When one does not, the push does not fail for that alone: it prints which file is short and runs the full suite with whole-repo coverage, exactly as `"full"` does, and that run decides the push. So a push is never stricter than whole-repo coverage, which is what it checked before selection existed.
+- **`"skip"`**: the chosen tests run without coverage, and `coverage-adequacy` reports SKIPPED with `partial selection — enforced by CI`.
+
+Both settings are off or `"full"` by default, and `lisa apply` and the push gate both reject a value they do not recognise. Lisa turns `affectedTests` on for itself with `affectedCoverage` set to `"changed-files"`; whole-repo coverage is still enforced on the pull request.
+
+#### Rails projects
+
+On a Rails project (one with `bin/rails` or `config/application.rb`), the pre-push `rspec` command runs only the specs your change can reach, and this is on by default. Set `"pushGate": { "affectedTests": false }` to always run the full suite. The map comes from gitlab-crystalball: on every pull request, the full RSpec run in `quality-rails.yml` records which application files each spec executed, plus the files that define the class each spec describes. It uploads that map as `crystalball-map-<base sha>-<run id>`, merging the shards when the suite is sharded. The pre-push downloads the newest map for its base with `gh` and keeps it in `.lisa/crystalball-map/`. A partial run includes the specs that executed a changed file, each changed spec, and the conventional spec for a changed file (`app/models/user.rb` pairs with `spec/models/user_spec.rb`). It always adds `spec/system/**`, `spec/features/**`, specs tagged `:js`, and specs tagged `lisa_always_run: true`. That last tag is the escape hatch for a spec whose behaviour the map cannot see, such as one that spawns a child process, calls an external service, or relies on a class it does not describe through a declaration like `validates` or `scope`.
+
+The full suite runs, and the reason is printed, in any of these cases:
+
+- the push is a CI run;
+- the map is missing, unreadable, recorded off this branch's history, or older than seven days;
+- `Gemfile` or `Gemfile.lock` changes;
+- `db/schema.rb` or `db/structure.sql` changes;
+- anything under `config/` or `spec/support/` changes, or a `spec/*_helper.rb`, `.rspec` or `.simplecov`;
+- a file the map has never seen changes, such as a view or a fixture. Changes only to documentation, CI configuration or coding-agent configuration are the exception.
+
+Coverage defaults to `"changed-files"` on Rails. A partial run keeps SimpleCov's project-wide minimums off the slice (`scripts/lisa_rspec_partial_coverage.rb`), and then each changed Ruby file is checked against `simplecov.thresholds.json` on its own. A file below it does not fail the push for that alone: the pre-push names the file and runs the full suite, whose SimpleCov minimums decide the push, exactly as `"full"` would. It does the same when the partial run cannot measure coverage safely, for example with a SimpleCov too old to keep its minimums off the slice. `"skip"` leaves coverage to CI. `"full"` keeps the full suite. CI still runs every spec and enforces the thresholds on the whole suite before merge.
+
+### The smart push gate in TypeScript projects
+
+A TypeScript project gets the smart push gate without configuring it. A project counts as TypeScript when it has a root `tsconfig.json`, or `typescript` in its `package.json` dependencies or devDependencies. When its `.lisa.config.json` does not say otherwise, it gets `cache`, `admission` and `affectedTests` set to `true`, and `affectedCoverage` set to `"changed-files"`, the same as Lisa. A value the project sets always wins, `false` included, so `"pushGate": { "affectedTests": false }` returns the push to the full suite. `buildOnce` stays off, because a TypeScript project's push gates do not build, so a build-once step would only add a build. Nothing is written into the project's config, and an existing project needs only `lisa apply`.
+
+The shipped `test:cov:unit` and `test:unit` scripts of every Vitest stack run through the selector, but they narrow only when the push gate (or `lisa check`) runs them. CI and a test run you start yourself still run every test. The Jest stack (Expo) is not narrowed. The shared Vitest presets record the project's access map on every pull request in the shared CI workflow when `affectedTests` is on, and `scripts/fetch-test-access-map.mjs` downloads it from the project's own repository. Until the project's CI has recorded a map, every push runs the full suite and says `missing map`. The project's own Vitest `forceRerunTriggers`, `setupFiles` and `globalSetup` are recorded with the map, so a change to any of them also runs the full suite.
 
 ## Working across trackers and sources
 
@@ -519,6 +662,41 @@ On macOS, select the short, non-symlink temp base `/private/tmp` before the
 native wrapper when running Unix-socket fixtures. Inherited Harper and Phaser
 native host checks run on Lisa's own Bun1.4.4, which meets their >=1.3.11
 floor; set `LISA_TEST_HOST_BUN` only to test against a different Bun.
+
+### Package.lisa.json
+
+Each stack's `package-lisa/package.lisa.json` decides what Lisa does to a host's
+`package.json`. The host's file stays clean: it never carries a Lisa marker.
+Templates inherit `all` → `typescript` → the specific stack, and the child
+wins.
+
+| Section | What Lisa does | Use it for |
+| --- | --- | --- |
+| `force` | Lisa's value replaces the host's on every apply. | Governance-critical settings: lint and test scripts, required tooling, commit hooks, security floors in `overrides`/`resolutions`. |
+| `defaults` | Lisa's value is written only when the host has none. | Starting points a host may change, such as an engine version. |
+| `merge` | Arrays are concatenated and deduplicated. | Lists both sides add to, such as `trustedDependencies`. |
+| `minimums` | Package name to the lowest range a host's own direct dependency may hold. | Libraries Lisa no longer installs, whose version line it still keeps. |
+
+A `minimums` entry follows four rules:
+
+- It raises a range the host itself lists in `dependencies`, `devDependencies`
+  or `optionalDependencies`, inside that range's major: an exact pin becomes the
+  minimum exactly (`5.2.0` → `5.4.0`), and a tilde or caret moves to it
+  (`~7.50.0` → `~7.70.0`).
+- It never adds a dependency. A host that does not list the package is not
+  changed.
+- It refuses rather than crosses a major. The apply stops and names the range
+  to set, and the host decides when to move.
+- It never touches transitive copies or `peerDependencies`. Nothing is written
+  to `overrides` or `resolutions`, because those replace the range of every copy
+  in the tree.
+
+A security floor is the opposite case. An advisory reaches every copy, so it
+belongs in `force.overrides` and `force.resolutions`, not in `minimums`. Two
+more sections handle keys Lisa has stopped owning: `remove` deletes a retired
+key, and `adopt` reclaims a key only while it still holds a value Lisa itself
+wrote. The full specification is
+[wiki/documentation/specs/package-lisa-json.md](wiki/documentation/specs/package-lisa-json.md).
 
 > **Prompt for your coding agent**
 > "I want to add or change a skill, rule, hook, or agent in Lisa. Show me the source location, the build step, what I must commit alongside it, and the CI check that fails if I edit a generated artifact directly. Then check my change against those rules before I commit."

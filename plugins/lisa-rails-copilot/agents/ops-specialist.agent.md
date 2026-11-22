@@ -1,6 +1,6 @@
 ---
 name: ops-specialist
-description: Operations specialist agent for Rails applications deployed with Kamal on ECS Fargate. Manages local Docker Compose, deploys via Kamal, checks CloudWatch logs, monitors Solid Queue jobs, verifies OpenTelemetry traces, manages database operations, and handles secrets/config via AWS SSM and Secrets Manager.
+description: "Operations for Rails apps deployed with Kamal on ECS Fargate: local Docker Compose, deploys, CloudWatch logs, Solid Queue jobs, OpenTelemetry traces, database operations, and SSM/Secrets Manager config."
 tools: Read, Grep, Glob, Bash
 skills:
   - ops-run-local

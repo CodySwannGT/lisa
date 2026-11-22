@@ -18,7 +18,11 @@ Never assume something works because the code "looks correct." Run a command, ob
 
 **Verification is not linting, typechecking, or testing.** Those are **quality checks** — prerequisites that must pass before verification begins, but they are NOT verification themselves. Running `bun run test`, `bun run typecheck`, `bun run lint`, or `bun run format` is a quality check. Verification is using the resulting software the way a user would — interacting with the UI, calling the API, running the CLI command, observing the behavior. Tests pass in isolation; verification proves the system works as a whole.
 
+**Verification IS UAT** (User Acceptance Testing) — one gate, not two: using the software as a user, against the acceptance criteria.
+
 **If all you did was run tests, typecheck, and lint — you have NOT verified.** You have only confirmed quality checks pass. Verification requires running the actual system and observing the results: making HTTP requests, clicking through the UI, executing CLI commands, querying the database, or otherwise interacting with the running software as an end user would.
+
+**A check that cannot fail is not evidence either.** Every gate, probe, sweep, and codified spec you author is subject to the `falsifiable-checks` rule: break the guarded property on a scratch copy, never in a worktree another agent is editing, see the check fail at the right location, restore, and report that falsification.
 
 ### Browser-controller neutrality
 
@@ -138,14 +142,16 @@ Example transformation (the failure mode this grammar exists to prevent):
 |---|---|
 | `screenshot` | an image of the observed UI/state (Playwright, simulator, device) |
 | `recording` | a video of the playthrough |
-| `http-transcript` | the exact request (curl command or client call) plus the full response — status, headers of interest, body |
-| `cli-output` | the command plus its stdout/stderr and exit code |
+| `http-transcript` | a JSON file with `request.method`, `request.url`, a whole-number `response.status` (100–599) and `response.body` (omittable only for a 204 or a HEAD request); plain curl text is refused |
+| `cli-output` | a JSON file with `command`, `stdout`, `stderr` and a whole-number exit code (`exit_code`, `exitCode`, `exit` or `status`) |
 | `log-snippet` | correlated log lines captured from the running system |
-| `db-query-output` | the query plus the returned rows |
-| `perf-trace` | benchmark / frame-timing / profiler output, with the methodology (device profile, dataset size) noted |
+| `db-query-output` | a JSON file with the `query` text and a `rows` list (an empty list is valid); plain query output is refused |
+| `perf-trace` | a JSON file with `methodology` (device profile, dataset size) and a non-empty `measurements` list of `{metric, value, unit}` |
 | `test-run-log` | reporter output naming the spec and showing it ran and passed |
-| `deploy-log` | deployment output or a health-check response from the target environment |
-| `state-dump` | machine-readable observed state (e.g. the `state.json` asserted against) |
+| `deploy-log` | a JSON finished pipeline run (`status: "completed"`, `conclusion`, whole-number `id` or `workflow_path`), or a `cli-output` JSON whose `stdout` mentions the deploy, release or health check |
+| `state-dump` | a JSON file with one of `state`/`data`/`response`/`records` (what was observed) plus one of `id`/`source`/`command`/`captured_at` (where or when it was read) |
+
+The JSON kinds above are checked for structure, so a plain-text capture of them is refused. Required fields and a minimal example for every kind are in `skills/lisa-tracker-evidence/references/completion-authorization.md` ("Typed capture shapes"), relative to the Lisa plugin root.
 
 Do not invent types inline; if none fits, propose extending this table. The legacy `[SCREENSHOT: name]` marker is equivalent to `[EVIDENCE: screenshot: name]`.
 
@@ -164,12 +170,15 @@ The committed verdict carries the machine-readable half:
 evidence/<ticket>/verdict.json
   not_established: []            # what was NOT proved; may be empty
   not_established_reviewed: true # attests the list was reviewed; may NEVER be omitted
+  evidence_committed: true       # false when git ignores any of evidence/<ticket>/ — see
+                                 # "When the repository ignores evidence" below
   drift: none                    # live-environment baseline-vs-now drift classification:
                                  # none | progress | regression | unrelated_churn
   artifact: { repository, base_sha, head_sha, build_id, environment, observed_at }
   evidence: [ { evidence_id, kind, locator,
                 artifact_head_sha,   # the head_sha in force when THIS artifact was captured
-                sha256,              # content digest of the committed evidence file
+                sha256,              # content digest of the committed evidence file, or of the
+                                     # uploaded evidence-release copy when git ignores the evidence
                 captured_at } ]
 ```
 
@@ -191,9 +200,9 @@ When prose needs to point at evidence declared by another work item, use the ded
 
 For example, `[EVIDENCE-REF: CodySwannGT/lisa#1548 | test-run-log: plugin-parity]` or `[EVIDENCE-REF: ENG-123 | screenshot: empty-state]`. The work-item reference must be a native, unambiguous tracker reference; the artifact type and name use the same taxonomy and kebab-case grammar as a manifest marker.
 
-For compatibility with Lisa 2.223.0, validators and consumers also accept the legacy form `[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]` as a non-claiming pointer. Parse that legacy payload from the right: the final two colon-delimited fields are the fixed artifact type and kebab-case name, and everything before them is the non-empty tracker reference (which may itself contain `:` as part of a URL). Writers must never emit the legacy form; normalize it to the pipe form whenever editing the journey.
+For compatibility with Lisa 2.223.0, validators and consumers also accept the legacy form `[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]` as a non-claiming pointer. Parse that legacy payload from the right: the final two colon-delimited fields are the fixed artifact type and kebab-case name, and everything before them is the non-empty tracker reference (which may itself contain `:` as part of a URL). Writers must never emit the legacy form; normalize it to the pipe form whenever editing the journey. The legacy colon form remains accepted but must not be newly authored.
 
-`EVIDENCE-REF` is a pointer only. It never adds an artifact to the current work item's manifest, never satisfies S14, never participates in marker-name uniqueness or duplicate checks, and is never captured or checked by journey, evidence-posting, or completion flows. Only the exact claiming prefix `[EVIDENCE: ...]` declares an obligation on the current work item (with the legacy `[SCREENSHOT: name]` form still treated as a local screenshot obligation). A runtime-changing leaf whose journey contains references but no local claiming marker still fails S14. Writers must use `EVIDENCE-REF` rather than quoting a sibling's `[EVIDENCE: ...]` marker, because quoted or code-formatted claiming markers still belong to the current work item.
+`EVIDENCE-REF` is a pointer only: a reference never enters or satisfies the local S14 manifest. It never adds an artifact to the current work item's manifest, never satisfies S14, never participates in marker-name uniqueness or duplicate checks, and is never captured or checked by journey, evidence-posting, or completion flows. Only the exact claiming prefix `[EVIDENCE: ...]` declares an obligation on the current work item (with the legacy `[SCREENSHOT: name]` form still treated as a local screenshot obligation). A runtime-changing leaf whose journey contains references but no local claiming marker still fails S14. Writers must use `EVIDENCE-REF` rather than quoting a sibling's `[EVIDENCE: ...]` marker, because quoted or code-formatted claiming markers still belong to the current work item.
 
 ---
 
@@ -256,6 +265,38 @@ evidence/<ticket>/
 ```
 
 `evidence/**` is ignored by lint/format/knip/coverage — it is proof, not source.
+
+**When the repository ignores evidence.** Some repositories gitignore
+`evidence/` on purpose, because screenshots and recordings bloat history. Others
+ignore file patterns such as `*.png` or `*.mp4` that the evidence uses. Either way,
+`git add` skips those files without any error, and the PR carries no proof of
+them. So before treating `evidence/<ticket>/` as the committed record, run:
+
+```bash
+git ls-files --others --ignored --exclude-standard -- evidence/<ticket>/
+```
+
+- **It prints one or more files.** Git ignores that evidence, and then:
+  - The directory is **not** the durable record. The durable record is the tracker
+    evidence comment plus the configured evidence release uploads that
+    `lisa-tracker-evidence` makes. Every manifest artifact must be uploaded there,
+    including `verdict.json` and `state.json`, not only the screenshots.
+  - `verdict.json` records `"evidence_committed": false`. Each `evidence[].locator`
+    is the uploaded asset's URL, not a repository path. So each `sha256` is a digest
+    of bytes that anyone with read access to the repository can fetch and re-check.
+  - A digest of a file that exists only in one session's working tree is a
+    **session-local integrity anchor**. Never present it as something a third party
+    can re-verify.
+  - Reports, PR text, and tracker comments never say the evidence was "committed".
+    They say it was uploaded, and they name the tracker comment as the record of
+    truth.
+- **It prints nothing, exits 0, and the directory holds the manifest files.**
+  Nothing is ignored. Commit the directory as described above and record
+  `"evidence_committed": true`. An empty result for a missing or mistyped
+  directory proves nothing: check that the files exist first.
+- **It exits non-zero.** The check itself failed, for example because the path is
+  outside the repository or there is no repository. Stop and report the failure.
+  Never treat it as tracked.
 
 **3. Per-change verification is enforced.** Every `feat`/`fix` adds or extends a
 verification (e2e) spec mapped to its acceptance criteria. CI's

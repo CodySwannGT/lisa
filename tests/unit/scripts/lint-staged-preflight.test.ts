@@ -13,14 +13,7 @@
  * because the thing under test is an exit code.
  */
 import { spawn } from "node:child_process";
-import {
-  chmodSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -34,6 +27,10 @@ import {
   invokedAsScript,
   tasksOf,
 } from "../../../all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT = path.join(
@@ -85,7 +82,7 @@ const runPreflight = (
  * @returns Absolute path to the directory.
  */
 const fixture = (config: string): string => {
-  const dir = mkdtempSync(path.join(tmpdir(), "lisa-preflight-"));
+  const dir = ownedDir("lisa-preflight-");
   mkdirSync(path.join(dir, "node_modules", ".bin"), { recursive: true });
   writeFileSync(path.join(dir, CONFIG), config);
   return dir;
@@ -204,6 +201,27 @@ describe("lint-staged preflight — behaviour", () => {
 
     expect(code).toBe(1);
     expect(output).toContain("ENOENT");
+  });
+
+  it("refuses as soon as it has decided, not after the probe deadline", async () => {
+    // A tool that cannot start used to keep the preflight alive for the whole
+    // 15-second probe deadline after the refusal was already decided: the
+    // `timeout` handed to `spawn` arms a referenced timer that Node clears only
+    // on `exit`, and a child that never started never exits. A host with one
+    // broken pre-commit tool waited 15 seconds per tool before the refusal
+    // printed (CodySwannGT/lisa#4616, audit row 6 of docs/test-audit-2026-11.md).
+    // The bound is a third of that deadline, wide enough for a loaded machine.
+    const dir = fixture(
+      '{ "*.ts": ["lisa-fixture-absent", "lisa-fixture-locked"] }'
+    );
+    installUnspawnableBin(dir, "lisa-fixture-locked");
+
+    const started = performance.now();
+    const { code } = await runPreflight(dir, CONFIG_ARGS);
+    const elapsed = performance.now() - started;
+
+    expect(code).toBe(1);
+    expect(elapsed).toBeLessThan(5_000);
   });
 
   it("PASSES a runnable tool, and says how many it probed", async () => {

@@ -1,4 +1,4 @@
 display_name: "Intake"
-short_description: "Vendor-agnostic scanner for Ready queues"
+short_description: "Run one intake cycle over a ready queue (Notion, Confluence, Linear, GitHub, or JIRA): plan the first ready PRD, build the first ready…"
 default_prompt:
-  - "Use $lisa-intake: Vendor-agnostic scanner for Ready queues."
+  - "Use $lisa-intake: Run one intake cycle over a ready queue (Notion, Confluence, Linear, GitHub, or JIRA): plan the first ready PRD, build the first ready…."

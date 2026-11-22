@@ -1,9 +1,9 @@
 ---
 name: lisa-confluence-to-tracker
-description: "Break down a Confluence PRD…"
+description: "Turn a Confluence PRD page into…"
 allowed-tools: ["Skill", "Bash"]
 ---
-Break down a Confluence PRD page into Epics, Stories, and Sub-tasks in the configured destination tracker (JIRA, GitHub Issues, or Linear per .lisa.config.json). Use this skill whenever the user shares a Confluence PRD URL and wants it converted into tracker tickets, or asks to "break down this Confluence spec", "create tickets from a Confluence page", "turn this Confluence doc into tickets", or similar. This skill mirrors `lisa-notion-to-tracker` for projects whose PRDs live in Confluence — the workflow, gates, dry-run mode, and validation rules are identical; only the source-of-truth tool surface differs (Confluence MCP instead of Notion MCP).
+Turn a Confluence PRD page into epics, stories, and sub-tasks in the project's tracker. Use when someone shares a Confluence PRD and wants tickets.
 
 
 # Confluence PRD to Tracker Breakdown
@@ -171,7 +171,7 @@ This skill is a **PRD source** (Confluence); destination tracker resolution is h
 | `E2E_BASE_URL` | Frontend base URL for Playwright tests | `https://dev.example.io/` |
 | `E2E_GRAPHQL_URL` | GraphQL API URL for curl verification | `https://gql.dev.example.io/graphql` |
 
-If env vars are not available, ask the user to provide them explicitly before proceeding. Do not retrieve credentials from repository files or local agent settings.
+If env vars are not available, resolve them through `lisa-secrets-access`. One that still does not resolve is missing access: stop and name each missing variable. Do not retrieve credentials from repository files or local agent settings.
 
 ## Workflow
 
@@ -376,7 +376,7 @@ To run the gate, this skill must:
 
 1. Pull the remote links of every epic and story created in this run via `lisa-tracker-read (vendor-neutral; dispatches to jira-read-ticket or github-read-issue)`.
 2. Apply the §8 preservation matrix and verdict rules.
-3. If the gate fails: list each dropped/misrouted artifact and either re-attach via `lisa-tracker-write` (UPDATE mode) or stop and ask the human.
+3. If the gate fails: list each dropped/misrouted artifact and re-attach each via `lisa-tracker-write` (UPDATE mode), choosing the destination ticket from the evidence and recording why. Stop only when re-attaching needs access you lack (for example, the source artifact or the tracker cannot be reached), and name that access.
 4. If the gate passes: print the matrix compactly and proceed to Phase 6.
 
 This gate is not optional.
@@ -406,7 +406,7 @@ Invoke `lisa-prd-backlink` with:
 - `tickets`: the full list created in Phases 3–5, each entry as `{ key, title, type, url, parent_key, requirements }` — `requirements` is the list of Phase 1.4 register ids the ticket satisfies (empty for derived work)
 - `requirement_register`: the Phase 1.4 register (`{ id, verbatim_text, section_heading }` entries), so the back-link section can render the requirement → tickets view
 
-If `lisa-prd-backlink` fails (page permission denied, Confluence unreachable), surface the error in the Phase 6 report rather than aborting — the tickets are already created. Recommend the user re-run `lisa-prd-backlink` standalone once the source is reachable.
+If `lisa-prd-backlink` fails (page permission denied, Confluence unreachable), surface the error in the Phase 6 report rather than aborting — the tickets are already created. File one build-ready ticket to re-run `lisa-prd-backlink` standalone for this PRD once the source is reachable (it is idempotent) and link it in the report; when the cause is missing access, name exactly what is unreachable.
 
 ## Handling Ambiguities and Blockers
 

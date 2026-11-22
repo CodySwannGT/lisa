@@ -118,7 +118,7 @@ export const PUBLIC_ORGS: readonly string[] = [
  * Documentation needs a worked example, and refusing one would push authors
  * toward using a real name instead — the opposite of the intent.
  */
-export const PLACEHOLDER_OWNERS: readonly string[] = [
+const PLACEHOLDER_OWNERS: readonly string[] = [
   "your_username",
   "your-org",
   "yourorg",

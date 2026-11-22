@@ -1,4 +1,4 @@
 display_name: "Ingest"
-short_description: "Ingest source material into the…"
+short_description: "Add knowledge to the LLM Wiki"
 default_prompt:
-  - "Use $lisa-ingest: Ingest source material into the…."
+  - "Use $lisa-ingest: Add knowledge to the LLM Wiki."

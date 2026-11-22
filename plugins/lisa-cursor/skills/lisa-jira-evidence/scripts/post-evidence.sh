@@ -14,7 +14,9 @@
 #   - gh CLI authenticated
 #
 # What it does:
-#   1. Uploads evidence files to the 'pr-assets' GitHub release
+#   1. Uploads evidence files to the configured GitHub evidence release
+#      (default 'pr-assets'; see verification.completion.evidenceRelease) as
+#      pr-<PR_NUMBER>-<file>, then confirms every one is listed there
 #   2. Updates the GitHub PR description with evidence/comment.md
 #   3. Uploads image evidence as JIRA attachments
 #   4. Posts/updates the JIRA comment with evidence/comment.txt
@@ -26,6 +28,14 @@ set -euo pipefail
 TICKET_ID="${1:?Usage: post-evidence.sh <TICKET_ID> <EVIDENCE_DIR> <PR_NUMBER>}"
 EVIDENCE_DIR="${2:?Usage: post-evidence.sh <TICKET_ID> <EVIDENCE_DIR> <PR_NUMBER>}"
 PR_NUMBER="${3:?Usage: post-evidence.sh <TICKET_ID> <EVIDENCE_DIR> <PR_NUMBER>}"
+
+# Every release asset is named pr-${PR_NUMBER}-<file>, so the number must be a
+# canonical positive integer before anything is uploaded: an empty, signed or
+# padded value would produce a name another pull request could also produce.
+if [[ ! "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+  echo "ERROR: PR_NUMBER must be a positive integer, got '$PR_NUMBER'" >&2
+  exit 1
+fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIG RESOLUTION
@@ -106,7 +116,30 @@ PY_ORIGIN
 )
 
 GH_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
-RELEASE_TAG="pr-assets"
+# The evidence release comes from the one resolver every writer shares, so a
+# project's `verification.completion.evidenceRelease` (for example the rotating
+# `pr-assets-{YYYY-MM}`) moves this upload too. GitHub caps a release at 1000
+# assets; a hardcoded `pr-assets` filled up and every upload then failed with a
+# raw HTTP 422 (CodySwannGT/lisa#4692). `--ensure` creates the release when it
+# is absent and, when it is nearly full, rolls over to the next overflow
+# release (`<release>-2`, `-3`, …) and prints that one (CodySwannGT/lisa#4838).
+# It refuses, in plain words, only when a pinned release is full, every
+# overflow release is full, the release name is too long to take an overflow
+# suffix, or the release cannot be created. generate-templates.py asks the same `--ensure`, so its links
+# name the release uploaded here. A host whose Lisa predates the resolver keeps
+# the legacy release.
+#
+# LISA_EVIDENCE_RELEASE, when set, pins the release for this run so the links
+# generate-templates.py wrote match these uploads. The resolver still checks
+# that name and the release's capacity; it reads the variable itself.
+RELEASE_TAG="${LISA_EVIDENCE_RELEASE:-pr-assets}"
+WORK_ITEM_CLI="${PROJECT_DIR}/scripts/lisa-work-item.mjs"
+if [[ -f "$WORK_ITEM_CLI" ]]; then
+  if ! RELEASE_TAG=$(cd "$PROJECT_DIR" && node "$WORK_ITEM_CLI" evidence-release --ensure); then
+    echo "ERROR: the GitHub evidence release is not usable (see the message above); no evidence was uploaded." >&2
+    exit 1
+  fi
+fi
 
 if [[ -z "${JIRA_API_TOKEN:-}" ]]; then
   echo "ERROR: JIRA_API_TOKEN environment variable is not set" >&2
@@ -134,28 +167,130 @@ fi
 
 echo "Found ${#SCREENSHOTS[@]} screenshots and ${#TEXT_EVIDENCE[@]} text evidence files to upload"
 
-# Compute JIRA auth early (used in steps 3 and 4)
-JIRA_AUTH=$(printf '%s' "$JIRA_USER:$JIRA_API_TOKEN" | base64 | tr -d '\n')
-
-# ── Step 1: Upload to GitHub pr-assets release ──────────────────────────────
-echo ""
-echo "==> Uploading to GitHub release '$RELEASE_TAG'..."
-
+# GitHub rewrites special characters (spaces, brackets, non-ASCII) in release
+# asset names, so a link built from the local name would point at an asset that
+# does not exist under that name. Refuse such names before anything is uploaded.
 for FILE in "${ALL_EVIDENCE[@]}"; do
-  FILENAME=$(basename "$FILE")
-  echo "  ↑ $FILENAME"
-  gh release upload "$RELEASE_TAG" "$FILE" --repo "$GH_REPO" --clobber
+  if [[ ! "$(basename "$FILE")" =~ ^[0-9]{2}-[A-Za-z0-9._-]+\.(png|txt|json)$ ]]; then
+    echo "ERROR: evidence file name '$(basename "$FILE")' is not release-safe." >&2
+    echo "  Rename it to NN-name.ext using only letters, digits, '.', '_' and '-'" >&2
+    echo "  (e.g. '01-search step.png' -> '01-search-step.png'), then re-run generate-templates.py." >&2
+    exit 1
+  fi
 done
 
-echo "  ✓ GitHub release assets uploaded"
-
-# ── Step 2: Update GitHub PR description with evidence ──────────────────────
+# The description's links are checked before uploading and again against the
+# release after uploading, so it must exist before anything is uploaded.
 COMMENT_MD="$EVIDENCE_DIR/comment.md"
 if [[ ! -f "$COMMENT_MD" ]]; then
   echo "ERROR: $COMMENT_MD not found — run generate-templates.py first" >&2
   exit 1
 fi
 
+# Print every Markdown link or image target in comment.md, one per line. Every
+# Markdown target form counts:
+#   inline      ](url)  ](url "title")  ](<url>)  ](<url> "title")
+#   reference   [ref]: url  [ref]: <url> "title"   (up to 3 leading spaces)
+# Only link targets count: text evidence inlined into comment.md may quote a
+# release URL as plain text, and that must not fail the run.
+comment_links() {
+  { grep -oE '\]\(<?[^)<>[:space:]]+' "$COMMENT_MD" || true; } | sed -E 's/^\]\(<?//'
+  { grep -oE '^ {0,3}\[[^]]+\]:[[:space:]]*<?[^<>[:space:]]+' "$COMMENT_MD" || true; } |
+    sed -E 's/^ {0,3}\[[^]]+\]:[[:space:]]*<?//'
+}
+
+# A link to THIS pull request's own pr-${PR_NUMBER}- asset in a different
+# release of this repository means the templates were generated against one
+# release and this run uploads to another (a roll-over to `<release>-2` in
+# between, CodySwannGT/lisa#4838): the link would 404, so refuse it. The check
+# runs before anything is uploaded, so a refused run leaves no copies behind in
+# a release the operator then re-pins away from (CodySwannGT/lisa#4856).
+# Any other cross-release link (another PR's evidence, or an older release's
+# asset linked on purpose) passes through untouched: regenerating the
+# templates cannot remove a hand-written link, so refusing it would loop.
+RELEASE_PREFIX="github.com/${GH_REPO}/releases/download/"
+CROSS_RELEASE_LINKS=0
+while IFS= read -r LINK; do
+  [[ "$LINK" == *"$RELEASE_PREFIX"* ]] || continue
+  LINK_TAG="${LINK#*"$RELEASE_PREFIX"}"
+  LINK_TAG="${LINK_TAG%%/*}"
+  [[ "$LINK_TAG" != "$RELEASE_TAG" ]] || continue
+  [[ "${LINK##*/}" == "pr-${PR_NUMBER}-"* ]] || continue
+  echo "ERROR: $COMMENT_MD links $LINK in release '$LINK_TAG', but this run uploads to release '$RELEASE_TAG'. Regenerate the templates with LISA_EVIDENCE_RELEASE=$RELEASE_TAG and re-run this script with the same LISA_EVIDENCE_RELEASE=$RELEASE_TAG. If this link was written by hand, remove it or re-upload the asset to '$RELEASE_TAG'." >&2
+  CROSS_RELEASE_LINKS=1
+done < <(comment_links)
+if [[ $CROSS_RELEASE_LINKS -ne 0 ]]; then
+  echo "No evidence was uploaded." >&2
+  exit 1
+fi
+
+# Compute JIRA auth early (used in steps 3 and 4)
+JIRA_AUTH=$(printf '%s' "$JIRA_USER:$JIRA_API_TOKEN" | base64 | tr -d '\n')
+
+# ── Step 1: Upload to the GitHub evidence release ───────────────────────────
+echo ""
+echo "==> Uploading to GitHub release '$RELEASE_TAG'..."
+
+# Every pull request shares this one release, and --clobber deletes a
+# same-named asset before uploading. Bare NN- names collided across pull
+# requests, so a later upload destroyed an earlier one's evidence
+# (CodySwannGT/lisa#4639). Each asset is therefore uploaded as
+# pr-${PR_NUMBER}-<file>: --clobber can then replace only this pull request's
+# own earlier upload. Local evidence files keep their NN- names; the scoped
+# copies live in a private directory removed on exit.
+UPLOAD_DIR=$(mktemp -d)
+trap 'rm -rf "$UPLOAD_DIR"' EXIT
+UPLOADED_ASSETS=()
+for FILE in "${ALL_EVIDENCE[@]}"; do
+  ASSET_NAME="pr-${PR_NUMBER}-$(basename "$FILE")"
+  cp "$FILE" "$UPLOAD_DIR/$ASSET_NAME"
+  echo "  ↑ $ASSET_NAME"
+  gh release upload "$RELEASE_TAG" "$UPLOAD_DIR/$ASSET_NAME" --repo "$GH_REPO" --clobber
+  UPLOADED_ASSETS+=("$ASSET_NAME")
+done
+
+# The description links these names, so confirm each one is really in the
+# release before pointing anything at it.
+RELEASE_ASSETS=$(gh release view "$RELEASE_TAG" --repo "$GH_REPO" --json assets --jq '.assets[].name')
+MISSING_ASSETS=0
+for ASSET_NAME in "${UPLOADED_ASSETS[@]}"; do
+  if ! grep -qxF "$ASSET_NAME" <<< "$RELEASE_ASSETS"; then
+    echo "ERROR: $ASSET_NAME is missing from release '$RELEASE_TAG' after upload" >&2
+    MISSING_ASSETS=1
+  fi
+done
+if [[ $MISSING_ASSETS -ne 0 ]]; then
+  exit 1
+fi
+
+echo "  ✓ GitHub release assets uploaded"
+
+# Every Markdown link or image target that points into the release must name
+# an asset THIS run uploaded, and therefore one the check above just found in
+# the release. A bare or other-PR name would show some other pull request's
+# evidence, and a pr-<n>- asset left over from an earlier run would show
+# evidence this run did not produce. Links into other releases were already
+# checked before uploading.
+THIS_RUN_ASSETS=$(printf '%s\n' "${UPLOADED_ASSETS[@]}")
+BAD_LINKS=0
+while IFS= read -r LINK; do
+  # Only this repository's release counts: another repository's release of the
+  # same name holds assets this run never uploaded.
+  [[ "$LINK" == *"${RELEASE_PREFIX}${RELEASE_TAG}/"* ]] || continue
+  LINK_NAME="${LINK##*/}"
+  if [[ "$LINK_NAME" != "pr-${PR_NUMBER}-"* ]]; then
+    echo "ERROR: $COMMENT_MD links $LINK, which is not scoped to PR #$PR_NUMBER (expected pr-${PR_NUMBER}-<file>)" >&2
+    BAD_LINKS=1
+  elif ! grep -qxF "$LINK_NAME" <<< "$THIS_RUN_ASSETS"; then
+    echo "ERROR: $COMMENT_MD links $LINK, which this run did not upload to release '$RELEASE_TAG'" >&2
+    BAD_LINKS=1
+  fi
+done < <(comment_links)
+if [[ $BAD_LINKS -ne 0 ]]; then
+  exit 1
+fi
+
+# ── Step 2: Update GitHub PR description with evidence ──────────────────────
 echo ""
 echo "==> Updating GitHub PR #$PR_NUMBER description..."
 

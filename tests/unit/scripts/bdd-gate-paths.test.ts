@@ -25,7 +25,7 @@ import {
   healthyProject,
   runGate,
   writeMap,
-} from "./bdd/support";
+} from "./bdd/support.js";
 
 /**
  * A one-feature file whose Background carries some of the primary steps.

@@ -47,11 +47,13 @@
  * `dist/` ships to npm, so **this** repository may not name its hosts. A host
  * naming itself carries none of that.
  *
- * So the parity obligation is satisfied across every agent surface OF THIS
- * REPOSITORY — Claude, Codex, Cursor, Antigravity, Copilot all register it —
- * and stops at the boundary where the rule itself stops applying. Anyone
- * tempted to add it to `plugins/materialized-artifacts.json` should have a
- * reason why a host project should be refused its own name.
+ * Claude, Codex, Cursor, Antigravity, Copilot and Devin register the canonical
+ * plugin guard. OpenCode installs a native tool.execute.before adapter beside
+ * the same wrapper/classifier/helper; its package staging adds only the normal
+ * ownership banner. It preserves exit0 warnings and exit2 refusals. All seven
+ * surfaces therefore share target-scoped policy, rather than refusing a host
+ * project's own name. The generic dispatcher copy-overwrite roster remains
+ * separate; this guard is not added to that roster.
  *
  * WHERE IT APPLIES: THE TARGET, NOT THE CHECKOUT (#4462)
  *
@@ -70,6 +72,10 @@
  * routing. Unsupported shell syntax, unresolved expansions and ambiguous
  * repositories earn no host exemption. This is bounded command inspection,
  * not shell execution or a claim to close every shell/identity leak class.
+ * Literal one-level sh -c and bash -c executable-script operands reuse that
+ * inspection with the inherited directory/environment. No other quoted argv
+ * is interpreted as code. Dynamic scripts, deeper nesting, other interpreters
+ * and other launcher options remain outside this recognition contract.
  *
  * FAILING OPEN, LOUDLY
  *
