@@ -253,9 +253,21 @@ function criterionVerdict(
   const serving = inputs.register.entries.filter(entry =>
     entry.criteria.includes(criterion.id)
   );
+  const unproved = new Set(
+    serving.filter(entry => entry.status === "unproved").map(entry => entry.id)
+  );
   const answers = answersFor(
     serving,
-    inputs.evidence.records.filter(record => record.criterion === criterion.id),
+    inputs.evidence.records.filter(
+      record =>
+        record.criterion === criterion.id &&
+        !(
+          record.moment === "pull-request" &&
+          record.rung === "exercised" &&
+          record.entry_id !== null &&
+          unproved.has(record.entry_id)
+        )
+    ),
     {
       minimum,
       kind,

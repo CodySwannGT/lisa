@@ -129,7 +129,7 @@ describe("the register an attest run writes after the evidence", () => {
     expect(await registerCheck(where.repoPath)).toBe(0);
   });
 
-  it("no longer reads unproved once both pull-request halves held, in the same run", async () => {
+  it("keeps the hosted entry unproved when its records have no attest receipt", async () => {
     const where = setting(PIPELINE_RUN);
 
     const recorded = await record(where, {
@@ -137,7 +137,7 @@ describe("the register an attest run writes after the evidence", () => {
     });
 
     expect(recorded.problems).toBeNull();
-    expect(statusIn(where.repoPath)).toBeUndefined();
+    expect(statusIn(where.repoPath)).toBe("unproved");
     expect(await registerCheck(where.repoPath)).toBe(0);
   });
 
@@ -167,10 +167,11 @@ describe("the register an attest run writes after the evidence", () => {
     expect(statusIn(where.repoPath)).toBe("unproved");
     expect(
       verdictIn(where.repoPath).criteria.find(each => each.criterion === "SI7")
-    ).toMatchObject({ verdict: "non-conforming", reason: "control-failed" });
+        ?.reason
+    ).not.toBe("control-failed");
   });
 
-  it("reads unproved again when a later run has no pull-request result to repeat", async () => {
+  it("keeps the mark when a later run replaces the unauthenticated records", async () => {
     const where = setting(PIPELINE_RUN);
     await record(where, {
       batches: [pullRequestBatch([canary("violation"), canary("clean")])],
@@ -203,6 +204,6 @@ describe("the register an attest run writes after the evidence", () => {
       `${ENTRY}/${PULL_REQUEST}/clean/SI7`,
       `${ENTRY}/${PULL_REQUEST}/violation/SI7`,
     ]);
-    expect(statusIn(where.repoPath)).toBeUndefined();
+    expect(statusIn(where.repoPath)).toBe("unproved");
   });
 });

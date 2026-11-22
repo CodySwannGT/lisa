@@ -1521,7 +1521,7 @@
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
       "0cc51d8a05524d6449ab30bd2a5b60687c26617d2cd5e571c9fce68ad9feb3c8",
     "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md":
-      "15448a58e62e54c244f441d73ef3ec87edb23f9d86b07b414d264b2100234812",
+      "7b926efa4ec1a7c68af9fd1443bf9dd9dd4688efc121c18b688b46a51afada2c",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "f7b6886b1acf79f04cf9ef0bd2d4bf086d8ec1ded7c45cbfb979919e5bacb831",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -11578,6 +11578,7 @@
     "src/controls/coding-agents.ts": true,
     "src/controls/commands/attest-attempt.ts": true,
     "src/controls/commands/attest-before-enforce.ts": true,
+    "src/controls/commands/attest-host-proof.ts": true,
     "src/controls/commands/attest-interruption.ts": true,
     "src/controls/commands/attest-options.ts": true,
     "src/controls/commands/attest-report-only.ts": true,
@@ -11627,6 +11628,11 @@
     "src/controls/evidence.ts": true,
     "src/controls/gates-declaration.ts": true,
     "src/controls/head-commit.ts": true,
+    "src/controls/host-proof-input.ts": true,
+    "src/controls/host-proof-receipt.ts": true,
+    "src/controls/host-proof-register.ts": true,
+    "src/controls/host-proof-signature.ts": true,
+    "src/controls/host-proof-trust.ts": true,
     "src/controls/merge-protection-read.ts": true,
     "src/controls/proof-change-rule.ts": true,
     "src/controls/proof-check-plan.ts": true,
@@ -12424,6 +12430,7 @@
     "tests/integration/continuous-gates-empty.test.ts": true,
     "tests/integration/controls-attest-disposable-copy.test.ts": true,
     "tests/integration/controls-attest-host-hooks.test.ts": true,
+    "tests/integration/controls-attest-host-proof.test.ts": true,
     "tests/integration/controls-attest-output-redaction.test.ts": true,
     "tests/integration/controls-attest-pull-request.test.ts": true,
     "tests/integration/controls-attest-skill.test.ts": true,
@@ -13358,6 +13365,7 @@
     "tests/unit/controls/generate-readiness-questionnaire-check.test.ts": true,
     "tests/unit/controls/generate-readiness-questionnaire.test.ts": true,
     "tests/unit/controls/head-commit.test.ts": true,
+    "tests/unit/controls/host-proof-signature.test.ts": true,
     "tests/unit/controls/level-one-conforming.test.ts": true,
     "tests/unit/controls/lisa-gates-config-shape.test.ts": true,
     "tests/unit/controls/lisa-gates-executor.test.ts": true,

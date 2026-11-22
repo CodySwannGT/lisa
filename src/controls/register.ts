@@ -34,7 +34,7 @@ import {
   type GatesDeclaration,
   type GatesModule,
 } from "./gates-declaration.js";
-import { readEvidenceDocument } from "./proof-halves.js";
+import { evaluateHostReceipts } from "./host-proof-register.js";
 import {
   withDeclaredExecutors,
   withProofStatus,
@@ -62,11 +62,6 @@ export interface ControlRegisterInputs {
   readonly catalogue: CriterionCatalogue;
   /** Scoped defaults reproduced from the shipped registry and local tasks. */
   readonly shippedPartGates?: ReadonlySet<string>;
-  /**
-   * Reads the parsed evidence file. Called once, and only when an entry's
-   * status depends on it; left out, there is no evidence.
-   */
-  readonly evidenceDocument?: () => unknown;
 }
 
 /** A register, or one line per reason there is none. */
@@ -81,6 +76,8 @@ export type ControlRegisterGeneration =
       readonly register: ControlRegister;
       /** Exactly what `lisa controls register` writes. */
       readonly text: string;
+      /** Operator diagnostics computed from the receipt, outside the register file. */
+      readonly hostProofNotes?: readonly string[];
     }
   | { readonly problems: readonly string[] };
 
@@ -149,8 +146,7 @@ export function buildControlRegister(
             withDeclaredExecutors(
               withUnenforceableAgents(entries, declaration),
               declaration
-            ),
-            inputs.evidenceDocument ?? (() => null)
+            )
           ),
         },
       };
@@ -174,8 +170,8 @@ export interface ControlRegisterSources {
   readonly loadGates?: () => Promise<GatesModule>;
   /** Loads the criterion catalogue. */
   readonly loadCatalogue?: () => CriterionCatalogue;
-  /** Reads and parses the evidence file of a repository. */
-  readonly readEvidenceDocument?: (root: string) => unknown;
+  /** The clock used to verify receipts for any host-authored executor. */
+  readonly now?: Date;
 }
 
 /**
@@ -202,12 +198,26 @@ async function generated(
         read.declaration,
         registry
       ),
-      evidenceDocument: () =>
-        (sources.readEvidenceDocument ?? readEvidenceDocument)(root),
     });
-    return built.problems === null
-      ? { ...built, text: serializeControlRegister(built.register) }
-      : built;
+    if (built.problems !== null) return built;
+    const { current, notes } = await evaluateHostReceipts(
+      root,
+      built.register.entries,
+      sources.now ?? new Date()
+    );
+    const register =
+      current.size === 0
+        ? built.register
+        : {
+            ...built.register,
+            entries: withProofStatus(built.register.entries, current),
+          };
+    return {
+      problems: null,
+      register,
+      text: serializeControlRegister(register),
+      ...(notes.length === 0 ? {} : { hostProofNotes: notes }),
+    };
   } catch (error) {
     return {
       problems: [error instanceof Error ? error.message : String(error)],

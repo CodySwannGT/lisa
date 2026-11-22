@@ -27,11 +27,11 @@
  *
  * ## It reads content, never history
  *
- * Git is not started. So the answer is the same in a shallow clone, in a
- * clone made after a squash or rebase merge replaced the commit the proofs
- * ran on, and in a checkout another user owns. The evidence records still
- * name the commit the run's copy was cloned from; that commit is printed
- * for the reader, and nothing is decided by it.
+ * The answer is the same in a shallow clone, in a clone made after a squash
+ * or rebase merge replaced the commit the proofs ran on, and in a checkout
+ * another user owns. Host proof receipt verification reads the configured
+ * origin, without fetching history. The evidence records still name the
+ * commit the run's copy was cloned from and print it for the reader.
  *
  * ## Evidence from before the binding
  *
@@ -47,13 +47,9 @@
  * against. It does not see a change to the checked tool's own
  * configuration, such as a rule switched off in a linter's settings: there
  * is no list of such files, so none is in the digest. Running the proofs
- * again sees it. And it cannot show that the evidence records are what a
- * run really produced: someone who rewrites the evidence, the register and
- * the verdict together, consistently, leaves three files that agree.
- * Nothing checked on the same machine with no secret can tell that apart
- * from a real run. What can: running `lisa controls attest` again and
- * comparing, the history of the three files in version control, or a
- * signature made somewhere the author of the change cannot reach.
+ * again sees it. A signed host proof receipt authenticates the records for
+ * that executor using the external trust file. Ordinary local evidence can
+ * still be regenerated to compare the outcome independently.
  * @module controls/attest-check
  */
 import path from "node:path";
@@ -362,9 +358,9 @@ export async function runAttestCheck(
       ATTEST_CHECK_EXIT.NOT_CHECKED
     );
   }
-  const generated = await (dependencies.generate ?? generateControlRegister)(
-    root
-  );
+  const now = (dependencies.clock ?? (() => new Date()))();
+  const generated = await (dependencies.generate?.(root) ??
+    generateControlRegister(root, { now }));
   if (generated.problems !== null) {
     return fail(
       generated.problems,
@@ -378,7 +374,7 @@ export async function runAttestCheck(
     .then(() =>
       compare(root, {
         register: generated.register,
-        now: (dependencies.clock ?? (() => new Date()))(),
+        now,
         catalogue: (dependencies.loadCatalogue ?? loadCriterionCatalogue)(),
         bind: dependencies.bindChecks ?? boundNow,
       })
@@ -394,13 +390,15 @@ export async function runAttestCheck(
     );
   }
   const { differences, verdict, standing } = compared;
+  const proofNotes = generated.hostProofNotes ?? [];
   if (differences.length > 0 || verdict === null) {
     return fail(
-      differences,
+      [...proofNotes, ...differences],
       `${differences.length} ${differences.length === 1 ? "difference" : "differences"} between ${VERDICT_PATH} and what ${CONTROL_REGISTER_PATH}, ${EVIDENCE_PATH} and this repository give now. ${HOW_TO_FIX}`,
       ATTEST_CHECK_EXIT.DIFFERS
     );
   }
+  for (const note of proofNotes) stdout(`${ATTEST_CHECK_NAME}: ${note}`);
   stdout(
     `${ATTEST_CHECK_NAME}: PASS. ${VERDICT_PATH} is what ${CONTROL_REGISTER_PATH} and ${EVIDENCE_PATH} give. ${levelSummary(verdict)} ${standing}`
   );

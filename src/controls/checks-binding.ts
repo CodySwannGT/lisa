@@ -97,6 +97,7 @@ import type { ChecksBinding, CoveredCheckFile } from "./evidence-types.js";
 import { GATES_DECLARATION_PATH } from "./gates-declaration.js";
 import { isPlainPath, ordinaryFiles } from "./proof-copy-files.js";
 import { PROOF_FOLDER } from "./proof-patch.js";
+import { declaredExecutor } from "./pull-request-executor.js";
 
 /** The algorithm of every digest here. */
 const CHECKS_DIGEST_ALGORITHM = "sha256";
@@ -261,17 +262,38 @@ async function filesUnder(
 }
 
 /**
+ * Name the workflow that defines each explicitly declared pull-request check.
+ * @param root - Real path of the repository
+ * @returns The workflow paths from the committed gate declaration
+ */
+async function executorPaths(root: string): Promise<readonly string[]> {
+  const { content } = await fileState(path.join(root, GATES_DECLARATION_PATH));
+  if (content === null) return [];
+  try {
+    const value: unknown = JSON.parse(content.toString("utf8"));
+    if (!isJsonObject(value) || !isJsonObject(value.gates)) return [];
+    return Object.values(value.gates).flatMap(gate => {
+      const executor = isJsonObject(gate) ? declaredExecutor(gate) : null;
+      return executor === null ? [] : [executor.path];
+    });
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Name every path of a repository that defines its checks, whether or not
  * anything is there.
  * @param root - Real path of the repository
  * @returns The paths, from the repository root, each once
  */
 async function definingPaths(root: string): Promise<readonly string[]> {
-  const [proofs, hooks, recorded, runner] = await Promise.all([
+  const [proofs, hooks, recorded, runner, executors] = await Promise.all([
     filesUnder(root, PROOF_FOLDER),
     filesUnder(root, CARRIER_HOOKS_FOLDER),
     readRecordedFiles(root),
     runnerPaths(root),
+    executorPaths(root),
   ]);
   return [
     ...new Set([
@@ -285,6 +307,7 @@ async function definingPaths(root: string): Promise<readonly string[]> {
         : []),
       ...hooks,
       ...runner,
+      ...executors,
     ]),
   ];
 }

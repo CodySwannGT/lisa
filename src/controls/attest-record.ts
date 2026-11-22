@@ -64,6 +64,11 @@ import {
 } from "./evidence-types.js";
 import { proofRunBatch } from "./evidence-write.js";
 import { readHeadCommit } from "./head-commit.js";
+import { HOST_PROOF_RECEIPTS_PATH } from "./host-proof-receipt.js";
+import {
+  hostReceiptText,
+  type PendingHostReceipt,
+} from "./host-proof-register.js";
 import type { ProofRun } from "./proof-types.js";
 import {
   generateControlRegister,
@@ -91,6 +96,8 @@ export interface AttestationToRecord {
    * records of the entries and moments it names.
    */
   readonly batches?: readonly EvidenceBatch[];
+  /** An independently adjudicated host proof to seal with the written evidence. */
+  readonly hostProof?: PendingHostReceipt;
   /**
    * How long each record written now may be relied on, in whole seconds:
    * {@link DEFAULT_FRESHNESS_SECONDS} when left out, and never more. A
@@ -224,6 +231,7 @@ function recordedLine(records: readonly EvidenceRecord[]): string {
  * @param root - Real path of the repository
  * @param evidence - The evidence file to write
  * @param now - The current time
+ * @param receipt - Text of the next authorized receipt file, when importing a proof
  * @param dependencies - Replaceable collaborators
  * @returns The verdict, or one line per reason a file was not written
  */
@@ -231,6 +239,7 @@ async function writeInOrder(
   root: string,
   evidence: EvidenceDocument,
   now: Date,
+  receipt: string | null,
   dependencies: RecordAttestationDependencies
 ): Promise<
   | {
@@ -240,14 +249,18 @@ async function writeInOrder(
     }
   | { readonly problems: readonly string[] }
 > {
-  const generate = dependencies.generate ?? generateControlRegister;
   const write = dependencies.writeFile ?? writeControlFile;
   // 1. The evidence.
   const first = await write(root, EVIDENCE_PATH, serializeEvidence(evidence));
   if (first.problem !== null) return { problems: [first.problem] };
+  if (receipt !== null) {
+    const sealed = await write(root, HOST_PROOF_RECEIPTS_PATH, receipt);
+    if (sealed.problem !== null) return { problems: [sealed.problem] };
+  }
   // 2. The register, generated from the declaration and that evidence: the
   //    same content `lisa controls register` writes.
-  const register = await generate(root);
+  const register = await (dependencies.generate?.(root) ??
+    generateControlRegister(root, { now }));
   if (register.problems !== null) return { problems: register.problems };
   const second = await write(root, CONTROL_REGISTER_PATH, register.text);
   if (second.problem !== null) return { problems: [second.problem] };
@@ -288,7 +301,8 @@ async function recorded(
   if (root === null) {
     return { problems: [`${attestation.named} is not a folder.`] };
   }
-  const before = await (dependencies.generate ?? generateControlRegister)(root);
+  const before = await (dependencies.generate?.(root) ??
+    generateControlRegister(root, { now }));
   if (before.problems !== null) return { problems: before.problems };
   const bind = dependencies.bindChecks ?? boundHere;
   const checks = attestation.checks ?? (await bind(root));
@@ -308,7 +322,25 @@ async function recorded(
   });
   if (gathered.problems !== null) return { problems: gathered.problems };
   const { evidence } = gathered;
-  const written = await writeInOrder(root, evidence, now, dependencies);
+  const pending = attestation.hostProof;
+  const receipt =
+    pending === undefined
+      ? null
+      : await hostReceiptText(root, evidence, pending, now);
+  if (pending !== undefined && receipt === null) {
+    return {
+      problems: [
+        "Could not prepare an attest receipt for the current paired records.",
+      ],
+    };
+  }
+  const written = await writeInOrder(
+    root,
+    evidence,
+    now,
+    receipt,
+    dependencies
+  );
   if (written.problems !== null) return { problems: written.problems };
   return {
     problems: null,
