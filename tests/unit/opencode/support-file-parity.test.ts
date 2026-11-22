@@ -101,22 +101,7 @@ describe("OpenCode installed support-file parity", () => {
     const moduleUrl = pathToFileURL(
       path.join(temporary, "dist/opencode/hooks-installer.js")
     ).href;
-    for (const filename of SUPPORT_FILES) {
-      const bundled = await fs.readFile(
-        resolveSupportFile(moduleUrl, filename),
-        "utf8"
-      );
-      const host = await fs.readFile(
-        path.join(REPO_ROOT, shippedDirectory(filename), filename),
-        "utf8"
-      );
-      const banner =
-        filename === TASK_ADAPTER
-          ? "// This file is managed by Lisa and IS replaced on each `lisa` run.\n// Do not edit directly — durable changes belong upstream in Lisa.\n\n"
-          : "";
-      expect(bundled, filename).toBe(`${banner}${host}\n# fresh source\n`);
-    }
-    for (const filename of HOST_NAME_FILES) {
+    for (const filename of [...SUPPORT_FILES, ...HOST_NAME_FILES]) {
       const bundledPath = resolveSupportFile(moduleUrl, filename);
       const bundled = await fs.readFile(bundledPath, "utf8");
       const authored = await fs.readFile(

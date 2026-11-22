@@ -39,12 +39,10 @@ then prepare the truthful private context/header and evaluate full task readines
 before claim or implementation. This bounded repository read grants no mutation
 and proves no unrelated task capability or provider health.
 
-The gh snippets below specify the owner's fixed underlying API/JSON/query
-contracts, not a separate login-first bootstrap route. Raw native/env gh reads
-remain read-only orientation, but cannot discover configured materialization or
-provider credentials by themselves. Use the owner above for the complete intake
-route. Cross-repository/other-tracker operations outside this fixed configured
-repository remain explicit access-owner duties; do not widen the shell allowlist.
+The installed reader owns the fixed API queries and pagination. The native
+`gh` examples below support read-only orientation. Use the installed reader
+for complete intake because it resolves configured credentials. Route
+cross-repository and other-tracker access through the documented access owner.
 
 ## Phase 2 — Fetch Primary Issue
 

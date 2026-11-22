@@ -13,11 +13,6 @@ import {
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { readConfig } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
 import { requirementsContext } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs";
-import {
-  queries,
-  reviewThreadsQuery,
-  threadCommentsQuery,
-} from "../../../plugins/src/base/skills/lisa-github-read-issue/read-contract.mjs";
 import { classifyReadyCandidate } from "../../../plugins/src/base/scripts/intake-blocker-reprobe.mjs";
 const roots: string[] = [];
 const CONTEXT = ".lisa/work-item-context.md",
@@ -209,7 +204,7 @@ describe("realizable fresh native intake", () => {
         );
     }
   });
-  it("ships the same exact paginated read-only graph/history queries in the owning instructions", () => {
+  it("documents the installed pre-header owner for complete read-only intake", () => {
     const skill = readFileSync(
       path.resolve(
         __dirname,
@@ -217,9 +212,14 @@ describe("realizable fresh native intake", () => {
       ),
       "utf8"
     );
-    for (const query of [...queries, reviewThreadsQuery, threadCommentsQuery])
-      expect(skill).toContain(query);
-    expect(skill).toContain("--paginate --slurp");
+    expect(skill).toContain(
+      "--intake-read --ref <org>/<repo>#<primary-number> --read <operation> --number <read-number>"
+    );
+    expect(skill).toContain("--thread <returned-thread-node-id>");
+    expect(skill).toContain(
+      "terminal pagination before declaring completeness"
+    );
+    expect(skill).toContain("bounded repository read grants no mutation");
   });
   it.each([
     "mutation",
