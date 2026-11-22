@@ -266,6 +266,10 @@
       "0a9fbd4956147c229eed2a6856064729f3102731163b2cb604e132b5b9871832",
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":
       "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
+    "all/copy-overwrite/scripts/lib/private-key-redaction.d.mts":
+      "3c5005c1c6b8432c9bc097d6c82c1c6279cb84059d4acc1b1c9170328194f8ad",
+    "all/copy-overwrite/scripts/lib/private-key-redaction.mjs":
+      "a05049ed87950e78cc8e4ebf56173e05d49644c4d1fa04fc846a5def73c4b937",
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
       "7034adad8d8348eeb669ead52cb7eaffa11b592c1f1b06bcd8474b6348360eae",
     "all/copy-overwrite/scripts/lib/push-admission.mjs":
@@ -361,13 +365,13 @@
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "5c44bf2bb003249a62c443ef594509f7b6828be12157c9aa90f90d3acad13636",
+      "302fb2a3035f52dc9915785327148243fadf2ec3c324be862a177550a02aa3ca",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "c2fc91c3a1c40e54c084063aef9e787064f43551da66c0c14ff7b105590777c8",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "dbff5388adb86334ac779da05ab3de3d766810f7faa79f6898e2a660064c76a4",
+      "52de545390c4f37b0505db43cf74cc1efd22647eca98292d84ab660b79878529",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "73ac5af581d16992dd9cc273b4e2f6b55bd6a2629abe23b7658563cf433e082c",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
@@ -385,7 +389,7 @@
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "18e1d963d4416ccd247158e6a4bfcf43234f47faeb3a4654b5a6c78001ab8ef5",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
-      "9b9a8aab8de5daa8a2ccd014911be696ca0671e602b9d7e33bc8f2dd14fb1d31",
+      "4f6cf61c49ee8206d227c3e87b16886ced824cdf994b2569656d983b6310d68a",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
       "2fe0a765030bd2b47122021ba3505fbbea1f60002c4e1ed9f0fc4f5b2f786253",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
@@ -405,7 +409,7 @@
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "c8d581ffa7c7a34b1d4d5c7ac8618f47af9a705fe14cae6b8ce3bba158a1405a",
+      "9e79d35cf08f6cac68c38cbdb6e2cf52eb1fea0021b77114026e04519232aed7",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -421,7 +425,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "eeeab8a73d7294e13b1bf7608ed74dec772b21443a21d2c7293523674ae90ef9",
+      "b54c4a28d9f47c061673d788bba5972a82ac8d08bcf22bc8fc0d74b10b57d626",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1109,7 +1113,7 @@
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "7ec3db9a519a5ce95277d75ab347d2ee52970bc4ccb7ae554bccba8628290c19",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "6d79692c7ced993d843c390cfa552fc73f924d04280372e3e7d5eb9df6a89c6d",
+      "eeab0883ea9d032d7ca10bf4dd598ed864e66380260bd452db00e2eb05e51e59",
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
@@ -1201,7 +1205,7 @@
     "plugins/src/base/hooks/withdrawn-rulings.sh":
       "5dbf429b6ec73c3c29fb96008efa1015feaa4812c1b4bb26aaa5d0b904a0ff9c",
     "plugins/src/base/hooks/worktree-binding-guard.mjs":
-      "dfcc2378137fa77994a2b74a95d49d9b78e779a7daaf08746006419335ed889a",
+      "692cf26c627438dae1abca2f05232be3dda55159f1f15385f06bd43ec98a786d",
     "plugins/src/base/hooks/worktree-binding-guard.sh":
       "9ff49d44190075b773670e6bd038cb7cac1048a5680d37570b0e7397ed20253c",
     "plugins/src/base/rules/eager/00-rule-index.md":
@@ -1469,7 +1473,7 @@
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
       "8ea94fa2b3fbe860cee365a6dd935a0f7ef9e749a2ab59c8b8dfc1838cdb0d37",
     "plugins/src/base/skills/lisa-attest/SKILL.md":
-      "d1af8712870dfffa0959417379d0be9b18ab1ee44bb13bd25bc293ae6cbda5eb",
+      "fae42f6cf669ecbc2b617a9fac81efbd4a1b0ea801cf2022a3868356274eb314",
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
       "1982127aa1ba4e4a24afc95f8799f106fa7f621ffa58c464d5bbfa1bb9944cb5",
     "plugins/src/base/skills/lisa-audit/SKILL.md":
@@ -1485,7 +1489,7 @@
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
       "6485cf919af6f1fa5f5d60209906fd954a5d45456e2149c25ad29f2567fcc981",
     "plugins/src/base/skills/lisa-configure/SKILL.md":
-      "a0bbe2e46c6c11cca336fd1fb3c52a99d0b6c6282575ab88008c622e616b226c",
+      "6ba244c74968f26233c47547139d34d9b5218f11c2c500ce5b1d9a39a3df2127",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "a33349c0129da13955fea99206d49e6e65c8be9e649e5d387afab83f52820b81",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
@@ -2923,7 +2927,7 @@
     "scripts/lib/phrase-tests/record.mjs":
       "95f65b50281127905cdef2d980f8c46a5e03e4b9b5a32f7a1f1eb8bffaa364f1",
     "scripts/lib/phrase-tests/redact.mjs":
-      "e436a34f28661f85a2668d593228ec997419317d578142e382bd9e57c587c95d",
+      "496d3703232668328e976421dd024a3f5f6733d1f1ff638e10a0db97d2d5eab7",
     "scripts/lib/phrase-tests/repo.mjs":
       "5a94612c509e17e175d2c18207ff0e205079c65a8a7c74e133162894670c99ea",
     "scripts/lib/phrase-tests/runner.mjs":
@@ -3073,7 +3077,7 @@
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "c20dec9ac8511d14d85b3f0e547e1af6b19dbe1e30ac9598d7f048f7d4f09845",
+      "a06b3a53acb7ad1f0b95c74e9d8eb0eb95db5e2b79a2daa848cd382dac6b4069",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
@@ -3143,7 +3147,7 @@
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "db7a0c8b4cfc7956a7bc7a36c29d6c55252116a4d217d4f64e8bf9937b5103d6",
+      "98817db91826388e5a5a980213ef7414301c2672884eaa20a3d6168ef6456b35",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -3556,6 +3560,8 @@
     "all/copy-overwrite/scripts/lib/npm-update-worker-lifecycle.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-worker-policy.mjs": true,
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs": true,
+    "all/copy-overwrite/scripts/lib/private-key-redaction.d.mts": true,
+    "all/copy-overwrite/scripts/lib/private-key-redaction.mjs": true,
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs": true,
     "all/copy-overwrite/scripts/lib/push-admission.mjs": true,
     "all/copy-overwrite/scripts/lib/push-gate-defaults.d.mts": true,
@@ -11624,6 +11630,8 @@
     "src/controls/proof-check-workspace.ts": true,
     "src/controls/proof-copy-files.ts": true,
     "src/controls/proof-copy-git.ts": true,
+    "src/controls/proof-copy-preparation.ts": true,
+    "src/controls/proof-copy-prepared-state.ts": true,
     "src/controls/proof-copy-wording.ts": true,
     "src/controls/proof-copy-workspace.ts": true,
     "src/controls/proof-copy.ts": true,
@@ -11633,6 +11641,7 @@
     "src/controls/proof-patch.ts": true,
     "src/controls/proof-plan.ts": true,
     "src/controls/proof-preflight.ts": true,
+    "src/controls/proof-preparation-declaration.ts": true,
     "src/controls/proof-report.ts": true,
     "src/controls/proof-runner.ts": true,
     "src/controls/proof-scratch.ts": true,
@@ -12406,6 +12415,7 @@
     "tests/integration/continuous-gates-empty.test.ts": true,
     "tests/integration/controls-attest-disposable-copy.test.ts": true,
     "tests/integration/controls-attest-host-hooks.test.ts": true,
+    "tests/integration/controls-attest-output-redaction.test.ts": true,
     "tests/integration/controls-attest-pull-request.test.ts": true,
     "tests/integration/controls-attest-skill.test.ts": true,
     "tests/integration/controls-attest-verdict.test.ts": true,
@@ -12437,6 +12447,7 @@
     "tests/integration/controls-proof-change-rule-letter-case.test.ts": true,
     "tests/integration/controls-proof-change-rule.test.ts": true,
     "tests/integration/controls-proof-check-attest.test.ts": true,
+    "tests/integration/controls-proof-copy-prepare.test.ts": true,
     "tests/integration/controls-protect.test.ts": true,
     "tests/integration/controls-push-carrier-refs.test.ts": true,
     "tests/integration/controls-push-carrier-update.test.ts": true,
@@ -13311,6 +13322,7 @@
     "tests/unit/controls/enforce-entry-outcome.test.ts": true,
     "tests/unit/controls/enforce-head-run.test.ts": true,
     "tests/unit/controls/enforce-points.test.ts": true,
+    "tests/unit/controls/enforce-project-scopes.test.ts": true,
     "tests/unit/controls/enforce-report-carriers.test.ts": true,
     "tests/unit/controls/enforce-report-refusals.test.ts": true,
     "tests/unit/controls/enforce-report.test.ts": true,
@@ -13368,6 +13380,7 @@
     "tests/unit/controls/paved-road-resolution.snapshot.json": true,
     "tests/unit/controls/paved-road-snapshot.ts": true,
     "tests/unit/controls/prd-backlink-github-comment-url-room.test.ts": true,
+    "tests/unit/controls/private-key-redaction-runtime.test.ts": true,
     "tests/unit/controls/proof-change-finding.test.ts": true,
     "tests/unit/controls/proof-change-letter-case.test.ts": true,
     "tests/unit/controls/proof-change-rule.test.ts": true,
@@ -13741,6 +13754,7 @@
     "tests/unit/hooks/block-direct-issue-create-mcp-substrate.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-missing-interpreter.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-noexec.test.ts": true,
+    "tests/unit/hooks/block-direct-issue-create-non-shell-prose.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-prd-writer.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-reader-fence.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-refusal-inverse.test.ts": true,
@@ -13881,6 +13895,7 @@
     "tests/unit/hooks/worktree-binding-guard-script-reach.test.ts": true,
     "tests/unit/hooks/worktree-binding-guard-wrapper.test.ts": true,
     "tests/unit/hooks/worktree-binding-guard.test.ts": true,
+    "tests/unit/hooks/worktree-binding-inert-source-data.test.ts": true,
     "tests/unit/hooks/worktree-binding-legacy-ownership.test.ts": true,
     "tests/unit/hooks/worktree-binding-live-identity.test.ts": true,
     "tests/unit/hooks/worktree-binding-owner-boundaries.test.ts": true,

@@ -44,6 +44,8 @@ import {
 export interface EnforcedPointSources {
   /** The carriers of the checkout as a read made for this report found them. */
   readonly installed: readonly InstalledCarrier[];
+  /** Scopes where a supported project type supplies its usual checks. */
+  readonly supportedProjectScopes: ReadonlySet<string>;
   /** The comparison of merge protection with the register. */
   readonly protect: HandedProtect;
   /** Reads the pipeline file a register names and says whether it is wired. */
@@ -127,6 +129,9 @@ function checkoutPoint(
     ? {
         reason: sentences([
           `Git starts the declared checks at ${point.moment} in this checkout.`,
+          point.level === "optional"
+            ? `This check is optional, so a failure does not stop the ${point.moment}.`
+            : null,
           carrier.contradicts,
         ]),
         state: "wired",
@@ -321,7 +326,8 @@ export async function enforcedEntries(
         ...entryOutcome(
           entry,
           points,
-          entry.criteria.some(id => sources.gateCriteria.includes(id))
+          entry.criteria.some(id => sources.gateCriteria.includes(id)),
+          sources.supportedProjectScopes.has(entry.scope)
         ),
         points,
       };

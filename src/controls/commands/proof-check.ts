@@ -197,8 +197,8 @@ async function tryIn(
     ...dependencies.copy,
     // Nothing of Lisa's is installed in the copy: the part's own command is
     // started directly, so this works before any hook exists.
-    build: (repository, folder) =>
-      build(repository, folder, { carriers: "none" }),
+    build: (repository, folder, options) =>
+      build(repository, folder, { ...options, carriers: "none" }),
     // What the copy was is said with the results, under this command's name.
     notes: () => [],
   });

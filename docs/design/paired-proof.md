@@ -21,9 +21,39 @@ described under "How the runner runs a part".
 
 One more mode of the command is not a proof and is described in its own note.
 `lisa controls attest --before-enforce` uses the same register, patches and
-disposable copy, installs nothing in the copy, and reports each check that
-exists and that nothing enforces yet. It writes no evidence and no verdict.
+disposable copy without installing Lisa carriers and reports which checks
+the clone enforces. It writes no evidence and no verdict.
 See [before enforce](before-enforce.md).
+
+## Preparing the disposable copy
+
+Checks that need installed packages, generated files or an active hook manager
+can declare the setup they need in the committed `.lisa.config.json`:
+
+```json
+{
+  "controls": {
+    "proof_copy": {
+      "prepare": [
+        ["bun", "install", "--frozen-lockfile"],
+        ["lefthook", "install"]
+      ]
+    }
+  }
+}
+```
+
+`attest`, `attest --before-enforce` and `proof-check` use this declaration. Lisa
+runs each argument list once in the copy, in order, with a five-minute limit per
+command. Successful preparation files are restored for each proof half. The
+attest path checks hook wiring again after preparation. The before-enforce path
+uses any hooks the declared preparation switched on and installs no Lisa
+carriers of its own.
+
+Preparation runs on the operator's machine with their available credentials
+and network. Lisa announces preparation before running the commands. A failed command
+ends the run with exit 2 and a redacted diagnostic before any proof evidence is
+written. Use committed commands whose effects outside the copy you understand.
 
 ## The words
 

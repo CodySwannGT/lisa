@@ -3448,6 +3448,7 @@ export const KNOWN_CONFIG_KEYS = Object.freeze([
   "deploy",
   "quality",
   "gates",
+  "controls",
   "policy",
   "intake",
   "monitor",

@@ -221,6 +221,31 @@ describe.each(Object.entries(FIXTURES))(
   }
 );
 
+it("blocks a carriers plan whose record would contain a synthetic token", async () => {
+  const token = fakeGithubToken();
+  const { repoPath } = setting(
+    provedGates([{ command: checks(F_NONE_SOURCE) }])
+  );
+  const result = await installCarriers(
+    repoPath,
+    {},
+    {
+      runnerFiles: async () => [
+        {
+          path: `scripts/fixture-${token}.mjs`,
+          content: "export const fixture = true;\n",
+          executable: false,
+        },
+      ],
+    }
+  );
+  const explanation = JSON.stringify(result);
+  expect(explanation).toContain(CARRIER_RECORD_PATH);
+  expect(explanation).toContain("shaped like a credential");
+  expect(explanation.includes(token)).toBe(false);
+  expect(existsSync(path.join(repoPath, CARRIER_RECORD_PATH))).toBe(false);
+});
+
 describe("the same scan, over a document a made-up credential was seeded into", () => {
   const TOKEN = fakeGithubToken();
 

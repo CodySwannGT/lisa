@@ -84,6 +84,7 @@ import {
 } from "./register-types.js";
 import { readConfiguredTracker } from "./tracker-config.js";
 import { openTrackerQuestionId } from "./tracker-question.js";
+import { supportedControlScopes } from "./shipped-parts.js";
 
 /** What building the report needs from outside, each replaceable in a test. */
 export interface EnforceReportDependencies {
@@ -228,11 +229,13 @@ export async function buildEnforceReport(
   }
   const tickets = await ticketsOf(root, loaded, inputs.tickets);
   if (tickets.problems !== null) return tickets;
-  const installed = await readInstalledCarriers(
-    root,
-    inputs.carriers,
-    dependencies.checkCarriers
-  );
+  const [installed, supportedProjectScopes] = await Promise.all([
+    readInstalledCarriers(root, inputs.carriers, dependencies.checkCarriers),
+    supportedControlScopes(
+      root,
+      register.entries.map(entry => entry.scope)
+    ),
+  ]);
   if (installed.problems !== null) return installed;
   const entries = await enforcedEntries(register, {
     executorVerdict: executor =>
@@ -240,6 +243,7 @@ export async function buildEnforceReport(
     gateCriteria: loaded.criteria
       .filter(criterion => criterion.kind === GATE_KIND)
       .map(criterion => criterion.id),
+    supportedProjectScopes,
     installed: installed.carriers,
     protect: inputs.protect,
   });
