@@ -1,0 +1,6 @@
+diff --git a/docs/lisa-proof-traceability.md b/docs/lisa-proof-traceability.md
+new file mode 100644
+--- /dev/null
++++ b/docs/lisa-proof-traceability.md
+@@ -0,0 +1 @@
++This documentation change exercises the missing work item refusal.

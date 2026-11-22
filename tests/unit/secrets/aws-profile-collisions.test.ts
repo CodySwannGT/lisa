@@ -33,7 +33,7 @@ import {
 const OWNER = "acmeco";
 
 /** The profile every collision case is keyed on, as it lands in the file. */
-const PROFILE = `${OWNER}-dev`;
+const PROFILE = `${OWNER}-agent-dev`;
 
 /** A suffixed variant, which cannot clash with the operator's SSO name. */
 const STATIC_NAME = `${PROFILE}-static`;
@@ -59,7 +59,7 @@ const CLASHING = {
   accessKeyId: "AKIAEXAMPLE",
   secretAccessKey: "s3cret",
   profiles: {
-    // Renders as `acmeco-dev`, the name the operator's SSO config already uses.
+    // Renders as `acmeco-agent-dev`, the name the operator's SSO config already uses.
     dev: { roleArn: "arn:aws:iam::123456789012:role/RemoteAgent" },
   },
 };

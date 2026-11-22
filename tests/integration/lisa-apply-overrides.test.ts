@@ -77,6 +77,49 @@ describe("Lisa Integration Tests", () => {
   }
 
   describe("apply", () => {
+    it.each([
+      { project: "fresh", existing: undefined },
+      {
+        project: "customized",
+        existing: `${JSON.stringify({
+          compilerOptions: { strict: true },
+          include: ["src/**/*.ts"],
+          exclude: ["dist", "project-tests"],
+          files: [],
+        })}\n`,
+      },
+    ])(
+      "keeps the intended Expo local TypeScript config on a $project apply",
+      async ({ existing }) => {
+        const localName = "tsconfig.local.json";
+        const projectLocal = path.join(destDir, localName);
+        const template = await fs.readFile(
+          path.resolve(
+            import.meta.dirname,
+            "../../expo/create-only",
+            localName
+          ),
+          "utf8"
+        );
+        const applyTemplate = path.join(
+          lisaDir,
+          "expo",
+          CREATE_ONLY,
+          localName
+        );
+        await createExpoProject(destDir);
+        await fs.outputFile(applyTemplate, template);
+        if (existing !== undefined) await fs.writeFile(projectLocal, existing);
+
+        const result = await createLisa().apply();
+
+        expect(result.success).toBe(true);
+        expect(await fs.readFile(projectLocal, "utf8")).toBe(
+          existing ?? template
+        );
+      }
+    );
+
     it("child stack create-only overrides parent stack create-only for the same path", async () => {
       // Regression for the CDK ci.yml clobber bug:
       // typescript/create-only/.github/workflows/ci.yml ships a bun-mode CI

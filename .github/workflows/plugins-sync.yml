@@ -90,9 +90,13 @@ jobs:
         run: gem install activerecord --version 8.1.4 --no-document
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Collect complete native shard with original admission/profile
+      - name: Collect complete native shard with bounded worker concurrency
         # The named script builds once and supplies genuine Bun lifecycle context.
         # An unnamed `bun run <binary>` makes intentional fixture applies skip.
+        # Both hosted attempts exceeded the child admission limit in the same
+        # traced Codex suite. Run one worker in each trace job.
+        env:
+          LISA_VITEST_MAX_WORKERS: '1'
         run: bun run lisa-test-run -- --adapter direct -- node scripts/check-shell-guard-refusal-coverage.mjs --collect-only --shard "${{ matrix.shard }}/3" --trace-out "${{ runner.temp }}/lisa-shell-guard-shard-${{ matrix.shard }}/trace.jsonl"
       - name: Retain actual complete or failed shard diagnostics
         if: always()

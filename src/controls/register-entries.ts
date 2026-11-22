@@ -26,13 +26,35 @@ import {
   type MeasuringMechanism,
 } from "./register-types.js";
 
-/** A part's paired proof, as a validated declaration writes it. */
+/** A paired proof, as a validated declaration writes it. */
 interface DeclaredProof {
   readonly violation?: string;
   readonly clean?: string;
   readonly failure_shape?: readonly string[];
   readonly timeout_seconds?: number;
   readonly external_effects?: readonly string[];
+  readonly violation_commit?: ControlProof["violation_commit"];
+  readonly dependency_fixture?: ControlProof["dependency_fixture"];
+}
+
+/**
+ * Read the proof for the first local enforcement point of a task.
+ * @param gate - The validated declaration
+ * @param points - Where the gate is enforced, in execution order
+ * @returns The paired proof for the local point, if declared
+ */
+function taskProof(
+  gate: DeclaredGate,
+  points: readonly ResolvedPoint[]
+): DeclaredProof | undefined {
+  const point = points.find(
+    ({ moment }) => moment === "commit" || moment === "push"
+  );
+  if (point === undefined) return undefined;
+  const declaration = gate[point.moment];
+  return typeof declaration === "object" && declaration !== null
+    ? (declaration as { readonly proof?: DeclaredProof }).proof
+    : undefined;
 }
 
 /** One entry of a gate's `parts`, as a validated declaration writes it. */
@@ -123,6 +145,8 @@ function proofOf(proof: DeclaredProof = {}): ControlProof {
     failure_shape: shape,
     timeout_seconds: timeout = null,
     external_effects: effects,
+    violation_commit: violationCommit,
+    dependency_fixture: dependencyFixture,
   } = proof;
   return {
     violation,
@@ -130,6 +154,12 @@ function proofOf(proof: DeclaredProof = {}): ControlProof {
     failure_shape: shape === undefined ? null : [...shape],
     timeout_seconds: timeout,
     external_effects: effects === undefined ? null : [...effects],
+    ...(violationCommit === undefined
+      ? {}
+      : { violation_commit: violationCommit }),
+    ...(dependencyFixture === undefined
+      ? {}
+      : { dependency_fixture: dependencyFixture }),
   };
 }
 
@@ -231,7 +261,7 @@ export function entriesForGate(
       enforcement_points: enforcementPoints(points, own),
       measuring_mechanism: own,
       parameters: parametersOf(part?.parameters),
-      proof: proofOf(part?.proof),
+      proof: proofOf(part === null ? taskProof(gate, points) : part.proof),
       accountable_party: typeof gate.owner === "string" ? gate.owner : null,
       ...(part?.evidence === undefined
         ? {}

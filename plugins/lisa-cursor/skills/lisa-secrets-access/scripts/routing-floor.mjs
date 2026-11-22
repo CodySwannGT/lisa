@@ -47,6 +47,27 @@ const SOURCE_CREDENTIALS = {
   linear: ["LINEAR_API_KEY"],
 };
 
+/** Routing aliases belong to the existing access owner, not to token spelling. */
+export function routingCapabilityMatches(route, requirement) {
+  const layer = ["jira", "confluence"].includes(route) ? "atlassian" : route;
+  if (requirement.access_layer !== layer) return false;
+  if (route === "confluence")
+    return [
+      "list-spaces",
+      "read-page",
+      "read-page-descendants",
+      "read-page-comments",
+    ].includes(requirement.operation);
+  if (route === "jira")
+    return [
+      "list-projects",
+      "issue-type-metadata",
+      "read-issue",
+      "search-issues",
+    ].includes(requirement.operation);
+  return true;
+}
+
 /**
  * The credentials a project's routing makes mandatory.
  *

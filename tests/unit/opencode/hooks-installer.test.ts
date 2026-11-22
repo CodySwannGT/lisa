@@ -12,7 +12,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   OPENCODE_EAGER_RULES_INSTRUCTION,
   OPENCODE_CONFIG_FILENAME,
-  OPENCODE_LISA_RULES_SUBDIR,
   OPENCODE_PLUGIN_SUBDIR,
   installHooks,
   listInstalledPluginFiles,
@@ -33,11 +32,18 @@ const ISSUE = "lisa-block-direct-issue-create.ts";
 const NO_VERIFY = "lisa-block-no-verify.ts";
 const HOST_NAME = "lisa-block-host-name-leak.ts";
 const DISCHARGE = "lisa-discharge-work-item-gates.ts";
-const BASE_RULES = "base-rules.md";
+const TASK_READINESS = "lisa-task-readiness.ts";
 
-/** Emit order per stack, named so the assertions stay one line each. */
 /** Guards every project gets, in the order the installer lists them. */
-const UNIVERSAL = [ISSUE, INSTR, MANAGED, NO_VERIFY, HOST_NAME, DISCHARGE];
+const UNIVERSAL = [
+  ISSUE,
+  INSTR,
+  MANAGED,
+  NO_VERIFY,
+  HOST_NAME,
+  DISCHARGE,
+  TASK_READINESS,
+];
 /** The tail every roster shares. */
 const TAIL = [SESS, SGSCAN];
 const byName = (a: string, b: string): number => a.localeCompare(b);
@@ -80,23 +86,6 @@ describe("opencode/hooks-installer", () => {
     const config = await readConfig();
     const permission = config["permission"] as Record<string, unknown>;
     return permission["bash"] as Record<string, string>;
-  }
-
-  /**
-   * Write a fake Lisa rule file under plugins/<plugin>/rules/<relPath>.
-   * @param pluginName - Plugin directory name.
-   * @param relPath - Path under rules/ (for example eager/base-rules.md).
-   * @param body - Rule Markdown body.
-   */
-  async function seedRule(
-    pluginName: string,
-    relPath: string,
-    body: string
-  ): Promise<void> {
-    const rulesDir = path.join(lisaDir, "plugins", pluginName, "rules");
-    const filePath = path.join(rulesDir, relPath);
-    await fs.ensureDir(path.dirname(filePath));
-    await fs.writeFile(filePath, body, "utf8");
   }
 
   describe("opencode.json permission.bash (block-no-verify)", () => {
@@ -236,39 +225,6 @@ describe("opencode/hooks-installer", () => {
       expect(files).toContain(SESS);
     });
 
-    it("mirrors eager and reference rule files for OpenCode instructions", async () => {
-      await seedRule(
-        "lisa",
-        path.join("eager", BASE_RULES),
-        "Always do the thing.\n"
-      );
-      await seedRule(
-        "lisa",
-        path.join("reference", BASE_RULES),
-        "Detailed body.\n"
-      );
-      const result = await installHooks(lisaDir, destDir, [], []);
-
-      expect(result.managedFiles).toContain(
-        path.join(OPENCODE_LISA_RULES_SUBDIR, "eager", BASE_RULES)
-      );
-      expect(result.managedFiles).toContain(
-        path.join(OPENCODE_LISA_RULES_SUBDIR, "reference", BASE_RULES)
-      );
-      expect(
-        await fs.readFile(
-          path.join(
-            destDir,
-            OPENCODE_CONFIG_DIR,
-            OPENCODE_LISA_RULES_SUBDIR,
-            "eager",
-            BASE_RULES
-          ),
-          "utf8"
-        )
-      ).toContain("Always do the thing.");
-    });
-
     it("ships the typescript guards for a typescript project", async () => {
       await installHooks(lisaDir, destDir, ["typescript"], []);
       const files = await listInstalledPluginFiles(destDir);
@@ -316,6 +272,18 @@ describe("opencode/hooks-installer", () => {
       // behaviour of the shell hook (which checks http://* || https://*).
       expect(body).toContain("/^https?:\\/\\//");
       expect(body).not.toContain('.startsWith("http")');
+    });
+
+    it("reports pluginCount equal to the emitted file count", async () => {
+      const result = await installHooks(lisaDir, destDir, ["typescript"], []);
+      const files = await listInstalledPluginFiles(destDir);
+      expect(result.pluginCount).toBe(files.length);
+      expect(result.managedFiles).toEqual(
+        expect.arrayContaining([
+          `${OPENCODE_PLUGIN_SUBDIR}/task-readiness-guard.sh`,
+          `${OPENCODE_PLUGIN_SUBDIR}/task-readiness-guard.mjs`,
+        ])
+      );
     });
   });
 

@@ -23,7 +23,11 @@ const ALPHA = "org-alpha";
 const ALPHA_BUNDLE_ACCOUNTS = ["111111111111", "222222222222"] as const;
 const BETA_BUNDLE_ACCOUNTS = ["333333333333", "444444444444"] as const;
 const CONFIG_RELATIVE_PATH = path.join(".aws", "config");
+const CREDENTIALS_RELATIVE_PATH = path.join(".aws", "credentials");
 const LEGACY_DEV_SECTION = "[profile dev]";
+const LEGACY_BOOTSTRAP = "lisa-remote-agent-bootstrap";
+const LEGACY_BOOTSTRAP_CONFIG = `[profile ${LEGACY_BOOTSTRAP}]\nregion = us-east-1\n`;
+const LEGACY_BOOTSTRAP_CREDENTIALS = `[${LEGACY_BOOTSTRAP}]\naws_access_key_id = AKIATEST\naws_secret_access_key = test-secret\n`;
 
 afterEach(removeTemporaryDirectories);
 
@@ -180,6 +184,7 @@ describe("remote AWS bootstrap script", () => {
   it("reports rather than orphans profiles from the unnamespaced convention", () => {
     const ws = workstation();
     const configPath = path.join(ws.home, CONFIG_RELATIVE_PATH);
+    const credentialsPath = path.join(ws.home, CREDENTIALS_RELATIVE_PATH);
     mkdirSync(path.dirname(configPath), { recursive: true });
     writeFileSync(
       configPath,
@@ -191,9 +196,10 @@ describe("remote AWS bootstrap script", () => {
         "[profile production]",
         "role_arn = arn:aws:iam::210987654321:role/RemoteAgent",
         "source_profile = lisa-remote-agent-bootstrap",
-        "",
+        LEGACY_BOOTSTRAP_CONFIG,
       ].join("\n")
     );
+    writeFileSync(credentialsPath, LEGACY_BOOTSTRAP_CREDENTIALS);
 
     const reported = runBootstrap({
       workstation: ws,
@@ -204,6 +210,9 @@ describe("remote AWS bootstrap script", () => {
     expect(reported.stderr).toContain("dev, production");
     expect(reported.stderr).toContain("LISA_AWS_PRUNE_LEGACY_PROFILES=1");
     expect(readFileSync(configPath, "utf8")).toContain(LEGACY_DEV_SECTION);
+    expect(readFileSync(credentialsPath, "utf8")).toContain(
+      LEGACY_BOOTSTRAP_CREDENTIALS
+    );
 
     const pruned = runBootstrap({
       workstation: ws,
@@ -217,8 +226,53 @@ describe("remote AWS bootstrap script", () => {
     expect(pruned.stderr).toContain("removed unnamespaced profiles");
     const config = readFileSync(configPath, "utf8");
     expect(config).not.toContain(LEGACY_DEV_SECTION);
+    expect(config).not.toContain(`[profile ${LEGACY_BOOTSTRAP}]`);
+    expect(readFileSync(credentialsPath, "utf8")).not.toContain(
+      `[${LEGACY_BOOTSTRAP}]`
+    );
     expect(config).toContain("[profile org-alpha-agent-dev]");
   });
+
+  it.each(["source_profile =", "SOURCE_PROFILE :"])(
+    "keeps the legacy bootstrap while a managed profile still uses it (%s)",
+    sourceSetting => {
+      const ws = workstation();
+      const configPath = path.join(ws.home, CONFIG_RELATIVE_PATH);
+      const credentialsPath = path.join(ws.home, CREDENTIALS_RELATIVE_PATH);
+      const managed = [
+        "# >>> managed by lisa-secrets-access v3 owner=globex >>>",
+        "[profile globex-agent-dev]",
+        "role_arn = arn:aws:iam::333333333333:role/RemoteAgent",
+        `${sourceSetting} ${LEGACY_BOOTSTRAP}`,
+        "# <<< managed by lisa-secrets-access v3 owner=globex <<<",
+        "",
+      ].join("\n");
+      mkdirSync(path.dirname(configPath), { recursive: true });
+      writeFileSync(
+        configPath,
+        `${LEGACY_DEV_SECTION}\nsource_profile = ${LEGACY_BOOTSTRAP}\n${managed}${LEGACY_BOOTSTRAP_CONFIG}`
+      );
+      writeFileSync(credentialsPath, LEGACY_BOOTSTRAP_CREDENTIALS);
+
+      const result = runBootstrap({
+        workstation: ws,
+        environment: {
+          ...bootstrapEnvironment(ALPHA, ALPHA_BUNDLE_ACCOUNTS),
+          LISA_AWS_PRUNE_LEGACY_PROFILES: "1",
+        },
+      });
+
+      expect(result.status).toBe(0);
+      const config = readFileSync(configPath, "utf8");
+      expect(config).toContain(managed);
+      expect(config).not.toContain(LEGACY_DEV_SECTION);
+      expect(config).toContain(LEGACY_BOOTSTRAP_CONFIG);
+      expect(readFileSync(credentialsPath, "utf8")).toContain(
+        LEGACY_BOOTSTRAP_CREDENTIALS
+      );
+      expect(result.stderr).toContain("earlier bootstrap: dev\n");
+    }
+  );
 
   it("still bootstraps over the inert default profile a container ships", () => {
     const ws = workstation();

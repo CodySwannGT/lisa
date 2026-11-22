@@ -2,6 +2,90 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [8.8.0](https://github.com/CodySwannGT/lisa/compare/v8.7.1...v8.8.0) (2026-11-22)
+
+
+### Features
+
+* **controls:** exercise shipped TypeScript task proofs ([bf8bd25](https://github.com/CodySwannGT/lisa/commit/bf8bd25cd5b2f4de8c4f3a08a8b797550d55e4d8)), closes [CodySwannGT/lisa#5013](https://github.com/CodySwannGT/lisa/issues/5013)
+* **controls:** exercise the TypeScript work-item push gate ([b0a41eb](https://github.com/CodySwannGT/lisa/commit/b0a41eb6e697d2c2ac0dd095bfcfebfb54cf9434)), closes [CodySwannGT/lisa#5013](https://github.com/CodySwannGT/lisa/issues/5013)
+* **controls:** integrate the verified TypeScript proof pairs ([ab77d99](https://github.com/CodySwannGT/lisa/commit/ab77d994bf902caa55347041fc5f461fbd68f8cb)), closes [CodySwannGT/lisa#5013](https://github.com/CodySwannGT/lisa/issues/5013)
+* **controls:** integrate TypeScript work-item proof into the next stack ([2ea073d](https://github.com/CodySwannGT/lisa/commit/2ea073d71fc76fcda67e6b42a0382e7249a9df8c)), closes [CodySwannGT/lisa#5013](https://github.com/CodySwannGT/lisa/issues/5013)
+* **controls:** prove the production dependency push gate ([93f76ff](https://github.com/CodySwannGT/lisa/commit/93f76ff99272822bbb92ade8ac1025f8a1f41278)), closes [CodySwannGT/lisa#5013](https://github.com/CodySwannGT/lisa/issues/5013)
+* **controls:** verify four more TypeScript task pairs [skip ci] ([e138ad3](https://github.com/CodySwannGT/lisa/commit/e138ad347d5f5acd9eaa810a3e65ca7a5a5a7291)), closes [CodySwannGT/lisa#5013](https://github.com/CodySwannGT/lisa/issues/5013)
+
+
+### Bug Fixes
+
+* **access:** retain existing config and unscoped tool behavior ([75bd09f](https://github.com/CodySwannGT/lisa/commit/75bd09f7cdcaf2f530edd964049e6878d1210562)), closes [CodySwannGT/lisa#4546](https://github.com/CodySwannGT/lisa/issues/4546)
+* **aws-profiles:** adopt a canonical name that only looks doubled ([02d72c3](https://github.com/CodySwannGT/lisa/commit/02d72c3dd2b4fd84b4ff0fac889ca2d335d0e635)), closes [CodySwannGT/lisa#4768](https://github.com/CodySwannGT/lisa/issues/4768) [CodySwannGT/lisa#4768](https://github.com/CodySwannGT/lisa/issues/4768)
+* **aws-profiles:** keep the legacy bootstrap while profiles need it ([1d8f467](https://github.com/CodySwannGT/lisa/commit/1d8f467df81e6e3641b036d5f1c62a5c7ce0cb55)), closes [CodySwannGT/lisa#4768](https://github.com/CodySwannGT/lisa/issues/4768)
+* **aws-profiles:** one owned name per tenant stage, no bare aliases ([e6fdba3](https://github.com/CodySwannGT/lisa/commit/e6fdba3ffe2cd443990dd1940f98914a4e676584)), closes [CodySwannGT/lisa#4768](https://github.com/CodySwannGT/lisa/issues/4768) [CodySwannGT/lisa#4768](https://github.com/CodySwannGT/lisa/issues/4768)
+* **aws-profiles:** preserve profiles outside the current migration ([1f368be](https://github.com/CodySwannGT/lisa/commit/1f368bee9a20b88d902d0d558c7aca32fcbd388d)), closes [CodySwannGT/lisa#4768](https://github.com/CodySwannGT/lisa/issues/4768)
+* **aws-profiles:** scope adoption to this run's names, clean doubles last ([4f48a6f](https://github.com/CodySwannGT/lisa/commit/4f48a6f17c039047c9d72d3664f6205c929dc489)), closes [CodySwannGT/lisa#4768](https://github.com/CodySwannGT/lisa/issues/4768) [CodySwannGT/lisa#4768](https://github.com/CodySwannGT/lisa/issues/4768)
+* **aws:** compare settings before retiring an alias ([5b21164](https://github.com/CodySwannGT/lisa/commit/5b2116478d8ecaf39f570f50d933380d59665a0d)), closes [CodySwannGT/lisa#4768](https://github.com/CodySwannGT/lisa/issues/4768)
+* **aws:** preserve dormant profiles with distinct roles ([8c4c8f1](https://github.com/CodySwannGT/lisa/commit/8c4c8f1278435099cfde7c87a70fefa7b87e77c6)), closes [CodySwannGT/lisa#4768](https://github.com/CodySwannGT/lisa/issues/4768)
+* **ci:** limit worker concurrency in shell guard trace jobs ([ba8a225](https://github.com/CodySwannGT/lisa/commit/ba8a225da033ffd9cb62f5ea385dd74a3f8f2094)), closes [CodySwannGT/lisa#4505](https://github.com/CodySwannGT/lisa/issues/4505)
+* **ci:** qualify access changes in hosted runners ([c919e63](https://github.com/CodySwannGT/lisa/commit/c919e63f514522c0bbdb760b1df680b5ed5d337c)), closes [CodySwannGT/lisa#4546](https://github.com/CodySwannGT/lisa/issues/4546)
+* **ci:** route named readiness specs through the managed runner ([acbf8f8](https://github.com/CodySwannGT/lisa/commit/acbf8f809398c4df380c2f03fef177d7092d5a1b)), closes [CodySwannGT/lisa#4546](https://github.com/CodySwannGT/lisa/issues/4546)
+* **ci:** run readiness regressions beside unit shards ([02eecbf](https://github.com/CodySwannGT/lisa/commit/02eecbff1ba79d7762d6c081e3e7024c365d30a8)), closes [CodySwannGT/lisa#4546](https://github.com/CodySwannGT/lisa/issues/4546)
+* **controls:** bind test proofs to the installed runner ([fac6786](https://github.com/CodySwannGT/lisa/commit/fac6786b443ed0cd83484e2bde4a53f909697042)), closes [CodySwannGT/lisa#5013](https://github.com/CodySwannGT/lisa/issues/5013)
+* **controls:** prepare disposable inputs for direct proof checks ([478307a](https://github.com/CodySwannGT/lisa/commit/478307a314b9a1aec0c51822904e772f06a6e6e1)), closes [CodySwannGT/lisa#5013](https://github.com/CodySwannGT/lisa/issues/5013)
+* **controls:** scope traceability diagnostics to the paired proof ([e025d34](https://github.com/CodySwannGT/lisa/commit/e025d343f3264c21d892eb7794699cb92a05f946)), closes [CodySwannGT/lisa#5013](https://github.com/CodySwannGT/lisa/issues/5013)
+* integrate tenant-safe AWS profiles into the access stack ([82c4d56](https://github.com/CodySwannGT/lisa/commit/82c4d56207ef154c49f1ffe4ffa0a719ed4272ce)), closes [CodySwannGT/lisa#4768](https://github.com/CodySwannGT/lisa/issues/4768)
+* integrate the reviewed Linear adapter route with readiness ([30d74f7](https://github.com/CodySwannGT/lisa/commit/30d74f7cf2e1659b94783fdac6ee7ce0b30dc1b7)), closes [CodySwannGT/lisa#4676](https://github.com/CodySwannGT/lisa/issues/4676)
+* **linear-access:** bound the adapter's curl with timeouts ([aed6c26](https://github.com/CodySwannGT/lisa/commit/aed6c26db21033d6dd465ea9cd5072ef362b2ad7)), closes [CodySwannGT/lisa#4676](https://github.com/CodySwannGT/lisa/issues/4676) [CodySwannGT/lisa#4676](https://github.com/CodySwannGT/lisa/issues/4676)
+* **linear-access:** enforce the same response checks for both entry points ([2b0387b](https://github.com/CodySwannGT/lisa/commit/2b0387bc25e3b61db422f209491e2af8eac8d96d)), closes [CodySwannGT/lisa#4676](https://github.com/CodySwannGT/lisa/issues/4676)
+* **linear-access:** quote GraphQL variables for the shell ([cc9fef5](https://github.com/CodySwannGT/lisa/commit/cc9fef54cc03d90b684ad5fa7b926f0fbfee4b99)), closes [CodySwannGT/lisa#4676](https://github.com/CodySwannGT/lisa/issues/4676)
+* **linear-access:** report safe identity failure details ([8e953b5](https://github.com/CodySwannGT/lisa/commit/8e953b5938a9dafc96ad97f18a8a9d1e0ceb6637)), closes [CodySwannGT/lisa#4676](https://github.com/CodySwannGT/lisa/issues/4676)
+* **linear-access:** ship the GraphQL adapter as a script run by path ([a914d40](https://github.com/CodySwannGT/lisa/commit/a914d40439b77174345062f10d8c0aff492449bc)), closes [CodySwannGT/lisa#4676](https://github.com/CodySwannGT/lisa/issues/4676) [CodySwannGT/lisa#4676](https://github.com/CodySwannGT/lisa/issues/4676)
+* **linear:** revalidate changed sourced credentials ([2d585bc](https://github.com/CodySwannGT/lisa/commit/2d585bc154613d299decb0a8f68b4b2bfacf5f9c)), closes [CodySwannGT/lisa#4676](https://github.com/CodySwannGT/lisa/issues/4676)
+* make access stack fixtures agree with native checks ([fe62c6b](https://github.com/CodySwannGT/lisa/commit/fe62c6b0daf4d50ccbf14bebee84d726994694a0)), closes [CodySwannGT/lisa#4546](https://github.com/CodySwannGT/lisa/issues/4546)
+* preserve task readiness through current Lisa integration ([8d7a6fe](https://github.com/CodySwannGT/lisa/commit/8d7a6fe690703c61ae2129dc6fff92219f321e7a)), closes [CodySwannGT/lisa#4546](https://github.com/CodySwannGT/lisa/issues/4546)
+* prove configured task access before starting work ([9f99f57](https://github.com/CodySwannGT/lisa/commit/9f99f575b83f1722e8ab2bcb7e5d1e7041faf20d)), closes [CodySwannGT/lisa#4546](https://github.com/CodySwannGT/lisa/issues/4546)
+* **readiness:** admit scoped reads for configured trackers ([0620799](https://github.com/CodySwannGT/lisa/commit/062079905f298434117cff7b60c0a1198f095426)), closes [CodySwannGT/lisa#4546](https://github.com/CodySwannGT/lisa/issues/4546)
+* **readiness:** bind comment reads to their tracker scope ([c0ebc20](https://github.com/CodySwannGT/lisa/commit/c0ebc20744262d266a67ea5d5bdba2bade1046dd)), closes [CodySwannGT/lisa#4546](https://github.com/CodySwannGT/lisa/issues/4546)
+* **readiness:** honor the configured issue queue during intake ([fdb0479](https://github.com/CodySwannGT/lisa/commit/fdb04794766dc0d66d83dbf0baccf8eabd27d1de)), closes [CodySwannGT/lisa#4546](https://github.com/CodySwannGT/lisa/issues/4546)
+* **readiness:** isolate authenticated probes and initial context writes ([33a21c0](https://github.com/CodySwannGT/lisa/commit/33a21c01a64e94456b1a42d495d36d00f1954ea7)), closes [CodySwannGT/lisa#4546](https://github.com/CodySwannGT/lisa/issues/4546)
+* **readiness:** keep configured tracker read fallbacks available ([11f75d2](https://github.com/CodySwannGT/lisa/commit/11f75d29caa8ee5644321f4775d91bff376bf100)), closes [CodySwannGT/lisa#4546](https://github.com/CodySwannGT/lisa/issues/4546)
+* refresh task readiness on Lisa v8.7.0 ([700adaa](https://github.com/CodySwannGT/lisa/commit/700adaaf98dc8f99f60832c6eac504f7876bb80c)), closes [CodySwannGT/lisa#4546](https://github.com/CodySwannGT/lisa/issues/4546)
+* **tests:** bound child work with fresh timing measurements [skip ci] ([e11b3f4](https://github.com/CodySwannGT/lisa/commit/e11b3f43096c750199fa609b0e0ee92125174d45)), closes [CodySwannGT/lisa#4505](https://github.com/CodySwannGT/lisa/issues/4505)
+* **tests:** charge the time before a child dispatch ([af503b9](https://github.com/CodySwannGT/lisa/commit/af503b9b754fb183cf913ee3d6eaa8b90caab0a4)), closes [CodySwannGT/lisa#4505](https://github.com/CodySwannGT/lisa/issues/4505)
+* **tests:** confirm an isolated over-limit timing sample ([6f5ece2](https://github.com/CodySwannGT/lisa/commit/6f5ece24aecb5c078d858d605cfe096652e4f1db)), closes [CodySwannGT/lisa#4505](https://github.com/CodySwannGT/lisa/issues/4505)
+* **tests:** integrate bounded contention calibration ([f8266db](https://github.com/CodySwannGT/lisa/commit/f8266dbb11ebf173477f7848463e834b27414220)), closes [CodySwannGT/lisa#4505](https://github.com/CodySwannGT/lisa/issues/4505)
+* **tests:** keep collection work within its original child limit [skip ci] ([52de0be](https://github.com/CodySwannGT/lisa/commit/52de0beb395e211afd692b9cda48c29c3db2513d)), closes [CodySwannGT/lisa#4505](https://github.com/CodySwannGT/lisa/issues/4505)
+* **tests:** register the Vitest runner entry point [skip ci] ([4294587](https://github.com/CodySwannGT/lisa/commit/4294587e47a97822fc908775380fbf5a1178a9f8)), closes [CodySwannGT/lisa#4505](https://github.com/CodySwannGT/lisa/issues/4505)
+* **tests:** reject references that finish beyond their allowance ([f18280a](https://github.com/CodySwannGT/lisa/commit/f18280a4eff3ed715f9b181b3b9e8c572d47e4de)), closes [CodySwannGT/lisa#4505](https://github.com/CodySwannGT/lisa/issues/4505)
+* **tests:** report the exact child operation window ([c67650b](https://github.com/CodySwannGT/lisa/commit/c67650bc7ed5ff512b6271c9b855902c3cc938ae)), closes [CodySwannGT/lisa#4505](https://github.com/CodySwannGT/lisa/issues/4505)
+* **types:** preserve config and proof fixture declarations ([3da72d0](https://github.com/CodySwannGT/lisa/commit/3da72d01195accc47c8443a142bcdb9de571cf09)), closes [CodySwannGT/lisa#4546](https://github.com/CodySwannGT/lisa/issues/4546)
+
+### [8.7.1](https://github.com/CodySwannGT/lisa/compare/v8.7.0...v8.7.1) (2026-11-22)
+
+
+### Bug Fixes
+
+* address the integration stack review ([f725a48](https://github.com/CodySwannGT/lisa/commit/f725a48fd62bd3d955936c34b27487da19b6defb)), closes [CodySwannGT/lisa#5070](https://github.com/CodySwannGT/lisa/issues/5070) [CodySwannGT/lisa#5070](https://github.com/CodySwannGT/lisa/issues/5070)
+* **bdd:** tell operators how to supply the coverage base ([b3f5e05](https://github.com/CodySwannGT/lisa/commit/b3f5e050a63bc950d2fb17e402730293144ce0af)), closes [CodySwannGT/lisa#4520](https://github.com/CodySwannGT/lisa/issues/4520) [CodySwannGT/lisa#4520](https://github.com/CodySwannGT/lisa/issues/4520)
+* **cli:** refuse unknown commands before applying ([9f83757](https://github.com/CodySwannGT/lisa/commit/9f837572174fc79aef0ecd656cb9bdc2a936690e)), closes [CodySwannGT/lisa#5017](https://github.com/CodySwannGT/lisa/issues/5017)
+* **evidence:** accept RSpec console test logs ([a877520](https://github.com/CodySwannGT/lisa/commit/a877520aacb6e8766ffe30cb000031d7a8284a6d)), closes [CodySwannGT/lisa#4874](https://github.com/CodySwannGT/lisa/issues/4874)
+* **expo:** exclude generated artifacts from typechecking ([627fd66](https://github.com/CodySwannGT/lisa/commit/627fd66af2b04f16215716269198f7bac2da8b60)), closes [CodySwannGT/lisa#4499](https://github.com/CodySwannGT/lisa/issues/4499)
+* **gates:** refuse removing the standalone check declaration ([e0810a7](https://github.com/CodySwannGT/lisa/commit/e0810a785b9024731ec309ebfda906cadc0a5dde)), closes [CodySwannGT/lisa#5070](https://github.com/CodySwannGT/lisa/issues/5070) [CodySwannGT/lisa#5070](https://github.com/CodySwannGT/lisa/issues/5070)
+* **hooks:** distinguish issue text from GitHub options ([f0e2f59](https://github.com/CodySwannGT/lisa/commit/f0e2f595029c69c8775178ce069bc6b53fffeceb)), closes [CodySwannGT/lisa#5085](https://github.com/CodySwannGT/lisa/issues/5085)
+* **hooks:** inspect the effective issue body on each invocation ([1889689](https://github.com/CodySwannGT/lisa/commit/1889689b337dceb5279a631069959c218af28503)), closes [CodySwannGT/lisa#5085](https://github.com/CodySwannGT/lisa/issues/5085)
+* **nightly:** honor bootstrap for newly added suite workflows ([fd71c20](https://github.com/CodySwannGT/lisa/commit/fd71c20974b619768d4897d3dc99a2ad991f7761)), closes [CodySwannGT/lisa#5006](https://github.com/CodySwannGT/lisa/issues/5006)
+* preserve gate and tracker checks at ambiguous inputs ([9d78b6b](https://github.com/CodySwannGT/lisa/commit/9d78b6bab22ca16ebba9babd1822edaeca554e11)), closes [#5085](https://github.com/CodySwannGT/lisa/issues/5085) [#5086](https://github.com/CodySwannGT/lisa/issues/5086) [CodySwannGT/lisa#5070](https://github.com/CodySwannGT/lisa/issues/5070)
+* **ratchet:** judge edited and first-time threshold exceptions ([b09afc7](https://github.com/CodySwannGT/lisa/commit/b09afc71176e20468db8200ff12a6e83ebebcec6)), closes [CodySwannGT/lisa#5102](https://github.com/CodySwannGT/lisa/issues/5102)
+* **session-manager:** accept managed GitHub login entries ([1b0fe37](https://github.com/CodySwannGT/lisa/commit/1b0fe37ddf22232ae3ec0d058638484a7ca5f66b)), closes [CodySwannGT/lisa#5090](https://github.com/CodySwannGT/lisa/issues/5090) [CodySwannGT/lisa#5090](https://github.com/CodySwannGT/lisa/issues/5090)
+* **session-manager:** dispatch holds released by trusted people ([d3b5474](https://github.com/CodySwannGT/lisa/commit/d3b5474c778c487002b4f1b2009440686526c53c)), closes [CodySwannGT/lisa#5090](https://github.com/CodySwannGT/lisa/issues/5090)
+* **tracker:** inspect issue bodies from the command working folder ([d167c50](https://github.com/CodySwannGT/lisa/commit/d167c508346a1be632e4939321cfa1b01a635a7e)), closes [CodySwannGT/lisa#5085](https://github.com/CodySwannGT/lisa/issues/5085) [CodySwannGT/lisa#5085](https://github.com/CodySwannGT/lisa/issues/5085)
+* **updater:** refresh authenticated gate helper graph ([a067c97](https://github.com/CodySwannGT/lisa/commit/a067c97ca48c5b5c90c723eb579ec6991d26498e)), closes [CodySwannGT/lisa#5070](https://github.com/CodySwannGT/lisa/issues/5070)
+
+
+### Documentation
+
+* **controls:** choose one parent for missing capabilities ([d5fdc0b](https://github.com/CodySwannGT/lisa/commit/d5fdc0bd6a02b4bac3fe5269d3d537d86aaad5c4)), closes [CodySwannGT/lisa#5086](https://github.com/CodySwannGT/lisa/issues/5086) [CodySwannGT/lisa#5086](https://github.com/CodySwannGT/lisa/issues/5086)
+* **controls:** verify every open Epic page before filing gaps ([32b601d](https://github.com/CodySwannGT/lisa/commit/32b601d4e2fd445a44eec3f64d84db91aa38bc42)), closes [CodySwannGT/lisa#5086](https://github.com/CodySwannGT/lisa/issues/5086)
+
 ## [8.7.0](https://github.com/CodySwannGT/lisa/compare/v8.6.1...v8.7.0) (2026-11-22)
 
 

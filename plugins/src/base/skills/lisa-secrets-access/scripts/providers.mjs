@@ -10,6 +10,7 @@
  */
 
 import { listBootstrapFiles, readBootstrapFile } from "./bootstrap-store.mjs";
+import { AccessFailure } from "./config-layers.mjs";
 
 import {
   boundedChildOutput,
@@ -140,7 +141,10 @@ export function bootstrapToken(bootstrap) {
           : "";
     if (found) return found;
   }
-  throw new Error(describeMissingBootstrap(bootstrap));
+  throw new AccessFailure(
+    "bootstrap-missing",
+    describeMissingBootstrap(bootstrap)
+  );
 }
 
 /**
@@ -644,6 +648,25 @@ export function fetchNamed(cfg, required) {
  */
 export function fetchAll(cfg) {
   return fetchNamed(cfg, cfg.require);
+}
+
+/** Presence-only view for readiness: retain grant narrowing and project allowlist.
+ * Missing records are data here, unlike ordinary fetchAll's asserted contract.
+ * Values stay in process, never in a decision or diagnostic.
+ */
+export function readinessProvider(cfg) {
+  if (!["env", "bitwarden", "doppler"].includes(cfg.provider))
+    throw new AccessFailure("adapter-unsupported");
+  try {
+    const selected = normalizeRows(fetchRaw(cfg), cfg.narrow);
+    return cfg.require === null
+      ? selected
+      : new Map([...selected].filter(([name]) => cfg.require.includes(name)));
+  } catch (error) {
+    if (error instanceof AccessFailure) throw error;
+    if (error.code === "ENOENT") throw new AccessFailure("tool-missing");
+    throw new AccessFailure("provider-unreachable");
+  }
 }
 
 /**

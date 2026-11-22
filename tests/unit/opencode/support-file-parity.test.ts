@@ -15,7 +15,12 @@ const HOST_HOOKS = "all/copy-overwrite/scripts/lisa-hooks";
 const RAW_HOOKS = "plugins/src/base/hooks";
 const GENERATED_HOOKS = "plugins/lisa/hooks";
 const STAGING_SCRIPT = "scripts/copy-opencode-plugin-templates.mjs";
+const TASK_ADAPTER = "task-readiness-guard.mjs";
+const shippedDirectory = (filename: string): string =>
+  filename === TASK_ADAPTER ? GENERATED_HOOKS : HOST_HOOKS;
 const SUPPORT_FILES = [
+  "task-readiness-guard.sh",
+  TASK_ADAPTER,
   "discharge-work-item-gates.sh",
   "block-managed-file-edits.sh",
   "block-no-verify.sh",
@@ -44,7 +49,9 @@ describe("OpenCode installed support-file parity", () => {
         path.join(temporary, ".opencode/plugin", filename)
       );
       expect(installed, filename).toEqual(
-        await fs.readFile(path.join(REPO_ROOT, HOST_HOOKS, filename))
+        await fs.readFile(
+          path.join(REPO_ROOT, shippedDirectory(filename), filename)
+        )
       );
     }
   });
@@ -94,18 +101,7 @@ describe("OpenCode installed support-file parity", () => {
     const moduleUrl = pathToFileURL(
       path.join(temporary, "dist/opencode/hooks-installer.js")
     ).href;
-    for (const filename of SUPPORT_FILES) {
-      const bundled = await fs.readFile(
-        resolveSupportFile(moduleUrl, filename),
-        "utf8"
-      );
-      const host = await fs.readFile(
-        path.join(REPO_ROOT, HOST_HOOKS, filename),
-        "utf8"
-      );
-      expect(bundled, filename).toBe(`${host}\n# fresh source\n`);
-    }
-    for (const filename of HOST_NAME_FILES) {
+    for (const filename of [...SUPPORT_FILES, ...HOST_NAME_FILES]) {
       const bundledPath = resolveSupportFile(moduleUrl, filename);
       const bundled = await fs.readFile(bundledPath, "utf8");
       const authored = await fs.readFile(

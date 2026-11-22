@@ -20,10 +20,10 @@
  * all.
  * @module tests/unit/hooks/enforcement-fallback-attribution
  */
-import { mkdirSync } from "node:fs";
+import { cpSync, mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   BEHIND,
@@ -35,9 +35,7 @@ import {
   CURRENT,
   GUARDS,
   HOST_TREE,
-  PLUGIN_HOOKS,
   PLUGIN_TREE,
-  REPO_ROOT,
   bash,
   cleanupScratchRoots,
   dateHostTree,
@@ -49,6 +47,7 @@ import {
   write,
   writeBehindGuard,
 } from "../../helpers/enforcement-fallback-fixtures.js";
+import { taskFixture } from "../../helpers/task-readiness-fixture.js";
 
 afterEach(cleanupScratchRoots);
 
@@ -84,7 +83,7 @@ const PAYLOAD_TABLE: readonly Row[] = [
   { label: "listing issues", payload: bash("gh issue list"), refusedBy: null },
   {
     label: "writing an ordinary source file",
-    payload: write(path.join(REPO_ROOT, "src", "probe.ts")),
+    payload: write("src/probe.ts"),
     refusedBy: null,
   },
   {
@@ -129,26 +128,59 @@ const PAYLOAD_TABLE: readonly Row[] = [
   },
   {
     label: "writing a session-instruction file",
-    payload: write(path.join(REPO_ROOT, "AGENTS.md")),
+    payload: write("AGENTS.md"),
     refusedBy: BLOCK_INSTRUCTION_FILES,
   },
 ];
 
 describe("the payload table, through the real stdin contract", () => {
+  let root: string;
+  let hooks: string;
+  let overrides: Readonly<Record<string, string>>;
+
+  beforeEach(() => {
+    const fixture = taskFixture();
+    root = fixture.root;
+    hooks = path.join(root, PLUGIN_TREE);
+    overrides = {
+      LISA_PROJECT_DIR: root,
+      LISA_SECRETS_SURFACE: fixture.env.LISA_SECRETS_SURFACE,
+      PATH: `${fixture.env.PATH}${path.delimiter}${process.env.PATH ?? ""}`,
+    };
+    // Prove an explicit empty requirements list for these synthetic calls.
+    // The attribution table then isolates the guard that made the decision.
+    fixture.refresh([]);
+    cpSync(fixture.plugin, path.dirname(hooks), { recursive: true });
+    installRealGuards(hooks);
+    datePluginTree(root, CURRENT);
+    installCurrentTemplates(root);
+  });
+  afterEach(() => rmSync(root, { recursive: true, force: true }));
+
   for (const row of PAYLOAD_TABLE) {
     if (row.refusedBy === null) {
       it(`permits ${row.label}, and names no producing copy`, () => {
-        const { status, output } = runFallback(row.payload, REPO_ROOT);
+        const { status, output } = runFallback(
+          row.payload,
+          root,
+          undefined,
+          overrides
+        );
 
-        expect(status).toBe(0);
+        expect(status, output).toBe(0);
         expect(output).not.toContain("Refused by ");
       });
       continue;
     }
 
     it(`refuses ${row.label}, naming the copy that produced it`, () => {
-      const producer = path.join(PLUGIN_HOOKS, `${row.refusedBy}.sh`);
-      const { status, output } = runFallback(row.payload, REPO_ROOT);
+      const producer = path.join(hooks, `${row.refusedBy}.sh`);
+      const { status, output } = runFallback(
+        row.payload,
+        root,
+        undefined,
+        overrides
+      );
 
       expect(status).toBe(BLOCKED);
       // The absolute path, not the guard's name: the whole point is which FILE
@@ -252,7 +284,7 @@ describe("two resolved copies of different vintage that disagree", () => {
       rootWithDisagreeingCopies()
     );
 
-    expect(status).toBe(0);
+    expect(status, output).toBe(0);
     expect(output).toContain(`lisa ${BEHIND}`);
     expect(output).toContain("npx @codyswann/lisa apply");
   });

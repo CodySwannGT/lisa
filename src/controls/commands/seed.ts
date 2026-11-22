@@ -46,13 +46,13 @@ import {
   GATES_DECLARATION_PATH,
   readGatesDeclaration,
 } from "../gates-declaration.js";
-import { WHOLE_REPOSITORY_SCOPE } from "../register-types.js";
+import { installedShippedTaskProofs } from "../shipped-task-proofs.js";
 import {
   detectSupportedTypes,
   MANIFEST_PATH,
   planShippedPartGates,
   readProjectScripts,
-  readShippedFolder,
+  readFolderProjects,
   type ProjectRead,
   type SeededGate,
   type SeedingGatesModule,
@@ -170,6 +170,7 @@ interface Seeding {
  * @param root - Real path of the repository
  * @param registry - The shipped gate registry
  * @param scripts - The scripts of the repository's `package.json`
+ * @param projectTypes - The supported types detected at the repository root
  * @param folders - The per-folder projects, when the audit named folders
  * @returns What was declared, or why nothing could be
  */
@@ -177,6 +178,7 @@ async function seedDeclaration(
   root: string,
   registry: SeedingGatesModule,
   scripts: Record<string, string>,
+  projectTypes: readonly string[],
   folders: readonly ShippedFolder[]
 ): Promise<ProjectRead<Seeding>> {
   const config = await readConfig(root);
@@ -189,6 +191,7 @@ async function seedDeclaration(
       : registry.seedGates({
           gates,
           scripts,
+          proofs: await installedShippedTaskProofs(root, projectTypes, scripts),
           runner:
             typeof gates.runner === "string"
               ? gates.runner
@@ -241,34 +244,12 @@ interface SeedRefusal {
   readonly summary: string;
 }
 
-/**
- * Read the audited folder projects before writing any declaration.
- * @param root - Real path of the repository
- * @param parts - The audit's scoped folders and repository root
- * @param detect - The supported project type detector
- * @returns The folder projects or their read errors
- */
-async function readFolderProjects(
-  root: string,
-  parts: readonly string[] | null,
-  detect: typeof detectSupportedTypes
-): Promise<ProjectRead<ShippedFolder[]>> {
-  const scopes = (parts ?? []).filter(
-    scope => scope !== WHOLE_REPOSITORY_SCOPE
-  );
-  const reads = await Promise.all(
-    scopes.map(scope => readShippedFolder(root, scope, detect))
-  );
-  const problems = reads.flatMap(read => read.problems ?? []);
-  return problems.length > 0
-    ? { problems }
-    : {
-        problems: null,
-        value: reads.flatMap(read =>
-          read.problems === null ? [read.value] : []
-        ),
-      };
-}
+const MISSING_REGISTRY: SeedRefusal = {
+  problems: [
+    "The gate registry is missing from this copy of Lisa (expected all/copy-overwrite/scripts/lisa-gates.mjs).",
+  ],
+  summary: "Reinstall Lisa, then run this again",
+};
 
 /**
  * Decide the road for a repository and, on the paved road, seed its
@@ -282,14 +263,7 @@ async function decideAndSeed(
   dependencies: SeedDependencies
 ): Promise<SeedOutput | SeedRefusal> {
   const registry = await importGateRegistry<SeedingGatesModule>();
-  if (registry === null) {
-    return {
-      problems: [
-        "The gate registry is missing from this copy of Lisa (expected all/copy-overwrite/scripts/lisa-gates.mjs).",
-      ],
-      summary: "Reinstall Lisa, then run this again",
-    };
-  }
+  if (registry === null) return MISSING_REGISTRY;
   const declared = readGatesDeclaration(root, registry);
   if (declared.problems !== null) {
     return {
@@ -335,7 +309,13 @@ async function decideAndSeed(
   });
   const seeding: ProjectRead<Seeding> =
     decision.road === "paved"
-      ? await seedDeclaration(root, registry, scripts.value, folders)
+      ? await seedDeclaration(
+          root,
+          registry,
+          scripts.value,
+          projectTypes,
+          folders
+        )
       : { problems: null, value: { wrote: false, seeded: [] } };
   if (seeding.problems !== null) {
     return {

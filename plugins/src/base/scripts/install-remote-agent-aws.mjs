@@ -316,8 +316,9 @@ Generated for: \`${platform}\`.
 Profiles are named \`<project>-agent-<stage>\`, not bare \`dev\` or
 \`production\`. The bundle supplies the stage; the project component comes from
 \`LISA_AWS_PROFILE_NAMESPACE\`, then the bundle's \`namespace\`, then
-\`<owner>-<repository>\` from this checkout's git origin. Select an account
-explicitly, for example:
+\`<owner>-<repository>\` from this checkout's git origin. A bundle key that
+already begins with \`agent-\` is not doubled: \`agent-dev\` and \`dev\` both become
+\`<project>-agent-dev\`. Select an account explicitly, for example:
 
 \`\`\`bash
 aws --profile <project>-agent-staging sts get-caller-identity

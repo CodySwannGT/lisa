@@ -45,7 +45,7 @@
     "all/copy-overwrite/scripts/lib/build-marker.mjs":
       "505519d9632ab86572cfdeca917d93599256cf8e798987ad593a82296a7d8175",
     "all/copy-overwrite/scripts/lib/changed-paths.mjs":
-      "bcf755d8c1905cddd84622c9a520f7bcc16b19379b9f933a8b5657bb6df9f391",
+      "f9089dfab2a892e2512abc4ad4ee336fedc46253c8fe5b8c257c76dad1ac72a3",
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs":
       "a9c3fa0ee9c3de9c610e009c6775088237c1e8ebd69ff4d9fd829de2db1c206a",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
@@ -57,7 +57,7 @@
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs":
       "0b323e9c53b6909eca61fa84bf2c85683a686e380760e2fe2fb52b09c6611026",
     "all/copy-overwrite/scripts/lib/completion-proof-content.mjs":
-      "98b1901e0912d72a639028f22837a8abecaeeef6fba0654990bca2285239ea08",
+      "25d44e9eeed728d046a45e5662691c7112cb271b5decc48ea9fe0fe038812538",
     "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs":
       "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
@@ -373,9 +373,9 @@
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "034705bbaadc6dc1ed1c64f9672fdc489b74f786d46b8363b2e4e4998c0f4f36",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "3d137ff030640bc51c76c46638ac24953f516e859bdbee34bf5fae6351fa5038",
+      "b85f1bc597c0e589e011b8c52415ba15a9e659bc0f55d64922e0e4230e497013",
     "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs":
-      "5f303bc2c0427fbf686bc75fe2f481da9f70708165c6d2a51d0432aedfcd205d",
+      "20078c67375afbca573a2392a0842f8317de1b002c9e9fe95f5e066b94b859f7",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "264dc09909dc6c2624d87fd3d342c4538bdc62654e7c804732cdee97218fbcd0",
     "all/copy-overwrite/scripts/lisa-estimate.mjs":
@@ -385,13 +385,13 @@
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "42beca1ca7830cd56f617102c61644c877a232d10a37811b8357bdb1a9c6cc29",
+      "d0fc329cfce25b5f72a6a005d26d5455ca520662c47031c8bcf1af10fadb320d",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "c2fc91c3a1c40e54c084063aef9e787064f43551da66c0c14ff7b105590777c8",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "52de545390c4f37b0505db43cf74cc1efd22647eca98292d84ab660b79878529",
+      "b8b44650434695019718576752a1735ee0adcaab2fe8f4eb30cb9c4150fb136c",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "73ac5af581d16992dd9cc273b4e2f6b55bd6a2629abe23b7658563cf433e082c",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
@@ -408,6 +408,8 @@
       "b37b843b738fd0c1c6f9639551cf64c409263064819bb820e3daa6af8c94d443",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "18e1d963d4416ccd247158e6a4bfcf43234f47faeb3a4654b5a6c78001ab8ef5",
+    "all/copy-overwrite/scripts/lisa-hooks/task-readiness-guard.sh":
+      "6cb8eadda0ed0cb3a2d17eb71052435b423ab175c16945b39e9474fb4a5d0f49",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
       "4f6cf61c49ee8206d227c3e87b16886ced824cdf994b2569656d983b6310d68a",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
@@ -429,7 +431,7 @@
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "32d9ba926ee0c7f8a5f4ab80c9377b6693d01438990667e85be2e33997af42e6",
+      "d124e35b28292948ee4cf94c99b81bb346eb5fa40f8d826877acaedcbd1ec69b",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -445,7 +447,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "b206a2880f155a3ad008c5e907cecbaf6ea5dffc00c2a4bcdf7ee23ca72cccd8",
+      "340609c32c02a908d01bc385db7f8f19fffad6daddb117142ffa13f31b5f6e6b",
     "all/copy-overwrite/scripts/post-agent-review.mjs":
       "3b605b01ce7404d8e930629005896248ca115e0692bda6cf2d340e44c9f35a58",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
@@ -457,7 +459,7 @@
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
       "6b7afe4ffeba8aaa53871d8855172f7eacde05953b1321145218ec638ff5c1c4",
     "all/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "f837708fc5baf19b5e8e9adf88bcce810f8257d00075265775982b38063dc5d3",
+      "76cdcc3a28a04686e6ddc3cd1f54e3bb9c4fb28a8033692dc86e1ffb7adb0ced",
     "all/copy-overwrite/scripts/threshold-ratchet-families.mjs":
       "b9e64446a177616c365d04f21f3c3a1488975843be828fd72d9c9f5d331a22e3",
     "all/create-only/.agents/rules/README.md":
@@ -653,7 +655,7 @@
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
       "4011bcc9643b93522d2082363a2e9de3309d92f82ec054d2988860bb7cd3d16c",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
-      "5b45f4d37eb2faa40870f2ab75884d914d7a08bf1cbd7fb45929f91ede1e18e2",
+      "7a4d20dd130524161f0860fb2199782891bc91a906988b3aaec041ec4db178e2",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "99764b136eaa7bba3b7abf78f60bc6805f8c008a9cac59c78c5eadba35cecdc7",
     "expo/copy-overwrite/scripts/check-lighthouse-details.mjs":
@@ -723,7 +725,7 @@
     "expo/create-only/tsconfig.json":
       "fdb99e32d1588e75735755d7b5caab406ad8387c21a3d820cd3b40cb9218a191",
     "expo/create-only/tsconfig.local.json":
-      "dad4b4a00c890ce8c30db87ad3f8e92e2273e31c2c2a6436d0ab327b47f72758",
+      "dfaff3932fe73440e589998992eccd336a984b5984b31be91a05a20449dcdbc0",
     "expo/deletions.json":
       "d968e902b82b35202d22e7513b4647a4298ac76185872234bcbe13a1a9c2715f",
     "expo/github-rulesets/bdd-coverage.json":
@@ -1139,7 +1141,7 @@
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "7ec3db9a519a5ce95277d75ab347d2ee52970bc4ccb7ae554bccba8628290c19",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "eeab0883ea9d032d7ca10bf4dd598ed864e66380260bd452db00e2eb05e51e59",
+      "7355609a407cbcbbfc59b1aed95057459f80a195f89541aae409906d6b955ef0",
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
@@ -1206,16 +1208,22 @@
       "d924b576559ea341d1b5bea88a44db7c3bf0b357ed62aab0611e6660ef5f155f",
     "plugins/src/base/hooks/parity-safety-net-heredoc.py":
       "5ea0bc9310ce1225405f2c208b4b398d1fda3069402ceba3a6049b466d213352",
+    "plugins/src/base/hooks/secrets-preflight.agy.sh":
+      "b353735de3846cb128a7d6927962ee36a56a66c92bd98555a6ce8f388082d9f5",
     "plugins/src/base/hooks/secrets-preflight.sh":
-      "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
+      "d439d44053da8f18e490797be767f5a64294baea0b5eb3df942c9ef9decffd09",
     "plugins/src/base/hooks/setup-jira-cli.sh":
       "384bc8d935a2ed5788d7185979b3e74c75c17cd4bc5c230d7d8f086ab2703443",
     "plugins/src/base/hooks/shell-write-nudge.sh":
       "69839af423f8792b1e52c71097316c3264425553031627c0a2f9409a9d5becd0",
     "plugins/src/base/hooks/sonar-secrets.sh":
       "554fb65766d617c8b57411b0d53906b7358c219dd2031708370ffc91e97f7381",
+    "plugins/src/base/hooks/task-readiness-guard.mjs":
+      "261bd61b17cdfec25cfb1fcac93509ff514f0e452c2d4a0c69b3c8bd93a57275",
+    "plugins/src/base/hooks/task-readiness-guard.sh":
+      "46254d444580947df927293a7b65d49f865022089bb0ff33403dca5189cbd056",
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
-      "1e250e09de777c2507861652b6eb810bf5fcc25e498c211b949c185fd2d744bd",
+      "335426213e2a0daa37389da12932fbf87b4cab6e2ee2c2318ef624548e370dac",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
       "e0aae600cc3187e832b5a959f60869c87a95b32ab8ee2ccbf9f959e41deacd3b",
     "plugins/src/base/hooks/threshold-ratchet.mjs":
@@ -1287,7 +1295,7 @@
     "plugins/src/base/rules/reference/completion-authorization.md":
       "75646f8f5b1c5aedf750e37ed3b5a1f09f6fd85932037c85ac1e8930b67100b1",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "5e75ef2b3865361e67fa5f7f25cb53ab617b92d69cdbc810e7bd355aab3720c8",
+      "3db169298b6e233b274e8662a9ab040e1605080bbce10b94349686184896053e",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1375,9 +1383,9 @@
     "plugins/src/base/rules/reference/stale-state-claims.md":
       "ea788d884c297ef8c8b573625172cdb123bb80690907cea0efa789b8dd60e466",
     "plugins/src/base/rules/reference/tool-access-gate.md":
-      "55f09b30a5aeb00abe30c5f6c18ee12103aee5c42a8aa9bab61a75ba263c8bd6",
+      "057743e865bbfaa96f753a69046d3c1b554aba2b9d015790fb6f8c8d6c6b7fa7",
     "plugins/src/base/rules/reference/tracked-work.md":
-      "f16ae779aa398fdb3d96ce03d9fcf1206b088979833b47882e75c20f340503c1",
+      "709ca5c6f09d28dfb240aafc92bbc38748d2fcfeabbc1c418232719ecec59ad1",
     "plugins/src/base/rules/reference/upstream-to-lisa.md":
       "6b82577bf182fa1ed05e8dc3e1f68d9f76eb1eb7497de75031595db488c396de",
     "plugins/src/base/rules/reference/usage-accounting.md":
@@ -1429,7 +1437,7 @@
     "plugins/src/base/scripts/human-gate-lift.mjs":
       "21424773e02a479bff83246b781eef64fdaa310e985916d4fbef15812c9c3880",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
-      "a3b530e0053774f62aa768377e672388b586b1456fa59f33bc3553babf1a576d",
+      "c66d11a0a0cef6910146b9a28f4929b429e6ab56578fabb7a9f313389bd70341",
     "plugins/src/base/scripts/intake-blocker-reprobe.mjs":
       "5253887792167a642270849601ad553c1f7c8f7cf958e1ee3a71a1c52ebbd26c",
     "plugins/src/base/scripts/intake-prework-denominator.mjs":
@@ -1459,9 +1467,9 @@
     "plugins/src/base/scripts/queue-status-prd-readers.mjs":
       "32b4366fc292062c869793aeaf5b006ff400df5da09ee510f862e15d59a77770",
     "plugins/src/base/scripts/ready-queue-order.mjs":
-      "dd41b11715511c6750944a917cfc159061a139ecbab324ee1731cd103ae3f16a",
+      "02d2216053cf89da887cbec541cd4b175fd39dfaa340e451293b3b7106a7d161",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
-      "7341831fa2dc52bdf792306196430548a7efec91993e1ad7f5c6b737a9def8a5",
+      "11d9187c9b451aeb3cebf8370bca848b63d96f6bbc47c5e7b4146a44d0ac05e2",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
       "bed0f0b8a43146dbe222c657d6b58494c3962d1bb627bf0591d4b37102de972f",
     "plugins/src/base/scripts/resolve-lifecycle-role.mjs":
@@ -1495,7 +1503,7 @@
     "plugins/src/base/skills/lisa-analyze-claude-remote/SKILL.md":
       "13b55753b6f133493af74fcb93692ecbc9571ebcfb2dd3c0e36ba22f38a8d62a",
     "plugins/src/base/skills/lisa-atlassian-access/SKILL.md":
-      "dc1e90f97b068710cfe27da50a3a73afd7cf3f6a574cbab73a8e281059f58e48",
+      "8f8fe5592d543e3a3f6962d98fd16194a456059d26c49123a6a35dcf89c7e542",
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
       "8ea94fa2b3fbe860cee365a6dd935a0f7ef9e749a2ab59c8b8dfc1838cdb0d37",
     "plugins/src/base/skills/lisa-attest/SKILL.md":
@@ -1515,7 +1523,7 @@
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
       "6485cf919af6f1fa5f5d60209906fd954a5d45456e2149c25ad29f2567fcc981",
     "plugins/src/base/skills/lisa-configure/SKILL.md":
-      "455ab244a540d7c4c07daed65a0c8c1902c6ec651bf44496dab4e1686339d7bd",
+      "027b34e50e9c809aec0c029239a9e3398d648a7ff1d5e7895fa22229e3348147",
     "plugins/src/base/skills/lisa-configure/references/exercised-artifacts.md":
       "0f9caf8e704753069d20fa7b36ca3b687c7fa49601f62c37198e4f91781b893a",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
@@ -1549,7 +1557,7 @@
     "plugins/src/base/skills/lisa-enforce/SKILL.md":
       "a34ed0e80a87b2d24211876711cb571eb0922d96b6ab08f2bd826416b977feed",
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
-      "0cc51d8a05524d6449ab30bd2a5b60687c26617d2cd5e571c9fce68ad9feb3c8",
+      "3bb11b4e18bb724dea9b98620fdb8a7fa2debb7aeb58abf64d5fc0cf54428b02",
     "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md":
       "7b926efa4ec1a7c68af9fd1443bf9dd9dd4688efc121c18b688b46a51afada2c",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
@@ -1571,9 +1579,9 @@
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "4ceda3474a9b32abae835c2676e8cb2b7e888c6ba04b95843dbe7254293bbf32",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "bdc58c3ca38ec396d0211490419d90ddf05045e1cc4013ce247056553898f53d",
+      "b13fa544713caa58b9142d4dfaf079c31c1d8600064ba107c3896f391f1dcc11",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
-      "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
+      "61219f568494a0775125ed1984bdf6adc707074fcdf8751a0b310ae2e1a903b3",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
       "e8e5ae204ad39c3de35120d039facdcdedfcf32329e978ac2a00ca2868c68018",
     "plugins/src/base/skills/lisa-github-evidence/SKILL.md":
@@ -1585,7 +1593,9 @@
     "plugins/src/base/skills/lisa-github-project-v2/SKILL.md":
       "484c0cdfeb22e8862015ba0a47b04c068c900c8dad123c4abd693991d5824137",
     "plugins/src/base/skills/lisa-github-read-issue/SKILL.md":
-      "dc17f16d314ca3be264e42110995475f350d5cbdffac1aad65b2cd78ad8fcd79",
+      "0ed16a11c1e11f138226207706268a05f5f2e2b1a275bea43ee03d66e13d6f94",
+    "plugins/src/base/skills/lisa-github-read-issue/read-contract.mjs":
+      "563dd3fff1121e2ad818722f6d5176e77e3ae12ca160f42609ec3512385ed463",
     "plugins/src/base/skills/lisa-github-sync/SKILL.md":
       "3ecdd4bf91f1dd409cf2a8bd82b998cb7f9220e5e592195a0fa4040f4e53f6c6",
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
@@ -1603,7 +1613,7 @@
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "1892ea91ccb2fd45019ac74a59158c501efdde88428c2b96f3b1dd746d20e022",
+      "a15f979e0ecf259a490886c3afe5b92b04dc70be7358e0d8773e2c3845b248a3",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -1625,9 +1635,9 @@
     "plugins/src/base/skills/lisa-jira-add-journey/SKILL.md":
       "a00606cc7927f034e847f34d7e44e72fa7f3a14ddf6a469deb7eae1e06531fd7",
     "plugins/src/base/skills/lisa-jira-build-intake/SKILL.md":
-      "79f54c7526c70c7f8d4a136bdda2716e5bf443dd893259bd530fcbed0f29a064",
+      "524d1b4ec7a2d3c5f82468c99ba41fe22f88389824b3f3d9bd8bc332448cb08d",
     "plugins/src/base/skills/lisa-jira-claim/SKILL.md":
-      "9c4935441a4e6b55df0949178f96e927184c4909bffff8929b39a304bc5ac00a",
+      "a69890c29b5f8f5d93c54bb92bd47de5e4eb80a09e9c24bdc3158b1e2fd3c715",
     "plugins/src/base/skills/lisa-jira-create/SKILL.md":
       "2a409fe3755112f98587db66325fadf5e0d4f34b512755cdbb53b5bec107dab3",
     "plugins/src/base/skills/lisa-jira-evidence/SKILL.md":
@@ -1641,7 +1651,7 @@
     "plugins/src/base/skills/lisa-jira-journey/scripts/parse-plan.py":
       "a96fda5de44cd6d65fcc7ecf36aa365766707b77ad68b198062124d31a9238b9",
     "plugins/src/base/skills/lisa-jira-read-ticket/SKILL.md":
-      "ee90ce211876d318e3236335602132dce517cf0600365e90f2ffc0eef95aabd8",
+      "14b3950f6cf4d16d9ca3bf73d59b0b7a4f240b3b357fb5a8399949d4ecc97651",
     "plugins/src/base/skills/lisa-jira-read-ticket/scripts/download-attachment.sh":
       "f50f532ee0142b61b4d16c4c61f49ee06fdf78c5edd870fbcfbc13b41f8ab519",
     "plugins/src/base/skills/lisa-jira-sync/SKILL.md":
@@ -1659,13 +1669,15 @@
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
       "f737876ae27d4b2112e20c11c1cce32f19d5023beeed03bd89e8385580a7fbee",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
-      "50f23271fec961dd3d89e0f93db0d7e695a8f971bc4d8fecedd2cdd28af99597",
+      "95282fff1e795b572f6196f78dd8743a4858d05f8ce6878eb9d31a1934b5b302",
+    "plugins/src/base/skills/lisa-linear-access/scripts/linear-graphql.sh":
+      "b3d4b696a3872320c5ab47ad6a620e99b1fd0dd1a33b64cd8dd13e9822aba414",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "e63ae35df1a928dac7b42535ce11e77e8c617e60838ba319f22081400e87886e",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "62b2aac1928d07e2f4987825db985cdcfff1aec9be4a49131bdc6a4f952d4cf7",
+      "6952179c666d5d7304fd48f52e17da0ae8ebca260ac94add9e0d948a6e8cc2b5",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
-      "efde30b5eac8b2cc56499ce391bd3d43ebb017c4ce948b5d547b52acb66715bb",
+      "487b3d26cc9715fb4cf1e89b7f315a0ad09499c2942f5ecf46f17a36ace41363",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
       "68fb66f396ac99f63b94d55664e425de7191ba62c11ffe46cfae1c699959cc3b",
     "plugins/src/base/skills/lisa-linear-evidence/SKILL.md":
@@ -1675,7 +1687,7 @@
     "plugins/src/base/skills/lisa-linear-prd-intake/SKILL.md":
       "add3303cd5dbf250df622c7d5fed36bd7f27a2016505eeef4c610a40c2bceec1",
     "plugins/src/base/skills/lisa-linear-read-issue/SKILL.md":
-      "38b9d6e61fa553b51026ba56fb21a6167ef3626d7ab86b1190d4306f323928d8",
+      "f500cb40b157b456a25de8ef9e175764db1686306a548f210615a216aae457d6",
     "plugins/src/base/skills/lisa-linear-sync/SKILL.md":
       "96108cea578ca29d4a05d9d115e1b433b2f5e166a8da74878f760041d1e600cc",
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
@@ -1685,7 +1697,7 @@
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "17251e8d6c762b69b2ca6a77d9cfe44beba31dfc0444de4cde051747e2c99eab",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
-      "723f951c856774f03e19ef7400f4f1885b8ad35147a6948bdff5d58911315e0b",
+      "bb4143f5c805da2ce40f4023a4303dc1878a08b5cbb5c450ff5feb143048f358",
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
       "f6de212c8ac7a905e754b82e08b0696d8d03f81b8e6b281e02fb28e3a489552d",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
@@ -1697,7 +1709,9 @@
     "plugins/src/base/skills/lisa-nightly-lower-code-complexity/SKILL.md":
       "3fc2c519f3536d37daf0df147b9812d59ccac29a5fcc63225c93da20f3497eb7",
     "plugins/src/base/skills/lisa-notion-access/SKILL.md":
-      "caf9d844d5f7a2a024e93a1f7da74de468e7cb36eefa565670e9cfbb9d96b44d",
+      "713b6ffb224cf9d466a9fcbbcab852b87e2ba419b47c0a39dc90b0b6814e89eb",
+    "plugins/src/base/skills/lisa-notion-access/scripts/readiness-probe.mjs":
+      "d43e8982ab442cbd37c30c149515e95677cc3a2844c7c71153140014a10376ea",
     "plugins/src/base/skills/lisa-notion-prd-intake/SKILL.md":
       "cf94c3b78cdc6e6ddd70a5f870d4272b158b8bd39edf9a024e93df093f8f81b9",
     "plugins/src/base/skills/lisa-notion-to-tracker/SKILL.md":
@@ -1769,11 +1783,15 @@
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "72e13a433912f4743896cdfb8af220b44a1c9d61ede2ee981bdd1acefae5f5dc",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "917d7121adede457a6b42f36c1d9f7199c6956167dbc9df193384b1bec6a4171",
+      "c9a473c02a2d1d721c0000949de83ac3728e2799042748541f0152d810fdbd62",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
-      "c1c4bc4e7b725c7f0920b1d36ddcd0d30cf277aec069231acc27486d156905a6",
+      "ef8f20962e098697ed68e5dc6e7ec3fc16a305f1296c6266720a26c9c6577aa5",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
       "35169ea70810f7b7291d75c93ec326e0ac04407bf335949b0742e74e69850ec4",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/config-files.mjs":
+      "3c63880c6590f57892e23db2ad0333fe9c93c6c4c9db2f2916b2f875d1c3071c",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/config-layers.mjs":
+      "3ceb2d73766b18eb91d92ca0945e767439e384debbb17a8d3903c3d52277e8d1",
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs":
       "228aea621b44c7fc2c9d0f51fad83b8eef5f2b95632ffba84abf446f4503650c",
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs":
@@ -1781,17 +1799,17 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/inspect-vault.mjs":
       "d2841042eda0f0c50f995ccc34e09e25aced0abbf3a96bce52a9f604e4009520",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
-      "67b736cd867cd5572a46b8477059acf7c4b48738dc0d4c539afdb5b6ddd52c73",
+      "91b443b7c54272f7b94fe3a592eeddd9f45b00901301bf769297a87b01cf18f1",
     "plugins/src/base/skills/lisa-secrets-access/scripts/note-format.mjs":
       "09bd6904bc84a5a93a32499ac94db5ec7728db68908a661698445ef5e6974f3e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/owner.mjs":
       "576b146e3f60306967b15e382105fe8a27644965b9fbb2870f701b042952461a",
     "plugins/src/base/skills/lisa-secrets-access/scripts/preflight-secrets.mjs":
-      "b9ac78a7b95d0f0c4617acf76d61d165df647f185797f14826dfa69b8c231b70",
+      "698d87f288c0339d2e53e6d12c0a82f7f1b4ecad379ec53d8ed155a569dbad21",
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
-      "cba8f49caefd21af4e052270826ffa3793ccca8693fbfec9fa0f69d384c564c9",
+      "cff2018a0298b833e51efe8626b51b20409e84f4fb3c6cbe4b4e13da33121a95",
     "plugins/src/base/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs":
       "2ab1e70fe8b8f6ccf7b5e589ea80031be755ddce8c30009ead71790542c68e2b",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
@@ -1803,15 +1821,47 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/rotate-secret.mjs":
       "adada60f766760395858c69ef784654e9e096943485ed237c395c8fc2ca8e20f",
     "plugins/src/base/skills/lisa-secrets-access/scripts/routing-floor.mjs":
-      "fa1bdeda4e38bbd149f993ab0288f11b7ba6f2a3b9bf91a5918de7356e21f786",
+      "f6de84485d08552db0085e64d3d1788e58e07cd4128d2e52da5930aa3d9f6fa8",
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
-      "d702dff9534b2cdbb0433320571d46bbf8e45eea8a57eb99c8d928907ccbcc29",
+      "d9259269fd2d0a8387bef8a13c9d167bd1f9d20dd58e6b51ce02119dfe1d4c87",
     "plugins/src/base/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs":
       "8c5b8e5aa775420d0778436666c9b03b67fae443809d9b5fd57ebf0f04d9a4e2",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-access.mjs":
+      "ee88c5f1d39e11c2d7233df255bdbb2246be808baa7825173111edaa8517a490",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-action.mjs":
+      "4b8a615aa24833712dedcd4317af30bf267fb8b2509f42ba3123a225611f9d55",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs":
+      "b9231c667bb62d3d30edf1a45d632696fc3c1d81ae8b32652e5e37a9635cb2f4",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-context-data.mjs":
+      "14a1a873e92e45cc4e1f50ca6bf93484ad78315249e39c62772c6e4d2d305eed",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-context-write.mjs":
+      "eeaa6baeb18f6a6c22cf2760f6680db957b201bc712eefd85621243a4ef5cc9a",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-github.mjs":
+      "0bf7565d018b08650a66a94ad147a5fc201ce1c1ca9fc2289ddf72a445217a3e",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-intake-read.mjs":
+      "e64cb5dc2564101021925ddb739b6a6c5f0d40423f7995bb8a8d8bcfdf34bed2",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-intake.mjs":
+      "fff789e59bd91ede71eefaffe38cc166c821e5a9291efb401fc81710cf8f6118",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-context.mjs":
+      "0d91e2d565cab388e25b5d0dfa64443ee6f29b28bdf429e6c86ac1e57734a61c",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-contract.mjs":
+      "6de06596bfe9125288719b56f140732ffd26d5214e952a6d8c232e3636d91b01",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-flow.mjs":
+      "e8880f8cfd8ee239a30bb4311d4db99ac587221ac68f056ee24216a9f70ad62d",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-lifecycle.mjs":
+      "82b2cd93dcd35fd05e9d67516b83da7d0524556b3c627b0cf0f9a2361e137f06",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-state.mjs":
+      "1125f4ed73ccec4c85ef5a117d1e6b79ac0dd22a4bf784affe6ec5f9ad977e4f",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-readiness.mjs":
+      "dc29611bc57a0cabefe1e7631659bc6d85b487eed19b7483bfb7fc443b175273",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs":
+      "e184ed7fb4eacb448553cca5a1c440707449066ef9edddb81f6eeba8b79e879d",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-tracker-intake.mjs":
+      "775b202a5611f3f6aeaec15eb7abb1659604fa687d62f41e40e7701dfa137895",
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "6ab78776157345992224c5f74f1e6b82867d003961499faf2e51f1473c78dbb8",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "9026700a003e3d37a6674ec13a5901f0b238fda6f9a87b52e54d76243c0009fa",
+      "b48c26b53bebb12077b88a049d2ed6039139776cf596ec97489f1de05a7deebc",
     "plugins/src/base/skills/lisa-security-audit-handling/SKILL.md":
       "cc0fd59927cc13fc3cfa59eb07852b8c8373c9021b42e016229e632b8fbcc916",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
@@ -1821,7 +1871,7 @@
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "4933d038cfe8299d28828652f9d800fb64ba23ad5f5dc05ef0de09938ad2d567",
+      "dde744d8d44308d0e803a975ac6cd9613ea0734a9c5d6be02ec22bddc4106fc0",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "7e59e966dca77962bb67a836a6e86f8a2ec20875de2c8ab06a649c18ffb84533",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1843,7 +1893,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-overruled.mjs":
       "cab60f2dfee7f33a8a5f16ec94cb1b2ab17cf384886ee5eb738fb015535d6567",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs":
-      "8faa0ee5a26cbfa7708e917a02cb814efe7e639007c8526ad3934dbc4f3f21fc",
+      "80593aff1ed42f3e65ed0049ba32f96dc001542fd2712cf4847d278bc1c433f5",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs":
       "aab705023d16ae42d6994450da0c914230ccab92823babb81697941c3760e8a8",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
@@ -1899,7 +1949,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs":
       "332bebf7a73c1d95bafe0e82239c18838dd53df7ca043c5cf4c3bb1043497324",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
-      "7dac63717d0d207904f8077f539512dc95e4cf6da5607042716282f1f6f35361",
+      "95fec196f74ce761157f5fb4b8f9175e15db9b8d9b93b7a69371343e3b41fc5e",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
       "adf56eb60769ffb8ace6a5aefe85e37107db1d73e4d73ab4cf29ab045ca8c76c",
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":
@@ -1909,7 +1959,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs":
       "433c1afb36641eb3eb271f1803c7dfba556dd98e535627d00cfc8e3135a5d68f",
     "plugins/src/base/skills/lisa-session-manager/scripts/stale-links-github.mjs":
-      "73b0da0fc25973f3ac75a0f2a1bb2e3f25417eace4d13bc4399e52e920b60a63",
+      "238beff6631928d26c63ade30324682a8b984f59b5bf3087c8d5317058421186",
     "plugins/src/base/skills/lisa-session-manager/scripts/stale-links-state.mjs":
       "058e1f2ffc9f0c36089c69b3bc75c5f215107b0c2669f73617cd33a374026ac2",
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs":
@@ -1949,7 +1999,7 @@
     "plugins/src/base/skills/lisa-setup-kane/SKILL.md":
       "2d48c0c4862f2773adf107bd926e9751b8d64b39d5f17eed792f12fd5a2193f3",
     "plugins/src/base/skills/lisa-setup-linear/SKILL.md":
-      "3df049a9fe18a792b00569e6595a00254ae23fcf2cd00f4bcfdcc82ef4c855a7",
+      "f93dd334c4752dc9459c01dc1173085ee2d0b868fcd7a4548873ceb20471aaa8",
     "plugins/src/base/skills/lisa-setup-local-env/SKILL.md":
       "2fc788c66a7dbd2b9c8c056e115e36440924b154d11afd366093db3db04e418e",
     "plugins/src/base/skills/lisa-setup-local-env/scripts/local-env.mjs":
@@ -1957,7 +2007,7 @@
     "plugins/src/base/skills/lisa-setup-notion/SKILL.md":
       "f7266460dfd2bef281874e3fa46569dd749b0b61adb8d0540af534cfe7b510b6",
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
-      "3095f60387eb87c32a02a09a5a0eddb994b8e48eadd2be698b40316f5d120b76",
+      "8fb0974fcd6865a5798fa62c4b6df84665226960fabf23b9000b9088fe2c8966",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
       "189ef38e226aa77e24c289b569ea284850d093f844d9915658fc97895617c804",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/materialized-env-authority.mjs":
@@ -2013,19 +2063,19 @@
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
       "8bbee6b63650115190991947a5ceed8f5a7654f8bf32b616a701c36e1b1cee93",
     "plugins/src/base/skills/lisa-track/SKILL.md":
-      "046bff24c56a53c7609b569364d49834ea0c42fd92491a08a74620fbb770ed4d",
+      "414e2a4578be56432c64f822df794a35ca67bba959630d1c49af277929959ea3",
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "5e250f235e91a6f72a7ebee93560d6c6fd7c5c47aabefe341fba05c6b88c4b25",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
       "272f1c20b30a024dcaa4547eb7ee32712d9c9a448e68e48cdb1b1033fdf8e422",
     "plugins/src/base/skills/lisa-tracker-claim/SKILL.md":
-      "deacddef796cc8689b0eb6f4f0114891aeb5795a5e4147992cb74b268bd30abf",
+      "d5a2b16eb95ad83809a86942ae50df664c4184167096d08ca5cfd9bd9450263a",
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
       "e37b751782fe53c0cb6e8b682ca12e61b96635edf9fbe4d19990a22d897b88e3",
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
       "bda6007451009e28a3ddc3ede691a7b29a475f4cf725a283438cbec10d50a805",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
-      "c4656c11936ca8f2f05091ba5d4922cadca293cf822b644e5ee46cbf22103706",
+      "4b9dfd58c4ec5e7738910534188c245ff6f71ccffa1b0bfc9208c6a9492e38b4",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
       "4b95e256e0c9e7ce87fb5b827fcfc94496757e600247c639ecf50d06e4e910b3",
     "plugins/src/base/skills/lisa-tracker-read/SKILL.md":
@@ -2651,7 +2701,7 @@
     "rails/copy-overwrite/lefthook.yml":
       "239999bd4abd06a9aec7e3309275b37a722ca2a53879f18643360cf5e909b74e",
     "rails/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "df39aa29b19817f67726107fec45078ce639f14a682cf6d5587ba37617f31ac9",
+      "4679c1e7cc92f960bad81854b9ce68a14aa0e404f2264cca0c2d6186008a17eb",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "62add29cbcca6ac6b2346120393d41e219267f74d7ea6c66dc1482c5dbdb118a",
     "rails/copy-overwrite/scripts/lisa-rails-ast-grep.mjs":
@@ -2673,7 +2723,7 @@
     "rails/copy-overwrite/scripts/lisa_simplecov_collate.rb":
       "e9a11edd45c0442c2ec8f59b0fa5d2492d4cfac99398aa3697e70947063a5cc7",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "f837708fc5baf19b5e8e9adf88bcce810f8257d00075265775982b38063dc5d3",
+      "76cdcc3a28a04686e6ddc3cd1f54e3bb9c4fb28a8033692dc86e1ffb7adb0ced",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
       "b9e64446a177616c365d04f21f3c3a1488975843be828fd72d9c9f5d331a22e3",
     "rails/copy-overwrite/sgconfig.yml":
@@ -2717,7 +2767,7 @@
     "rails/merge/.claude/settings.json":
       "c4d52cf656f80ba166fdf327119251b239b9d74c010a8d74a060ebc3e031188a",
     "scripts/build-plugins.sh":
-      "0762e0ea99a4d031aac78f4b62e7d532a9e7ac4663b222e5e274270153810c9f",
+      "9120dc729a5755fd5cc999e4f12d834e562817be7e36471879bd488f797f89f4",
     "scripts/build-unless-marked.mjs":
       "8514c8aa1908efca45b40076590e7c493fd39e9bfe3ae96a123253c20b1d5e0f",
     "scripts/check-control-command-parity.mjs":
@@ -2815,7 +2865,7 @@
     "scripts/copy-codex-scripts.mjs":
       "2d7082d5033088c85f66995aee9e3ee1e7751435e65bfde8e1cb002e6689d476",
     "scripts/copy-opencode-plugin-templates.mjs":
-      "dc7bcd1a5081dc84bc75f8c5103de000227fca497f1869ea1fe48e60a58b9640",
+      "0002c1f846dcd3f3a1c036c9917c3a76f9aecdeb42b8e3edf2547e9c43d728cf",
     "scripts/detect-stale-workflow-inputs.mjs":
       "672e64375a914750c5a50c16d414bea12df7cdddfa921ccc3f944b857aaaba4d",
     "scripts/downstream-name-digest.mjs":
@@ -2831,7 +2881,7 @@
     "scripts/fixtures/packaged-apply/guard-cases.json":
       "b64b236a9783db995722074756512e5eb77c3fabc8ea8aec98fa6ab7c117014a",
     "scripts/generate-agy-plugin-artifacts.mjs":
-      "334a9784d16c0161d37293041b4408c371efd59a2b5ae500296b83eddff0b810",
+      "0e30ab25dd5a22dea6d3af25f4f22eaf57876ea29dcfeb03a72ca713051d5524",
     "scripts/generate-codex-plugin-artifacts.mjs":
       "6a8af395fa6e9c187bb6cfa646db6acb83777cf116b11dd841acc13fd49f08b5",
     "scripts/generate-copilot-plugin-artifacts.mjs":
@@ -2941,7 +2991,7 @@
     "scripts/lib/packaged-apply-isolation.mjs":
       "578bbc864bb29ae34008547d523d1aebb6646da6310373d4e7cf28702e9b2096",
     "scripts/lib/per-agent-hook-filter.mjs":
-      "bbbf8d01c49d2f75b22d4a35a18f12b7efc3240a133ccebb6d9a5b01d041479f",
+      "6a8d65b299715319e7856e3fbb03c304c20d2597b253d19ba8072e0bdcb66ecb",
     "scripts/lib/phrase-tests/ast.mjs":
       "816310d0ed40e570a488856f6e34114acf8db7deedd498ccec82515a804c32bb",
     "scripts/lib/phrase-tests/classify.mjs":
@@ -3035,9 +3085,9 @@
     "scripts/lisa-enforcement-census.mjs":
       "41490f30f30cbb5ff05454a52caa1d3286db225667847eee22b7b994809e64d4",
     "scripts/lisa-enforcement-fallback.sh":
-      "3ef8cfade68579587040487db5d381fc7368d3a9ad0c768bedf97b8cf8e5cb0d",
+      "a195c0915dd00569d4d30479e14b186364f95ccbd54349d7d3ec0a4ba946c174",
     "scripts/lisa-enforcement-freshness.mjs":
-      "b3e91b689b7cb83957e46ecfae35765422b7c7343270cfb31007ef510ac05086",
+      "87545c3c18b3e2d055bd2cc025f0f4e886a69db4c2c658816010ca2b75e02256",
     "scripts/lisa-estimate.mjs":
       "2334e384ec77ba5d85b6547d1cb714002b9a44ec8945747f694310a52dd68ae8",
     "scripts/lisa-github-environments.sh":
@@ -3111,7 +3161,7 @@
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "6ea27adeeb9c98f1a5d760d1835b98139374c75bbf627f8838ba00034be3673a",
+      "2a7e42aaa9e2ad0a3f851d4bc83aa1a783d63131db2374b3cd246614302224cf",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
@@ -3217,7 +3267,7 @@
     "typescript/copy-overwrite/knip.json":
       "7157e57bfe01b8e750bb789a5ec15713dacdfa29c1f913b5d2d09416f2359b46",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "df39aa29b19817f67726107fec45078ce639f14a682cf6d5587ba37617f31ac9",
+      "4679c1e7cc92f960bad81854b9ce68a14aa0e404f2264cca0c2d6186008a17eb",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "84a7dcd3501eb75c2bd90c2ebe31e6ad4ae4f2bd62b6862ecda91ab8609ad245",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -3249,7 +3299,7 @@
     "typescript/copy-overwrite/scripts/reconcile-nightly-e2e-tracking.mjs":
       "d061c7513acdf1e187cf916dca53432a06a78e43bd0068a0b315ad351a4b72db",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "f837708fc5baf19b5e8e9adf88bcce810f8257d00075265775982b38063dc5d3",
+      "76cdcc3a28a04686e6ddc3cd1f54e3bb9c4fb28a8033692dc86e1ffb7adb0ced",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
       "b9e64446a177616c365d04f21f3c3a1488975843be828fd72d9c9f5d331a22e3",
     "typescript/copy-overwrite/sgconfig.yml":
@@ -3297,7 +3347,7 @@
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "b9eb08110e6b150f450957881477b68f9bd0102ed1dabf6e1ecc96996609cb17"
+      "a3b1a911a3e152abf310943f6f0e9eee67a8581233c10273fd80795bb38b912d"
   },
   "UPSTREAM_SURFACE_MANIFEST": {
     ".agents/rules/never-name-downstream-projects.md": true,
@@ -3666,6 +3716,7 @@
     "all/copy-overwrite/scripts/lisa-hooks/guard-dedupe.bash": true,
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py": true,
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh": true,
+    "all/copy-overwrite/scripts/lisa-hooks/task-readiness-guard.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs": true,
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh": true,
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs": true,
@@ -5126,6 +5177,8 @@
     "plugins/lisa-agy/hooks/guard-dedupe.bash": true,
     "plugins/lisa-agy/hooks/host-name-command-context.mjs": true,
     "plugins/lisa-agy/hooks/parity-safety-net-heredoc.py": true,
+    "plugins/lisa-agy/hooks/secrets-preflight.agy.sh": true,
+    "plugins/lisa-agy/hooks/secrets-preflight.sh": true,
     "plugins/lisa-agy/plugin.json": true,
     "plugins/lisa-agy/scripts/automation-run-record.mjs": true,
     "plugins/lisa-agy/scripts/automation-status-claude-adapter.mjs": true,
@@ -5223,6 +5276,7 @@
     "plugins/lisa-agy/skills/lisa-github-prd-intake/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-github-project-v2/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-github-read-issue/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-github-read-issue/read-contract.mjs": true,
     "plugins/lisa-agy/skills/lisa-github-sync/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-github-to-tracker/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-github-validate-issue/SKILL.md": true,
@@ -5260,6 +5314,7 @@
     "plugins/lisa-agy/skills/lisa-kane-browser/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-learnings-audit/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-linear-access/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa-agy/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-linear-build-intake/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-linear-claim/SKILL.md": true,
@@ -5279,6 +5334,7 @@
     "plugins/lisa-agy/skills/lisa-nightly-improve-tests/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-nightly-lower-code-complexity/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-notion-access/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-notion-access/scripts/readiness-probe.mjs": true,
     "plugins/lisa-agy/skills/lisa-notion-prd-intake/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-notion-to-tracker/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-notion-write-prd/SKILL.md": true,
@@ -5316,6 +5372,8 @@
     "plugins/lisa-agy/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/config-files.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
@@ -5333,6 +5391,22 @@
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-access.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-action.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-context-data.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-context-write.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-github.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-native-lifecycle.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-native-state.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-readiness.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-requirements.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-tracker-intake.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/lisa-agy/skills/lisa-security-audit-handling/SKILL.md": true,
@@ -5614,6 +5688,8 @@
     "plugins/lisa-copilot/hooks/setup-jira-cli.sh": true,
     "plugins/lisa-copilot/hooks/shell-write-nudge.sh": true,
     "plugins/lisa-copilot/hooks/sonar-secrets.sh": true,
+    "plugins/lisa-copilot/hooks/task-readiness-guard.mjs": true,
+    "plugins/lisa-copilot/hooks/task-readiness-guard.sh": true,
     "plugins/lisa-copilot/hooks/threshold-ratchet-compare.mjs": true,
     "plugins/lisa-copilot/hooks/threshold-ratchet-families.mjs": true,
     "plugins/lisa-copilot/hooks/threshold-ratchet.mjs": true,
@@ -5798,6 +5874,7 @@
     "plugins/lisa-copilot/skills/lisa-github-prd-intake/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-github-project-v2/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-github-read-issue/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-github-read-issue/read-contract.mjs": true,
     "plugins/lisa-copilot/skills/lisa-github-sync/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-github-to-tracker/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-github-validate-issue/SKILL.md": true,
@@ -5835,6 +5912,7 @@
     "plugins/lisa-copilot/skills/lisa-kane-browser/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-learnings-audit/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-linear-access/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa-copilot/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-linear-build-intake/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-linear-claim/SKILL.md": true,
@@ -5854,6 +5932,7 @@
     "plugins/lisa-copilot/skills/lisa-nightly-improve-tests/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-nightly-lower-code-complexity/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-notion-access/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-notion-access/scripts/readiness-probe.mjs": true,
     "plugins/lisa-copilot/skills/lisa-notion-prd-intake/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-notion-to-tracker/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-notion-write-prd/SKILL.md": true,
@@ -5891,6 +5970,8 @@
     "plugins/lisa-copilot/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/config-files.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
@@ -5908,6 +5989,22 @@
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-access.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-action.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-context-data.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-context-write.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-github.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-native-lifecycle.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-native-state.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-readiness.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-requirements.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-tracker-intake.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/lisa-copilot/skills/lisa-security-audit-handling/SKILL.md": true,
@@ -6172,6 +6269,8 @@
     "plugins/lisa-cursor/hooks/setup-jira-cli.sh": true,
     "plugins/lisa-cursor/hooks/shell-write-nudge.sh": true,
     "plugins/lisa-cursor/hooks/sonar-secrets.sh": true,
+    "plugins/lisa-cursor/hooks/task-readiness-guard.mjs": true,
+    "plugins/lisa-cursor/hooks/task-readiness-guard.sh": true,
     "plugins/lisa-cursor/hooks/threshold-ratchet-compare.mjs": true,
     "plugins/lisa-cursor/hooks/threshold-ratchet-families.mjs": true,
     "plugins/lisa-cursor/hooks/threshold-ratchet.mjs": true,
@@ -6357,6 +6456,7 @@
     "plugins/lisa-cursor/skills/lisa-github-prd-intake/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-github-project-v2/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-github-read-issue/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-github-read-issue/read-contract.mjs": true,
     "plugins/lisa-cursor/skills/lisa-github-sync/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-github-to-tracker/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-github-validate-issue/SKILL.md": true,
@@ -6394,6 +6494,7 @@
     "plugins/lisa-cursor/skills/lisa-kane-browser/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-learnings-audit/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-linear-access/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa-cursor/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-linear-build-intake/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-linear-claim/SKILL.md": true,
@@ -6413,6 +6514,7 @@
     "plugins/lisa-cursor/skills/lisa-nightly-improve-tests/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-nightly-lower-code-complexity/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-notion-access/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-notion-access/scripts/readiness-probe.mjs": true,
     "plugins/lisa-cursor/skills/lisa-notion-prd-intake/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-notion-to-tracker/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-notion-write-prd/SKILL.md": true,
@@ -6450,6 +6552,8 @@
     "plugins/lisa-cursor/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/config-files.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
@@ -6467,6 +6571,22 @@
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-access.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-action.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-context-data.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-context-write.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-github.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-native-lifecycle.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-native-state.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-readiness.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-requirements.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-tracker-intake.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/lisa-cursor/skills/lisa-security-audit-handling/SKILL.md": true,
@@ -6661,6 +6781,8 @@
     "plugins/lisa-devin/hooks/setup-jira-cli.sh": true,
     "plugins/lisa-devin/hooks/shell-write-nudge.sh": true,
     "plugins/lisa-devin/hooks/sonar-secrets.sh": true,
+    "plugins/lisa-devin/hooks/task-readiness-guard.mjs": true,
+    "plugins/lisa-devin/hooks/task-readiness-guard.sh": true,
     "plugins/lisa-devin/hooks/threshold-ratchet-compare.mjs": true,
     "plugins/lisa-devin/hooks/threshold-ratchet-families.mjs": true,
     "plugins/lisa-devin/hooks/threshold-ratchet.mjs": true,
@@ -6845,6 +6967,7 @@
     "plugins/lisa-devin/skills/lisa-github-prd-intake/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-github-project-v2/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-github-read-issue/SKILL.md": true,
+    "plugins/lisa-devin/skills/lisa-github-read-issue/read-contract.mjs": true,
     "plugins/lisa-devin/skills/lisa-github-sync/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-github-to-tracker/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-github-validate-issue/SKILL.md": true,
@@ -6882,6 +7005,7 @@
     "plugins/lisa-devin/skills/lisa-kane-browser/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-learnings-audit/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-linear-access/SKILL.md": true,
+    "plugins/lisa-devin/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa-devin/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-linear-build-intake/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-linear-claim/SKILL.md": true,
@@ -6901,6 +7025,7 @@
     "plugins/lisa-devin/skills/lisa-nightly-improve-tests/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-nightly-lower-code-complexity/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-notion-access/SKILL.md": true,
+    "plugins/lisa-devin/skills/lisa-notion-access/scripts/readiness-probe.mjs": true,
     "plugins/lisa-devin/skills/lisa-notion-prd-intake/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-notion-to-tracker/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-notion-write-prd/SKILL.md": true,
@@ -6938,6 +7063,8 @@
     "plugins/lisa-devin/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/config-files.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
@@ -6955,6 +7082,22 @@
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-access.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-action.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-context-data.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-context-write.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-github.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-native-lifecycle.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-native-state.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-readiness.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-requirements.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-tracker-intake.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/lisa-devin/skills/lisa-security-audit-handling/SKILL.md": true,
@@ -8990,6 +9133,7 @@
     "plugins/lisa/.codex-plugin/skills/lisa-github-project-v2/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-github-read-issue/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-github-read-issue/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-github-read-issue/read-contract.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-github-sync/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-github-sync/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-github-to-tracker/SKILL.md": true,
@@ -9060,6 +9204,7 @@
     "plugins/lisa/.codex-plugin/skills/lisa-learnings-audit/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-linear-access/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-linear-access/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa/.codex-plugin/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-linear-add-journey/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-linear-build-intake/SKILL.md": true,
@@ -9098,6 +9243,7 @@
     "plugins/lisa/.codex-plugin/skills/lisa-nightly-lower-code-complexity/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-notion-access/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-notion-access/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-notion-access/scripts/readiness-probe.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-notion-prd-intake/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-notion-prd-intake/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-notion-to-tracker/SKILL.md": true,
@@ -9164,6 +9310,8 @@
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/config-files.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
@@ -9181,6 +9329,22 @@
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-access.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-action.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-context-data.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-context-write.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-github.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-native-lifecycle.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-native-state.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-readiness.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-requirements.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-tracker-intake.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-security-audit-handling/SKILL.md": true,
@@ -9500,10 +9664,13 @@
     "plugins/lisa/hooks/rails-hooks-command.mjs": true,
     "plugins/lisa/hooks/rails-hooks-inspection.mjs": true,
     "plugins/lisa/hooks/rails-hooks.mjs": true,
+    "plugins/lisa/hooks/secrets-preflight.agy.sh": true,
     "plugins/lisa/hooks/secrets-preflight.sh": true,
     "plugins/lisa/hooks/setup-jira-cli.sh": true,
     "plugins/lisa/hooks/shell-write-nudge.sh": true,
     "plugins/lisa/hooks/sonar-secrets.sh": true,
+    "plugins/lisa/hooks/task-readiness-guard.mjs": true,
+    "plugins/lisa/hooks/task-readiness-guard.sh": true,
     "plugins/lisa/hooks/threshold-ratchet-compare.mjs": true,
     "plugins/lisa/hooks/threshold-ratchet-families.mjs": true,
     "plugins/lisa/hooks/threshold-ratchet.mjs": true,
@@ -9733,6 +9900,7 @@
     "plugins/lisa/skills/lisa-github-project-v2/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-github-read-issue/SKILL.md": true,
     "plugins/lisa/skills/lisa-github-read-issue/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-github-read-issue/read-contract.mjs": true,
     "plugins/lisa/skills/lisa-github-sync/SKILL.md": true,
     "plugins/lisa/skills/lisa-github-sync/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-github-to-tracker/SKILL.md": true,
@@ -9803,6 +9971,7 @@
     "plugins/lisa/skills/lisa-learnings-audit/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-linear-access/SKILL.md": true,
     "plugins/lisa/skills/lisa-linear-access/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa/skills/lisa-linear-add-journey/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-linear-build-intake/SKILL.md": true,
@@ -9841,6 +10010,7 @@
     "plugins/lisa/skills/lisa-nightly-lower-code-complexity/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-notion-access/SKILL.md": true,
     "plugins/lisa/skills/lisa-notion-access/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-notion-access/scripts/readiness-probe.mjs": true,
     "plugins/lisa/skills/lisa-notion-prd-intake/SKILL.md": true,
     "plugins/lisa/skills/lisa-notion-prd-intake/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-notion-to-tracker/SKILL.md": true,
@@ -9907,6 +10077,8 @@
     "plugins/lisa/skills/lisa-secrets-access/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/config-files.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
@@ -9924,6 +10096,22 @@
     "plugins/lisa/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-access.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-action.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-context-data.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-context-write.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-github.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-native-lifecycle.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-native-state.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-readiness.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-requirements.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-tracker-intake.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/lisa/skills/lisa-security-audit-handling/SKILL.md": true,
@@ -10241,10 +10429,13 @@
     "plugins/src/base/hooks/operational-hazards.mjs": true,
     "plugins/src/base/hooks/operational-hazards.sh": true,
     "plugins/src/base/hooks/parity-safety-net-heredoc.py": true,
+    "plugins/src/base/hooks/secrets-preflight.agy.sh": true,
     "plugins/src/base/hooks/secrets-preflight.sh": true,
     "plugins/src/base/hooks/setup-jira-cli.sh": true,
     "plugins/src/base/hooks/shell-write-nudge.sh": true,
     "plugins/src/base/hooks/sonar-secrets.sh": true,
+    "plugins/src/base/hooks/task-readiness-guard.mjs": true,
+    "plugins/src/base/hooks/task-readiness-guard.sh": true,
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs": true,
     "plugins/src/base/hooks/threshold-ratchet-families.mjs": true,
     "plugins/src/base/hooks/threshold-ratchet.mjs": true,
@@ -10431,6 +10622,7 @@
     "plugins/src/base/skills/lisa-github-prd-intake/SKILL.md": true,
     "plugins/src/base/skills/lisa-github-project-v2/SKILL.md": true,
     "plugins/src/base/skills/lisa-github-read-issue/SKILL.md": true,
+    "plugins/src/base/skills/lisa-github-read-issue/read-contract.mjs": true,
     "plugins/src/base/skills/lisa-github-sync/SKILL.md": true,
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md": true,
     "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md": true,
@@ -10468,6 +10660,7 @@
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md": true,
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md": true,
     "plugins/src/base/skills/lisa-linear-access/SKILL.md": true,
+    "plugins/src/base/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md": true,
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md": true,
@@ -10487,6 +10680,7 @@
     "plugins/src/base/skills/lisa-nightly-improve-tests/SKILL.md": true,
     "plugins/src/base/skills/lisa-nightly-lower-code-complexity/SKILL.md": true,
     "plugins/src/base/skills/lisa-notion-access/SKILL.md": true,
+    "plugins/src/base/skills/lisa-notion-access/scripts/readiness-probe.mjs": true,
     "plugins/src/base/skills/lisa-notion-prd-intake/SKILL.md": true,
     "plugins/src/base/skills/lisa-notion-to-tracker/SKILL.md": true,
     "plugins/src/base/skills/lisa-notion-write-prd/SKILL.md": true,
@@ -10525,6 +10719,8 @@
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/config-files.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
@@ -10542,6 +10738,22 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-access.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-action.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-context-data.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-context-write.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-github.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-lifecycle.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-state.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-readiness.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-tracker-intake.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/src/base/skills/lisa-security-audit-handling/SKILL.md": true,
@@ -11293,6 +11505,7 @@
     "src/claude/claude-md-installer.ts": true,
     "src/cli-load-diagnostic.ts": true,
     "src/cli/admit-cmd.ts": true,
+    "src/cli/apply-cmd.ts": true,
     "src/cli/apply.ts": true,
     "src/cli/check-cmd.ts": true,
     "src/cli/check-learnings-budget-cmd.ts": true,
@@ -11709,6 +11922,7 @@
     "src/controls/proof-copy-git.ts": true,
     "src/controls/proof-copy-preparation.ts": true,
     "src/controls/proof-copy-prepared-state.ts": true,
+    "src/controls/proof-copy-source.ts": true,
     "src/controls/proof-copy-wording.ts": true,
     "src/controls/proof-copy-workspace.ts": true,
     "src/controls/proof-copy.ts": true,
@@ -11719,6 +11933,7 @@
     "src/controls/proof-plan.ts": true,
     "src/controls/proof-preflight.ts": true,
     "src/controls/proof-preparation-declaration.ts": true,
+    "src/controls/proof-push-fixture.ts": true,
     "src/controls/proof-report.ts": true,
     "src/controls/proof-runner.ts": true,
     "src/controls/proof-scratch.ts": true,
@@ -11784,6 +11999,7 @@
     "src/controls/secret-scan.ts": true,
     "src/controls/secret-shapes.ts": true,
     "src/controls/shipped-parts.ts": true,
+    "src/controls/shipped-task-proofs.ts": true,
     "src/controls/threshold-proposal.ts": true,
     "src/controls/tracker-config.ts": true,
     "src/controls/tracker-question.ts": true,
@@ -12038,6 +12254,7 @@
     "src/opencode/plugin-templates/lisa-rubocop-on-edit.ts": true,
     "src/opencode/plugin-templates/lisa-session-bootstrap.ts": true,
     "src/opencode/plugin-templates/lisa-sg-scan-on-edit.ts": true,
+    "src/opencode/plugin-templates/lisa-task-readiness.ts": true,
     "src/opencode/plugin-templates/rails-hooks.mjs": true,
     "src/opencode/project-plugin-gate.ts": true,
     "src/opencode/relative-imports.ts": true,
@@ -12380,8 +12597,11 @@
     "tests/helpers/audit-skill.ts": true,
     "tests/helpers/auto-update-fixture.ts": true,
     "tests/helpers/bounded-bash.ts": true,
+    "tests/helpers/bounded-child-runner.ts": true,
     "tests/helpers/canonical-entry.ts": true,
     "tests/helpers/child-bound-scan.ts": true,
+    "tests/helpers/child-budget-hook-observations.ts": true,
+    "tests/helpers/child-budget-test-runner.ts": true,
     "tests/helpers/child-output-tail.ts": true,
     "tests/helpers/cleanup-sweep-skip.ts": true,
     "tests/helpers/codex-skill-parity.ts": true,
@@ -12403,6 +12623,7 @@
     "tests/helpers/enforcement-vintage-harness.ts": true,
     "tests/helpers/expo-knip-fixture.ts": true,
     "tests/helpers/fake-credentials.ts": true,
+    "tests/helpers/fresh-child-budget.ts": true,
     "tests/helpers/freshness-deadline-fixture.ts": true,
     "tests/helpers/freshness-deadline-inputs.ts": true,
     "tests/helpers/freshness-owned-processes.ts": true,
@@ -12460,6 +12681,24 @@
     "tests/helpers/stderr-sync.ts": true,
     "tests/helpers/supervised-unix-fixture.ts": true,
     "tests/helpers/suppress-directive-growth-cases.ts": true,
+    "tests/helpers/task-codex-context.ts": true,
+    "tests/helpers/task-github-fixture.ts": true,
+    "tests/helpers/task-intake-data.ts": true,
+    "tests/helpers/task-intake-gh.ts": true,
+    "tests/helpers/task-intake-owner.ts": true,
+    "tests/helpers/task-native-bash.ts": true,
+    "tests/helpers/task-native-contention-process.ts": true,
+    "tests/helpers/task-native-contention.ts": true,
+    "tests/helpers/task-native-context.ts": true,
+    "tests/helpers/task-native-events.ts": true,
+    "tests/helpers/task-notion-api.ts": true,
+    "tests/helpers/task-preheader-failures.ts": true,
+    "tests/helpers/task-preheader-github.ts": true,
+    "tests/helpers/task-preheader-installation.ts": true,
+    "tests/helpers/task-readiness-continuation.ts": true,
+    "tests/helpers/task-readiness-fixture.ts": true,
+    "tests/helpers/task-readiness-matched.ts": true,
+    "tests/helpers/task-readiness-tools.ts": true,
     "tests/helpers/template-toolchain.ts": true,
     "tests/helpers/test-run-child-process-analysis.ts": true,
     "tests/helpers/test-run-child-process-binding-plan.ts": true,
@@ -12477,6 +12716,7 @@
     "tests/helpers/third-party-review-observations.ts": true,
     "tests/helpers/third-party-review-workflow-steps.ts": true,
     "tests/helpers/third-party-review-workflow.ts": true,
+    "tests/helpers/timed-invocation.ts": true,
     "tests/helpers/tmpdir-growth-cap-boundary.ts": true,
     "tests/helpers/tmpdir-growth-command-harness.ts": true,
     "tests/helpers/tmpdir-growth-darwin-performance.ts": true,
@@ -12507,6 +12747,7 @@
     "tests/integration/borrowed-node-modules.test.ts": true,
     "tests/integration/build-once-per-push.test.ts": true,
     "tests/integration/cdk-ci-role-selection.test.ts": true,
+    "tests/integration/child-budget-hook-window.test.ts": true,
     "tests/integration/ci-concurrency-policy.test.ts": true,
     "tests/integration/cli-smoke.test.ts": true,
     "tests/integration/codex-active-hooks.test.ts": true,
@@ -12518,6 +12759,7 @@
     "tests/integration/controls-attest-output-redaction.test.ts": true,
     "tests/integration/controls-attest-pull-request.test.ts": true,
     "tests/integration/controls-attest-skill.test.ts": true,
+    "tests/integration/controls-attest-task-proof.test.ts": true,
     "tests/integration/controls-attest-verdict.test.ts": true,
     "tests/integration/controls-attest.test.ts": true,
     "tests/integration/controls-audit-probes.test.ts": true,
@@ -13464,6 +13706,7 @@
     "tests/unit/controls/lisa-gates-parts-resolution.test.ts": true,
     "tests/unit/controls/lisa-gates-parts.test.ts": true,
     "tests/unit/controls/lisa-gates-unenforceable-on.test.ts": true,
+    "tests/unit/controls/lisa-run-gates-declaration-removal.test.ts": true,
     "tests/unit/controls/lisa-run-gates-no-builtins.test.ts": true,
     "tests/unit/controls/lisa-run-gates-no-manifest.test.ts": true,
     "tests/unit/controls/lisa-run-gates-parts-assertion.test.ts": true,
@@ -13578,6 +13821,7 @@
     "tests/unit/controls/seed-manifest.test.ts": true,
     "tests/unit/controls/seed-parts.test.ts": true,
     "tests/unit/controls/seed.test.ts": true,
+    "tests/unit/controls/shipped-task-proof-runners.test.ts": true,
     "tests/unit/controls/skill-statements.test.ts": true,
     "tests/unit/controls/support/attest-pull-request-run.ts": true,
     "tests/unit/controls/support/attest-record-run.ts": true,
@@ -13824,10 +14068,14 @@
     "tests/unit/helpers/bounded-bash.test.ts": true,
     "tests/unit/helpers/bounded-exec-file-sync.test.ts": true,
     "tests/unit/helpers/bounded-spawn-sync.test.ts": true,
+    "tests/unit/helpers/child-budget-deadline-gap.test.ts": true,
+    "tests/unit/helpers/child-budget-reference-recheck.test.ts": true,
+    "tests/unit/helpers/child-budget-window.test.ts": true,
     "tests/unit/helpers/child-completion-diagnostics.test.ts": true,
     "tests/unit/helpers/child-timeout-output.test.ts": true,
     "tests/unit/helpers/committed-case-table.test.ts": true,
     "tests/unit/helpers/enforcement-fallback-scratch-roots.test.ts": true,
+    "tests/unit/helpers/fresh-child-budget.test.ts": true,
     "tests/unit/helpers/freshness-owned-processes.test.ts": true,
     "tests/unit/helpers/fs-latency-budget.test.ts": true,
     "tests/unit/helpers/fs-probe-diagnostic.test.ts": true,
@@ -13843,12 +14091,14 @@
     "tests/unit/helpers/supervised-unix-fixture.test.ts": true,
     "tests/unit/helpers/temp-dir-removal-race.test.ts": true,
     "tests/unit/helpers/test-budget-conformance.test.ts": true,
+    "tests/unit/helpers/timed-invocation.test.ts": true,
     "tests/unit/helpers/unbounded-spawn-conformance.test.ts": true,
     "tests/unit/hooks/auto-update-attention.test.ts": true,
     "tests/unit/hooks/auto-update-session.test.ts": true,
     "tests/unit/hooks/auto-update.test.ts": true,
     "tests/unit/hooks/block-blind-automerge-uncovered-base.test.ts": true,
     "tests/unit/hooks/block-blind-automerge.test.ts": true,
+    "tests/unit/hooks/block-direct-issue-create-body-file.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-bypasses.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-comment-lex.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-container.test.ts": true,
@@ -13915,6 +14165,7 @@
     "tests/unit/hooks/enforcement-fallback-channel-skew.test.ts": true,
     "tests/unit/hooks/enforcement-fallback-memo-trust.test.ts": true,
     "tests/unit/hooks/enforcement-fallback-notice-rate.test.ts": true,
+    "tests/unit/hooks/enforcement-fallback-readiness-isolation.test.ts": true,
     "tests/unit/hooks/enforcement-fallback-staleness.test.ts": true,
     "tests/unit/hooks/enforcement-fallback-status-aggregation.test.ts": true,
     "tests/unit/hooks/enforcement-fallback-sticky-exemption.test.ts": true,
@@ -13988,6 +14239,7 @@
     "tests/unit/hooks/support/process-group.ts": true,
     "tests/unit/hooks/support/sonar-secrets-fixtures.ts": true,
     "tests/unit/hooks/support/worktree-binding.ts": true,
+    "tests/unit/hooks/task-readiness-adapters.test.ts": true,
     "tests/unit/hooks/track-plan-sessions.test.ts": true,
     "tests/unit/hooks/typecheck-hook-placement.test.ts": true,
     "tests/unit/hooks/verification-failure-mode-fixtures.test.ts": true,
@@ -14061,6 +14313,7 @@
     "tests/unit/opencode/command-transformer.test.ts": true,
     "tests/unit/opencode/discharge-work-item-gates-plugin.test.ts": true,
     "tests/unit/opencode/hooks-installer-retired-files.test.ts": true,
+    "tests/unit/opencode/hooks-installer-rules.test.ts": true,
     "tests/unit/opencode/hooks-installer.test.ts": true,
     "tests/unit/opencode/host-name-emit.test.ts": true,
     "tests/unit/opencode/kane-skill-parity.test.ts": true,
@@ -14228,6 +14481,7 @@
     "tests/unit/scripts/k6-installation.test.ts": true,
     "tests/unit/scripts/kill-marks.test.ts": true,
     "tests/unit/scripts/learnings-projection.test.ts": true,
+    "tests/unit/scripts/linear-graphql-script.test.ts": true,
     "tests/unit/scripts/lint-staged-preflight.test.ts": true,
     "tests/unit/scripts/lisa-assert-eas-profile.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-absent.test.ts": true,
@@ -14543,6 +14797,7 @@
     "tests/unit/scripts/third-party-review-substitute-authors.test.ts": true,
     "tests/unit/scripts/third-party-review-vendor-config.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-baseline.test.ts": true,
+    "tests/unit/scripts/threshold-ratchet-edited-exceptions.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-exception-fence.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-exception-only.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-exemption-expiry.test.ts": true,
@@ -14647,7 +14902,6 @@
     "tests/unit/secrets/emit-tenant-provider.test.ts": true,
     "tests/unit/secrets/environment-command.test.ts": true,
     "tests/unit/secrets/install-method-conformance.test.ts": true,
-    "tests/unit/secrets/legacy-profile-resolution.test.ts": true,
     "tests/unit/secrets/local-aws-profiles.test.ts": true,
     "tests/unit/secrets/local-env-command.test.ts": true,
     "tests/unit/secrets/managed-marker-orphans.test.ts": true,
@@ -14698,6 +14952,30 @@
     "tests/unit/secrets/setup-field-notes-tools.test.ts": true,
     "tests/unit/secrets/setup-field-path.test.ts": true,
     "tests/unit/secrets/setup-secrets-nonfatal.test.ts": true,
+    "tests/unit/secrets/task-atlassian-native.test.ts": true,
+    "tests/unit/secrets/task-atlassian-routing.test.ts": true,
+    "tests/unit/secrets/task-codex-context.test.ts": true,
+    "tests/unit/secrets/task-context-dispatch.test.ts": true,
+    "tests/unit/secrets/task-fresh-intake.test.ts": true,
+    "tests/unit/secrets/task-github-sources.test.ts": true,
+    "tests/unit/secrets/task-native-contention.test.ts": true,
+    "tests/unit/secrets/task-native-context.test.ts": true,
+    "tests/unit/secrets/task-native-events.test.ts": true,
+    "tests/unit/secrets/task-native-lifecycle.test.ts": true,
+    "tests/unit/secrets/task-native-owner-flow.test.ts": true,
+    "tests/unit/secrets/task-notion-primary.test.ts": true,
+    "tests/unit/secrets/task-preheader-github.test.ts": true,
+    "tests/unit/secrets/task-preheader-tracker.test.ts": true,
+    "tests/unit/secrets/task-readiness-capability-sources.test.ts": true,
+    "tests/unit/secrets/task-readiness-diagnostics.test.ts": true,
+    "tests/unit/secrets/task-readiness-discovery.test.ts": true,
+    "tests/unit/secrets/task-readiness-postlaunch.test.ts": true,
+    "tests/unit/secrets/task-readiness-qualification.test.ts": true,
+    "tests/unit/secrets/task-readiness-scope.test.ts": true,
+    "tests/unit/secrets/task-readiness.test.ts": true,
+    "tests/unit/secrets/task-requirements.test.ts": true,
+    "tests/unit/secrets/task-review-regressions.test.ts": true,
+    "tests/unit/secrets/tenant-profile-names.test.ts": true,
     "tests/unit/secrets/tool-executable-preflight.test.ts": true,
     "tests/unit/secrets/tool-floor.test.ts": true,
     "tests/unit/secrets/toolchain-platforms.test.ts": true,
@@ -14741,6 +15019,7 @@
     "tests/unit/session-manager/cli-overruled.test.ts": true,
     "tests/unit/session-manager/cli-queue-backlog.test.ts": true,
     "tests/unit/session-manager/cli-queue-operators.test.ts": true,
+    "tests/unit/session-manager/cli-queue-release-trust.test.ts": true,
     "tests/unit/session-manager/cli-release-trust.test.ts": true,
     "tests/unit/session-manager/cli-setup-gap-edges.test.ts": true,
     "tests/unit/session-manager/cli-setup-gap-persist.test.ts": true,
@@ -14830,6 +15109,7 @@
     "tests/unit/standards/test-evidence.test.ts": true,
     "tests/unit/strategies/access-doc-adapters.test.ts": true,
     "tests/unit/strategies/agent-skill-layer-contract.test.ts": true,
+    "tests/unit/strategies/artifact-tsconfig-selection.test.ts": true,
     "tests/unit/strategies/automation-run-history-helpers.ts": true,
     "tests/unit/strategies/automation-run-record-cli.test.ts": true,
     "tests/unit/strategies/automation-run-record-preservation.test.ts": true,
@@ -15016,6 +15296,7 @@
     "tests/unit/strategies/readiness-report-merge-exposure.test.ts": true,
     "tests/unit/strategies/readiness-rubric-contract.test.ts": true,
     "tests/unit/strategies/ready-role-filing-contract.test.ts": true,
+    "tests/unit/strategies/remote-agent-aws-canonical-names.test.ts": true,
     "tests/unit/strategies/remote-agent-aws-default-refusal.test.ts": true,
     "tests/unit/strategies/remote-agent-aws-observer-reads.test.ts": true,
     "tests/unit/strategies/remote-agent-aws-profiles.test.ts": true,
@@ -15695,6 +15976,7 @@
     "02e1cd62d0a45645b5cab701f1ea83c2350e77f7": true,
     "02e679266857581154f8508aedf7192ebdd4677b": true,
     "02e8cef9cac25e0d9a85aa64197c86236f442f53": true,
+    "02eecbff1ba79d7762d6c081e3e7024c365d30a8": true,
     "02f1d9352fc5d8f9e27b4e8c90926902cec264ef": true,
     "02f55f481cd8dbc46fbfd3e4fa7e155d412cfc46": true,
     "02fa8c29ff0f2e41dafed0b30dc5579db7a957f7": true,
@@ -15909,6 +16191,7 @@
     "061a6f1368ceb7f40580c8830c172a43a8e3aa61": true,
     "061aea52990c6564039cc45d14ff0d082e7c7059": true,
     "061e7caa35e86cd60d5a12966c4485812045aa25": true,
+    "062079905f298434117cff7b60c0a1198f095426": true,
     "0621cd3ed3c6a956f165884a63fd512f4a6be24c": true,
     "0627afc9c666579c055037b9ff40040fef5d1561": true,
     "062811f5b0ac208f0470f083470d8a6f3ac9e0f5": true,
@@ -16287,6 +16570,7 @@
     "0ba1f5b42c2fc74cc921af862b8609a4ba306481": true,
     "0ba2ca689440c522e345e6ebf8036fe8e3d73b46": true,
     "0ba447ebf6781a02eb53d33c57b188baf4b485d2": true,
+    "0ba535f18974eea6444cec2b2f31ecac272dc533": true,
     "0bad2b58878afca53ea58eca40a4cf4f8f6dcb96": true,
     "0bb71e01536acad024e4ed97d64ddda95095dad2": true,
     "0bba4a891369d875f76bd1480a439c8878a16999": true,
@@ -16689,6 +16973,7 @@
     "11ee0d23cb13e2e2eb31fa69f407feb2bf8937ce": true,
     "11ee638bca72d533529f427be15b01b6ba076a3b": true,
     "11eef3264a5a214e4a1d3dae6d5874f2d4c45f37": true,
+    "11f75d29caa8ee5644321f4775d91bff376bf100": true,
     "11f88f08978e37feb00778cdb8a5b1491a04907a": true,
     "11f9940f00dd81f9345e084005d29cde47d888fd": true,
     "11fb6681d68f3332f66407edbfaf70bbb00607e4": true,
@@ -17161,6 +17446,7 @@
     "187564d238ab6f0e7a9d8e28d420d2b870854f08": true,
     "18784e9d39ade002694ad9e6ac39aab198bd5c2b": true,
     "18887b2645596c66b083458835ec2c652e1437ee": true,
+    "1889689b337dceb5279a631069959c218af28503": true,
     "1896734beb8ef3b41034950748b467491977e5bb": true,
     "1896d872bee2c38e4df221b352c973e36055713b": true,
     "189927db10ed8e753592ba65a48e693539d176f6": true,
@@ -17504,6 +17790,7 @@
     "1d85670509985de68699338f80c3ccfd643f7038": true,
     "1d85bcb3acff15cdf89216c81ceb7efe975b1565": true,
     "1d8853b6274de1df11e5db576554759ba8b8b579": true,
+    "1d8f467df81e6e3641b036d5f1c62a5c7ce0cb55": true,
     "1d935a154d1a31f62096c4f609b716435d1af5c3": true,
     "1d945ca9fa83cf3bda51623528eba1739eb58ec3": true,
     "1d9463ca1588dea9dd0b55846de8972983c9372c": true,
@@ -17605,6 +17892,7 @@
     "1f32f29da7fa127121f23945b16284e2199d6ac4": true,
     "1f3371b93de6f751831a3237a37c68fcae7913c9": true,
     "1f35f94bc3cb207bb82fa42e2cb8463e123c3344": true,
+    "1f368bee9a20b88d902d0d558c7aca32fcbd388d": true,
     "1f3c8a4d403d5473d420f0b9553c9e88d8993a67": true,
     "1f40210aa2b9be1124be3fd1639a05681cc8a1f5": true,
     "1f4102eea863bd4c95c0f8200ca386ff1af6b8c0": true,
@@ -17815,6 +18103,7 @@
     "22492cb6059674e8be4b3370f25b523349237b1a": true,
     "224a9a3d4772ad3d189ef516e4d082ad3722e488": true,
     "224b86d570da5dfd1b7ff0c0519529268adde18e": true,
+    "224f6660d7f38f4d02f6f02a9531ffda21fcb9cb": true,
     "2252ceba743e6a3e75a948bd675aed4f988ffb85": true,
     "22581d76ad34b53c419d5b252cf605bb5f8c91b1": true,
     "225fd34a62e6edd8db7ae5e3056c16dc2de0d925": true,
@@ -17852,6 +18141,7 @@
     "22cee0c42297b9c31e34b7c1b25baa930d8c91f3": true,
     "22d0f9d07fc4691522cef57e70a3ed89056db014": true,
     "22d1d3ae1025f0ddd26e9ce1f0fd8562a1eaf1e7": true,
+    "22d6db1e3501c94301b7ee1857b9e0de3df516e5": true,
     "22d7a0a6bb0eff7f2d1812f93e9e0cc2cfd8dc8d": true,
     "22d86d8544b5b91a5eb3522c39b127e2da66823f": true,
     "22d8a3d2b369d95f193dc89c149fed857aaf7ceb": true,
@@ -18218,6 +18508,7 @@
     "2883be83e744f63f25e59d4efb04303d810dcde2": true,
     "28879dad1e365e6a5e1b8618f3aea08d5b7846ea": true,
     "288a09b0e059ace39fd8b1de7787efeee1b92253": true,
+    "288bdbe0d1cd1d1545dbefe5f67f36cff1cb6d1b": true,
     "288e3261b85f8e1b414fa4fc656ea293aecf7fb1": true,
     "289257b93ae51c9a9888ac371cb4ede332a0b41d": true,
     "28a96c6aa69b3e6175222384ffd2482c59d8da72": true,
@@ -18367,6 +18658,7 @@
     "2b024e7e1c6a31560da9d66bb6ce5d306b07a436": true,
     "2b028b9d1508d6ec94b0acadc1b0f543e915b7d9": true,
     "2b02ceb1b5a229a5f17cc8b4998f588115f419f6": true,
+    "2b0387bc25e3b61db422f209491e2af8eac8d96d": true,
     "2b06a0be07d80fd9612675577b135551616d7cf8": true,
     "2b06a1820c9448481a471a9834678ff8fbdea93f": true,
     "2b0c3c6f7e141f0f9989646fc6162028a1b75266": true,
@@ -18517,6 +18809,7 @@
     "2d4de9f1e53f8300cd3501ad3485db8d7b30070e": true,
     "2d501fe727798d9937e6117e55e8057b1802649d": true,
     "2d568d03ee4e3e32176c0ef560434184fd21aec5": true,
+    "2d585bc154613d299decb0a8f68b4b2bfacf5f9c": true,
     "2d5883d7882453010d89aceb0ed14cb6621bada7": true,
     "2d5b9b90aa765eee1324bba66c17371cfb92667e": true,
     "2d63f69a847c9f1a0b2913d7a25788651dea7098": true,
@@ -18583,6 +18876,7 @@
     "2e8de94148bd035ccedb425f976e8bef1d8d38a7": true,
     "2e8f76e4e358becef4dcf4f00f4b3e9bd7b69cd7": true,
     "2ea006ca03fff1e1cf7028b8651b9623050982cc": true,
+    "2ea073d71fc76fcda67e6b42a0382e7249a9df8c": true,
     "2ea6637b26ba972209f047c1af953e61cda5a351": true,
     "2ea6fa1f7c5b8465b78edfd7706672a05579e9f8": true,
     "2eaae68e841dd36417b30055e38ffd3b691a0151": true,
@@ -18711,6 +19005,7 @@
     "30cb957dbc0ab682746665791f1de6b206ebf2fc": true,
     "30d33ea70c74dd72e0255c6149b3997cd020a6ab": true,
     "30d416cdfb6703d1806922fc6fecc70628fd34a4": true,
+    "30d74f7cf2e1659b94783fdac6ee7ce0b30dc1b7": true,
     "30dab8585100b50b8469853dc065a48479600295": true,
     "30e3375bae36316729656ed89d38c26394249516": true,
     "30ed6f80f234a96b8178e8701cb76bd4031464e2": true,
@@ -18830,6 +19125,7 @@
     "32adf9fb8714733d2594d2fbf6cd2a59f9f5cb96": true,
     "32b0ced565b99f029cf47cb2001d1dba0fa45b55": true,
     "32b545b8e83153bc0746de4cdce8c292cb2c5d59": true,
+    "32b601d4e2fd445a44eec3f64d84db91aa38bc42": true,
     "32b7745722c73645b3e73bce4cb48cc0f5c5ac2e": true,
     "32bfb2e8d7e1a1ec7bc333a1298257f269c188a5": true,
     "32c5eda43357651febbfd566e33d17eb856d84f4": true,
@@ -18887,6 +19183,7 @@
     "33913edf4d40ac79621142749fe5653dc61ba47d": true,
     "339b40154cb6d32906937134c54ff735f31189e3": true,
     "33a140c10fd5e82f4a0b2db2fbb7231d27f9a241": true,
+    "33a21c01a64e94456b1a42d495d36d00f1954ea7": true,
     "33a308705fac1efebcf6e12f96ac6144a7d0be7b": true,
     "33a5a9ca07dec4d1ac03f171e2b52f8f1e419507": true,
     "33a960e2cc2c38307f49f8dfd4d14d1116b1d028": true,
@@ -19577,6 +19874,7 @@
     "3d9b9ebae3400714783915b921c8890c72522fdd": true,
     "3d9e60a3077a50c1be90edbd6b195563e2266d26": true,
     "3da4bd89aa38acd800692a0cebac472fe0dc5bb8": true,
+    "3da72d01195accc47c8443a142bcdb9de571cf09": true,
     "3da82e9d193a009a91e5caf0ee2b74abab2c097e": true,
     "3da946a6704bf5f9fe1e6b8694a8b691763b95f0": true,
     "3db49ee957b901e4edef295f2d65afad2e07df98": true,
@@ -19889,6 +20187,7 @@
     "4290f5298d0be3c9cf97caa12b8b42739352faff": true,
     "429171d4ad2ccc9904507281b917397aa53f3efc": true,
     "429196681c5bed6ced259f553930643fd66e51e8": true,
+    "4294587e47a97822fc908775380fbf5a1178a9f8": true,
     "429be1cdef699aef598389ed9174d8d446d73b61": true,
     "429fb86c07752a451d35675abbc16042c946ee85": true,
     "42a765221a26a17cddb928979b57d0a85c821402": true,
@@ -20201,6 +20500,7 @@
     "4721c44e28f175875def639b9c5658b31447e36b": true,
     "47238299ca913b790734e2a5113172a9b06fc517": true,
     "47256cbf76828aaa3ff8b98dbbde88219590cf21": true,
+    "472c1489b69213b8a5ed864e132455bbcfbe8ae3": true,
     "4734f0c675ea3440bcba8be469eedee7b997e462": true,
     "47392774b7b83bba2e9b08b5292d7c61e73eff5c": true,
     "473b6bc9511c89c768af474ed0f420db8c59aafd": true,
@@ -20214,6 +20514,7 @@
     "476753674731ad177113a087f314e684a9577431": true,
     "476f2b50bf18290d93c8400a495f708ea8736dd4": true,
     "477b0767479e6fe1756ac617d0a052b53ff7f74e": true,
+    "478307a314b9a1aec0c51822904e772f06a6e6e1": true,
     "4785a8892711a1b0f07a1737a2cb26e6163da23f": true,
     "478c8ea83897b80230ffd05e010cd3042a9687d6": true,
     "478cff7b79a53d4f9e255a828bab808db7fb6e18": true,
@@ -20837,6 +21138,7 @@
     "5108fde4ea498524115c838d07932cf40058fcdc": true,
     "51098482cfd0bca4e8a9f9e3591ef4a6bbce462f": true,
     "511b148e4f324beffeda44a88529a351d9042523": true,
+    "511b29827d1b9a01c18486798f74daf840d166e6": true,
     "511dcb828cc1df5c5c57ab2b83b1b9450769c7e7": true,
     "511fa3b570de6da888035ad2a2af9995fb2a1a3a": true,
     "5121e89309074b2199072accdbbd44c349681b73": true,
@@ -20957,6 +21259,7 @@
     "52c3f1440054a1c2970c82b2b45e5470e199a84e": true,
     "52ce398d587173526526c23ea82bacd2c7c5c72f": true,
     "52d8edf5c272f8da56f025c16714b1214c69574d": true,
+    "52de0beb395e211afd692b9cda48c29c3db2513d": true,
     "52e338b8655c15184ee01dcbfad1bc74ae321ac7": true,
     "52eeadf4236f264aa981106f3cd3cd7b0e33bde9": true,
     "52ef40b21aac47da8e0f1ed2d29f7ee2d41240b0": true,
@@ -21080,6 +21383,7 @@
     "549e263a17fc2c9657912b35ad9d9f9c140357d5": true,
     "54a1636b108ac784cfbe78896f3f8d3f572b9c3f": true,
     "54b5ac2e548a119b95906710ecfb422d305cc4eb": true,
+    "54c3c3a698051922725d7ce85a4bfc34da7f4f13": true,
     "54c455a86a80fa815651b23cc2c5aeee4bfe77ff": true,
     "54cd539fe1e77e224fe6f293d319a6e51744983a": true,
     "54cf4c69ad2f864d1f0d8f71095f6d8a7d2c4f05": true,
@@ -21489,6 +21793,7 @@
     "5b0d710b0aa08889eadab2af39cd318ccc66ac14": true,
     "5b0eab2e23f66c161267f539c56ba26ca8ce02c9": true,
     "5b187b6e5618e01589c670ba0a1af127d1b2d616": true,
+    "5b2116478d8ecaf39f570f50d933380d59665a0d": true,
     "5b24b400908c35f17becf7caf11d7359000eb054": true,
     "5b291ca470e303d52bb99af005c0391552d6805a": true,
     "5b2b57f46a637e967a0fe81e96a23600930ea761": true,
@@ -22033,6 +22338,7 @@
     "631eef8fb12a84c028b8898ee00555adfb24bf16": true,
     "63253c59afa30e6080111ef1c47b4e5b391c20dc": true,
     "632baf6b17d425843428716f97bcf2574859899c": true,
+    "63309fbb144b0e5b0cbb8b53e2e46c9976f89a94": true,
     "63344988757273d87ec41b52c477caf141acd393": true,
     "63375bf1185306c50c4af4f5d22a4b356353ee33": true,
     "6337c3a865f28d4a5bf88055a3ed71a0ef323e10": true,
@@ -22869,6 +23175,7 @@
     "6f5a3c5b77a6f66e8a23f6a83707f6883edd73fb": true,
     "6f5a41e292eb9fdb1e8f83db7f62b3f98186a1b8": true,
     "6f5e7acace04e939dae2f7bbb4769a4018ec63cf": true,
+    "6f5ece24aecb5c078d858d605cfe096652e4f1db": true,
     "6f61cccef9da38563767b5c78cb1cb47ed9161d8": true,
     "6f634b7ae474dadd1c155f5d19b2cb598fd2c9c6": true,
     "6f675d5f13582769ae97c6769662a3239f924ac2": true,
@@ -22918,6 +23225,7 @@
     "6ffd7c6c554b4f443aa44830319a77db1456b8fb": true,
     "70008bdf6aa096f1cfee0cf043afc4268aaf6c8b": true,
     "70074c5cacfe3a5be0cb870005f181c6ace3d580": true,
+    "700adaaf98dc8f99f60832c6eac504f7876bb80c": true,
     "700e4f6c406849f1e02ff055dfb2aae9f2905368": true,
     "701a86f52fc1673559bef9ac512ac30adb46ca58": true,
     "701cef6d3653f3b0b36ce4c50fe1ad1f0f6e0b19": true,
@@ -23329,6 +23637,7 @@
     "75b51c16ac52648ea510a2ca4a64af93050cb948": true,
     "75b69a2696070eec82d4048f8692d8b103e64edc": true,
     "75bb54bbec657b1070b6bab23c8f8467f2a186f8": true,
+    "75bd09f7cdcaf2f530edd964049e6878d1210562": true,
     "75cc4f9622787e388a11f4c2c9f7788a6439f1b4": true,
     "75cd9ba1e1f83b40df4ea26cc7c7ed460e486e51": true,
     "75d739727b3e3d7fcb13d55c2b7c70fb498416e0": true,
@@ -24170,6 +24479,7 @@
     "82b73b2798ef9facc0a13773e6ba791d9845bbd4": true,
     "82bcb1fb70c64b24e3f3429d72da7d07ba872a4e": true,
     "82c2a23b066bead9e78ad21d222f761ed10db44c": true,
+    "82c4d56207ef154c49f1ffe4ffa0a719ed4272ce": true,
     "82c8a97c50360f1e803334c707f8520db859d24b": true,
     "82ca17746535e136593a5272dd4eaf7b95c461eb": true,
     "82cc2e9fcce73841887c07c50f934878be85e1ec": true,
@@ -24779,8 +25089,10 @@
     "8c3646fe6df13fb2b0f4d07b3902220ff1bb39f5": true,
     "8c379eb313f46cedb5fc4bedd161e2040079dc7c": true,
     "8c38086006b4b49dc4d204b377cd6b77a46a7a3c": true,
+    "8c415f1760f8bfed7d9ca3925fa1f8b85ec70fd5": true,
     "8c468167cf4c8911f2aaf2e7fd54927629837a39": true,
     "8c496813400523a83741875d54ec5543b527ed9d": true,
+    "8c4c8f1278435099cfde7c87a70fefa7b87e77c6": true,
     "8c4cac4095039d264e3446583af97a16cdc8d44e": true,
     "8c4de75f7c95549eaff7f0c240fb72cc3938bdd4": true,
     "8c60b0ac0d393763796ae4e14a001ddf24359478": true,
@@ -24862,6 +25174,7 @@
     "8d75d55b6afb1c348f2804e303f938f877763982": true,
     "8d7651e8cbd8ffe6d3d801e6e48b05397780f8b8": true,
     "8d787ebcb2e0d9b23b549ede356c63ea3b232ef0": true,
+    "8d7a6fe690703c61ae2129dc6fff92219f321e7a": true,
     "8d886e8e674183d60c6d7b7ee7483dcd0baee69a": true,
     "8d91752076b191f4537a5231d89cea2a5696dad3": true,
     "8d92a29d799d15d4e04fb27c244695782d45f638": true,
@@ -24941,6 +25254,7 @@
     "8e909a7359110712c7f640dede4a58a114fe5f78": true,
     "8e91e619a756f1a41f3a278a355a8eee1e495ad1": true,
     "8e94ff183d9c7f1df9c9c1523c2840eb5304ec64": true,
+    "8e953b5938a9dafc96ad97f18a8a9d1e0ceb6637": true,
     "8e98d5d85a3ac9daeb191362d0fc2cb095f699b7": true,
     "8e9ad6a9b20f38b98eb77b42b21796d955d05479": true,
     "8e9ed413c0495c9dbbfb178034c354d1f5c522df": true,
@@ -25096,6 +25410,7 @@
     "9137cd44f7e3eceab6569471f27b9d7914fa0965": true,
     "913a4ce7ee77f0c87a1029bb45d7e88c2d2ac267": true,
     "913d3292eaa7393f2d4f809f65e3dbdb3405b725": true,
+    "913e7fb0ca049b7ae79c49cc3bc210c948464834": true,
     "913f54654fb1c6612b156382fcfa8bb2e23dd3ec": true,
     "9141346939946ae7609be84a4bdf1604ebc22219": true,
     "91418ca89d1543c319e9d62f2e53210544242e3f": true,
@@ -25259,6 +25574,7 @@
     "93e2b5cd1aebb4a518054089a1070465c998feca": true,
     "93ea1c0da18349a945cc19af881b14cea05da1b8": true,
     "93f5be0fe81d7d513714d36508bec994e4983c12": true,
+    "93f76ff99272822bbb92ade8ac1025f8a1f41278": true,
     "93fa5ef28a43e7b33b0b33c7d2574d3fcfe9654c": true,
     "93fb46d54f569b71da4897c68b5e6b2b385fdb13": true,
     "93fff679af201a73f627bfd388e06a5f701cce73": true,
@@ -25876,6 +26192,7 @@
     "9d7192fd40ba536b3f3271fc688e5fb37f013d20": true,
     "9d73597872a94a08f069d48c01b5538be4557418": true,
     "9d78111f48ebc7be8ab3a3a9ac450c81b51a6ba2": true,
+    "9d78b6bab22ca16ebba9babd1822edaeca554e11": true,
     "9d79ddf79dbf618464ea55ddafde3e45a997c64c": true,
     "9d80d0b4999f0e14a0a4c953b28eef739961ed2c": true,
     "9d811a34a0f5823331e87bfb4922abc44d4928d3": true,
@@ -26060,6 +26377,7 @@
     "a0563d53d9213da9ec2af2f4f333816cf7224436": true,
     "a057343959bec3fd77f66d24364dfa5d26df93ed": true,
     "a0573be869e26022ea959b19fef65f290a282f88": true,
+    "a067c97ca48c5b5c90c723eb579ec6991d26498e": true,
     "a06e9bd671db656ce06ee4e482f817097a6be69c": true,
     "a06f9b9907f544b7650895e342c553ebff8b1cc1": true,
     "a07052b04e1da5f5cec5fe33a6013c373de144e3": true,
@@ -26869,6 +27187,7 @@
     "ab733ac6b0b9f302f8f60c864862787a7badcb16": true,
     "ab7370502183e6662ef59768522386ff3dd5d840": true,
     "ab740c2510df327c0c6e58758a8c88d0f15c374b": true,
+    "ab77d994bf902caa55347041fc5f461fbd68f8cb": true,
     "ab7f1b91ac9b302e3759b006faf76695591073ed": true,
     "ab82c4c24e57a1ebde6cb824c253a736365a133d": true,
     "ab836dc085fc534c24532cfb092fadb044035979": true,
@@ -26956,6 +27275,7 @@
     "acb891f5c9c61af9c96695556f218bfda3156653": true,
     "acbb263eab99894a74115365824e9ca7af54d4e4": true,
     "acbf5d8dbc407adefc86ce7b3a0ff78d1ffba1a5": true,
+    "acbf8f809398c4df380c2f03fef177d7092d5a1b": true,
     "acc46f818ab4d5e8103e0464b5d8c8c38119666e": true,
     "acc65909157a963b156397cea260f40a57b176e2": true,
     "acce97ed8d8e56a4a06dc5d2258ee01fd129c742": true,
@@ -27125,6 +27445,7 @@
     "af4cb902f54ed939f179282d7993a40ecbcf7d6a": true,
     "af4cc59b70f1149e7fe4d295e3d22acf2143df49": true,
     "af5002212f8f8217cd6ef78fa461b9f810eea378": true,
+    "af503b9b754fb183cf913ee3d6eaa8b90caab0a4": true,
     "af51a1adc567d29c89350df35e17765acdb56caf": true,
     "af6075007e72bf9e69cdb4c36cfba53a08772c77": true,
     "af60cfee719d4bfb52cd22e78444ed4b6a5d3e52": true,
@@ -27213,6 +27534,7 @@
     "b0947a3f7427ae5ac4d3ee597d550ba11ff5393b": true,
     "b099605b2713e512028d3d2771377e158c22e167": true,
     "b09afc71176e20468db8200ff12a6e83ebebcec6": true,
+    "b0a41eb6e697d2c2ac0dd095bfcfebfb54cf9434": true,
     "b0a5d0781ed1e9df6f67ec99c5c488d0830c083c": true,
     "b0a751f1d05ab8f90513898cb1750e174eb23ab7": true,
     "b0af2e8f641f9d9e162dafb2a1bc0bb600f141b0": true,
@@ -27865,6 +28187,7 @@
     "ba7cc041f81b876f781bc953c90399e486639644": true,
     "ba83bce96c3db7f5c5caf736b6ad9b8088c9f5c3": true,
     "ba869013105b1d7287b6e5bf643f3564dacddc94": true,
+    "ba8a225da033ffd9cb62f5ea385dd74a3f8f2094": true,
     "ba8db513074e5fbcce08bbe9f4e964327af11393": true,
     "ba915a7725d7c2fcc65e4feae5f52683648af969": true,
     "ba9294bc1b1a0958a44c94ea374d0f4a4a96b247": true,
@@ -28049,6 +28372,7 @@
     "bd3e93c40f7e1b0a2018ee13b6883110000dc082": true,
     "bd400877e68f8a77919b81ac562c71e5daabe5de": true,
     "bd413d035b6c1c0c23c459fd996d06d8903f1deb": true,
+    "bd4194e3fb4ccff7c488aba09736bb17a39cfdc2": true,
     "bd42058b9036f0017d0406270f9114d38a3178a9": true,
     "bd43b98e50ffd2ec3aa3bf9305019b5d44bebc85": true,
     "bd4508287b8088a5083ea27adac747f4b08ed5df": true,
@@ -28203,6 +28527,7 @@
     "bf7dcf2937f8c177a7f8724aa8d5961384d3a55e": true,
     "bf7fdb1e7e512d9fbe892fd4c42f6b58cf1b8488": true,
     "bf875cfc2a24b02df626b0d62fb150a60cdd7d64": true,
+    "bf8bd25cd5b2f4de8c4f3a08a8b797550d55e4d8": true,
     "bf8e0ca071657ee99edbd21720910fdd04af22c7": true,
     "bf8e63eed6b1cc9035efe138e5b0a1794fe60b20": true,
     "bf9452b287b6ee6540fcdda6b1bc05a2e72dda76": true,
@@ -28301,6 +28626,7 @@
     "c0e1bb85b92e37c122c04ae6008a05d56ec58eb8": true,
     "c0e55634c951238bad06de4c7198b4dd19f29dcb": true,
     "c0e8aff028c75bcd0556126c81386f66e370983a": true,
+    "c0ebc20744262d266a67ea5d5bdba2bade1046dd": true,
     "c0f242e5f24d4f9c0ee69e9ff9ae35bdfe88eccd": true,
     "c0f2affefc9670d34c0122fae5fb4148b238d3b4": true,
     "c0f3c07bb640d47921953d295b682e0a5b9cfe0c": true,
@@ -28682,6 +29008,7 @@
     "c65f09e7eaf757f12b99687fbc74f51863c91af4": true,
     "c662a5611a392ec5a7d7331d484c29245ada3cb4": true,
     "c66b6cdea0899d013c24b859dd344df4e3ad2e5c": true,
+    "c67650bc7ed5ff512b6271c9b855902c3cc938ae": true,
     "c6775b16a20b760d79550767fd276e1e073551e6": true,
     "c67941f5011685cb291819a265fb44094c8b5150": true,
     "c68291b0b032a12935a3be2af30a1adc461fc376": true,
@@ -28868,6 +29195,7 @@
     "c912315b949e97a15918790b4dcd6c969a21c001": true,
     "c91536b5b1a6741dc82d14b730934507a985a341": true,
     "c91578b0e396dbbd0826dcb25c7c083a436813b1": true,
+    "c919e63f514522c0bbdb760b1df680b5ed5d337c": true,
     "c91ade0f8e33114145338204b7e5ebda8e95e2b6": true,
     "c91d1cc4bd6a5c55ad5f24f7d5a534ac4b4e9768": true,
     "c91e1a0d94abe6547fe61812061a3a8240c017f5": true,
@@ -29119,6 +29447,7 @@
     "cc89861a280dd124bd5f6c8aaf4af0c342110cdc": true,
     "cc89b30240388d49b66e9d1e31ede7ccf133eb03": true,
     "cc9c5ca2f02ae8b8d5a8289e31ef6c4f9f8b866c": true,
+    "cc9fef54cc03d90b684ad5fa7b926f0fbfee4b99": true,
     "cca12dd48d16dfbd52346b5ce80218244b4127a4": true,
     "cca40cacd85dc5deeeddc7eb483ac0aa74ee79f1": true,
     "cca4a00d4257906dc951571901ed47f2e29674dd": true,
@@ -29500,6 +29829,7 @@
     "d1e0f7bab1ce04394e0f77830662035cdf22187f": true,
     "d1e3eb64413ce57ebe35d60fa13f97c929d26ade": true,
     "d1eb0648b99bae6898041cc7d259a94984fce98d": true,
+    "d1edee70c80ed1bfee52af640c5f7bbb2e2126c1": true,
     "d1f0bfdc21ca5a32c7e047008797d4cba5b91deb": true,
     "d1fe5f82af3d74db688809632e4c8b36765214a9": true,
     "d205ad0455da6af78ff73ab9ded8ed3421c8575a": true,
@@ -30446,6 +30776,7 @@
     "e01ec6ad7d10e2f097c3cb8034b7903fbf66534d": true,
     "e0224bd6e128cb066757831fd7be382734521a42": true,
     "e022923744905b832370ed28af88d9e15dd4c540": true,
+    "e025d343f3264c21d892eb7794699cb92a05f946": true,
     "e027752a95abe1b7c6f5c8a26f4fd5cf85766db4": true,
     "e028aebd689fe2ffb4a20f567e8b95d81a82368b": true,
     "e034b7e06df1c1ab67a7ff1e4005862a0035e696": true,
@@ -30458,6 +30789,7 @@
     "e047287b7b76ad81de523b3c21e924ec43e33180": true,
     "e0478874f452b4a518a9afe0451f80d976afd150": true,
     "e04957264fde5bd24b92f2cb3601dbeca1b79e6c": true,
+    "e04c73ebc8535c174fef9e333b8f14f6a814d6dd": true,
     "e053980e712cb2b92fe75530678936d58612cc4c": true,
     "e0565112a500bc1bf02d6b21f8f8599e66e35571": true,
     "e05b19543ea811a03e9acf8e987e8d26a9c8f948": true,
@@ -30500,10 +30832,12 @@
     "e10f11486b2efc984ae07d8a807f83b1c611fe78": true,
     "e111b20aa9b2dfd84cdc028b365f313b90e78e07": true,
     "e117a2b788ac8a93346716a753932e2fa10b0bb1": true,
+    "e11b3f43096c750199fa609b0e0ee92125174d45": true,
     "e11dc355a4130dbc5d3d61545ba7ea5abb12f332": true,
     "e11e1263d28d2cc80c4aa7d9ec4b5671290624ff": true,
     "e11f4bc6adf4fe020eebf1a676b7ce499d62f602": true,
     "e12f07ea098cf42501524ca068e9ddbced6ff2ce": true,
+    "e138ad347d5f5acd9eaa810a3e65ca7a5a5a7291": true,
     "e13924954880fa43667e98f2f3b90125190d403a": true,
     "e13a2b7d60cbb4861a6abc0654f1b305fa4ec4e6": true,
     "e143c55a2f21397d118bb7259fbba8682c1fb3c0": true,
@@ -30651,6 +30985,7 @@
     "e33c151268827a78a66f0452715b884ec23c9b3e": true,
     "e33dcfba6fa6e0a8f3de9cae52efe42cf426f980": true,
     "e33fdfd1111f168fa517dcd73087497049beb30f": true,
+    "e34072c8989ccfe4a4bc852247e8f9a7a09faa74": true,
     "e342fa57a40762282fa31d12ed1acf2c43b316de": true,
     "e3459896578b57389a66dbd0518322dc8d9e7d63": true,
     "e34ba17e022ea8e65ad0b0a3cb7ddcc352632d6a": true,
@@ -30868,6 +31203,7 @@
     "e689a987709aa444e2a823eabe865b7e22df57fb": true,
     "e68ab5752d59cb3417f0ae72202dad00eded0d4c": true,
     "e68afc4ba947e9ea0744dd3b66508bc6a8c6d785": true,
+    "e6999f23493a730c9d47e09f66d7fa6eb2558710": true,
     "e69fe8cc84fd9e1460834cb4cd069908de0623d9": true,
     "e6ad96e8f88c668c9cb808ec5ccf063bd3944274": true,
     "e6af1660cbd98c3a0d93a2048393c620fb8c1458": true,
@@ -31371,6 +31707,7 @@
     "eebdda2902c438c97bef42cfd55185cbf9f7a401": true,
     "eebf96cfe775556cb3330dbf1553fbea28c51355": true,
     "eec4e059a2f2b9c195e05f2661d94380c08613ae": true,
+    "eec8e651a5b2b56264502011bb5a2813159dd220": true,
     "eecd0e2531795f8972cd93393fe999ef0996c781": true,
     "eecd0f12e3ea107948d698243e7ea86f54cddeee": true,
     "eed704bbcdc79f48a6dc8659e7ea272772e1f5ed": true,
@@ -31525,6 +31862,7 @@
     "f0dd11486e4b61b8340b85943d3c468c9b19b61d": true,
     "f0df78fa9767dcf1001780fb4aa274cb659655f9": true,
     "f0e2e936b88dc8ebbe147f1f38b3246566fb15a1": true,
+    "f0e2f595029c69c8775178ce069bc6b53fffeceb": true,
     "f0e30c5d0728672cc21c787c0d0590f630515514": true,
     "f0f4d70a1e343884a840ff4a1f5670f9a8ac160f": true,
     "f0f75af3ba1b0b66c02a84fcd574e25598e5cf00": true,
@@ -31557,6 +31895,7 @@
     "f177fbe48634c8a521dad438e7501fe5bf1d9ec8": true,
     "f1790e765fd667864c9c7d07985e799deedb2d05": true,
     "f17b55a549c0ce92255ff9fa8c80d20644c28271": true,
+    "f18280a4eff3ed715f9b181b3b9e8c572d47e4de": true,
     "f1840730c65e3e5a0f9ff24b0dbf120704c47f47": true,
     "f188c504fcf48ce770356e8064a1d93cbbc48997": true,
     "f18999cc845c8165fa587876a7215122abeed78e": true,
@@ -32028,6 +32367,7 @@
     "f81d048f06ddf24d7a31ccddb20c355e1d50a002": true,
     "f81fc3a2cad45cf00e6ad6496ff8f30acf02ae1a": true,
     "f81ff18b18dd381b82ce7b98c5be4dd770ce0971": true,
+    "f8266dbb11ebf173477f7848463e834b27414220": true,
     "f828d410ad74b023d3c9a19a72b535be090c945a": true,
     "f8295302244e83107ee98c14fee227b4ed6da257": true,
     "f82c99df781849a4694d02e4b4c7b826fb600e61": true,
@@ -32241,6 +32581,7 @@
     "fabecd96b812fdb7e0c9d8f43c1eec04f180d061": true,
     "fac29c15a9586576c30a000cb94b1b94584d8fcc": true,
     "fac5509d7067967effbc68f27bee772da951f5e9": true,
+    "fac6786b443ed0cd83484e2bde4a53f909697042": true,
     "fac6d4ae1c1b55b14af9397f52abd6aeca61da1f": true,
     "face298b96a5f4a1fc66f0c0986139e71217d049": true,
     "fad5c0a179cd80386864f395f649270294908984": true,
@@ -32366,6 +32707,7 @@
     "fc8b232f314405bd216d17c7b2da3fd6017868a3": true,
     "fc8fadb8780c557f2491573c6d23ad734a4b738b": true,
     "fc90b29b1a00039313e55bbcd86f22ca8aed00b7": true,
+    "fc9165f8271f417791e6aec9b58ae91c77920e9c": true,
     "fc98ad9e1cf29c99163f1746877596356fe89554": true,
     "fc9c592b5e2f35bb19ae082f67faff5e46edb082": true,
     "fc9d2d285b3ed0607b68361c78d2caf5a5d07675": true,
@@ -32450,6 +32792,7 @@
     "fda809883e0b9997f726125597713124b089ffde": true,
     "fdac08282b66ff4ff57a6b6aa3e8737a33e15eba": true,
     "fdaef46caa0261f5ddef9d206c0aafc4e44357a6": true,
+    "fdb04794766dc0d66d83dbf0baccf8eabd27d1de": true,
     "fdb6b6aeed3c5bf303db6f3ce11c5c26b8bd7f61": true,
     "fdb79403c9c49a5971ae81e9305ff511299493d1": true,
     "fdba3812a7891bb2a436b6762a89b22ca5df861d": true,
@@ -32500,6 +32843,7 @@
     "fe574d0149553662aee2aadc5cdeb9d71aa45d96": true,
     "fe57f39877c749d757b1e29cfb81fa2a7d593251": true,
     "fe589d747efc474cf9dc5e73c397b2df2ca129a8": true,
+    "fe62c6b0daf4d50ccbf14bebee84d726994694a0": true,
     "fe641243f919cd5757e0474969dbc33bb66da129": true,
     "fe6c63bdd7e1a4cfa909c1cc273fdfbe2c41380c": true,
     "fe6c8a9c7caf9030e15430c8f2d2cb046f7ffff6": true,

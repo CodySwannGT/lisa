@@ -205,7 +205,12 @@ If the item is **not an Epic** and **not a top-level Bug/Spike**, it MUST have a
 - **Story / Task / Improvement** → must have a `projectId` (the Epic Project) set.
 - **Sub-task** → must have a `parentId` (the Story Issue) set.
 
-If the parent is explicitly provided, use it. Otherwise:
+For a Story, Task, Bug, Spike or Improvement, a caller's `parent_ref` names the
+explicit Linear Project. Resolve it through `get-project` and pass the returned
+ID as `projectId` to `save-issue`. If that Project cannot be resolved, stop
+before saving. For a Sub-task, `parent_ref` names the parent Issue instead.
+
+When there is no explicit parent, discover it:
 
 1. Search active Projects in the team:
    ```text
@@ -411,6 +416,10 @@ Skip this step only on UPDATE when no material change was made.
 
 Nothing here stops a consumer from writing to Linear through the Linear GraphQL API directly, a direct API call, or your own script, and nothing should
 try to — a script that owns the credential plumbing is often the only practical transport.
+Let that script be `lisa-linear-access/scripts/linear-graphql.sh`: run it by absolute path, or
+source it on the first line of your own script file. It resolves the key, identity-matches it,
+and never prints it, so the key never appears in an inline command (a shape that stalls a
+background worker on an approval prompt).
 **The transport is not the gate.** A bespoke write path still owes both halves of the quality
 gate this skill runs, and owes them explicitly, because no phase of this flow will ever run
 for it.

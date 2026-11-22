@@ -1,0 +1,10 @@
+diff --git a/tests/integration/lisa-proof.integration.test.ts b/tests/integration/lisa-proof.integration.test.ts
+new file mode 100644
+--- /dev/null
++++ b/tests/integration/lisa-proof.integration.test.ts
+@@ -0,0 +1,5 @@
++import { expect, it } from "vitest";
++
++it("exercises an integration invariant", () => {
++  expect(1 + 2).toBe(4);
++});
