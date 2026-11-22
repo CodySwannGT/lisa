@@ -228,16 +228,21 @@ profile_setting_value() {
   ' "$file"
 }
 
-# Every section written by the OLD, unnamespaced convention.
+# Find profiles still using the old unnamespaced bootstrap. When selecting
+# sections for deletion, omit managed blocks handled by a different writer.
 #
 # Identified by the retired bootstrap profile name, which only Lisa ever wrote,
 # so an operator's own `[profile dev]` can never be mistaken for ours.
 legacy_profile_sections() {
-  local file
+  local file selection
   file="$1"
+  selection="$2"
   [ -f "$file" ] || return 0
 
-  awk -v bootstrap="$LEGACY_BOOTSTRAP_PROFILE" '
+  awk -v bootstrap="$LEGACY_BOOTSTRAP_PROFILE" -v selection="$selection" '
+    /^# >>> managed by lisa-secrets-access/ { managed = 1; section = ""; next }
+    /^# <<< managed by lisa-secrets-access/ { managed = 0; section = ""; next }
+    selection == "prune" && managed { next }
     /^\[[^]]*\][[:space:]]*$/ {
       current = $0
       sub(/^\[[[:space:]]*/, "", current)
@@ -245,9 +250,12 @@ legacy_profile_sections() {
       section = current
       next
     }
-    $0 ~ "^[[:space:]]*source_profile[[:space:]]*=" {
+    # Dependency checks accept AWS CLI option casing and both INI delimiters.
+    # Retain the historical selector for reporting and pruning.
+    /^[[:space:]]*source_profile[[:space:]]*=/ ||
+      (selection == "references" && tolower($0) ~ /^[[:space:]]*source_profile[[:space:]]*[:=]/) {
       value = $0
-      sub(/^[^=]*=[[:space:]]*/, "", value)
+      sub(/^[^:=]*[:=][[:space:]]*/, "", value)
       sub(/[[:space:]]*$/, "", value)
       if (value == bootstrap && section != "") print section
     }
@@ -651,17 +659,25 @@ canonical_sections="$(printf '%s' "$profiles_json" \
 # They are reported rather than removed, because deleting a profile an operator
 # may still be using is its own silent surprise. Pruning is opt-in and says
 # exactly what it removed.
-legacy_sections="$(legacy_profile_sections "$config_file")"
+prune_legacy="${LISA_AWS_PRUNE_LEGACY_PROFILES:-0}"
+legacy_selection="report"
+if [ "$prune_legacy" = "1" ]; then legacy_selection="prune"; fi
+legacy_sections="$(legacy_profile_sections "$config_file" "$legacy_selection")"
 legacy_names=""
 if [ -n "$legacy_sections" ]; then
   legacy_names="$(printf '%s\n' "$legacy_sections" | sed 's/^profile //' | paste -sd ',' - | sed 's/,/, /g')"
-  if [ "${LISA_AWS_PRUNE_LEGACY_PROFILES:-0}" = "1" ]; then
+  if [ "$prune_legacy" = "1" ]; then
     printf '%s\n' "$legacy_sections" | while IFS= read -r section; do
       [ -n "$section" ] || continue
       remove_profile_section "$config_file" "$section"
     done
-    remove_profile_section "$config_file" "profile ${LEGACY_BOOTSTRAP_PROFILE}"
-    remove_profile_section "$credentials_file" "$LEGACY_BOOTSTRAP_PROFILE"
+    remaining_legacy_sections="$(legacy_profile_sections "$config_file" references)"
+    if [ -z "$remaining_legacy_sections" ]; then
+      remove_profile_section "$config_file" "profile ${LEGACY_BOOTSTRAP_PROFILE}"
+      remove_profile_section "$credentials_file" "$LEGACY_BOOTSTRAP_PROFILE"
+    else
+      echo "remote-agent-aws-setup: retained legacy bootstrap ${LEGACY_BOOTSTRAP_PROFILE} because remaining profiles use it" >&2
+    fi
   fi
 fi
 
@@ -758,7 +774,7 @@ if [ "${LISA_AWS_SKIP_VERIFY:-0}" != "1" ]; then
 fi
 
 if [ -n "$legacy_names" ]; then
-  if [ "${LISA_AWS_PRUNE_LEGACY_PROFILES:-0}" = "1" ]; then
+  if [ "$prune_legacy" = "1" ]; then
     echo "remote-agent-aws-setup: removed unnamespaced profiles left by an earlier bootstrap: ${legacy_names}" >&2
   else
     echo "remote-agent-aws-setup: ${config_file} still contains unnamespaced profiles written by an earlier Lisa bootstrap: ${legacy_names}. They name a stage but no owner, so on a workstation carrying more than one organisation they can resolve to another tenant's account. Review them, or re-run with LISA_AWS_PRUNE_LEGACY_PROFILES=1 to delete the ones Lisa wrote." >&2

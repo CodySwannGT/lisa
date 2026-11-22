@@ -1443,7 +1443,7 @@
     "plugins/src/base/scripts/ready-queue-order.mjs":
       "02d2216053cf89da887cbec541cd4b175fd39dfaa340e451293b3b7106a7d161",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
-      "eb7846bfd3406edd87a440939cef48eb557b25fcc01ef004f7bbd5ff303e320a",
+      "0d2ee0b2a3d3f3ed2dd20e47ee72f625f4a72b6f38f04c5bd8ca9389ab435f60",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
       "bed0f0b8a43146dbe222c657d6b58494c3962d1bb627bf0591d4b37102de972f",
     "plugins/src/base/scripts/resolve-lifecycle-role.mjs":
