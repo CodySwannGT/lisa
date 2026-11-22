@@ -19,11 +19,9 @@ function serverUrl(value) {
       (url.protocol === "http:" &&
         /^http:\/\/(?:127\.0\.0\.1|\[::1\])(?::\d+)?(?:\/|$)/iu.test(value))
     ) ||
-    /[\s\\]/u.test(value) ||
+    /[\s\\?#]/u.test(value) ||
     url.username ||
-    url.password ||
-    url.search ||
-    url.hash
+    url.password
   ) {
     throw new Error("invalid Bitwarden endpoint");
   }
@@ -41,8 +39,7 @@ export function bitwardenEndpoints(accountId, env = process.env) {
   let config;
   try {
     config = readFileSync(
-      customFile ?? join(homedir(), ".config", "bws", "config"),
-      "utf8"
+      customFile ?? join(homedir(), ".config", "bws", "config")
     );
   } catch (error) {
     if (

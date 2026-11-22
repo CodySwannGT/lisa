@@ -39,6 +39,9 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("Bitwarden secret writes", () => {
+  const loopbackExclusions = "127.0.0.1,[::1]";
+  const tenantExclusion = "*.tenant.test";
+
   it.each([
     {
       label: "create",
@@ -75,6 +78,27 @@ describe("Bitwarden secret writes", () => {
       accessToken: TOKEN,
     });
   });
+
+  it.each([
+    [undefined, undefined, loopbackExclusions],
+    [undefined, tenantExclusion, `${tenantExclusion},${loopbackExclusions}`],
+    ["*.fixture.test", tenantExclusion, `*.fixture.test,${loopbackExclusions}`],
+    ["", tenantExclusion, loopbackExclusions],
+    ["*", tenantExclusion, "*"],
+  ])(
+    "preserves caller proxy exclusions and ensures loopback is direct",
+    (lower, upper, expected) => {
+      vi.stubEnv("no_proxy", lower);
+      vi.stubEnv("NO_PROXY", upper);
+
+      replace();
+
+      expect(transports.run.mock.calls[0]![2].env).toMatchObject({
+        no_proxy: expected,
+        NO_PROXY: expected,
+      });
+    }
+  );
 
   it.each([
     [82, /server and profile configuration/],

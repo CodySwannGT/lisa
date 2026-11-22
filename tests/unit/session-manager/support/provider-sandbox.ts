@@ -182,10 +182,14 @@ export async function runWithBitwardenWriteService(
     const [port] = await once(service, "message", {
       signal: AbortSignal.timeout(3000),
     });
+    const address = `http://127.0.0.1:${String(port)}`;
     const result = runWithProvider(sandbox, args, {
       env: {
-        BWS_SERVER_URL: `http://127.0.0.1:${String(port)}`,
+        BWS_SERVER_URL: address,
         BWS_ACCESS_TOKEN_DEMO: `0.${account}.${credential}:${seed}`,
+        // The fixture serves origin requests only, so proxying CONNECT would fail.
+        http_proxy: address,
+        no_proxy: "fixture.invalid",
       },
     });
     const calls = readFileSync(requests, "utf8").trim().split("\n");

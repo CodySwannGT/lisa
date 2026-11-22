@@ -1755,13 +1755,13 @@
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "72e13a433912f4743896cdfb8af220b44a1c9d61ede2ee981bdd1acefae5f5dc",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "ec2bebeb2bd50f947a03862735dbe4ec92dc54b50c3ab7dc02e3dbdabc38b59f",
+      "787e8073940785737b8aa877173b98034bfc22c918f20acb61b9e234ce0b2320",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
       "ef8f20962e098697ed68e5dc6e7ec3fc16a305f1296c6266720a26c9c6577aa5",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bitwarden-encryption.mjs":
       "cf117afd4d92ad9c19ba7ed719330a01108f8a3fd1cf34587957d854a5f42c24",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bitwarden-endpoints.mjs":
-      "e33f797d3f3cc78c14756ec76ee36dc2ef66f0bd9833a2edb7d0c9f5bd426db3",
+      "9dbce3227926f75369948803525c9324091f7877c0e07706bb3324adf3db000e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bitwarden-profiles.mjs":
       "ee19403eb40c7cb8d89caf1431950ca68e8a6431148e34f7472113c8f6a2bebd",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bitwarden-write.mjs":
@@ -1789,7 +1789,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
-      "c46cf7c38c0e017a9d185ceda44c0d93f0e8ab23e23f9ac0c52de6808e6e8828",
+      "06f57430f7ca6417b7f06d511ab6eb02c79936d348f7eaa2ae06dc2653de00e0",
     "plugins/src/base/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs":
       "2ab1e70fe8b8f6ccf7b5e589ea80031be755ddce8c30009ead71790542c68e2b",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":

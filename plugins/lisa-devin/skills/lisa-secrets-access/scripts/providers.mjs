@@ -740,10 +740,8 @@ const BITWARDEN_WRITE_ENV = [
   "SystemRoot",
   "HTTPS_PROXY",
   "HTTP_PROXY",
-  "NO_PROXY",
   "https_proxy",
   "http_proxy",
-  "no_proxy",
   "NODE_EXTRA_CA_CERTS",
   "SSL_CERT_FILE",
   "SSL_CERT_DIR",
@@ -771,6 +769,13 @@ function writeBitwarden(cfg, operation, request) {
     )
   );
   env.NODE_USE_ENV_PROXY = "1";
+  // Plaintext loopback requests must never go through a forward proxy.
+  const noProxy = provider.no_proxy ?? provider.NO_PROXY;
+  env.no_proxy =
+    noProxy === "*"
+      ? noProxy
+      : [noProxy, "127.0.0.1", "[::1]"].filter(Boolean).join(",");
+  env.NO_PROXY = env.no_proxy;
 
   try {
     boundedChildOutput(process.execPath, [BITWARDEN_WRITE_HELPER], {

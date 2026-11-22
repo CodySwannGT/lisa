@@ -87,7 +87,8 @@ describe("Bitwarden bws profiles", () => {
         "if (command !== 'config' || key !== 'state-opt-out' || value !== 'true') process.exit(2);",
         "if (profileFlag !== '--profile' || !profile.startsWith('lisa-read-') || configFlag !== '--config-file') process.exit(3);",
         "if (process.env.BWS_ACCESS_TOKEN || (fs.statSync(config).mode & 0o777) !== 0o600) process.exit(4);",
-        "if (fs.readFileSync(config, 'utf8') === 'invalid') process.exit(5);",
+        "const source = new TextDecoder('utf-8', {fatal: true}).decode(fs.readFileSync(config));",
+        "if (source === 'invalid') process.exit(5);",
         "fs.appendFileSync(config, '\\n\\n[profiles.' + profile + ']\\nstate_opt_out = \"true\"\\n');",
       ].join("\n"),
       { mode: 0o700 }
@@ -206,6 +207,18 @@ describe("Bitwarden bws profiles", () => {
     expect(readFileSync(config, "utf8")).toBe("invalid");
   });
 
+  it("passes original bytes to the CLI, including invalid UTF-8", () => {
+    const original = Buffer.concat([
+      Buffer.from("# invalid byte "),
+      Buffer.from([0xff]),
+      Buffer.from("\n"),
+      readFileSync(config),
+    ]);
+    writeFileSync(config, original);
+    expect(() => bitwardenEndpoints(ACCOUNT, options("work"))).toThrow();
+    expect(readFileSync(config)).toEqual(original);
+  });
+
   it("validates a profile base only for endpoints that use it", () => {
     const base = '[profiles.work]\nserver_base = "http://remote.example"\n';
     const api = 'server_api = "https://api.work.example"\n';
@@ -231,6 +244,25 @@ describe("Bitwarden bws profiles", () => {
       ).toThrow(/invalid Bitwarden endpoint/u);
     }
   );
+
+  it.each(["?", "#"])(
+    "rejects a bare URL delimiter %s before appending paths",
+    delimiter => {
+      expect(() =>
+        bitwardenEndpoints(ACCOUNT, {
+          BWS_SERVER_URL: `https://example.test/mount${delimiter}`,
+        })
+      ).toThrow(/invalid Bitwarden endpoint/u);
+    }
+  );
+
+  it("preserves encoded URL path characters", () => {
+    const server = "https://example.test/path%3F%23";
+    expect(bitwardenEndpoints(ACCOUNT, { BWS_SERVER_URL: server })).toEqual({
+      api: `${server}/api`,
+      identity: `${server}/identity`,
+    });
+  });
 
   it.each(["127.0.0.1", "[::1]"])(
     "allows literal HTTP loopback URL %s",
