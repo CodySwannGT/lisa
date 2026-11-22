@@ -36,7 +36,7 @@ import { fileURLToPath } from "node:url";
 import {
   BOOTSTRAP_KEY,
   deriveAwsEnvironment,
-  RESOLVE_ONLY_LEGACY_SOURCE_PROFILE,
+  emitSourceProfileFor,
   parseBootstrap,
   renderAwsProfiles,
 } from "./aws-bootstrap.mjs";
@@ -354,7 +354,7 @@ export function installProfileSourcing(valuesFile, options = {}) {
     // — so leaving them set means the session ignores whichever environment it
     // selected and runs as whatever the host injected. That is how a perfectly
     // valid credential produced InvalidClientTokenId for a day. Removing the
-    // poison beats out-shouting it, and it is what lets `--profile agent-dev`
+    // poison beats out-shouting it, and it is what lets `--profile <owner>-agent-dev`
     // behave here exactly as it does on a developer's machine.
     `unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN`,
     // The pinned toolchain installs into ~/.local/bin, which is not on PATH in
@@ -591,13 +591,9 @@ export function installAwsProfiles(bundle, options = {}) {
     home = process.env.HOME || homedir(),
     owner,
     pruneLegacy = process.env.LISA_SECRETS_PRUNE_LEGACY_PROFILES === "1",
-    // The RESOLVE-ONLY window, on by default and closable from both ends. It
-    // never affects what is emitted as canonical output.
-    // `NO_LEGACY` is how a caller that has migrated takes the isolation before
-    // the window closes; `CLAIM_LEGACY` is how one takes the shared bare slot
-    // from another project deliberately.
-    noResolveOnly = process.env.LISA_SECRETS_NO_LEGACY_PROFILES === "1",
-    claimResolveOnly = process.env.LISA_SECRETS_CLAIM_LEGACY_PROFILES === "1",
+    // There is no bare-alias option any more. `LISA_SECRETS_NO_LEGACY_PROFILES`
+    // and `LISA_SECRETS_CLAIM_LEGACY_PROFILES` are deliberately ignored: bare
+    // names are never written (CodySwannGT/lisa#4768).
     mkdir = mkdirSync,
     write = writeAtomic,
     read = readFileSync,
@@ -625,10 +621,33 @@ export function installAwsProfiles(bundle, options = {}) {
   // makes the ordinary single-tenant upgrade replace its block silently and
   // leave nothing behind, and confines the reported-not-deleted case to a block
   // that provably belongs to a different project.
+  //
+  // Read once, then adopt this owner's sections the remote-agent writer left
+  // OUTSIDE any managed block. Both writers now emit the same names, so those
+  // sections are this tenant's own profiles spelled identically — and without
+  // adoption the duplicate-name guard below would refuse the very names this
+  // run is meant to write.
+  const current = Object.fromEntries(
+    ["config", "credentials"].map(name => {
+      const file = join(dir, name);
+      return [
+        file,
+        exists(file)
+          ? adoptRemoteAgentSections(String(read(file, "utf8")), name, {
+              owner: scope,
+              names: rendered.profiles,
+            })
+          : null,
+      ];
+    })
+  );
+  const readCurrent = file =>
+    current[file] === undefined ? String(read(file, "utf8")) : current[file];
+  const existsCurrent = file =>
+    current[file] === undefined ? exists(file) : current[file] !== null;
+
   const configFile = join(dir, "config");
-  const existingConfig = exists(configFile)
-    ? String(read(configFile, "utf8"))
-    : "";
+  const existingConfig = current[configFile] ?? "";
   const claimLegacy =
     pruneLegacy || legacyIsOurs(existingConfig, rendered.config);
 
@@ -649,8 +668,8 @@ export function installAwsProfiles(bundle, options = {}) {
   // block and nothing else. The owner of the existing entry renames it
   // (conventionally to `-sso`) and re-runs.
   const collisions = collidingProfiles(dir, rendered.profiles, {
-    exists,
-    read,
+    exists: existsCurrent,
+    read: readCurrent,
     owner: scope,
     // A legacy block this run is about to replace is not a collision; one it is
     // leaving in place is, because both sections would then exist and AWS would
@@ -678,27 +697,6 @@ export function installAwsProfiles(bundle, options = {}) {
     );
   }
 
-  // Whether the deprecated bare-named twins go in beside the owned names.
-  //
-  // ALL OR NOTHING. A half-written legacy family is worse than none: a bare
-  // `[profile <stage>]` whose `source_profile` names a bare section belonging to
-  // someone else is a profile that resolves into another project's account, and
-  // it is exactly the failure the owned names exist to remove.
-  const legacyHolder = noResolveOnly
-    ? null
-    : resolveOnlyHolder(dir, rendered.resolveOnly, {
-        exists,
-        read,
-        owner: scope,
-        includeLegacy: !claimLegacy,
-      });
-  // `undefined` is the only free state. `null` means a section outside every
-  // managed block already holds the name — an operator's, or an external
-  // generator's — and shadowing that is the duplicate-section failure this
-  // module refuses everywhere else.
-  const writeResolveOnly =
-    !noResolveOnly && (claimResolveOnly || legacyHolder === undefined);
-
   mkdir(dir, { recursive: true, mode: 0o700 });
   chmod(dir, 0o700);
 
@@ -716,82 +714,118 @@ export function installAwsProfiles(bundle, options = {}) {
   // what the guard was actually for. Same delimited-block approach as the shell
   // profile, and `#` is a comment in the shared-config format so the markers are
   // inert to every consumer.
-  for (const [name, body, resolveOnlyBody] of [
-    ["credentials", rendered.credentials, rendered.resolveOnly.credentials],
-    ["config", rendered.config, rendered.resolveOnly.config],
+  for (const [name, body] of [
+    ["credentials", rendered.credentials],
+    ["config", rendered.config],
   ]) {
     const file = join(dir, name);
-    const current = exists(file) ? String(read(file, "utf8")) : "";
-    // Both halves live INSIDE this owner's block. That is what keeps the
-    // resolve-only names owned rather than anonymous — another project's run
-    // leaves them alone instead of replacing them, and this project's next run
-    // regenerates the whole block, so nothing accumulates or drifts.
-    const merged = writeResolveOnly
-      ? `${body.trimEnd()}\n\n${resolveOnlyBody}`
-      : body;
-    write(file, upsertManagedBlock(current, merged, scope, claimLegacy));
+    // The owner's block is regenerated WHOLE. Anything a previous version wrote
+    // inside it — the retired bare aliases (`agent-dev` assuming from a bare
+    // `lisa-bootstrap`) and the retired `<owner>-lisa-bootstrap` source —
+    // disappears here, while every other owner's block and every operator
+    // section is carried over untouched.
+    write(
+      file,
+      upsertManagedBlock(current[file] ?? "", body, scope, claimLegacy)
+    );
   }
 
   return rendered.profiles;
 }
 
 /**
- * Who already holds any part of the deprecated bare-named family.
+ * Remove this owner's remote-agent-written sections that sit OUTSIDE every
+ * managed block, so this writer can own them instead.
  *
- * Both files are consulted, because the family only works whole: the bare
- * `[profile <stage>]` sections in `config` are useless without the bare source
- * profile in `credentials` that they assume from.
- * @param {string} dir The `.aws` directory.
- * @param {{profiles: string[], sourceProfile: string}} resolveOnly The bare half.
- * @param {object} io `exists`, `read`, `owner`, `includeLegacy` seams.
- * @returns {string|null|undefined} The holding project, `null` when held
- *   outside any managed block, or `undefined` when nobody holds it.
+ * `remote-agent-aws-setup.sh` writes the same canonical names with
+ * `aws configure set`, which produces plain, unmarked sections. A section is
+ * taken only when it provably belongs to THIS owner's Lisa bootstrap:
+ *
+ *   - config: `[profile <name>]` whose `source_profile` is exactly
+ *     `<owner>-agent-bootstrap`, where `<name>` is a profile THIS run writes or
+ *     the retired doubled spelling of one (`<owner>-agent-agent-<stage>`);
+ *   - credentials: `[<owner>-agent-bootstrap]`.
+ *
+ * Scoped to this run's names, so a stage the remote writer wrote that this
+ * bundle does not carry is left alone rather than deleted and never rewritten.
+ * Another owner's sections assume from a different source and never match, and
+ * an operator's own sections do not name this owner's bootstrap profile, so
+ * neither is ever touched. `[default]` is never adopted — it is one shared slot.
+ * @param {string} text File contents.
+ * @param {"config"|"credentials"} kind Which file this is.
+ * @param {{owner: string, names: string[]}} scope Validated owner and the
+ *   profile names this run writes.
+ * @returns {string} The contents with the adopted sections removed.
  */
-function resolveOnlyHolder(dir, resolveOnly, io) {
-  const inConfig = collidingProfiles(dir, resolveOnly.profiles, io);
-  if (inConfig.length > 0) return inConfig[0].owner;
-  return sourceProfileHolder(dir, resolveOnly.sourceProfile, io);
+function adoptRemoteAgentSections(text, kind, { owner, names }) {
+  const source = emitSourceProfileFor(owner);
+  const doubled = `${owner}-agent-agent-`;
+  const undouble = name =>
+    name.startsWith(doubled)
+      ? `${owner}-agent-${name.slice(doubled.length)}`
+      : name;
+  const adopt = (header, body) => {
+    if (kind === "credentials") return header === source;
+    const found = /^profile\s+(\S+)$/.exec(header);
+    return (
+      found !== null &&
+      // The name itself first: a bundle key `agent-agent-x` canonically
+      // renders `<owner>-agent-agent-x`, which is not a retired doubling.
+      (names.includes(found[1]) || names.includes(undouble(found[1]))) &&
+      settingIn(body, "source_profile") === source
+    );
+  };
+
+  // Managed blocks are kept verbatim; only the text between them is filtered.
+  const blocks = familyBlocks(text, MANAGED_FAMILY);
+  let out = "";
+  let at = 0;
+  for (const block of blocks) {
+    out += dropSections(text.slice(at, block.start), adopt);
+    out += text.slice(block.start, block.end);
+    at = block.end;
+  }
+  return out + dropSections(text.slice(at), adopt);
 }
 
 /**
- * Who holds a bare source-profile section in `~/.aws/credentials`.
- *
- * Separate from `collidingProfiles` because a credentials section is spelled
- * `[name]`, not `[profile name]`, and reusing the config reader here would
- * silently match nothing — a guard that always passes.
- * @param {string} dir The `.aws` directory.
- * @param {string} name The section name.
- * @param {object} io `exists`, `read`, `owner`, `includeLegacy` seams.
- * @returns {string|null|undefined} As {@link resolveOnlyHolder}.
+ * Drop the ini sections a predicate selects from unmanaged text.
+ * @param {string} text Text outside every managed block.
+ * @param {(header: string, body: string[]) => boolean} selects Which sections go.
+ * @returns {string} The text without them.
  */
-export function sourceProfileHolder(dir, name, io = {}) {
-  const {
-    exists = existsSync,
-    read = readFileSync,
-    owner = null,
-    includeLegacy = false,
-  } = io;
-  const file = join(dir, "credentials");
-  if (!exists(file)) return undefined;
-
-  const text = String(read(file, "utf8"));
-  const ours = block =>
-    (block.owner === owner && owner !== null) ||
-    (block.owner === null && !includeLegacy);
-  const header = new RegExp(
-    `^\\s*\\[${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\]`,
-    "m"
-  );
-
-  for (const block of familyBlocks(text, MANAGED_FAMILY)) {
-    if (ours(block)) continue;
-    if (header.test(block.body)) return block.owner;
+function dropSections(text, selects) {
+  const lines = text.split("\n");
+  const kept = [];
+  let index = 0;
+  while (index < lines.length) {
+    const header = /^\s*\[\s*([^\]]+?)\s*\]\s*$/.exec(lines[index]);
+    if (header === null) {
+      kept.push(lines[index]);
+      index += 1;
+      continue;
+    }
+    let end = index + 1;
+    while (end < lines.length && !/^\s*\[/.test(lines[end])) end += 1;
+    const body = lines.slice(index + 1, end);
+    if (!selects(header[1], body)) kept.push(...lines.slice(index, end));
+    index = end;
   }
-  // Outside every managed block: an operator's own section, or one written by a
-  // generator that does not go through this module at all.
-  return header.test(stripFamilyBlocks(text, MANAGED_FAMILY, () => true))
-    ? null
-    : undefined;
+  return kept.join("\n");
+}
+
+/**
+ * Read one `key = value` setting from a section body.
+ * @param {string[]} body The section's lines.
+ * @param {string} key Setting name.
+ * @returns {string|undefined} Its value.
+ */
+function settingIn(body, key) {
+  for (const line of body) {
+    const found = /^\s*([^=\s]+)\s*=\s*(.*?)\s*$/.exec(line);
+    if (found !== null && found[1] === key) return found[2];
+  }
+  return undefined;
 }
 
 /**
@@ -957,7 +991,6 @@ function main() {
         `  Use them explicitly: aws --profile ${written[0]} ...`
     );
     reportLegacyProfiles();
-    reportResolveOnlySlot(cfg.namespace);
     return;
   }
 
@@ -998,35 +1031,6 @@ function main() {
     );
   }
   reportLegacyProfiles();
-  reportResolveOnlySlot(cfg.namespace);
-}
-
-/**
- * Say so when the deprecated bare names went to a different project.
- *
- * Silence here would be the worst of both worlds. A caller that has not
- * migrated still names the bare profiles; if another project on this machine
- * holds them, those names resolve into that project's account and the run would
- * otherwise report success. Loud-and-wrong is recoverable, silent-and-wrong is
- * the defect this whole change is about.
- * @param {string} owner The tenant this run materialized for.
- */
-function reportResolveOnlySlot(owner) {
-  const holder = sourceProfileHolder(
-    join(process.env.HOME || homedir(), ".aws"),
-    RESOLVE_ONLY_LEGACY_SOURCE_PROFILE,
-    { owner }
-  );
-  if (holder === undefined || holder === owner) return;
-  console.log(
-    `  The deprecated bare profile names were NOT written for "${owner}".\n` +
-      `  ${holder === null ? "A section outside any lisa-managed block" : `The project "${holder}"`} ` +
-      `already holds "${RESOLVE_ONLY_LEGACY_SOURCE_PROFILE}".\n` +
-      `  They are one shared slot, so only one project on a machine can have ` +
-      `them.\n  Use the owned names — aws --profile ${owner}-<stage> — or ` +
-      `re-run with\n  LISA_SECRETS_CLAIM_LEGACY_PROFILES=1 to take the bare ` +
-      `names deliberately.`
-  );
 }
 
 /**

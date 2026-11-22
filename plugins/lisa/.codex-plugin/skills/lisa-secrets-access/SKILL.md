@@ -105,7 +105,7 @@ Nothing about the surviving profile is malformed — it is a real, working profi
 
 | Identifier | How it is protected |
 | --- | --- |
-| `~/.aws` profile names | Prefixed: `<namespace>-<stage>` (`<namespace>-lisa-bootstrap` for the source profile). Distinct names make a wrong resolution impossible, matching the convention `lisa-setup-remote-aws` writes. |
+| `~/.aws` profile names | Canonical: `<namespace>-agent-<stage>`, assuming from `<namespace>-agent-bootstrap`. Identical to what `lisa-setup-remote-aws` writes, so one tenant has one set of names whichever writer ran. Distinct names make a wrong resolution impossible. |
 | `~/.aws` managed block | Tagged `owner=<namespace>`. Only this owner's block is replaced; another project's is left untouched. |
 | Shell profile block | Tagged the same way, but it **cannot** be namespaced — it exports into every shell and there is no name a consumer selects. So it is claimed only when unowned or already ours; a block held by another project stops the run and names it. `LISA_SECRETS_CLAIM_SHELL_PROFILE=1` takes it over deliberately. |
 
@@ -116,39 +116,21 @@ Nothing about the surviving profile is malformed — it is a real, working profi
 
 A stage may declare `expectedAccountId`. This writer never contacts AWS, so it cannot compare against a live `sts:GetCallerIdentity` the way `lisa-setup-remote-aws` does — but a declaration contradicting the account in its own role ARN is caught before anything is written.
 
-### Emit vs resolve — the bare names still RESOLVE, and are never EMITTED
-
-Two different guarantees, with two different expiry conditions. Conflating them is how a temporary shim becomes permanent by accident.
-
-| | Guarantee | Shape | Expires |
-| --- | --- | --- | --- |
-| **Emit** | what this writer produces as canonical output | `<namespace>-<stage>`, assuming from `<namespace>-lisa-bootstrap` | never |
-| **Resolve** | names that must keep working for *readers* mid-migration | the above, **plus** the deprecated bare `<stage>` family | when no caller resolves the bare names |
-
-Generators outside this repository emit the bare `<stage>` family and the bare `lisa-bootstrap` source profile independently, and scripts and documentation in caller repositories name them directly. Nothing co-ordinates a rename across those repositories, so emitting only the owned names would leave writer and reader disagreeing: a bare `[profile <stage>]` whose `source_profile = lisa-bootstrap` would point at a section that no longer exists, and every call through it would fail to resolve.
-
-So the bare names are written as **deprecated aliases beside** the canonical output — never as canonical output — from one bundle in one pass, inside the same owner-tagged block:
+### One canonical naming scheme, no bare aliases
 
 ```ini
-[profile <namespace>-<stage>]      # EMITTED — canonical output
-source_profile = <namespace>-lisa-bootstrap
+[profile <namespace>-agent-<stage>]          # ~/.aws/config
+source_profile = <namespace>-agent-bootstrap
 
-[profile <stage>]                  # RESOLVE-ONLY, DEPRECATED — an alias
-source_profile = lisa-bootstrap    # same role, external id and region
+[<namespace>-agent-bootstrap]                # ~/.aws/credentials — the key pair
 ```
 
-Nothing in the canonical body ever names the bare source profile, so canonical output does not depend on the deprecated half resolving. `emitSourceProfileFor()` is the only thing that names a source profile in canonical output; `RESOLVE_ONLY_LEGACY_SOURCE_PROFILE` is used by the resolve path alone — not to attribute a block either, since ownership comes from the `owner=` marker and a pre-ownership block is attributed by the accounts in its role ARNs.
+`<stage>` is the bundle key with at most one leading `agent-` removed, so `agent-dev` and `dev` both become `<namespace>-agent-dev` — never `<namespace>-agent-agent-dev`. Two keys that name the same stage, or a stage named `bootstrap` (it would shadow the source profile), are refused before anything is written. `lisa-setup-remote-aws` applies the same rule, so both writers produce the same names for the same bundle and namespace.
 
-**The resolve window is not a fix.** The bare family is a *single shared slot* on a machine that may serve several projects — the exact collision the owned names remove. On the resolve path that collision is unfixed:
+**Select profiles by their owned names only:** `aws --profile <namespace>-agent-dev`, `AWS_PROFILE=<namespace>-agent-staging`. Bare names (`agent-dev`, `dev`, source `lisa-bootstrap`) are never written. An earlier version wrote them as a deprecation window; a bare name is one slot per machine, so on a multi-tenant workstation it silently resolved into whichever tenant claimed it first. `LISA_SECRETS_NO_LEGACY_PROFILES` and `LISA_SECRETS_CLAIM_LEGACY_PROFILES` are now ignored. A bundle with bare keys (`dev`) previously produced `<namespace>-dev` and now produces `<namespace>-agent-dev`; update any `AWS_PROFILE` or `--profile` that still names the old spelling.
 
-- claimed when nothing else holds them, or when they are already this project's;
-- refused **as a set** when another project or an operator's own section holds any part of them — a half-written family whose source profile belongs to someone else resolves into that project's account;
-- reported by name on every run when refused, because a caller that has not migrated still uses those names and would otherwise get another project's account while reporting success;
-- `LISA_SECRETS_CLAIM_LEGACY_PROFILES=1` takes them deliberately.
+**Cleanup on the next run is automatic and owner-scoped.** This owner's managed block is regenerated whole, so the bare aliases and the retired `<namespace>-lisa-bootstrap` source a previous version wrote inside it disappear. Sections this owner's remote-agent writer left outside any managed block — `[profile <namespace>-agent-…]` assuming from `<namespace>-agent-bootstrap`, including the retired doubled spelling, and `[<namespace>-agent-bootstrap]` — are adopted into the block rather than refused as collisions. Another owner's block and every operator-authored section are left byte-for-byte.
 
-The emitted names are always written and always correct; refusing an alias never withholds them. The bare names are correct for at most one project per machine.
-
-**Removal condition, stated against the resolve path** — the only half that expires. Delete the resolve-only half once nothing outside this repository *resolves* the bare family, i.e. no caller names `<stage>` or `lisa-bootstrap` when selecting a profile. A caller proves it by selecting only `<namespace>-<stage>`; `LISA_SECRETS_NO_LEGACY_PROFILES=1` opts one out ahead of the removal and takes the isolation immediately. The emit path is unaffected by that deletion, because it never used the deprecated name.
 
 ## Configuration
 
