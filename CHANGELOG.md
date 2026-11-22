@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [8.5.0](https://github.com/CodySwannGT/lisa/compare/v8.4.0...v8.5.0) (2026-11-22)
+
+
+### Features
+
+* **controls:** integrate preparation and local guard fixes ([0078cf2](https://github.com/CodySwannGT/lisa/commit/0078cf21045fa8a5e3cb5bb11df14735aafa7c14)), closes [CodySwannGT/lisa#5012](https://github.com/CodySwannGT/lisa/issues/5012) [CodySwannGT/lisa#5012](https://github.com/CodySwannGT/lisa/issues/5012)
+* **controls:** prepare disposable proof copies [skip ci] ([6e4adce](https://github.com/CodySwannGT/lisa/commit/6e4adce81ee7b4ad6e27ade9a1052d07adc13cee)), closes [CodySwannGT/lisa#5012](https://github.com/CodySwannGT/lisa/issues/5012) [CodySwannGT/lisa#5012](https://github.com/CodySwannGT/lisa/issues/5012)
+* harden control and hook proof workflows ([6551b95](https://github.com/CodySwannGT/lisa/commit/6551b959ec347552b5a8fba23f9cbb207a86dfa2)), closes [CodySwannGT/lisa#5012](https://github.com/CodySwannGT/lisa/issues/5012) [CodySwannGT/lisa#5046](https://github.com/CodySwannGT/lisa/issues/5046) [CodySwannGT/lisa#4566](https://github.com/CodySwannGT/lisa/issues/4566) [CodySwannGT/lisa#4567](https://github.com/CodySwannGT/lisa/issues/4567) [CodySwannGT/lisa#5015](https://github.com/CodySwannGT/lisa/issues/5015)
+
+
+### Bug Fixes
+
+* **controls:** address proof and guard review findings ([c21326d](https://github.com/CodySwannGT/lisa/commit/c21326d6f8a75dbcb1480fdb4109f93c108767ad)), closes [CodySwannGT/lisa#5012](https://github.com/CodySwannGT/lisa/issues/5012)
+* **controls:** integrate proof and report hardening ([03f216d](https://github.com/CodySwannGT/lisa/commit/03f216d6a97eb7cd1fb18929c54472c30008ee17)), closes [CodySwannGT/lisa#5012](https://github.com/CodySwannGT/lisa/issues/5012) [CodySwannGT/lisa#5012](https://github.com/CodySwannGT/lisa/issues/5012)
+* **controls:** integrate the redaction template metadata ([7e29d04](https://github.com/CodySwannGT/lisa/commit/7e29d04f51519ae6abb02d561b7706f1d5a37269)), closes [CodySwannGT/lisa#5012](https://github.com/CodySwannGT/lisa/issues/5012)
+* **controls:** keep private-key row matching sticky ([a24c8cf](https://github.com/CodySwannGT/lisa/commit/a24c8cf800280a4a201d50b270d088f4e7197ca6)), closes [CodySwannGT/lisa#5015](https://github.com/CodySwannGT/lisa/issues/5015)
+* **controls:** preserve the default native gate environment [skip ci] ([2c3ce4a](https://github.com/CodySwannGT/lisa/commit/2c3ce4a4fa2d0b98c7a3ec8f93fa70594313ece1)), closes [CodySwannGT/lisa#5012](https://github.com/CodySwannGT/lisa/issues/5012) [CodySwannGT/lisa#5012](https://github.com/CodySwannGT/lisa/issues/5012)
+* **controls:** redact terminal reports and carrier records [skip ci] ([f5477e6](https://github.com/CodySwannGT/lisa/commit/f5477e627678aae4d95d89c1dce491a8cc73173b)), closes [CodySwannGT/lisa#5015](https://github.com/CodySwannGT/lisa/issues/5015) [CodySwannGT/lisa#5015](https://github.com/CodySwannGT/lisa/issues/5015)
+* **controls:** register the shipped redaction helper [skip ci] ([4d04ef1](https://github.com/CodySwannGT/lisa/commit/4d04ef18e15e8cbeafd021a4d0f13c849e0ca154)), closes [CodySwannGT/lisa#5015](https://github.com/CodySwannGT/lisa/issues/5015)
+* **controls:** report tasks without a supported project runner [skip ci] ([17d8bc1](https://github.com/CodySwannGT/lisa/commit/17d8bc14b4d6437ddafe75d4cedd922d733192ba)), closes [CodySwannGT/lisa#5046](https://github.com/CodySwannGT/lisa/issues/5046) [CodySwannGT/lisa#5046](https://github.com/CodySwannGT/lisa/issues/5046)
+* **hooks:** distinguish issue member references from issue creation [skip ci] ([d250ede](https://github.com/CodySwannGT/lisa/commit/d250edee297f236e90a5630a47c398b14ef1a9d1)), closes [CodySwannGT/lisa#4566](https://github.com/CodySwannGT/lisa/issues/4566) [CodySwannGT/lisa#4566](https://github.com/CodySwannGT/lisa/issues/4566)
+* **hooks:** separate source-byte comparisons from worktree reach [skip ci] ([2fae8a2](https://github.com/CodySwannGT/lisa/commit/2fae8a2c5ccff9c01bf20ebf5921f04e3ea32794)), closes [CodySwannGT/lisa#4567](https://github.com/CodySwannGT/lisa/issues/4567) [CodySwannGT/lisa#4567](https://github.com/CodySwannGT/lisa/issues/4567)
+
+
+### Documentation
+
+* **controls:** use the installed Lefthook executable in proof setup ([c93f60e](https://github.com/CodySwannGT/lisa/commit/c93f60e7e98696a19c7dc164bd1b46a10ed013c1)), closes [CodySwannGT/lisa#5012](https://github.com/CodySwannGT/lisa/issues/5012)
+
 ## [8.4.0](https://github.com/CodySwannGT/lisa/compare/v8.3.0...v8.4.0) (2026-11-21)
 
 
