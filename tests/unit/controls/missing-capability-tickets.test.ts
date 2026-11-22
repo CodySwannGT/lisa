@@ -201,6 +201,20 @@ describe("the missing-capability ticket flow", () => {
     expect(PROSE).toContain("get-project id:<ID>");
   });
 
+  it("requires complete Epic pages with descriptions before filing", () => {
+    expect(PROSE).toContain(
+      "repos/<owner>/<repo>/issues?state=open&labels=type%3AEpic&per_page=100"
+    );
+    expect(PROSE).toContain("gh api --paginate --slurp");
+    expect(PROSE).toContain(
+      "project = <project> AND issuetype = Epic AND statusCategory != Done"
+    );
+    expect(PROSE).toContain("`nextPageToken`");
+    expect(PROSE).toMatch(
+      /a required field is absent, or a page repeats without advancing,\s+report the new gap tickets as blocked and file nothing/u
+    );
+  });
+
   it("mentions a requirement's id only where the marker or the output carries it", () => {
     const withId = TEXT.split("\n").filter(line =>
       new RegExp(String.raw`\b(?:${CRITERION_ID_SOURCE})\b`, "u").test(line)

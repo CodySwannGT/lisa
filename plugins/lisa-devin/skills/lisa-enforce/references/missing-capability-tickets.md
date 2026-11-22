@@ -163,12 +163,22 @@ nothing to create. Use the canonical repository slug associated with the audit f
 
 1. For Linear, use `lisa-linear-access operation: list-projects team:<team>` and read each open
    Project with `get-project id:<ID>` to get its description and creation time. Use `list-issues`
-   only to match individual gap tickets in step 4. For GitHub and Jira, use the tracker read path
-   from step 4 to list all open Epic containers and inspect their descriptions. A search can help
-   locate candidates, but an index can omit an older open Epic. Match the full marker with the
-   repository slug. Use the oldest open match if there are several, and mention
-   the others in the summary. If the read fails, report the new gap tickets as blocked and file
-   nothing.
+   only to match individual gap tickets in step 4.
+   - On GitHub, list repository issues labeled `type:Epic` through the REST endpoint
+     `repos/<owner>/<repo>/issues?state=open&labels=type%3AEpic&per_page=100`. Read through the
+     final page using `gh api --paginate --slurp` or the same endpoint's `Link` headers. Exclude
+     pull requests and read `body` and `created_at` from every issue.
+   - On Jira, use `lisa-atlassian-access operation: search-issues` with
+     `project = <project> AND issuetype = Epic AND statusCategory != Done`. Use an adapter that
+     exposes pagination and request `description` and `created`. Follow each `nextPageToken`
+     through the final page and read the marker from the description text.
+
+   For every tracker, finish reading the full list before selecting the parent. Check that each
+   candidate includes its description field and creation time. An explicit empty description has
+   no marker. If a read fails, a required field is absent, or a page repeats without advancing,
+   report the new gap tickets as blocked and file nothing. Match the full marker with the
+   repository slug. Use the oldest open match if there are several, and mention the others in the
+   summary.
 2. When there is no match, call `lisa-tracker-write` once to create an Epic (a Project in Linear)
    titled **Missing capabilities found by the audit**. Say that it groups work found by the audit
    for this repository. Include the parent marker as its own visible line. Give the writer the
