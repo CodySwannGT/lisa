@@ -15,6 +15,7 @@ import {
   AGENT_CARRIER_START,
 } from "../../../src/controls/carrier-agent-script.js";
 import type { CodingAgent } from "../../../src/controls/coding-agents.js";
+import { fakeGithubToken } from "../../helpers/fake-credentials.js";
 import {
   editGates,
   editRepository,
@@ -178,6 +179,34 @@ describe("reconcile edit-time carrier registrations", () => {
     expect(undeclared(run)).toEqual([
       expect.objectContaining({ command: NEVER_RUN, path: CLAUDE, line: 9 }),
     ]);
+  });
+
+  it("removes credential-shaped text from both outputs about an agent hook", async () => {
+    const built = await fixture(["claude"]);
+    const token = fakeGithubToken();
+    const file = path.join(built.root, CLAUDE);
+    const config = {
+      hooks: {
+        PostToolUse: [
+          { hooks: [{ type: "command", command: `${NEVER_RUN} ${token}` }] },
+        ],
+      },
+    };
+    writeFileSync(file, JSON.stringify(config, null, 2));
+
+    const run = await readOnly(built);
+
+    expect(run.printed.includes(token)).toBe(false);
+    expect(run.said.some(line => line.includes(token))).toBe(false);
+    expect(undeclared(run)).toEqual([
+      expect.objectContaining({
+        command: `${NEVER_RUN} [REDACTED:GITHUB_TOKEN]`,
+        path: CLAUDE,
+      }),
+    ]);
+    expect(
+      run.said.some(line => line.includes("[REDACTED:GITHUB_TOKEN]"))
+    ).toBe(true);
   });
 
   it("reports an extra command beside an intact Claude Code carrier", async () => {
