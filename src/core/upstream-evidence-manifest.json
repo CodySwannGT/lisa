@@ -14018,6 +14018,7 @@
     "tests/unit/helpers/bounded-exec-file-sync.test.ts": true,
     "tests/unit/helpers/bounded-spawn-sync.test.ts": true,
     "tests/unit/helpers/child-budget-deadline-gap.test.ts": true,
+    "tests/unit/helpers/child-budget-reference-recheck.test.ts": true,
     "tests/unit/helpers/child-budget-window.test.ts": true,
     "tests/unit/helpers/child-completion-diagnostics.test.ts": true,
     "tests/unit/helpers/child-timeout-output.test.ts": true,
