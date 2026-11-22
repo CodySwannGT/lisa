@@ -98,7 +98,7 @@
       "children": []
     },
     "lib/changed-paths.mjs": {
-      "sha256": "1d721b51c529f0de8e4cecb81de484cd9e73cd401177ae40b8f8e03cc7eb5a52",
+      "sha256": "f9089dfab2a892e2512abc4ad4ee336fedc46253c8fe5b8c257c76dad1ac72a3",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "node:fs",
