@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 import {
   bash,
+  CONTAINER_DECLARATION,
   EXIT_ALLOWED,
   EXIT_BLOCKED,
   GATE_MARKER,
@@ -107,6 +108,37 @@ describe("the submitted issue body path", () => {
     expect(result.status).toBe(EXIT_BLOCKED);
     expect(result.stderr).toContain(MISSING_DECLARATION);
   });
+
+  it.each(["--body=", "--body ", "--title "])(
+    "keeps option-shaped text passed via %s separate from labels",
+    textOption => {
+      const root = projectWithTracker();
+      const command = `gh issue create --title fixture ${textOption}'--label=status:ready'`;
+      const run = (labelOption = "") =>
+        runHook(bash(`${command} ${labelOption}`), { cwd: root });
+
+      const undeclared = run();
+      expect(undeclared.status).toBe(EXIT_BLOCKED);
+      expect(undeclared.stderr).toContain(MISSING_DECLARATION);
+      expect(run("--label status:ready").status).toBe(EXIT_ALLOWED);
+      expect(run("-lstatus:ready").status).toBe(EXIT_ALLOWED);
+    }
+  );
+
+  it.each([GATE_MARKER, CONTAINER_DECLARATION])(
+    "still reads the declaration %s from the effective inline body",
+    declaration => {
+      const root = projectWithTracker();
+      const createInline = "gh issue create --title fixture";
+      const hold = `--body='${declaration}'`;
+      const plain = "--body='ordinary issue text'";
+      const run = (options: string) =>
+        runHook(bash(`${createInline} ${options}`), { cwd: root });
+
+      expect(run(`${hold} ${plain}`).status).toBe(EXIT_BLOCKED);
+      expect(run(`${plain} ${hold}`).status).toBe(EXIT_ALLOWED);
+    }
+  );
 
   it("keeps a body-file spelling in the title from taking the real file's place", () => {
     const root = projectWithTracker();

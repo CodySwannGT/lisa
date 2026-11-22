@@ -1690,31 +1690,30 @@ def github_issue_value_flag(token):
     return None, None
 
 
-def github_issue_body(args):
-    """Return declaration arguments and the only file GitHub CLI will read."""
+def github_issue_declarations(args):
+    """Separate GitHub options from issue text and the selected body file."""
     remaining = iter(args)
-    effective = []
+    options = []
+    title = None
     inline_body = None
     body_file = None
     for token in remaining:
         name, attached = github_issue_value_flag(token)
-        operand = next(remaining, None) if name and attached is None else None
-        value = attached if attached is not None else operand
+        value = next(remaining, None) if name and attached is None else attached
+        if value is None:
+            continue
         if name == "--body-file":
             body_file = value
         elif name == "--body":
             inline_body = value
-        else:
-            effective.append(token)
-            if operand is not None:
-                effective.append(operand)
-    # gh uses the last value for each option and replaces the inline body
-    # when the last file option names a file or stdin.
-    if body_file:
-        return effective, [body_file]
-    if inline_body is not None:
-        effective.extend(("--body", inline_body))
-    return effective, []
+        elif name == "--title":
+            title = value
+        elif name in {"--label", "--type", "--repo"}:
+            options.append("%s=%s" % (name, value))
+    # gh uses the last value for each body option. The selected file or stdin
+    # takes precedence over the inline text.
+    texts = [value for value in (title, inline_body if not body_file else None) if value]
+    return options, texts, [body_file] if body_file else []
 
 
 def read_body_files(paths, cwd):
@@ -1844,7 +1843,7 @@ def declares_readiness(raw_args, roles, body_texts, extra="", state_role_ok=Fals
     Args:
         raw_args: The creating command's arguments.
         roles: The build-ready role tokens that satisfy this filing.
-        body_texts: The read contents of the named body files.
+        body_texts: Issue text from inline arguments and named body files.
         extra: Payload text this command submits, from a file or stdin.
         state_role_ok: Whether a lifecycle-role declaration answers here. True
             only for a state-based tracker filing into its own tracker, where
@@ -1918,7 +1917,7 @@ def declares_container(raw_args, texts=()):
 
     Args:
         raw_args: The creating command's arguments.
-        texts: Body files, payload or script text this command submits or runs.
+        texts: Inline issue text, body files, payload or script text.
 
     Returns:
         True when the container declaration is present and uncontradicted.
@@ -2479,17 +2478,25 @@ def scan(text, depth, from_file=False, cwd=tool_cwd):
             # disqualifies the override rather than supplying it.
             if ambient_override and not inline_override:
                 continue
-            roles, target = roles_for(target_repository(args))
-            state_role_ok = tracker in STATE_ROLE_TRACKERS and target is None
             declaration_args = before_end_of_options(args)
-            if signature == "gh issue create":
-                declaration_args, body_paths = github_issue_body(declaration_args)
+            inline_texts = []
+            github_issue = signature == "gh issue create"
+            if github_issue:
+                declaration_args, inline_texts, body_paths = github_issue_declarations(declaration_args)
                 # GitHub issue creation uses the selected body, not the HTTP
                 # request options shared by other tracker commands.
                 submitted, missing_payload = "", []
+                repositories = flag_values(declaration_args, REPO_FLAGS)
+                target_repo = normalise_repo(repositories[-1]) if repositories else None
             else:
                 body_paths = flag_values(declaration_args, BODY_FILE_FLAGS)
-            body_texts, unreadable = read_body_files(body_paths, cwd)
+                target_repo = target_repository(args)
+            roles, target = roles_for(target_repo)
+            state_role_ok = (
+                not github_issue and tracker in STATE_ROLE_TRACKERS and target is None
+            )
+            file_texts, unreadable = read_body_files(body_paths, cwd)
+            body_texts = [*inline_texts, *file_texts]
             if declares_readiness(declaration_args, roles, body_texts, submitted, state_role_ok):
                 continue
             # The container arm. Checked after readiness, so it adds a
