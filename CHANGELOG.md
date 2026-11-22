@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [8.6.0](https://github.com/CodySwannGT/lisa/compare/v8.5.0...v8.6.0) (2026-11-22)
+
+
+### Features
+
+* **controls:** explain evidence gaps for unmapped gates [skip ci] ([d52133f](https://github.com/CodySwannGT/lisa/commit/d52133fc5639a1b4fd1c36f6e31e7933d8d309b4)), closes [CodySwannGT/lisa#5162](https://github.com/CodySwannGT/lisa/issues/5162)
+* **controls:** run declared parts in a host GitHub workflow [skip ci] ([9bd681e](https://github.com/CodySwannGT/lisa/commit/9bd681e0072b9491451edc70b4d383085341eb58)), closes [CodySwannGT/lisa#5016](https://github.com/CodySwannGT/lisa/issues/5016)
+* deliver standalone control carriers and evidence guidance ([e1d3ead](https://github.com/CodySwannGT/lisa/commit/e1d3eadd4a83b557aebf7a5a76ebcb36b39101e4)), closes [CodySwannGT/lisa#5087](https://github.com/CodySwannGT/lisa/issues/5087) [CodySwannGT/lisa#5016](https://github.com/CodySwannGT/lisa/issues/5016) [CodySwannGT/lisa#5050](https://github.com/CodySwannGT/lisa/issues/5050) [CodySwannGT/lisa#5021](https://github.com/CodySwannGT/lisa/issues/5021) [CodySwannGT/lisa#5014](https://github.com/CodySwannGT/lisa/issues/5014) [CodySwannGT/lisa#5162](https://github.com/CodySwannGT/lisa/issues/5162)
+
+
+### Bug Fixes
+
+* **controls:** check edits in their linked worktree [skip ci] ([d1146fb](https://github.com/CodySwannGT/lisa/commit/d1146fb39764a3a399f92a09f79be11942b7c36b)), closes [CodySwannGT/lisa#5050](https://github.com/CodySwannGT/lisa/issues/5050)
+* **controls:** reconcile recorded edit-time hooks [skip ci] ([2779e11](https://github.com/CodySwannGT/lisa/commit/2779e11ea4d5cbd71ee38028e95827a3a8555541)), closes [CodySwannGT/lisa#5087](https://github.com/CodySwannGT/lisa/issues/5087)
+* **controls:** redact reconcile diagnostics [skip ci] ([1a4554a](https://github.com/CodySwannGT/lisa/commit/1a4554a25349fa84bffce5d87d8366b966a0a6ed)), closes [CodySwannGT/lisa#5087](https://github.com/CodySwannGT/lisa/issues/5087)
+* **rails:** run declared gates through Lefthook [skip ci] ([00a81e0](https://github.com/CodySwannGT/lisa/commit/00a81e04daa2e60ff25d7e756257dc4b7ecd5090)), closes [CodySwannGT/lisa#5021](https://github.com/CodySwannGT/lisa/issues/5021)
+
+
+### Documentation
+
+* **controls:** decide Level 1 proof reachability [skip ci] ([4487169](https://github.com/CodySwannGT/lisa/commit/4487169b048fb2408027137b0e6d80dbf0599da7)), closes [CodySwannGT/lisa#5014](https://github.com/CodySwannGT/lisa/issues/5014)
+
 ## [8.5.0](https://github.com/CodySwannGT/lisa/compare/v8.4.0...v8.5.0) (2026-11-22)
 
 
