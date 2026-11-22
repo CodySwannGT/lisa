@@ -128,6 +128,9 @@ export const EVIDENCE_EXCERPT_LIMIT = 1000;
 /** The kind of a requirement answered by a record that exists. */
 export const ARTIFACT_KIND = "artifact";
 
+/** The result of a typed exercise from a verified independent statement. */
+export const ARTIFACT_EXERCISED = "artifact-exercised";
+
 /** The kind of a requirement only a person can vouch for. */
 export const HUMAN_ATTESTED_KIND = "human-attested";
 
@@ -152,6 +155,12 @@ const EVIDENCE_ID_SEPARATOR = "/";
 /** What starts the id of a record written from an audit finding. */
 const FINDING_RECORD_PREFIX = "audit-finding";
 
+/** The signed statement standing behind a typed exercised artifact. */
+export interface ExerciseRecordIdentity {
+  readonly target: string;
+  readonly statement_sha256: string;
+}
+
 /** One thing the attest step recorded about one requirement. */
 export interface EvidenceRecord {
   /** See {@link evidenceRecordId}. Unique in the file. */
@@ -166,8 +175,10 @@ export interface EvidenceRecord {
   /** The folder it is about; `.` is the whole repository. */
   readonly scope: string;
   readonly rung: EvidenceRung;
-  /** Which half of a paired proof. Present exactly when `rung` is `exercised`. */
+  /** Which half of a paired gate proof this records, when it is a pair. */
   readonly half?: ProofHalf;
+  /** Identity of the verified statement for a typed artifact exercise. */
+  readonly exercise?: ExerciseRecordIdentity;
   /** The moment it speaks for; `null` on a record of an audit finding. */
   readonly moment: string | null;
   readonly result: EvidenceResult;
@@ -289,6 +300,18 @@ export interface EvidenceBatch {
   readonly moments: readonly string[];
   /** What it found, in any order. */
   readonly results: readonly EvidenceResultInput[];
+  /** Freshly verified artifact records that do not belong to a gate entry. */
+  readonly exercises?: readonly EvidenceRecord[];
+}
+
+/**
+ * Identify an exercised artifact by the configured target and criterion.
+ * @param criterion - Level 1 criterion the exercise covers
+ * @param target - Unique target id within the exercise declaration
+ * @returns The stable identifier of the record
+ */
+export function exerciseRecordId(criterion: string, target: string): string {
+  return `artifact-exercise/${target}/${criterion}`;
 }
 
 /**

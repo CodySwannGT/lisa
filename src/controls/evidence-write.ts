@@ -307,7 +307,13 @@ export function batchRecords(
   );
   return problems.length > 0
     ? { problems }
-    : { problems: null, records: built.flatMap(each => each.records) };
+    : {
+        problems: null,
+        records: [
+          ...built.flatMap(each => each.records),
+          ...batches.flatMap(batch => batch.exercises ?? []),
+        ],
+      };
 }
 
 /**

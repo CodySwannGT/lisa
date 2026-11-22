@@ -21,7 +21,7 @@ import {
 import {
   LISA_WRITTEN,
   PIPELINE,
-  buildWithEvidence,
+  buildExecutorRegister,
   withExecutor,
 } from "./support/executor-fixtures.js";
 
@@ -146,7 +146,7 @@ describe("the rule", () => {
 
 describe("a declaration the rule refuses", () => {
   it("produces no register", async () => {
-    const built = await buildWithEvidence({
+    const built = await buildExecutorRegister({
       "x-a": gate({ level: "required", executor: PIPELINE }),
       "x-b": gate("required"),
     });

@@ -59,8 +59,8 @@ export const SAMPLE_CHECKS: ChecksBinding = {
 /** The digest of a run made when the checks were defined differently. */
 export const OTHER_CHECKS_DIGEST = "b".repeat(64);
 
-/** One half of a paired proof, with every key a record can carry. */
-export const HALF_RECORD: Required<EvidenceRecord> = {
+/** One half of a paired proof, with each key available to paired proofs. */
+export const HALF_RECORD: Required<Omit<EvidenceRecord, "exercise">> = {
   id: "code-style@api/commit/violation/SI7",
   criterion: "SI7",
   entry_id: "code-style@api",

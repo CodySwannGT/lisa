@@ -40,7 +40,7 @@ import {
   type GatesBlock,
 } from "../../helpers/control-register.js";
 import {
-  registerWithEvidence,
+  registerForGates,
   unprovedIds,
   withExecutor,
 } from "../controls/support/executor-fixtures.js";
@@ -211,14 +211,14 @@ describe("what the contract says about the declaration and the register", () => 
   });
 
   it("shows a declaration the register accepts and marks unproved", async () => {
-    const register = await registerWithEvidence(declared?.gates ?? {});
+    const register = await registerForGates(declared?.gates ?? {});
 
     expect(unprovedIds(register)).toEqual(["code-style@."]);
     expect(registerSchemaErrors(register)).toEqual([]);
   });
 
   it("shows the enforcement point the register writes for it", async () => {
-    const register = await registerWithEvidence(declared?.gates ?? {});
+    const register = await registerForGates(declared?.gates ?? {});
     const shown = fenced("json")
       .map(block => JSON.parse(block.body) as Record<string, unknown>)
       .find(document => "moment" in document);
@@ -232,7 +232,7 @@ describe("what the contract says about the declaration and the register", () => 
 
   it("quotes the line the command prints for unproved entries", async () => {
     const note = unprovedNote(
-      await registerWithEvidence(withExecutor(F_MIXED_GATES))
+      await registerForGates(withExecutor(F_MIXED_GATES))
     );
 
     expect(fenced("text").map(block => block.body)).toContain(
@@ -243,14 +243,14 @@ describe("what the contract says about the declaration and the register", () => 
   it("says what clears the mark, in the words the code uses", () => {
     expect(PROSE).toContain(`"status": "unproved"`);
     expect(PROSE).toContain(
-      `\`${EVIDENCE_PATH}\` holding a record of **both** halves`
+      "A trusted, current attest receipt clears the mark."
     );
     PROOF_HALVES.forEach(half => {
       expect(PROSE).toContain(`(\`${half}\`)`);
     });
     expect(PROSE).toContain(CONTROL_REGISTER_PATH);
     expect(STATUS_DRIFT_NOTE).toContain(EVIDENCE_PATH);
-    expect(PROSE).toContain("it says when the status is what differs");
+    expect(PROSE).toContain("says when the status is what differs");
   });
 
   it("runs only lisa controls subcommands the CLI registers", () => {

@@ -54,6 +54,7 @@ const VERDICT_ONLY_FIELDS = [
 const SETTLED_REASONS = [
   "control-proved",
   "artifact-located",
+  "artifact-exercised",
   "person-attested",
   "not-applicable",
 ];

@@ -15,7 +15,7 @@ import {
   F_PAVED_GATES,
   evidenceAt,
 } from "../../helpers/control-register.js";
-import { registerWithEvidence } from "./support/executor-fixtures.js";
+import { registerForGates } from "./support/executor-fixtures.js";
 
 const COMMIT = "commit";
 const RUFF = ["ruff", "check", "."];
@@ -26,7 +26,7 @@ const RUFF = ["ruff", "check", "."];
  * @returns The register
  */
 function mixed(): Promise<ControlRegister> {
-  return registerWithEvidence(F_MIXED_GATES);
+  return registerForGates(F_MIXED_GATES);
 }
 
 describe("a command a register entry declares", () => {
@@ -55,7 +55,7 @@ describe("a command a register entry declares", () => {
   });
 
   it("is declared by a task entry whose task command it is", async () => {
-    const register = await registerWithEvidence(F_PAVED_GATES);
+    const register = await registerForGates(F_PAVED_GATES);
 
     expect(declaredBy(register, COMMIT, ["npm", "run", "lint:staged"])).toEqual(
       ["code-style@."]
@@ -63,7 +63,7 @@ describe("a command a register entry declares", () => {
   });
 
   it("names every entry that declares the same command", async () => {
-    const register = await registerWithEvidence({
+    const register = await registerForGates({
       "code-style": {
         commit: "required",
         parts: ["api", "jobs"].map(scope => ({

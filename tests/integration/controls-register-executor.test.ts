@@ -130,27 +130,20 @@ describe("built lisa controls register with a pull-request executor Lisa did not
     expect(run.stderr).toBe("");
     expect(run.status).toBe(0);
     expect(run.stdout.split("\n")[0]).toBe(
-      `register: 2 entries read unproved: ${LINT}, ${COVERAGE}. The pull-request check for them runs from .gitlab-ci.yml on gitlab, a file Lisa did not write, and ${EVIDENCE} holds no record that both halves of their proof held yet. They stay unproved until the attest step records that both held.`
+      `register: 2 entries read unproved: ${LINT}, ${COVERAGE}. The pull-request check for them runs from .gitlab-ci.yml on gitlab, a file Lisa did not write. Authenticating both halves of their proof in ${EVIDENCE} requires a trusted, current receipt. They stay unproved until the attest step records that both held.`
     );
     expect(unproved).toEqual([LINT, COVERAGE]);
     expect(registerSchemaErrors(document)).toEqual([]);
     expect(register(repoPath, ["--check"]).status).toBe(0);
   });
 
-  it("stops writing an entry as unproved once both halves of its proof are on record", () => {
+  it("keeps entries unproved with evidence rows and no authorized receipt", () => {
     const repoPath = repository();
     register(repoPath);
     recordEvidence(repoPath, bothHalves(LINT));
 
-    const stale = register(repoPath, ["--check"]);
-    const rewrite = register(repoPath);
-
-    expect(stale.status).toBe(1);
-    expect(stale.stderr.split("\n")[0]).toBe(
-      `The entry "${LINT}" in ${REGISTER} does not match the gates declaration: status differs. The status is worked out from the proof records in ${EVIDENCE}, so it changes when a proof is recorded or removed.`
-    );
-    expect(rewrite.status).toBe(0);
-    expect(written(repoPath).unproved).toEqual([COVERAGE]);
     expect(register(repoPath, ["--check"]).status).toBe(0);
+    expect(register(repoPath).status).toBe(0);
+    expect(written(repoPath).unproved).toEqual([LINT, COVERAGE]);
   });
 });

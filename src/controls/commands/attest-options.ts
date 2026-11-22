@@ -48,6 +48,10 @@ export interface AttestOptions {
    * nothing enforces yet. See `./attest-before-enforce.ts`.
    */
   readonly beforeEnforce?: boolean;
+  /** Import an independently signed pair from the checkout's hosting platform. */
+  readonly importHostProof?: string;
+  /** Path to the protected private key used to sign the attest receipt. */
+  readonly hostProofSigningKey?: string;
 }
 
 /** What the command needs from outside, each replaceable in a test. */

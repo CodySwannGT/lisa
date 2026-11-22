@@ -63,6 +63,8 @@ export const VERDICT_REASONS = [
    * it there. A located file, not a proof.
    */
   "artifact-located",
+  /** `conforming`: the signed results cover every declared exercise for this artifact. */
+  "artifact-exercised",
   /** `conforming`: a person's answer to the audit's question is on record. */
   "person-attested",
   /** `not-applicable`: the audit gave the fact that makes it so. */
