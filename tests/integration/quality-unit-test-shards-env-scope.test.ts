@@ -166,6 +166,7 @@ const NAMED_REGRESSION_STEPS = [
   "Execute and name host-name target-scope regression cases",
   "Execute and name completion authorization regression specs",
   TASK_READINESS_STEP,
+  "Execute and name pre-push budget regression specs",
   AUDIT_STEP,
 ] as const;
 

@@ -3131,7 +3131,7 @@
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "948f2a89515456ef3190dc2565f49b4bd5176d543cf1d4d889856a007dba46dc",
+      "6bb8df105cfcb1016eeb555b1b7039ea66405ea5487b153b18f5b8b4d634ae14",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":

@@ -75,7 +75,7 @@ export function freshChildBudget(
         (policy.parentTotalMargin ? policy.parentShare : 1)
   );
   const started = now();
-  const operationLimitMs = Math.floor(deadlineMs - started);
+  const operationLimitMs = deadlineMs - started;
   if (!Number.isFinite(operationLimitMs) || operationLimitMs <= 0) {
     throw new Error(
       "Child admission refused: no finite containing headroom remains."
@@ -85,7 +85,7 @@ export function freshChildBudget(
   const referenceTimeout = Math.min(
     policy.referenceDeadlineMs,
     Math.floor(
-      // The2.5 relation is CHILD-only. Reserve its share while calibrating;
+      // The 2.5 relation is CHILD-only. Reserve its share while calibrating;
       // do not apply that same child fraction as a new reference-work quota.
       (deadlineMs - referenceStarted) *
         (policy.parentTotalMargin ? 1 : 1 - policy.parentShare)

@@ -136,9 +136,9 @@ describe("fresh bounded child admission", () => {
     ).toBeLessThanOrEqual(readings[1]!.operationLimitMs);
   });
 
-  it("calibration spends a fixed containing window rather than extending it", () => {
+  it("charges calibration to the observed containing window with full precision", () => {
     profile.referenceMs = 18;
-    const reading = admission.freshChildBudget({
+    const policy = {
       baseMs: 6000,
       quietReferenceMs: 18,
       maxSlowdown: 8,
@@ -148,12 +148,27 @@ describe("fresh bounded child admission", () => {
       parentShare: 1 / 2.5,
       parentScope: "controlled containing window",
       parentWindow: controlledWindow(100),
+    };
+    const flat = admission.freshChildBudget(policy);
+    expect(flat.operationLimitMs).toBe(100);
+    expect(flat.calibrationMs).toBe(18);
+    expect(flat.timeoutMs).toBe(32);
+    expect(flat.calibrationMs + flat.timeoutMs * 2.5).toBeLessThanOrEqual(100);
+
+    profile.referenceMs = 18.125;
+    const parentBudgetMs = 60_000.5;
+    const scaled = admission.freshChildBudget({
+      ...policy,
+      baseMs: 30_000,
+      parentBudgetMs,
+      parentShare: 0.5,
+      parentTotalMargin: true,
+      parentWindow: controlledWindow(parentBudgetMs),
     });
-    expect(reading.operationLimitMs).toBe(100);
-    expect(reading.calibrationMs).toBe(18);
-    expect(reading.timeoutMs).toBe(32);
-    expect(reading.calibrationMs + reading.timeoutMs * 2.5).toBeLessThanOrEqual(
-      100
+    expect(scaled.operationLimitMs).toBe(30_000.25);
+    expect(scaled.timeoutMs).toBe(29_982);
+    expect(scaled.calibrationMs + scaled.timeoutMs).toBeLessThanOrEqual(
+      scaled.operationLimitMs
     );
   });
 
