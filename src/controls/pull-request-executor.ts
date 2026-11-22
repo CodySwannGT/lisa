@@ -23,14 +23,10 @@
  * ## Why the register may depend on the evidence file
  *
  * The register is compared byte for byte with what generating it again would
- * write. That stays true: the status is worked out from the declaration and
- * the evidence file, both committed, and from nothing else. So the committed
- * register is out of date exactly when one of the two changed since it was
- * generated, and `lisa controls register --check` fails until it is generated
- * again. The clock is never read, so the file cannot go out of date on its
- * own. The evidence file is read only when some entry's status depends on it;
- * a declaration that names no such executor produces the register it always
- * did, from the declaration alone.
+ * write. The status can clear when the authorized attest receipt binds both
+ * current halves to the live check definition. Hosted evidence can expire
+ * after the register was written. A declaration without host-authored
+ * executors still produces the register from the declaration alone.
  * @module controls/pull-request-executor
  */
 import { isJsonObject } from "../sync/json-path.js";
@@ -41,7 +37,6 @@ import {
   type DeclaredGate,
   type GatesDeclaration,
 } from "./gates-declaration.js";
-import { hasBothProofHalves, parseProofHalfRecords } from "./proof-halves.js";
 import type {
   ControlRegister,
   ControlRegisterEntry,
@@ -93,7 +88,9 @@ function pullRequestEntry(
  * @param gate - The gate, from a validated declaration
  * @returns The platform and the file, or `null` when the gate names none
  */
-function declaredExecutor(gate: DeclaredGate): PullRequestExecutor | null {
+export function declaredExecutor(
+  gate: DeclaredGate
+): PullRequestExecutor | null {
   const executor = pullRequestEntry(gate)?.[EXECUTOR_KEY];
   if (!isJsonObject(executor)) return null;
   const { platform, path } = executor;
@@ -268,7 +265,7 @@ export function withDeclaredExecutors(
  * @param entry - The entry
  * @returns The executor, or `null` when there is none or Lisa wrote it
  */
-function unwrittenExecutor(
+export function unwrittenExecutor(
   entry: ControlRegisterEntry
 ): PullRequestExecutor | null {
   const executor = entry.enforcement_points.find(
@@ -279,24 +276,22 @@ function unwrittenExecutor(
 
 /**
  * Mark every entry whose pull-request check runs from a file Lisa did not
- * write as unproved, until both halves of its proof are on record and held.
+ * write as unproved until the authorized receipt confirms the pair.
  * @param entries - The entries, their executors already recorded
- * @param evidence - Reads the parsed evidence file. Called once, and only
- *   when some entry's status depends on it
+ * @param confirmed - The entries whose exact proof receipts were verified
  * @returns The entries, `status: "unproved"` added where it applies
  */
 export function withProofStatus(
   entries: readonly ControlRegisterEntry[],
-  evidence: () => unknown
+  confirmed?: ReadonlySet<string>
 ): readonly ControlRegisterEntry[] {
-  if (entries.every(entry => unwrittenExecutor(entry) === null)) return entries;
-  const records = parseProofHalfRecords(evidence());
-  return entries.map(entry =>
-    unwrittenExecutor(entry) !== null &&
-    !hasBothProofHalves(records, entry.id, PULL_REQUEST_MOMENT)
-      ? { ...entry, status: "unproved" as const }
-      : entry
-  );
+  return entries.map(entry => {
+    if (unwrittenExecutor(entry) === null) return entry;
+    if (confirmed?.has(entry.id) !== true)
+      return { ...entry, status: "unproved" as const };
+    const { status: _status, ...proved } = entry;
+    return proved;
+  });
 }
 
 /**
@@ -314,8 +309,8 @@ export function unprovedNote(register: ControlRegister): string | null {
   if (executor === undefined || executor === null) return null;
   const one = unproved.length === 1;
   const ids = unproved.map(entry => entry.id).join(", ");
-  return `${unproved.length} ${one ? "entry reads" : "entries read"} unproved: ${ids}. The ${PULL_REQUEST_MOMENT} check for ${one ? "it" : "them"} runs from ${located(executor)}, a file Lisa did not write, and ${EVIDENCE_PATH} holds no record that both halves of ${one ? "its" : "their"} proof held yet. ${one ? "It stays" : "They stay"} unproved until the attest step records that both held.`;
+  return `${unproved.length} ${one ? "entry reads" : "entries read"} unproved: ${ids}. The ${PULL_REQUEST_MOMENT} check for ${one ? "it" : "them"} runs from ${located(executor)}, a file Lisa did not write. Authenticating both halves of ${one ? "its" : "their"} proof in ${EVIDENCE_PATH} requires a trusted, current receipt. ${one ? "It stays" : "They stay"} unproved until the attest step records that both held.`;
 }
 
 /** What a drift report adds when an entry's status is what differs. */
-export const STATUS_DRIFT_NOTE = `The status is worked out from the proof records in ${EVIDENCE_PATH}, so it changes when a proof is recorded or removed.`;
+export const STATUS_DRIFT_NOTE = `The status depends on a trusted, current attest receipt for the proof records in ${EVIDENCE_PATH}.`;

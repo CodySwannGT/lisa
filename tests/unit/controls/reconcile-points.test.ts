@@ -19,7 +19,7 @@ import { pointFindings } from "../../../src/controls/reconcile-findings.js";
 import { reconcilePoints } from "../../../src/controls/reconcile-points.js";
 import type { ReconciledPoint } from "../../../src/controls/reconcile-types.js";
 import { F_PAVED_GATES } from "../../helpers/control-register.js";
-import { registerWithEvidence } from "./support/executor-fixtures.js";
+import { registerForGates } from "./support/executor-fixtures.js";
 
 const AGENT_ENTRY = "destructive-safety@.";
 const AGENT_SETTINGS = ".claude/settings.json";
@@ -76,7 +76,7 @@ function check(points: readonly CarrierPoint[]): CarrierResult {
 async function reconciled(
   points: readonly CarrierPoint[]
 ): Promise<readonly ReconciledPoint[]> {
-  return reconcilePoints(await registerWithEvidence(F_PAVED_GATES), {
+  return reconcilePoints(await registerForGates(F_PAVED_GATES), {
     carriers: check(points),
     platform: { asked: false },
     read: () => Promise.resolve(null),
@@ -116,7 +116,7 @@ describe("which place answers for an enforcement point", () => {
       "scheduled-run continuous:staging": [NOT_VERIFIABLE],
     });
     expect(
-      pointFindings(await registerWithEvidence(F_PAVED_GATES), points)
+      pointFindings(await registerForGates(F_PAVED_GATES), points)
     ).toEqual([]);
   });
 
@@ -151,7 +151,7 @@ describe("which place answers for an enforcement point", () => {
   });
 
   it("reports a coding-agent carrier the check says is blocked, for its reason", async () => {
-    const register = await registerWithEvidence(F_PAVED_GATES);
+    const register = await registerForGates(F_PAVED_GATES);
     const points = await reconciled([
       carried({
         location: "coding-agent",

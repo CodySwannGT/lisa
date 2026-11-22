@@ -219,6 +219,7 @@
           "enum": [
             "control-proved",
             "artifact-located",
+            "artifact-exercised",
             "person-attested",
             "not-applicable",
             "control-failed",

@@ -262,7 +262,7 @@ lisa controls register
 The command names the rules that read unproved, for example:
 
 ```text
-register: 2 entries read unproved: code-style@api, code-style@web. The pull-request check for them runs from .gitlab-ci.yml on gitlab, a file Lisa did not write, and .lisa/controls/evidence.json holds no record that both halves of their proof held yet. They stay unproved until the attest step records that both held.
+register: 2 entries read unproved: code-style@api, code-style@web. The pull-request check for them runs from .gitlab-ci.yml on gitlab, a file Lisa did not write. Authenticating both halves of their proof in .lisa/controls/evidence.json requires a trusted, current receipt. They stay unproved until the attest step records that both held.
 ```
 
 Each of those entries now carries `"status": "unproved"` in `.lisa/controls/register.json`. That is
@@ -271,16 +271,40 @@ together in one change.
 
 ## How a rule stops being unproved
 
-Only one thing clears the mark: `.lisa/controls/evidence.json` holding a record of **both** halves
-of that entry's proof, the change that breaks the rule (`violation`) and the change that does not
-(`clean`), each saying the half held. A half that was run and did not hold leaves the mark in
-place. The attest step writes those records. When it has, `lisa controls register` writes the
-register again without the mark.
+A trusted, current attest receipt clears the mark. It binds **both** held halves in
+`.lisa/controls/evidence.json`, the deliberate violation (`violation`) and the accepted change
+(`clean`), to the current check definitions. `lisa controls register --check` says when the status
+is what differs. The same verification applies to host-authored workflows on GitHub.
 
-The register is generated from the declaration and the evidence file together. So after either one
-changes, `lisa controls register --check` fails until the register is written again, and it says
-when the status is what differs. The mark applies to host-written workflows on GitHub as well.
-Use the verdict to see what was proved.
+The protected attest process needs `LISA_HOST_PROOF_TRUST_FILE` set to an absolute JSON file
+outside the checkout. Set `schema_version` to `1`, `repository` to the checkout's exact
+`remote.origin.url`, and `environment` to the environment the checks ran against. Give
+`adjudicator` and `attestor` separate objects, each with `id` and an Ed25519 PEM `public_key`.
+Keep the corresponding private keys under their distinct authorized roles.
+
+The independent reviewer verifies both platform runs and their artifact hashes. Their signed
+`host-proof-import` body has `schema_version: 1`, the common `subject`, distinct `producer` and
+`adjudicator` ids, and the `clean` and `violation` runs. The `subject` names `repository`,
+`environment`, `work_item`, `entry_id`, `platform`, `executor_path`, and `checks_digest`. Read
+`checks.digest` from a fresh attest evidence document for the current check definitions.
+
+Each run records `run_id`, `run_url`, `commit`, `artifact_sha256`, `started_at`, `completed_at`,
+`exit_status`, and `output_excerpt`. Use immutable run ids, HTTPS run URLs without credentials or
+query parameters, and UTC timestamps. The clean run must exit zero. The violating run must exit
+nonzero and include the declared failure text. Sign the canonical JSON object containing `purpose`
+and `body` with the adjudicator's Ed25519 key. Attach the unpadded Base64url `signature` to that
+object. The protected attestor verifies this signature before issuing its own signed receipt.
+
+```bash
+lisa controls attest --import-host-proof reviewed-pair.json --host-proof-signing-key /protected/attestor.pem
+lisa controls register --check
+lisa controls attest --check
+```
+
+The import uses the protected key to write `.lisa/controls/host-proof-receipts.json` with the
+exact records it wrote. Both check commands read the same trust file. Changed check definitions,
+expired records, or an unverifiable receipt leave the hosted entry unproved. The check commands
+report why they could not use the receipt.
 
 ## Step 4: return the result
 

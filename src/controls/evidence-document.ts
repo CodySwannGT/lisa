@@ -35,6 +35,8 @@ import {
   type EvidenceDocument,
   type EvidenceRecord,
 } from "./evidence-types.js";
+import { isExerciseName } from "./exercise-declaration.js";
+import { exerciseRecordProblems } from "./exercise-record-shape.js";
 import { PROOF_HALVES } from "./proof-halves.js";
 
 /** An evidence file read back, or one line per reason it could not be. */
@@ -106,6 +108,16 @@ const RECORD_FIELDS: Readonly<
     optional: true,
     test: oneOf(PROOF_HALVES),
     holds: `one of ${PROOF_HALVES.join(", ")}`,
+  },
+  exercise: {
+    optional: true,
+    test: value =>
+      isJsonObject(value) &&
+      Object.keys(value).length === 2 &&
+      isExerciseName(value.target) &&
+      isSha256(value.statement_sha256),
+    holds:
+      "a target id and the digest of the independently signed exercise statement",
   },
   moment: { test: orNull(isText), holds: "a moment, or null" },
   result: {
@@ -242,6 +254,8 @@ function entryProblems(record: EvidenceRecord, entryId: string): string[] {
  * @returns One phrase per problem
  */
 function shapeProblems(record: EvidenceRecord): string[] {
+  if (record.exercise !== undefined)
+    return exerciseRecordProblems(record, record.exercise);
   const halves =
     record.rung === "exercised"
       ? record.half === undefined

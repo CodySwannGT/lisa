@@ -7,33 +7,27 @@
  * entry it runs reads unproved until both halves of that entry's proof are on
  * record (CodySwannGT/lisa#4991).
  */
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { loadCriterionCatalogue } from "../../../src/controls/catalogue.js";
 import {
   EXECUTOR_KEY,
   LISA_WRITTEN_PLATFORM,
   PULL_REQUEST_MOMENT,
+  withProofStatus,
 } from "../../../src/controls/pull-request-executor.js";
-import {
-  buildControlRegister,
-  serializeControlRegister,
-} from "../../../src/controls/register.js";
+import { serializeControlRegister } from "../../../src/controls/register.js";
 import { CONTROL_ENTRY_STATUSES } from "../../../src/controls/register-types.js";
 import {
   F_MIXED_GATES,
   F_NONE_GATES,
   F_PAVED_GATES,
-  declarationOf,
   registerSchemaErrors,
   shippedGates,
 } from "../../helpers/control-register.js";
 import {
   LISA_WRITTEN,
   PIPELINE,
-  bothHalves,
-  proofRecord,
-  registerWithEvidence,
+  registerForGates,
   unprovedIds,
   withExecutor,
 } from "./support/executor-fixtures.js";
@@ -59,7 +53,7 @@ describe("the names the register and the gate registry share", () => {
 
 describe("a declared pull-request executor", () => {
   it("is recorded on the pull-request enforcement point and no other", async () => {
-    const entry = entryOf(await registerWithEvidence(MIXED), LINT_API);
+    const entry = entryOf(await registerForGates(MIXED), LINT_API);
 
     expect(entry.enforcement_points).toEqual([
       { moment: "commit", level: "required", location: "local-checkout" },
@@ -73,7 +67,7 @@ describe("a declared pull-request executor", () => {
   });
 
   it("is recorded without the project's own keys", async () => {
-    const register = await registerWithEvidence(
+    const register = await registerForGates(
       withExecutor(F_MIXED_GATES, { ...PIPELINE, "x-note": "owned by ops" })
     );
 
@@ -83,7 +77,7 @@ describe("a declared pull-request executor", () => {
   });
 
   it("is not recorded for a gate that is off at pull-request", async () => {
-    const register = await registerWithEvidence({
+    const register = await registerForGates({
       "x-lint": {
         run: "lint",
         commit: "required",
@@ -102,7 +96,7 @@ describe("a declared pull-request executor", () => {
 
 describe("a non-GitHub executor starts unproved", () => {
   it("on every entry it runs, and on no other", async () => {
-    const register = await registerWithEvidence(MIXED);
+    const register = await registerForGates(MIXED);
 
     expect(unprovedIds(register)).toEqual([LINT_API, LINT_WEB]);
     expect(entryOf(register, TYPES_WEB)).not.toHaveProperty("status");
@@ -110,10 +104,10 @@ describe("a non-GitHub executor starts unproved", () => {
 
   it("on a repository with one part, a paved-road one and an awaited check", async () => {
     expect(
-      unprovedIds(await registerWithEvidence(withExecutor(F_NONE_GATES)))
+      unprovedIds(await registerForGates(withExecutor(F_NONE_GATES)))
     ).toEqual(["code-style@.", "coverage-adequacy@."]);
     expect(
-      unprovedIds(await registerWithEvidence(withExecutor(F_PAVED_GATES)))
+      unprovedIds(await registerForGates(withExecutor(F_PAVED_GATES)))
     ).toEqual([
       "code-review@.",
       "code-style@.",
@@ -123,11 +117,11 @@ describe("a non-GitHub executor starts unproved", () => {
   });
 
   it("and is a register the published schema accepts", async () => {
-    expect(registerSchemaErrors(await registerWithEvidence(MIXED))).toEqual([]);
+    expect(registerSchemaErrors(await registerForGates(MIXED))).toEqual([]);
   });
 
   it("but not when Lisa wrote the executor", async () => {
-    const register = await registerWithEvidence(
+    const register = await registerForGates(
       withExecutor(F_MIXED_GATES, LISA_WRITTEN)
     );
 
@@ -139,62 +133,25 @@ describe("a non-GitHub executor starts unproved", () => {
   });
 });
 
-describe("evidence clears the status", () => {
-  it("for the entry whose two proof halves are on record, and no other", async () => {
-    const register = await registerWithEvidence(MIXED, bothHalves(LINT_API));
-
-    expect(entryOf(register, LINT_API)).not.toHaveProperty("status");
-    expect(unprovedIds(register)).toEqual([LINT_WEB]);
-    expect(registerSchemaErrors(register)).toEqual([]);
-  });
-
-  it.each(["violation", "clean"] as const)(
-    "but not with only the %s half",
-    async half => {
-      const register = await registerWithEvidence(MIXED, [
-        proofRecord(LINT_API, half),
-      ]);
-
-      expect(unprovedIds(register)).toEqual([LINT_API, LINT_WEB]);
-    }
-  );
-
-  it("but not with halves that were run at another moment", async () => {
-    const register = await registerWithEvidence(
-      MIXED,
-      bothHalves(LINT_API, { moment: "commit" })
-    );
-
-    expect(unprovedIds(register)).toEqual([LINT_API, LINT_WEB]);
-  });
-
-  it("whatever the clock says: a record's age is the verdict's to judge", async () => {
-    const register = await registerWithEvidence(
-      MIXED,
-      bothHalves(LINT_API, {
-        completed_at: "2001-01-01T00:00:00.000Z",
-        freshness_seconds: 1,
-      })
-    );
-
-    expect(unprovedIds(register)).toEqual([LINT_WEB]);
-  });
-});
-
 describe("the register stays one set of bytes for one set of inputs", () => {
-  it("for the same declaration and the same evidence, in any order", async () => {
-    const records = [...bothHalves(LINT_API), ...bothHalves(LINT_WEB)];
-    const first = await registerWithEvidence(MIXED, records);
-    const second = await registerWithEvidence(MIXED, [...records].reverse());
+  it("clears only the external entry whose receipt was confirmed", async () => {
+    const register = await registerForGates(MIXED);
+    const confirmed = withProofStatus(register.entries, new Set([LINT_API]));
 
-    expect(serializeControlRegister(second)).toBe(
-      serializeControlRegister(first)
+    expect(confirmed.find(entry => entry.id === LINT_API)).not.toHaveProperty(
+      "status"
+    );
+    expect(unprovedIds({ ...register, entries: confirmed })).toEqual([
+      LINT_WEB,
+    ]);
+    expect(registerSchemaErrors({ ...register, entries: confirmed })).toEqual(
+      []
     );
   });
 
-  it("and a declaration that names no executor writes what it always wrote", async () => {
+  it("writes the same register for a declaration with no hosted executor", async () => {
     const text = serializeControlRegister(
-      await registerWithEvidence(F_MIXED_GATES, bothHalves(LINT_API))
+      await registerForGates(F_MIXED_GATES)
     );
 
     expect(text).toBe(
@@ -203,24 +160,4 @@ describe("the register stays one set of bytes for one set of inputs", () => {
     expect(text).not.toContain('"status"');
     expect(text).not.toContain('"executor"');
   });
-
-  it.each([
-    ["names no executor", F_MIXED_GATES, 0],
-    ["names one Lisa wrote", withExecutor(F_MIXED_GATES, LISA_WRITTEN), 0],
-    ["names one Lisa did not write", MIXED, 1],
-  ])(
-    "and the evidence is read only when a status depends on it: a declaration that %s",
-    async (_name, block, reads) => {
-      const evidence = vi.fn(() => ({ records: [] }));
-
-      buildControlRegister({
-        declaration: declarationOf(block),
-        registry: await shippedGates(),
-        catalogue: loadCriterionCatalogue(),
-        evidenceDocument: evidence,
-      });
-
-      expect(evidence).toHaveBeenCalledTimes(reads);
-    }
-  );
 });

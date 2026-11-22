@@ -237,14 +237,16 @@ export async function runRegister(
     );
   }
   const unproved = unprovedNote(generated.register);
+  const proofNotes = generated.hostProofNotes ?? [];
   const noteUnproved = (): void => {
     if (unproved !== null) stdout(`${name}: ${unproved}`);
+    for (const note of proofNotes) stdout(`${name}: ${note}`);
   };
   if (options.check === true) {
     const drift = await differences(root, generated.register);
     if (drift.length > 0) {
       return fail(
-        drift,
+        [...proofNotes, ...drift],
         `${counted(drift.length, "difference")} between ${CONTROL_REGISTER_PATH} and the gates declaration in ${GATES_DECLARATION_PATH}. ${HOW_TO_FIX}`
       );
     }

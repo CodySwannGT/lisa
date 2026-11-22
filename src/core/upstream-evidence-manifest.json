@@ -1473,7 +1473,7 @@
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
       "8ea94fa2b3fbe860cee365a6dd935a0f7ef9e749a2ab59c8b8dfc1838cdb0d37",
     "plugins/src/base/skills/lisa-attest/SKILL.md":
-      "93f52dd8fc093829138ec1414aca9c00e628b7e1162b22248cb13cc2b1029e20",
+      "e1756c2b5ba549a815349b58a58f90e4050f8ac407cec3f55a3e3bb09a836d18",
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
       "1982127aa1ba4e4a24afc95f8799f106fa7f621ffa58c464d5bbfa1bb9944cb5",
     "plugins/src/base/skills/lisa-audit/SKILL.md":
@@ -1489,7 +1489,9 @@
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
       "6485cf919af6f1fa5f5d60209906fd954a5d45456e2149c25ad29f2567fcc981",
     "plugins/src/base/skills/lisa-configure/SKILL.md":
-      "6ba244c74968f26233c47547139d34d9b5218f11c2c500ce5b1d9a39a3df2127",
+      "455ab244a540d7c4c07daed65a0c8c1902c6ec651bf44496dab4e1686339d7bd",
+    "plugins/src/base/skills/lisa-configure/references/exercised-artifacts.md":
+      "0f9caf8e704753069d20fa7b36ca3b687c7fa49601f62c37198e4f91781b893a",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "a33349c0129da13955fea99206d49e6e65c8be9e649e5d387afab83f52820b81",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
@@ -1521,7 +1523,7 @@
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
       "0cc51d8a05524d6449ab30bd2a5b60687c26617d2cd5e571c9fce68ad9feb3c8",
     "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md":
-      "15448a58e62e54c244f441d73ef3ec87edb23f9d86b07b414d264b2100234812",
+      "7b926efa4ec1a7c68af9fd1443bf9dd9dd4688efc121c18b688b46a51afada2c",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "f7b6886b1acf79f04cf9ef0bd2d4bf086d8ec1ded7c45cbfb979919e5bacb831",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -5144,6 +5146,7 @@
     "plugins/lisa-agy/skills/lisa-codebase-research/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-codify-verification/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-configure/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-configure/references/exercised-artifacts.md": true,
     "plugins/lisa-agy/skills/lisa-confluence-prd-intake/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-confluence-to-tracker/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-confluence-write-prd/SKILL.md": true,
@@ -5717,6 +5720,7 @@
     "plugins/lisa-copilot/skills/lisa-codebase-research/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-codify-verification/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-configure/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-configure/references/exercised-artifacts.md": true,
     "plugins/lisa-copilot/skills/lisa-confluence-prd-intake/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-confluence-to-tracker/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-confluence-write-prd/SKILL.md": true,
@@ -6274,6 +6278,7 @@
     "plugins/lisa-cursor/skills/lisa-codebase-research/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-codify-verification/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-configure/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-configure/references/exercised-artifacts.md": true,
     "plugins/lisa-cursor/skills/lisa-confluence-prd-intake/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-confluence-to-tracker/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-confluence-write-prd/SKILL.md": true,
@@ -6760,6 +6765,7 @@
     "plugins/lisa-devin/skills/lisa-codebase-research/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-codify-verification/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-configure/SKILL.md": true,
+    "plugins/lisa-devin/skills/lisa-configure/references/exercised-artifacts.md": true,
     "plugins/lisa-devin/skills/lisa-confluence-prd-intake/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-confluence-to-tracker/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-confluence-write-prd/SKILL.md": true,
@@ -8874,6 +8880,7 @@
     "plugins/lisa/.codex-plugin/skills/lisa-codify-verification/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-configure/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-configure/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-configure/references/exercised-artifacts.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-confluence-prd-intake/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-confluence-prd-intake/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-confluence-to-tracker/SKILL.md": true,
@@ -9615,6 +9622,7 @@
     "plugins/lisa/skills/lisa-codify-verification/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-configure/SKILL.md": true,
     "plugins/lisa/skills/lisa-configure/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-configure/references/exercised-artifacts.md": true,
     "plugins/lisa/skills/lisa-confluence-prd-intake/SKILL.md": true,
     "plugins/lisa/skills/lisa-confluence-prd-intake/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-confluence-to-tracker/SKILL.md": true,
@@ -10340,6 +10348,7 @@
     "plugins/src/base/skills/lisa-codebase-research/SKILL.md": true,
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md": true,
     "plugins/src/base/skills/lisa-configure/SKILL.md": true,
+    "plugins/src/base/skills/lisa-configure/references/exercised-artifacts.md": true,
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md": true,
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md": true,
     "plugins/src/base/skills/lisa-confluence-write-prd/SKILL.md": true,
@@ -11579,6 +11588,7 @@
     "src/controls/coding-agents.ts": true,
     "src/controls/commands/attest-attempt.ts": true,
     "src/controls/commands/attest-before-enforce.ts": true,
+    "src/controls/commands/attest-host-proof.ts": true,
     "src/controls/commands/attest-interruption.ts": true,
     "src/controls/commands/attest-options.ts": true,
     "src/controls/commands/attest-report-only.ts": true,
@@ -11626,8 +11636,18 @@
     "src/controls/evidence-types.ts": true,
     "src/controls/evidence-write.ts": true,
     "src/controls/evidence.ts": true,
+    "src/controls/exercise-declaration.ts": true,
+    "src/controls/exercise-observations.ts": true,
+    "src/controls/exercise-record-shape.ts": true,
+    "src/controls/exercise-records.ts": true,
+    "src/controls/exercise-result.ts": true,
     "src/controls/gates-declaration.ts": true,
     "src/controls/head-commit.ts": true,
+    "src/controls/host-proof-input.ts": true,
+    "src/controls/host-proof-receipt.ts": true,
+    "src/controls/host-proof-register.ts": true,
+    "src/controls/host-proof-signature.ts": true,
+    "src/controls/host-proof-trust.ts": true,
     "src/controls/merge-protection-read.ts": true,
     "src/controls/proof-change-rule.ts": true,
     "src/controls/proof-check-plan.ts": true,
@@ -12442,7 +12462,9 @@
     "tests/integration/codex-active-hooks.test.ts": true,
     "tests/integration/continuous-gates-empty.test.ts": true,
     "tests/integration/controls-attest-disposable-copy.test.ts": true,
+    "tests/integration/controls-attest-exercise-artifacts.test.ts": true,
     "tests/integration/controls-attest-host-hooks.test.ts": true,
+    "tests/integration/controls-attest-host-proof.test.ts": true,
     "tests/integration/controls-attest-output-redaction.test.ts": true,
     "tests/integration/controls-attest-pull-request.test.ts": true,
     "tests/integration/controls-attest-skill.test.ts": true,
@@ -12844,6 +12866,7 @@
     "tests/support/codex-compatibility-proof.mjs": true,
     "tests/support/codex-compatibility-seed.mjs": true,
     "tests/support/codex-compatibility-state.mjs": true,
+    "tests/support/control-exercise-fixture.ts": true,
     "tests/support/evidence-prune-fake-gh.ts": true,
     "tests/support/evidence-prune-harness.ts": true,
     "tests/support/git-executable.ts": true,
@@ -13377,6 +13400,7 @@
     "tests/unit/controls/generate-readiness-questionnaire-check.test.ts": true,
     "tests/unit/controls/generate-readiness-questionnaire.test.ts": true,
     "tests/unit/controls/head-commit.test.ts": true,
+    "tests/unit/controls/host-proof-signature.test.ts": true,
     "tests/unit/controls/level-one-conforming.test.ts": true,
     "tests/unit/controls/lisa-gates-config-shape.test.ts": true,
     "tests/unit/controls/lisa-gates-executor.test.ts": true,

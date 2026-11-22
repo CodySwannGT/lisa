@@ -92,6 +92,7 @@ import {
   BEFORE_ENFORCE_FLAG,
   runAttestBeforeEnforce,
 } from "./attest-before-enforce.js";
+import { runAttestHostProof } from "./attest-host-proof.js";
 import {
   ATTEST_COMMAND,
   ATTEST_EXIT,
@@ -141,6 +142,55 @@ function otherMode(
 }
 
 /**
+ * Decide whether to import hosted evidence instead of running local controls.
+ * @param targetPath - Operator's checkout argument
+ * @param options - The selected mode and paths
+ * @param dependencies - Output, clock and working directory
+ * @returns The import's exit code, or null when neither import flag was used
+ */
+function importMode(
+  targetPath: string | undefined,
+  options: AttestOptions,
+  dependencies: Required<
+    Pick<AttestDependencies, "stdout" | "stderr" | "cwd">
+  > &
+    Pick<AttestDependencies, "clock">
+): Promise<number> | null {
+  const { importHostProof, hostProofSigningKey } = options;
+  if (importHostProof === undefined && hostProofSigningKey === undefined)
+    return null;
+  const { cwd, stdout, stderr } = dependencies;
+  if (importHostProof === undefined || hostProofSigningKey === undefined) {
+    stderr(
+      "attest: FAIL. Give both --import-host-proof and --host-proof-signing-key."
+    );
+    return Promise.resolve(ATTEST_EXIT.NOT_RUN);
+  }
+  if (
+    asksOther(options) ||
+    options.workspace !== undefined ||
+    options.pullRequestCanaries === true
+  ) {
+    stderr("attest: FAIL. Run the host proof import on its own.");
+    return Promise.resolve(ATTEST_EXIT.NOT_RUN);
+  }
+  return runAttestHostProof({
+    directory: path.resolve(cwd, targetPath ?? "."),
+    bundle: path.resolve(cwd, importHostProof),
+    signingKey: path.resolve(cwd, hostProofSigningKey),
+    now: (dependencies.clock ?? (() => new Date()))(),
+    json: options.json === true,
+    stdout,
+    stderr,
+  }).catch(() => {
+    stderr(
+      "attest: FAIL. Could not finish validating the host proof and its receipt."
+    );
+    return ATTEST_EXIT.NOT_RUN;
+  });
+}
+
+/**
  * Print the results of a run in a folder the operator named, which records
  * nothing, and give its exit code.
  * @param run - The results
@@ -186,6 +236,13 @@ export async function runAttest(
   const stderr =
     dependencies.stderr ?? (line => process.stderr.write(`${line}\n`));
   const cwd = dependencies.cwd ?? process.cwd();
+  const importing = importMode(targetPath, options, {
+    ...dependencies,
+    cwd,
+    stdout,
+    stderr,
+  });
+  if (importing !== null) return importing;
   if (asksOther(options)) return otherMode(targetPath, options, dependencies);
   const attempted = await (
     refusedPair(options) ??
@@ -358,6 +415,14 @@ export function registerAttest(
       "Exercise pull-request controls with real pull requests on the hosting platform: each is opened from a branch under lisa-attest/, read, closed and removed, and is never merged. Without this option the platform's merge-protection settings are only read and nothing is created"
     )
     .option(
+      "--import-host-proof <file>",
+      "Verify an independently signed pull-request proof and record it through attest"
+    )
+    .option(
+      "--host-proof-signing-key <file>",
+      "Protected private key outside the checkout for signing an imported proof receipt"
+    )
+    .option(
       "--acknowledge-external-effects",
       "Run proofs that declare an effect outside the repository. Without this option such an entry is unknown and its declared effect is quoted"
     )
@@ -376,6 +441,12 @@ export function registerAttest(
         ...(options.pullRequestCanaries === true
           ? { pullRequestCanaries: true }
           : {}),
+        ...(options.importHostProof === undefined
+          ? {}
+          : { importHostProof: options.importHostProof }),
+        ...(options.hostProofSigningKey === undefined
+          ? {}
+          : { hostProofSigningKey: options.hostProofSigningKey }),
         ...(options.acknowledgeExternalEffects === true
           ? { acknowledgeExternalEffects: true }
           : {}),

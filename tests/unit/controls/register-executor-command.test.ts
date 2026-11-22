@@ -8,7 +8,6 @@
  * together, so the committed file is out of date exactly when one of the two
  * changed, and `--check` says which (CodySwannGT/lisa#4991).
  */
-import { rmSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -40,9 +39,9 @@ const LINT_API = "code-style@api";
 const LINT_WEB = "code-style@web";
 
 const UNPROVED_NOTE =
-  /^register(?: --check)?: 2 entries read unproved: code-style@api, code-style@web\. The pull-request check for them runs from \.gitlab-ci\.yml on gitlab, a file Lisa did not write, and \.lisa\/controls\/evidence\.json holds no record that both halves of their proof held yet\. They stay unproved until the attest step records that both held\.$/u;
+  /^register(?: --check)?: 2 entries read unproved: code-style@api, code-style@web\. The pull-request check for them runs from \.gitlab-ci\.yml on gitlab, a file Lisa did not write\. Authenticating both halves of their proof in \.lisa\/controls\/evidence\.json requires a trusted, current receipt\. They stay unproved until the attest step records that both held\.$/u;
 
-const STATUS_DRIFT = `The entry "${LINT_API}" in ${CONTROL_REGISTER_PATH} does not match the gates declaration: status differs. The status is worked out from the proof records in ${EVIDENCE_PATH}, so it changes when a proof is recorded or removed.`;
+const STATUS_DRIFT = `The entry "${LINT_API}" in ${CONTROL_REGISTER_PATH} does not match the gates declaration: status differs. The status depends on a trusted, current attest receipt for the proof records in ${EVIDENCE_PATH}.`;
 
 /**
  * The entries of the register a repository holds that read unproved.
@@ -120,25 +119,8 @@ describe("a non-GitHub executor starts unproved", () => {
   });
 });
 
-describe("evidence clears the status", () => {
-  it("when the register is regenerated, for the entry it is evidence of", async () => {
-    const repoPath = await generatedWithPipeline();
-    writeEvidenceRecords(repoPath, bothHalves(LINT_API));
-
-    const run = await register(repoPath);
-
-    expect(run.code).toBe(0);
-    expect(run.stdout).toEqual([
-      expect.stringMatching(
-        /^register: 1 entry reads unproved: code-style@web\. The pull-request check for it runs from /u
-      ),
-      `register: PASS. 3 entries from 2 gates; wrote ${CONTROL_REGISTER_PATH}`,
-    ]);
-    expect(unprovedIn(repoPath)).toEqual([LINT_WEB]);
-    expect((await register(repoPath, true)).code).toBe(0);
-  });
-
-  it("and says nothing of it once every entry's proof is on record", async () => {
+describe("the register requires an authenticated receipt", () => {
+  it("keeps both entries unproved when only evidence records exist", async () => {
     const repoPath = await generatedWithPipeline();
     writeEvidenceRecords(repoPath, [
       ...bothHalves(LINT_API),
@@ -147,10 +129,10 @@ describe("evidence clears the status", () => {
 
     const run = await register(repoPath);
 
-    expect(run.stdout).toEqual([
-      `register: PASS. 3 entries from 2 gates; wrote ${CONTROL_REGISTER_PATH}`,
-    ]);
-    expect(unprovedIn(repoPath)).toEqual([]);
+    expect(run.code).toBe(0);
+    expect(run.stdout[0]).toMatch(UNPROVED_NOTE);
+    expect(unprovedIn(repoPath)).toEqual([LINT_API, LINT_WEB]);
+    expect((await register(repoPath, true)).code).toBe(0);
   });
 
   it("but one half leaves the file as it was", async () => {
@@ -181,33 +163,7 @@ describe("evidence clears the status", () => {
   });
 });
 
-describe("the check after the evidence changed", () => {
-  it("fails until the register is regenerated, and says why", async () => {
-    const repoPath = await generatedWithPipeline();
-    const before = readRegister(repoPath);
-    writeEvidenceRecords(repoPath, bothHalves(LINT_API));
-
-    const run = await register(repoPath, true);
-
-    expect(run.code).toBe(1);
-    expect(run.stdout).toEqual([]);
-    expect(run.stderr[0]).toBe(STATUS_DRIFT);
-    expect(run.stderr).toHaveLength(2);
-    expect(readRegister(repoPath)).toBe(before);
-  });
-
-  it("fails again when the evidence is taken away", async () => {
-    const repoPath = await generatedWithPipeline();
-    writeEvidenceRecords(repoPath, bothHalves(LINT_API));
-    await register(repoPath);
-    rmSync(path.join(repoPath, EVIDENCE_PATH));
-
-    const run = await register(repoPath, true);
-
-    expect(run.code).toBe(1);
-    expect(run.stderr[0]).toBe(STATUS_DRIFT);
-  });
-
+describe("register --check verifies the current receipt status", () => {
   it("catches a status removed by hand", async () => {
     const repoPath = await generatedWithPipeline();
     editRegister(repoPath, document => {

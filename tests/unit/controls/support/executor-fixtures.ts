@@ -116,32 +116,27 @@ export function bothHalves(
 /**
  * Build the register of a declaration with the given evidence on record.
  * @param block - The `gates` block
- * @param records - The records of the evidence file
  * @returns The register, or the problems it was refused for
  */
-export async function buildWithEvidence(
-  block: GatesBlock,
-  records: readonly unknown[] = []
+export async function buildExecutorRegister(
+  block: GatesBlock
 ): Promise<ControlRegisterBuild> {
   return buildControlRegister({
     declaration: declarationOf(block),
     registry: await shippedGates(),
     catalogue: loadCriterionCatalogue(),
-    evidenceDocument: () => ({ records }),
   });
 }
 
 /**
  * Build the register of a declaration, failing the case when it is refused.
  * @param block - The `gates` block
- * @param records - The records of the evidence file
  * @returns The register
  */
-export async function registerWithEvidence(
-  block: GatesBlock,
-  records: readonly unknown[] = []
+export async function registerForGates(
+  block: GatesBlock
 ): Promise<ControlRegister> {
-  const built = await buildWithEvidence(block, records);
+  const built = await buildExecutorRegister(block);
   if (built.problems !== null) throw new Error(built.problems.join("\n"));
   return built.register;
 }
