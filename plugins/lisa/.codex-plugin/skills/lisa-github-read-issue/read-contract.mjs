@@ -25,11 +25,23 @@ export const intakeReads = [
   "thread-comments",
 ];
 
+/** Select the configured issue repository before allowing tracker reads. */
+export function configuredIssueRepository(github) {
+  if (!github) return null;
+  const { org, repo, queueRepo } = github;
+  if (queueRepo != null && typeof queueRepo !== "string") return null;
+  const owner = typeof org === "string" ? org : "";
+  const name = typeof repo === "string" ? repo : "";
+  const selected = queueRepo?.includes("/")
+    ? queueRepo
+    : `${owner}/${queueRepo || name}`;
+  return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(selected) ? selected : null;
+}
+
 /** Strict data-only argv for the existing scoped access owner, never arbitrary gh arguments. */
 export function intakeRequest(args, cfg) {
   const [mode, refFlag, ref, readFlag, operation, valueFlag, value] = args,
-    g = cfg.effective?.github,
-    repo = g && `${g.org}/${g.repo}`;
+    repo = configuredIssueRepository(cfg.effective?.github);
   if (
     args.length !== 7 ||
     mode !== "--intake-read" ||
@@ -37,7 +49,6 @@ export function intakeRequest(args, cfg) {
     readFlag !== "--read" ||
     !intakeReads.includes(operation) ||
     !repo ||
-    !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo) ||
     !ref?.startsWith(`${repo}#`) ||
     !/^[1-9]\d*$/.test(ref.slice(repo.length + 1)) ||
     (cfg.effective.tracker && cfg.effective.tracker !== "github")

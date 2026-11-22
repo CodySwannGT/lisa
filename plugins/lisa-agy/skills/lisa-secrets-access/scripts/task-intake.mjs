@@ -6,6 +6,7 @@ import {
   queries,
   reviewThreadsQuery,
   threadCommentsQuery,
+  configuredIssueRepository,
   intakeRequest,
 } from "../../lisa-github-read-issue/read-contract.mjs";
 import { join, dirname } from "node:path";
@@ -39,8 +40,10 @@ const refs =
 export function configuredRef(cfg, ref) {
   if (typeof ref !== "string" || !refs.test(ref)) return false;
   const c = cfg.effective;
-  if (c.tracker === "github" || (!c.tracker && c.github))
-    return ref.startsWith(`${c.github?.org}/${c.github?.repo}#`);
+  if (c.tracker === "github" || (!c.tracker && c.github)) {
+    const repo = configuredIssueRepository(c.github);
+    return repo !== null && ref.startsWith(`${repo}#`);
+  }
   if (c.tracker === "jira") return ref.startsWith(`${c.jira?.project}-`);
   if (c.tracker === "linear") return ref.startsWith(`${c.linear?.teamKey}-`);
   return true;
@@ -103,8 +106,9 @@ function trackerRead(input, cfg) {
     (c.tracker && c.tracker !== "github")
   )
     return false;
-  const repo = `${c.github.org}/${c.github.repo}`;
-  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) return false;
+  const repo = configuredIssueRepository(c.github);
+  if (!repo) return false;
+  const [org, name] = repo.split("/");
   const prefix = `gh api repos/${repo}/issues/`;
   const quotedRepo = repo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   if (
@@ -120,7 +124,7 @@ function trackerRead(input, cfg) {
   )
     return true;
   for (const query of [...queries, reviewThreadsQuery]) {
-    const base = `gh api graphql --paginate --slurp -f query='${query}' -F org=${c.github.org} -F repo=${c.github.repo} -F number=`;
+    const base = `gh api graphql --paginate --slurp -f query='${query}' -F org=${org} -F repo=${name} -F number=`;
     if (
       command.startsWith(base) &&
       /^[1-9]\d*$/.test(command.slice(base.length))

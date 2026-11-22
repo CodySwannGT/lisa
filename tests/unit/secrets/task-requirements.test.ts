@@ -14,8 +14,12 @@ import { readTaskConfig } from "../../../plugins/src/base/skills/lisa-secrets-ac
 import { writeRequirementsContext } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/task-context-write.mjs";
 import {
   REQUIREMENTS_HEADER,
+  prepareRequirements,
+  readTaskRequirements,
   requirementsContext,
 } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs";
+import { intakeRead } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/task-intake.mjs";
+import { intakeRequest } from "../../../plugins/src/base/skills/lisa-github-read-issue/read-contract.mjs";
 
 const roots: string[] = [];
 const CONTEXT = ".lisa/work-item-context.md";
@@ -112,6 +116,52 @@ describe("canonical requirements-only intake transaction", () => {
     ).toThrow("requirements-stale");
     expect(readFileSync(target, "utf8")).toBe(first);
   });
+  it.each([
+    ["intake", "fixture/intake"],
+    ["another-org/intake", "another-org/intake"],
+  ])(
+    "uses the configured queue for intake and requirements (%s)",
+    (queueRepo, repo) => {
+      const f = project();
+      const ref = `${repo}#1`;
+      writeFileSync(
+        path.join(f.root, ".lisa.config.json"),
+        JSON.stringify({
+          tracker: "github",
+          github: { org: "fixture", repo: "project", queueRepo },
+        })
+      );
+      const cfg = readTaskConfig(f.root, {});
+      const read = (selected: string) =>
+        intakeRead(
+          {
+            tool_name: "Bash",
+            tool_input: { command: `gh api repos/${selected}/issues/1` },
+          },
+          cfg
+        );
+      expect(read(repo)).toBe(true);
+      expect(read("fixture/project")).toBe(false);
+      expect(
+        intakeRequest(
+          ["--intake-read", "--ref", ref, "--read", "issue", "--number", "1"],
+          cfg
+        )?.repo
+      ).toBe(repo);
+
+      rmSync(path.join(f.root, CONTEXT));
+      expect(
+        prepareRequirements(cfg, ref, {
+          context_body: f.body,
+          requirements_complete: true,
+          required_access: [],
+        }).code
+      ).toBe("requirements-prepared");
+      expect(
+        readTaskRequirements(cfg, { ref, binding: null })?.work_item_ref
+      ).toBe(ref);
+    }
+  );
   it("binds ref/provider while branch attachment preserves the requirements header", () => {
     const f = project();
     const file = path.join(f.root, ".git/lisa/work-item.json");

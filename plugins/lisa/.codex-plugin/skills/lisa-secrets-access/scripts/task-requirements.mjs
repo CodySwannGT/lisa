@@ -15,6 +15,7 @@ import {
 import { join, dirname } from "node:path";
 import { AccessFailure, plainObject } from "./config-layers.mjs";
 import { writeRequirementsContext } from "./task-context-write.mjs";
+import { configuredIssueRepository } from "../../lisa-github-read-issue/read-contract.mjs";
 
 export const REQUIREMENTS_HEADER = "<!-- lisa-required-access:v1\n";
 export const digest = value => createHash("sha256").update(value).digest("hex");
@@ -264,13 +265,8 @@ export function readTaskRequirements(cfg, { ref, tracker, binding } = {}) {
   )
     fail();
   if (cfg.effective?.github && header.tracker === "github") {
-    const github = cfg.effective.github;
-    const queue = github.queueRepo
-      ? github.queueRepo.includes("/")
-        ? github.queueRepo
-        : `${github.org}/${github.queueRepo}`
-      : `${github.org}/${github.repo}`;
-    if (!header.work_item_ref.startsWith(`${queue}#`)) fail();
+    const repo = configuredIssueRepository(cfg.effective.github);
+    if (!repo || !header.work_item_ref.startsWith(`${repo}#`)) fail();
   }
   if (
     binding &&
