@@ -248,7 +248,7 @@ Each of these is something an operator will meet. They are stated here so that a
 
 **On another hosting platform, the pipeline file is yours.** Lisa ships the pull-request pipeline for GitHub only, as part of its supported project types. Elsewhere the operator's agent writes the file to a stated contract, and every check it runs stays marked unproved in the register. Nothing in this release can exercise a check there, so that mark does not clear.
 
-**On GitHub, enforce does not write a workflow.** The carriers it installs are for commit, push and coding-agent edits. A check declared for pull requests in a repository with no `.github/workflows` folder has nothing to report it, and `lisa controls protect` holds it back as not ready, because requiring a check that never reports would leave every pull request waiting.
+**GitHub repositories can supply their own pull-request workflow.** When Lisa's shipped workflow already runs the checks, enforce leaves it in place. A repository without that workflow can declare its own executor and report one check per gate. The gate's job runs its declared folder checks together. The register keeps the entries `unproved` until attest records both proof halves. Merge protection waits for the required check names to be reported.
 
 **Merge protection is changed only when asked, and only with permission.** `lisa controls protect` reads and writes a handover for an administrator. It changes a setting only with `--apply`, only on GitHub, and only after a read confirms the signed-in account administers the repository. The enforce step never adds `--apply` on its own.
 
@@ -270,7 +270,9 @@ In every case the write has already happened: a refusal tells the agent the file
 
 **Hook wiring is per checkout.** Where Lisa sets git's `core.hooksPath`, that setting lives in one checkout and is not copied into a clone. In each new checkout, run `lisa controls install-carriers` once. `lisa controls install-carriers --check` says whether a checkout is wired, and `lisa controls reconcile` reports a checkout where it is not.
 
-**Reconcile cannot see everywhere.** It can establish what git and the coding agents run in this checkout, and, with `lisa controls reconcile --platform`, what GitHub requires. It reads a pipeline file as text. It cannot look inside a deployment pipeline or a scheduled run, and says so instead of reporting them as missing. It reads a hook as text too: a command written inside another one (`OUT=$(npx eslint .)`) is found, but a script a hook calls is reported as that call and not opened, and a hook too large to read makes the run incomplete instead of being passed over.
+**Reconcile checks recorded edit-time hooks.** It checks each installed coding agent's local registration and names an agent whose edit-time hook no longer starts Lisa's carrier. It also reports undeclared shell commands in `.lisa/hooks/post-tool` and in the recorded agents' shell hook settings. If the carrier record predates the agent list, repeat `lisa controls install-carriers --agents` with the original roster. OpenCode's JavaScript registration is compared with the installed Lisa version. A wiring result covers files in the checkout. It cannot establish that an agent has approved or loaded its hooks.
+
+**Reconcile reads hooks and pipelines as text.** With `--platform` it also checks what GitHub requires. Deployment and scheduled points remain `not-verifiable`. The hook reader can find commands inside another command, such as `OUT=$(npx eslint .)`. It reports a call to a script without opening that script. A hook too large to read makes the run incomplete.
 
 **A terminal is not filtered for secrets.** The files attest writes have credential-shaped values taken out. The table and the JSON it prints to the terminal show a check's output as it was captured.
 

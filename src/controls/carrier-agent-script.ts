@@ -100,6 +100,9 @@ function contextAgents(): readonly CodingAgent[] {
  */
 const DRAIN_EVENT = "[ -t 0 ] || cat >/dev/null";
 
+/** The shell line that starts the edit-time carrier program. */
+export const AGENT_CARRIER_START = `exec node "$(dirname "$0")/${EDIT_TIME_MOMENT}.mjs" "$@"`;
+
 /**
  * The carrier's entry: the whole content of its file.
  *
@@ -134,7 +137,7 @@ export function agentCarrierEntry(): string {
       : ['  case "$1" in', ...contextArms, "  esac"]),
     "  exit 2",
     "fi",
-    `exec node "$(dirname "$0")/${EDIT_TIME_MOMENT}.mjs" "$@"`,
+    AGENT_CARRIER_START,
     end,
     "",
   ].join("\n");

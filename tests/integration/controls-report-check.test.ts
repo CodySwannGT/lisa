@@ -87,9 +87,11 @@ describe("built lisa controls report-check in a repository without Lisa", () => 
     );
     expect(existsSync(path.join(repoPath, "spec"))).toBe(false);
     expect(existsSync(path.join(repoPath, ".lisa.config.json"))).toBe(false);
-    expect(readFileSync(path.join(repoPath, REPORT_MD), "utf8")).toContain(
-      "## Whole repository"
-    );
+    const markdown = readFileSync(path.join(repoPath, REPORT_MD), "utf8");
+    expect(markdown).toContain("## Whole repository");
+    expect(markdown).toContain("**Evidence still needed:**");
+    expect(markdown).toContain("The minimum evidence rung is observed.");
+    expect(markdown).toContain("The minimum evidence rung is exercised.");
   });
 
   it("refuses a proved finding with no evidence record, one line per problem", () => {

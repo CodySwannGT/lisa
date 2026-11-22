@@ -38,6 +38,7 @@ import {
   PLANTED,
   withoutNode,
 } from "../support/carrier-install.js";
+import { linkedCarrierCheckout } from "../support/carrier-linked-worktree.js";
 
 const CLEAN_LINE = "# a harmless comment";
 const PLANTED_LINE = `# ${PLANTED}`;
@@ -71,6 +72,27 @@ async function carried(agents: readonly string[]): Promise<EditRepository> {
   }
   return built;
 }
+
+describe("edit-time carriers in linked worktrees", () => {
+  it.each([false, true])(
+    "checks the linked checkout even when the project variable names another checkout (failure=%s)",
+    async failing => {
+      const built = await carried(["claude"]);
+      const { peer: linked, cleanup } = linkedCarrierCheckout(built.root);
+      const agent = shellAgent("claude");
+      const file = agentWrites(linked, failing ? PLANTED_LINE : CLEAN_LINE);
+      const event = agent.writeEvent(linked, file);
+      const hook = deliver(built.root, agent, event, {
+        ...operatorEnv(),
+        CLAUDE_PROJECT_DIR: built.root,
+      });
+
+      cleanups.push(cleanup);
+      expect(hook?.status, hook?.stderr).toBe(failing ? 2 : 0);
+      expect(editRuns(built.ran)).toHaveLength(1);
+    }
+  );
+});
 
 /**
  * The context a hook printed for its agent.

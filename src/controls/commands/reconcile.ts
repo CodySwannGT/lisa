@@ -41,6 +41,7 @@ import {
   type ReconcileRun,
 } from "../reconcile.js";
 import { PLATFORM_FLAG, type ReconcileResult } from "../reconcile-types.js";
+import { redactJsonCredentials } from "../secret-scan-json.js";
 
 export type { ReconcileOptions } from "../reconcile.js";
 
@@ -137,7 +138,7 @@ export async function runReconcile(
   const stdout = io.stdout ?? (text => process.stdout.write(`${text}\n`));
   const stderr = io.stderr ?? (line => process.stderr.write(`${line}\n`));
   const fail = (problems: readonly string[]): number => {
-    problems.forEach(problem => {
+    redactJsonCredentials(problems).forEach(problem => {
       stderr(problem.replaceAll(/\s+/gu, " "));
     });
     stderr(
@@ -162,13 +163,12 @@ export async function runReconcile(
   try {
     const run = await reconcile(root, options);
     if (run.problems !== null) return fail(run.problems);
-    stdout(JSON.stringify(run.result, null, 2));
-    linesFor(run.result).forEach(line => {
+    const result = redactJsonCredentials(run.result);
+    stdout(JSON.stringify(result, null, 2));
+    linesFor(result).forEach(line => {
       stderr(line);
     });
-    return run.result.outcome === "incomplete"
-      ? RECONCILE_INCOMPLETE_EXIT_CODE
-      : 0;
+    return result.outcome === "incomplete" ? RECONCILE_INCOMPLETE_EXIT_CODE : 0;
   } catch (error) {
     return fail([error instanceof Error ? error.message : String(error)]);
   }

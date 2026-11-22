@@ -4,6 +4,8 @@
  * (CodySwannGT/lisa#4995).
  * @module tests/unit/controls/support/attest-run
  */
+import { expect } from "vitest";
+
 import { runAttest } from "../../../../src/controls/commands/attest.js";
 import {
   directProofWorkspace,
@@ -11,6 +13,28 @@ import {
 } from "../../../../src/controls/proof-workspace.js";
 import { steppingClock, type ProofSetting } from "./proof-run.js";
 import type { Run } from "./report-check-run.js";
+
+/** The requirements whose empty evidence route the operator sees in a table. */
+export const UNMAPPED_EVIDENCE_NOTES = (
+  [
+    ["AC5.1", "observed"],
+    ["AC5.2", "exercised"],
+    ["AC8.2", "exercised"],
+    ["AC8.5", "observed"],
+    ["AC8.6", "exercised"],
+    ["AC8.8", "observed"],
+    ["SI10", "exercised"],
+    ["UX2", "exercised"],
+    ["UX4", "observed"],
+  ] as const
+).map(([criterion, rung]) =>
+  expect.stringMatching(
+    new RegExp(
+      `^attest: ${criterion.replace(".", "\\.")} needs evidence\\. .+ The minimum evidence rung is ${rung}\\.$`,
+      "u"
+    )
+  )
+);
 
 /**
  * Run the command in-process and capture what it prints.

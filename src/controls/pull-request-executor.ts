@@ -15,7 +15,7 @@
  * ```
  *
  * The register records the executor on the entry's pull-request enforcement
- * point. Lisa did not write a file on another platform and has never seen it
+ * point. Lisa did not write a host's workflow and has never seen it
  * refuse a change, so every entry it runs carries `status: "unproved"` until
  * the evidence file holds a record of both halves of that entry's proof,
  * each saying the half held.
@@ -56,6 +56,9 @@ export const EXECUTOR_KEY = "executor";
 
 /** The one platform Lisa ships the pull-request executor for. */
 export const LISA_WRITTEN_PLATFORM = "github";
+
+/** The pull-request caller provided by Lisa's supported GitHub stacks. */
+const SHIPPED_PULL_REQUEST_WORKFLOW = ".github/workflows/ci.yml";
 
 /** The levels at which a gate is checked at a moment; `off` is neither. */
 const ENFORCED_LEVELS: readonly unknown[] = ["required", "optional"];
@@ -102,10 +105,13 @@ function declaredExecutor(gate: DeclaredGate): PullRequestExecutor | null {
 /**
  * Tell whether an executor is one Lisa ships.
  * @param executor - The executor
- * @returns Whether its platform is the one Lisa writes the file for
+ * @returns Whether it identifies Lisa's packaged pull-request caller
  */
 export function isWrittenByLisa(executor: PullRequestExecutor): boolean {
-  return executor.platform === LISA_WRITTEN_PLATFORM;
+  return (
+    executor.platform === LISA_WRITTEN_PLATFORM &&
+    executor.path === SHIPPED_PULL_REQUEST_WORKFLOW
+  );
 }
 
 /**

@@ -279,7 +279,7 @@
     "all/copy-overwrite/scripts/lib/push-gate-defaults.mjs":
       "3d6c68c6a9840007f9996dd3c018a8f6d41e663b2fdbc9efa599ea55c03eef1d",
     "all/copy-overwrite/scripts/lib/push-timing.mjs":
-      "486f67d83f1dd2a78cf3d63a5253a4d9a380833e201574d845bd9bb542ff1b78",
+      "14df8a7b9ebd0d69e72ee0b02e4801ff72b9b3000e80a6a23324e556efbbcdbb",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts":
       "da1eebc33c5215bc81ab4202c649a5af6b39e3d42f71f94cb2424e3535849154",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs":
@@ -365,7 +365,7 @@
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "302fb2a3035f52dc9915785327148243fadf2ec3c324be862a177550a02aa3ca",
+      "42beca1ca7830cd56f617102c61644c877a232d10a37811b8357bdb1a9c6cc29",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -409,7 +409,7 @@
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "9e79d35cf08f6cac68c38cbdb6e2cf52eb1fea0021b77114026e04519232aed7",
+      "32d9ba926ee0c7f8a5f4ab80c9377b6693d01438990667e85be2e33997af42e6",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -425,7 +425,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "b54c4a28d9f47c061673d788bba5972a82ac8d08bcf22bc8fc0d74b10b57d626",
+      "ac4084c6d1dc5d8e3a28623049e3832fecc321008ee2f95334a764f8fee2970b",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1473,7 +1473,7 @@
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
       "8ea94fa2b3fbe860cee365a6dd935a0f7ef9e749a2ab59c8b8dfc1838cdb0d37",
     "plugins/src/base/skills/lisa-attest/SKILL.md":
-      "fae42f6cf669ecbc2b617a9fac81efbd4a1b0ea801cf2022a3868356274eb314",
+      "93f52dd8fc093829138ec1414aca9c00e628b7e1162b22248cb13cc2b1029e20",
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
       "1982127aa1ba4e4a24afc95f8799f106fa7f621ffa58c464d5bbfa1bb9944cb5",
     "plugins/src/base/skills/lisa-audit/SKILL.md":
@@ -1517,11 +1517,11 @@
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "a8edcf8ee11673f8f100ba8ed588459a03859085419e6a94a50600df25da9e89",
     "plugins/src/base/skills/lisa-enforce/SKILL.md":
-      "1dda5441f57a3eb791d151d6356ce559646f346cde7bfe76fe54f8aa0f843d87",
+      "a34ed0e80a87b2d24211876711cb571eb0922d96b6ab08f2bd826416b977feed",
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
       "0cc51d8a05524d6449ab30bd2a5b60687c26617d2cd5e571c9fce68ad9feb3c8",
     "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md":
-      "72c5878bf012b88af3eb5a20c5e60c551e7b96a653d5d79adc7a67d2e0337f90",
+      "15448a58e62e54c244f441d73ef3ec87edb23f9d86b07b414d264b2100234812",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "f7b6886b1acf79f04cf9ef0bd2d4bf086d8ec1ded7c45cbfb979919e5bacb831",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -2619,7 +2619,7 @@
     "rails/copy-overwrite/config/initializers/version.rb":
       "9304268500aada31d8bd158dca4274888d10db4e30f8dadd9bf23a01d67f2480",
     "rails/copy-overwrite/lefthook.yml":
-      "5c423ac7c286503ae790d24ca7dc27fb515635fca1af8d78380aab0541b7ea17",
+      "239999bd4abd06a9aec7e3309275b37a722ca2a53879f18643360cf5e909b74e",
     "rails/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "df39aa29b19817f67726107fec45078ce639f14a682cf6d5587ba37617f31ac9",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -2628,6 +2628,10 @@
       "fdc5a658590ec91ab6f38ff417bd70056097099160d5a6c4255bad7bf487a5a1",
     "rails/copy-overwrite/scripts/lisa-rails-gates.mjs":
       "7a8f883f06e80994b77f1116dd555da50526270b1561b4fba9b9bc422b88ac34",
+    "rails/copy-overwrite/scripts/lisa-rails-registry-env.sh":
+      "830c77e9833167084688e607fd284d0d54decdf60c28004f1e4a7a062a10d2d9",
+    "rails/copy-overwrite/scripts/lisa-rails-registry-gates.sh":
+      "92f22b9d6cf19515c0ce3412bd329e9f4efbea44b70a1e833b4a1c73be059625",
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs":
       "00d504a0fee1f2a75d7328dc848cacabe6fd9360beacc5bf9632d0741388ade2",
     "rails/copy-overwrite/scripts/lisa_crystalball_recorder.rb":
@@ -3077,7 +3081,7 @@
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "a06b3a53acb7ad1f0b95c74e9d8eb0eb95db5e2b79a2daa848cd382dac6b4069",
+      "565565a081cd87d24d81387e298368a722f6a59537be7cf634597a30af0d2fc4",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
@@ -10974,6 +10978,8 @@
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs": true,
     "rails/copy-overwrite/scripts/lisa-rails-ast-grep.mjs": true,
     "rails/copy-overwrite/scripts/lisa-rails-gates.mjs": true,
+    "rails/copy-overwrite/scripts/lisa-rails-registry-env.sh": true,
+    "rails/copy-overwrite/scripts/lisa-rails-registry-gates.sh": true,
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs": true,
     "rails/copy-overwrite/scripts/lisa_crystalball_recorder.rb": true,
     "rails/copy-overwrite/scripts/lisa_rspec_partial_coverage.rb": true,
@@ -11536,6 +11542,7 @@
     "src/controls/canary-plan.ts": true,
     "src/controls/canary-tree.ts": true,
     "src/controls/canonical-json.ts": true,
+    "src/controls/carrier-agent-checkout.ts": true,
     "src/controls/carrier-agent-files.ts": true,
     "src/controls/carrier-agent-program.ts": true,
     "src/controls/carrier-agent-result.ts": true,
@@ -11675,6 +11682,7 @@
     "src/controls/pull-request-types.ts": true,
     "src/controls/pull-request-wording.ts": true,
     "src/controls/question-ids.ts": true,
+    "src/controls/reconcile-agent-hooks.ts": true,
     "src/controls/reconcile-audit-findings.ts": true,
     "src/controls/reconcile-carrier-points.ts": true,
     "src/controls/reconcile-declared.ts": true,
@@ -11710,6 +11718,7 @@
     "src/controls/tracker-config.ts": true,
     "src/controls/tracker-question.ts": true,
     "src/controls/unenforceable-agents.ts": true,
+    "src/controls/unmapped-gate-evidence.ts": true,
     "src/controls/verdict-answers.ts": true,
     "src/controls/verdict-digest.ts": true,
     "src/controls/verdict-drift.ts": true,
@@ -12428,12 +12437,14 @@
     "tests/integration/controls-configure.test.ts": true,
     "tests/integration/controls-enforce.test.ts": true,
     "tests/integration/controls-gaps.test.ts": true,
+    "tests/integration/controls-github-host-workflow.test.ts": true,
     "tests/integration/controls-install-carriers-agents-record.test.ts": true,
     "tests/integration/controls-install-carriers-agents-settings.test.ts": true,
     "tests/integration/controls-install-carriers-agents.test.ts": true,
     "tests/integration/controls-install-carriers-checkouts.test.ts": true,
     "tests/integration/controls-install-carriers-existing-wiring.test.ts": true,
     "tests/integration/controls-install-carriers-heeded.test.ts": true,
+    "tests/integration/controls-install-carriers-linked-agents.test.ts": true,
     "tests/integration/controls-install-carriers-other-repository.test.ts": true,
     "tests/integration/controls-install-carriers-owners.test.ts": true,
     "tests/integration/controls-install-carriers-reachable.test.ts": true,
@@ -12807,6 +12818,7 @@
     "tests/support/carrier-hook-owners.ts": true,
     "tests/support/carrier-hook-run.ts": true,
     "tests/support/carrier-install.ts": true,
+    "tests/support/carrier-linked-worktree.ts": true,
     "tests/support/carrier-push.ts": true,
     "tests/support/ci-runtime.ts": true,
     "tests/support/codex-compatibility-candidate.mjs": true,
@@ -13432,6 +13444,7 @@
     "tests/unit/controls/question-ids.test.ts": true,
     "tests/unit/controls/reconcile-carrier-points.test.ts": true,
     "tests/unit/controls/reconcile-declared.test.ts": true,
+    "tests/unit/controls/reconcile-edit-time.test.ts": true,
     "tests/unit/controls/reconcile-hook-bounds.test.ts": true,
     "tests/unit/controls/reconcile-hook-lines.test.ts": true,
     "tests/unit/controls/reconcile-manager-commands.test.ts": true,
@@ -14156,6 +14169,7 @@
     "tests/unit/scripts/lisa-gates-evidence.test.ts": true,
     "tests/unit/scripts/lisa-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-gates-hardcoded-invocations.test.ts": true,
+    "tests/unit/scripts/lisa-gates-host-workflow.test.ts": true,
     "tests/unit/scripts/lisa-gates-identity.test.ts": true,
     "tests/unit/scripts/lisa-gates-migration-provenance.test.ts": true,
     "tests/unit/scripts/lisa-gates-moment-executors.test.ts": true,
@@ -14207,6 +14221,7 @@
     "tests/unit/scripts/lisa-run-gates-evidence.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-run-gates-floor.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-host-workflow.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-interrupted.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-invalid-config.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-kill-context.test.ts": true,
@@ -15155,6 +15170,7 @@
     "wiki/decisions/2026-09-04-absence-shaped-like-a-verdict.md": true,
     "wiki/decisions/2026-09-04-state-change-without-inverse.md": true,
     "wiki/decisions/2026-09-05-find-age-predicates.md": true,
+    "wiki/decisions/2026-11-21-level-1-proof-reachability.md": true,
     "wiki/documentation/assets/lisa-architecture.svg": true,
     "wiki/documentation/claude/overinstructions.md": true,
     "wiki/documentation/claude/review.md": true,

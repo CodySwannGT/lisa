@@ -283,6 +283,12 @@ the record does not list? It writes nothing, runs nothing it finds, and sends no
 prints one JSON document: `findings` lists each difference, with `message` and `next` in plain
 words.
 
+Reconcile checks the local edit-time hook of each agent named in the carrier record. It names
+missing or changed registrations and undeclared commands in the shared shell carrier or the
+agents' shell hook settings. For an older carrier record with no agents listed, report the
+`not-verifiable` result and tell the operator that enforce can record the original roster.
+Deployment and scheduled points stay `not-verifiable`.
+
 | Exit | Meaning | What you do |
 | --- | --- | --- |
 | 0 | Everything it needed was read. `findings` may be empty or not. | Go on. A finding is something to tell the operator, not a failure of this step. |

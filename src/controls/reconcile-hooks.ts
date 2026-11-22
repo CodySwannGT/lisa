@@ -81,7 +81,7 @@ const NOTHING: FileRead = {
  * @param shown - How the file is named to a person
  * @returns The text, `null` when there is no such file, or the problem
  */
-async function textOf(
+export async function hookFileText(
   absolute: string,
   shown: string
 ): Promise<{ readonly text: string | null; readonly problem: string | null }> {
@@ -116,7 +116,7 @@ async function shellFile(
   moment: CarrierMoment
 ): Promise<FileRead> {
   const shown = shownPath(root, absolute);
-  const { problem, text } = await textOf(absolute, shown);
+  const { problem, text } = await hookFileText(absolute, shown);
   if (text === null) return { ...NOTHING, problem };
   const read = readShellHook(text);
   return read.problem === null
@@ -166,7 +166,7 @@ async function managerFile(
   facts: HookFacts,
   file: string
 ): Promise<readonly FileRead[]> {
-  const { problem, text } = await textOf(path.join(root, file), file);
+  const { problem, text } = await hookFileText(path.join(root, file), file);
   if (text === null) return [{ ...NOTHING, problem }];
   const read = (
     facts.owner === "lefthook" ? lefthookCommands : preCommitCommands

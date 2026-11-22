@@ -19,9 +19,23 @@ export interface ResolvedMoment {
   /** The moment, `:environment` suffix included. */
   readonly moment: string;
   /** `resolveMoment(..., includeOff: true)` keyed by gate id, or null. */
-  readonly resolved: Map<string, ResolvedGate> | null;
+  readonly resolved: ReadonlyMap<string, readonly ResolvedGate[]> | null;
   /** Why `resolved` is null, when it is. */
   readonly failure: string | null;
+}
+
+/**
+ * Keep every resolved part together under its gate id.
+ * @param entries - The registry's resolved entries, in declaration order
+ * @returns Each gate and all its resolved entries
+ */
+export function groupResolvedGates(
+  entries: readonly ResolvedGate[]
+): ReadonlyMap<string, readonly ResolvedGate[]> {
+  const ids = new Set(entries.map(entry => entry.id));
+  return new Map(
+    [...ids].map(id => [id, entries.filter(entry => entry.id === id)])
+  );
 }
 
 /**
@@ -85,9 +99,15 @@ export function buildRow(
     entry => entry.moment === context.mergeMoment
   );
   const qualityJob = jobForGate.get(id) ?? null;
-  const cells: GateMomentCell[] = moments.map(moment =>
-    buildCell(context, moment, id, qualityJob)
-  );
+  const cells: GateMomentCell[] = moments.map(moment => {
+    const cell = buildCell(context, moment, id, qualityJob);
+    const parts = (moment.resolved?.get(id) ?? []).flatMap(part =>
+      part.scope === undefined
+        ? []
+        : [{ scope: part.scope, argv: part.argv ?? null }]
+    );
+    return parts.length === 0 ? cell : { ...cell, parts };
+  });
   return {
     id,
     label: definition?.label ?? id,

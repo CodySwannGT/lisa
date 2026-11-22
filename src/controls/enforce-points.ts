@@ -256,7 +256,9 @@ async function platformPoint(
   const unproved =
     hosted === null
       ? ""
-      : ` Lisa did not write ${hosted.path} and nothing in this release can prove a check on ${platformLabel(hosted.platform)}, so this entry stays marked unproved.`;
+      : hosted.platform === "github"
+        ? ` Attest must record both proof halves for the check that runs from ${hosted.path}.`
+        : ` Lisa did not write ${hosted.path} and nothing in this release can prove a check on ${platformLabel(hosted.platform)}, so this entry stays marked unproved.`;
   const required = sources.protect.entries.find(each => each.id === entry.id);
   if (required !== undefined) {
     return {
