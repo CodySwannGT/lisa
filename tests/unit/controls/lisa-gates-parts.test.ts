@@ -91,6 +91,30 @@ describe("the control keys on a gate", () => {
     }
   });
 
+  it("allows an omitted work item only for the traceability push fixture", () => {
+    const proof = {
+      violation: VIOLATION,
+      clean: CLEAN,
+      violation_commit: "omit-work-item",
+    };
+    const push = { level: "required", proof };
+
+    expect(validateGates({ traceability: { push } })).toEqual([]);
+    expect(
+      validateGates({ "type-correctness": { push } }).join("\n")
+    ).toContain("violation_commit");
+    expect(
+      validateGates({
+        traceability: {
+          push: {
+            ...push,
+            proof: { ...proof, violation_commit: "unexpected" },
+          },
+        },
+      }).join("\n")
+    ).toContain("violation_commit");
+  });
+
   it("are settings, so none of them is refused as a misspelt moment", () => {
     expect(
       [...GATE_FIELDS].filter(field =>

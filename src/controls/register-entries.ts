@@ -33,6 +33,7 @@ interface DeclaredProof {
   readonly failure_shape?: readonly string[];
   readonly timeout_seconds?: number;
   readonly external_effects?: readonly string[];
+  readonly violation_commit?: ControlProof["violation_commit"];
 }
 
 /**
@@ -143,6 +144,7 @@ function proofOf(proof: DeclaredProof = {}): ControlProof {
     failure_shape: shape,
     timeout_seconds: timeout = null,
     external_effects: effects,
+    violation_commit: violationCommit,
   } = proof;
   return {
     violation,
@@ -150,6 +152,9 @@ function proofOf(proof: DeclaredProof = {}): ControlProof {
     failure_shape: shape === undefined ? null : [...shape],
     timeout_seconds: timeout,
     external_effects: effects === undefined ? null : [...effects],
+    ...(violationCommit === undefined
+      ? {}
+      : { violation_commit: violationCommit }),
   };
 }
 

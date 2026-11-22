@@ -8,7 +8,7 @@ export interface ProofCopySource {
   /** The commit the operator is on. */
   readonly commit: string;
   /** Traceability and attribution trailers from that committed baseline. */
-  readonly commitTrailers: string;
+  readonly commitTrailers?: string;
   /** The branch the operator is on; `null` on a detached `HEAD`. */
   readonly branch: string | null;
   /** Whether the working copy holds anything that is not committed. */
@@ -67,12 +67,13 @@ export async function readProofCopySource(
       problem: `The baseline commit's trailers could not be read, so no proof was run: ${gitSaid(trailers)}`,
     };
   }
+  const commitTrailers = trailers.stdout.trim();
   return {
     problem: null,
     source: {
       branch: head === "(detached)" ? null : head,
       commit,
-      commitTrailers: trailers.stdout.trim(),
+      ...(commitTrailers === "" ? {} : { commitTrailers }),
       dirty: lines.some(line => line !== "" && !line.startsWith("# ")),
     },
   };

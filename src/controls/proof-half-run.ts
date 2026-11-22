@@ -104,20 +104,25 @@ async function attempt(
  * Trigger a half's moment, turning anything the workspace throws into an
  * answer that says nothing was started.
  * @param proof - The proof being run
+ * @param half - Which staged proof case is being triggered
  * @param workspace - Where it runs
  * @returns What the check answered
  */
 async function triggered(
   proof: RunnableProof,
+  half: ProofHalf,
   workspace: ProofWorkspace
 ): Promise<ProofAnswer> {
   const { entry, moment, mechanism, timeLimitSeconds } = proof;
   try {
+    const omitFixtureWorkItem =
+      half === "violation" && entry.proof.violation_commit === "omit-work-item";
     return await workspace.trigger({
       entry,
       moment,
       mechanism,
       timeoutMs: timeLimitSeconds * 1000,
+      ...(omitFixtureWorkItem ? { omitFixtureWorkItem: true } : {}),
     });
   } catch (error) {
     return {
@@ -287,7 +292,7 @@ export async function runHalf(
       spoiled: null,
     };
   }
-  const answer = await triggered(proof, workspace);
+  const answer = await triggered(proof, half, workspace);
   const completedAt = now();
   // Taken back out before the answer is read, so nothing that goes wrong
   // while reading it can leave the change in place.

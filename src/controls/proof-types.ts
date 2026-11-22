@@ -287,6 +287,8 @@ export interface ProofTrigger {
   readonly mechanism: CommandMechanism;
   /** How long the half may run, in milliseconds. */
   readonly timeoutMs: number;
+  /** Whether this disposable push should carry a commit without a work item. */
+  readonly omitFixtureWorkItem?: true;
 }
 
 /**

@@ -84,6 +84,15 @@ const TYPESCRIPT_PROOFS = [
     inputs: ["tests/integration/lisa-proof.integration.test.ts"],
     failure: "AssertionError: expected",
   },
+  {
+    gate: "traceability",
+    moment: "push",
+    task: "check:work-item:push",
+    script: "node scripts/lisa-work-item.mjs validate-push",
+    inputs: ["docs/lisa-proof-traceability.md"],
+    failure: "No Work-Item trailer anywhere in the commit",
+    violationCommit: "omit-work-item",
+  },
 ] as const;
 
 /** A proof bound to the task that declares it. */
@@ -95,6 +104,8 @@ export interface ShippedTaskProof {
     readonly violation: string;
     readonly clean: string;
     readonly failure_shape: string[];
+    readonly violation_commit?: "omit-work-item";
+    readonly external_effects?: string[];
   };
 }
 
@@ -114,41 +125,51 @@ export async function installedShippedTaskProofs(
 ): Promise<readonly ShippedTaskProof[]> {
   if (!projectTypes.includes("typescript")) return [];
   const proofs = await Promise.all(
-    TYPESCRIPT_PROOFS.map(
-      async ({ gate, moment, task, script, inputs, failure }) => {
-        if (
-          scripts[task] !== script ||
-          inputs.some(input => existsSync(path.join(projectDir, input)))
-        ) {
-          return undefined;
-        }
-        const base = `${PROOF_DIRECTORY}/lisa-typescript-${gate}`;
-        const violation = `${base}.violation.patch`;
-        const clean = `${base}.clean.patch`;
-        try {
-          for (const patch of [violation, clean]) {
-            const template = await readFile(
-              path.join(lisaDir, "typescript", "create-only", patch)
-            );
-            const installed = path.join(projectDir, patch);
-            const info = await lstat(installed);
-            if (!info.isFile() || info.size !== template.length)
-              return undefined;
-            if (!template.equals(await readFile(installed))) return undefined;
-          }
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code === "ENOENT")
-            return undefined;
-          throw error;
-        }
-        return {
-          gate,
-          moment,
-          task,
-          proof: { violation, clean, failure_shape: [failure] },
-        };
+    TYPESCRIPT_PROOFS.map(async definition => {
+      const { gate, moment, task, script, inputs, failure } = definition;
+      if (
+        scripts[task] !== script ||
+        inputs.some(input => existsSync(path.join(projectDir, input)))
+      ) {
+        return undefined;
       }
-    )
+      const base = `${PROOF_DIRECTORY}/lisa-typescript-${gate}`;
+      const violation = `${base}.violation.patch`;
+      const clean = `${base}.clean.patch`;
+      try {
+        for (const patch of [violation, clean]) {
+          const template = await readFile(
+            path.join(lisaDir, "typescript", "create-only", patch)
+          );
+          const installed = path.join(projectDir, patch);
+          const info = await lstat(installed);
+          if (!info.isFile() || info.size !== template.length) return undefined;
+          if (!template.equals(await readFile(installed))) return undefined;
+        }
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT")
+          return undefined;
+        throw error;
+      }
+      return {
+        gate,
+        moment,
+        task,
+        proof: {
+          violation,
+          clean,
+          failure_shape: [failure],
+          ...("violationCommit" in definition
+            ? {
+                violation_commit: definition.violationCommit,
+                external_effects: [
+                  "Reads the work item in the configured tracker for the clean push fixture.",
+                ],
+              }
+            : {}),
+        },
+      };
+    })
   );
   return proofs.filter(proof => proof !== undefined);
 }

@@ -365,7 +365,7 @@
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "82277a5b30d49a87509ca968806798838dc6244bdcba2f7226daecb5c810a571",
+      "41f8dd2a643dac8ec9fe8d2c65e86f49c149a1a1017c3274bad8854e54904f0e",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -425,7 +425,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "790b1cf718903ca92ebde4659175f315d7a3d81cbd66af978741ef07d777b4e2",
+      "c65d1361e3a31a64f3e8f063c4c12e1da481736b95e67bcd10e2d881ab932435",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1489,7 +1489,7 @@
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
       "6485cf919af6f1fa5f5d60209906fd954a5d45456e2149c25ad29f2567fcc981",
     "plugins/src/base/skills/lisa-configure/SKILL.md":
-      "b505be05b8eae8f99962608a4d8a8e4724a19d01c1cd079c461b64c6eb1e0405",
+      "52f3bd9a9cdbba758cb10d8632868444cafc92b48e0bbc41b74a02025a3e4c8a",
     "plugins/src/base/skills/lisa-configure/references/exercised-artifacts.md":
       "0f9caf8e704753069d20fa7b36ca3b687c7fa49601f62c37198e4f91781b893a",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":

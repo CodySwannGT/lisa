@@ -77,6 +77,7 @@ import {
   notCommittedDetail,
   optionalDetail,
   proofCommitMessage,
+  proofPushCommitMessage,
   PROOF_REMOTE_PLACEHOLDER,
   unattributedDetail,
   unwiredDetail,
@@ -344,7 +345,7 @@ function triggered(
       "commit",
       "--quiet",
       "-m",
-      proofCommitMessage(entry.id, copy.source.commitTrailers),
+      proofPushCommitMessage(request, copy.source.commitTrailers),
     ]);
     if (committed.code !== 0) {
       return unstarted(command, notCommittedDetail(gitSaid(committed)));
