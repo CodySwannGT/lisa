@@ -4,8 +4,11 @@ import { sign, verify, type KeyObject } from "node:crypto";
 import { isJsonObject } from "../sync/json-path.js";
 import { canonicalText } from "./canonical-json.js";
 
-/** A host input cannot serve as the receipt written by attest. */
-type ProofPurpose = "host-proof-import" | "host-proof-receipt";
+/** Each signed statement is valid only for its intended proof route. */
+type ProofPurpose =
+  | "host-proof-import"
+  | "host-proof-receipt"
+  | "artifact-exercise";
 
 /** The canonical output covers the phase as well as the evidence body. */
 export interface SignedHostProof<Body> {

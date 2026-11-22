@@ -95,6 +95,7 @@ import {
 import { installCarriers } from "./carriers.js";
 import type { ChecksBinding, CoveredCheckFile } from "./evidence-types.js";
 import { GATES_DECLARATION_PATH } from "./gates-declaration.js";
+import { EXERCISE_DECLARATION_PATH } from "./exercise-declaration.js";
 import { isPlainPath, ordinaryFiles } from "./proof-copy-files.js";
 import { PROOF_FOLDER } from "./proof-patch.js";
 import { declaredExecutor } from "./pull-request-executor.js";
@@ -298,6 +299,7 @@ async function definingPaths(root: string): Promise<readonly string[]> {
   return [
     ...new Set([
       GATES_DECLARATION_PATH,
+      EXERCISE_DECLARATION_PATH,
       ...proofs,
       CARRIER_RECORD_PATH,
       // A record that cannot be read names nothing; the record itself is

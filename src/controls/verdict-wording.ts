@@ -157,6 +157,7 @@ export const NOTHING_ON_RECORD =
  * @param parts.controls - The controls that held
  * @param parts.located - The folders whose record was found where the audit
  *   pointed
+ * @param parts.exercised - The folders covered by independent artifact exercises
  * @param parts.attested - The folders a person vouched for
  * @param parts.notApplicable - The folders it does not apply in
  * @param parts.rung - The weakest rung it rests on
@@ -166,11 +167,13 @@ export const NOTHING_ON_RECORD =
 export function conformingBecause(parts: {
   readonly controls: readonly string[];
   readonly located: readonly string[];
+  readonly exercised?: readonly string[];
   readonly attested: readonly string[];
   readonly notApplicable: readonly string[];
   readonly rung: EvidenceRung;
   readonly minimum: EvidenceRung;
 }): string {
+  const exercised = parts.exercised ?? [];
   const said = [
     ...(parts.controls.length === 0
       ? []
@@ -181,6 +184,11 @@ export function conformingBecause(parts: {
       ? []
       : [
           `The audit pointed at where this is recorded for ${parts.located.map(whereOf).join(" and ")}, and the attest step found the file and line there. That shows the record exists, not that it says what the requirement asks.`,
+        ]),
+    ...(exercised.length === 0
+      ? []
+      : [
+          `Independently verified exercises measured this requirement for ${exercised.map(whereOf).join(" and ")}.`,
         ]),
     ...(parts.attested.length === 0
       ? []

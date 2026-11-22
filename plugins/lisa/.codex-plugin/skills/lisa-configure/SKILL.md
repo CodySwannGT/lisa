@@ -191,7 +191,7 @@ Sort the findings:
 | `question` | **Still open.** Declare nothing for that requirement in that part. List it for the closing message. |
 | `missing` | Nothing to declare. The enforce step files a ticket for it. |
 | `unknown` or `not-applicable` | Nothing to declare. |
-| any state, for a requirement whose `kind` is `artifact` or `human-attested` | Nothing to declare here: it is a record or a person's word, not a check that can refuse a change. |
+| any state, for a requirement whose `kind` is `artifact` or `human-attested` | Record the artifact or the person's evidence through audit. For AC5.5, AC6.4, AC7.2, and AC8.9, configure the required exercises before attest. See [Exercised artifacts](references/exercised-artifacts.md). |
 
 **What a person answered.** The report's `answers` list holds what people have answered. Each
 entry has the `id` of the question, the `question` as it was asked, and the `answer`. A question
@@ -327,7 +327,8 @@ lisa controls declaration-check
 ```
 
 - **Exit 0.** Lisa reproduced the shipped folder checks from the local task manifests and
-  confirmed audit support for any parts declared from findings.
+  confirmed audit support for any parts declared from findings. It also checked the fields in the
+  exercise plan when the repository has one.
 - **Any other exit.** Each line printed is one problem, naming the gate and the part. A part that
   names a place the audit did not report, rests on a question nobody answered or on an answer
   about something else, or serves a requirement the audit still asks about is refused. Correct the

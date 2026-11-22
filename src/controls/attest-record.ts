@@ -231,7 +231,9 @@ function recordedLine(records: readonly EvidenceRecord[]): string {
  * @param root - Real path of the repository
  * @param evidence - The evidence file to write
  * @param now - The current time
- * @param receipt - Text of the next authorized receipt file, when importing a proof
+ * @param checked - The signed receipt to publish and the artifact exercises verified for this run
+ * @param checked.receipt - Next hosted proof receipt, when this run imports one
+ * @param checked.exercises - IDs of the independently verified artifact records
  * @param dependencies - Replaceable collaborators
  * @returns The verdict, or one line per reason a file was not written
  */
@@ -239,7 +241,10 @@ async function writeInOrder(
   root: string,
   evidence: EvidenceDocument,
   now: Date,
-  receipt: string | null,
+  checked: {
+    readonly receipt: string | null;
+    readonly exercises: ReadonlySet<string>;
+  },
   dependencies: RecordAttestationDependencies
 ): Promise<
   | {
@@ -253,8 +258,8 @@ async function writeInOrder(
   // 1. The evidence.
   const first = await write(root, EVIDENCE_PATH, serializeEvidence(evidence));
   if (first.problem !== null) return { problems: [first.problem] };
-  if (receipt !== null) {
-    const sealed = await write(root, HOST_PROOF_RECEIPTS_PATH, receipt);
+  if (checked.receipt !== null) {
+    const sealed = await write(root, HOST_PROOF_RECEIPTS_PATH, checked.receipt);
     if (sealed.problem !== null) return { problems: [sealed.problem] };
   }
   // 2. The register, generated from the declaration and that evidence: the
@@ -271,6 +276,7 @@ async function writeInOrder(
     register: register.register,
     evidence,
     now,
+    verifiedExercises: checked.exercises,
   });
   const last = await write(root, VERDICT_PATH, serializeVerdict(verdict));
   return last.problem === null
@@ -338,7 +344,7 @@ async function recorded(
     root,
     evidence,
     now,
-    receipt,
+    { receipt, exercises: gathered.verifiedExercises },
     dependencies
   );
   if (written.problems !== null) return { problems: written.problems };

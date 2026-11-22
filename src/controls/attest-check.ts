@@ -69,6 +69,10 @@ import {
 } from "./evidence-binding.js";
 import { parseEvidenceDocument } from "./evidence-document.js";
 import type { ChecksBinding, EvidenceDocument } from "./evidence-types.js";
+import {
+  compareExerciseRecords,
+  verifiedExerciseRecords,
+} from "./exercise-records.js";
 import { GATES_DECLARATION_PATH } from "./gates-declaration.js";
 import { shortCommit } from "./proof-copy-wording.js";
 import { controlRegisterDrift } from "./register-drift.js";
@@ -259,6 +263,8 @@ interface Comparison {
   readonly verdict: Verdict | null;
   /** Where the checks stand, when nothing differs. */
   readonly standing: string;
+  /** Why any declared exercise is still missing or unusable. */
+  readonly exerciseNotes: readonly string[];
 }
 
 /** What comparing needs beside the repository. */
@@ -297,20 +303,38 @@ async function compare(
       ],
       verdict: null,
       standing: "",
+      exerciseNotes: [],
     };
   }
+  const { checks, records } = evidence.evidence;
+  const currentChecks = await bind(root, checks);
+  const current = await verifiedExerciseRecords(
+    root,
+    register,
+    currentChecks,
+    now
+  );
+  const exercises = compareExerciseRecords(
+    records,
+    current.batch.exercises ?? []
+  );
   const verdict = computeVerdict({
     catalogue,
     register,
     evidence: evidence.evidence,
     now,
+    verifiedExercises: exercises.current,
   });
   // Is what was proved still what is here? Asked of content.
-  const { checks } = evidence.evidence;
-  const bound = bindingDifferenceLines(checks, await bind(root, checks));
+  const bound = bindingDifferenceLines(checks, currentChecks);
   return {
     differences: [
       ...registerLines,
+      ...(exercises.differs
+        ? [
+            "The saved exercise records differ from the current independently signed results.",
+          ]
+        : []),
       ...(committed.problem === null
         ? verdictDrift(committed.value, verdict)
         : [committed.problem]),
@@ -318,6 +342,7 @@ async function compare(
     ],
     verdict,
     standing: standingOf(evidence.evidence),
+    exerciseNotes: current.notes,
   };
 }
 
@@ -389,8 +414,8 @@ export async function runAttestCheck(
       ATTEST_CHECK_EXIT.NOT_CHECKED
     );
   }
-  const { differences, verdict, standing } = compared;
-  const proofNotes = generated.hostProofNotes ?? [];
+  const { differences, verdict, standing, exerciseNotes } = compared;
+  const proofNotes = [...(generated.hostProofNotes ?? []), ...exerciseNotes];
   if (differences.length > 0 || verdict === null) {
     return fail(
       [...proofNotes, ...differences],

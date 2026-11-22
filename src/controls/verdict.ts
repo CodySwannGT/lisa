@@ -78,6 +78,8 @@ export interface VerdictInputs {
   readonly register: ControlRegister;
   /** The evidence file. */
   readonly evidence: EvidenceDocument;
+  /** The typed exercises checked against their signed results in this run. */
+  readonly verifiedExercises?: ReadonlySet<string>;
   /** The current time, which decides which records are still current. */
   readonly now: Date;
 }
@@ -130,9 +132,18 @@ function answersFor(
   records: readonly EvidenceRecord[],
   context: AnswerContext
 ): readonly Answer[] {
+  const exercisedScopes = new Set(
+    records.flatMap(record =>
+      record.exercise === undefined ? [] : [record.scope]
+    )
+  );
   const findings = records
     .filter(
-      record => record.entry_id === null && !covered(serving, record.scope)
+      record =>
+        record.exercise !== undefined ||
+        (record.entry_id === null &&
+          !covered(serving, record.scope) &&
+          !exercisedScopes.has(record.scope))
     )
     .sort((left, right) => compareCodeUnits(left.scope, right.scope));
   return [
@@ -183,6 +194,13 @@ function conformingDetail(
     located: conforming.flatMap(answer =>
       answer.reason === "artifact-located" ? [answer.scope] : []
     ),
+    exercised: [
+      ...new Set(
+        conforming.flatMap(answer =>
+          answer.reason === "artifact-exercised" ? [answer.scope] : []
+        )
+      ),
+    ],
     attested: conforming.flatMap(answer =>
       answer.reason === "person-attested" ? [answer.scope] : []
     ),
@@ -258,16 +276,22 @@ function criterionVerdict(
   );
   const answers = answersFor(
     serving,
-    inputs.evidence.records.filter(
-      record =>
-        record.criterion === criterion.id &&
-        !(
-          record.moment === "pull-request" &&
-          record.rung === "exercised" &&
-          record.entry_id !== null &&
-          unproved.has(record.entry_id)
-        )
-    ),
+    inputs.evidence.records
+      .filter(
+        record =>
+          record.exercise === undefined ||
+          inputs.verifiedExercises?.has(record.id) === true
+      )
+      .filter(
+        record =>
+          record.criterion === criterion.id &&
+          !(
+            record.moment === "pull-request" &&
+            record.rung === "exercised" &&
+            record.entry_id !== null &&
+            unproved.has(record.entry_id)
+          )
+      ),
     {
       minimum,
       kind,
