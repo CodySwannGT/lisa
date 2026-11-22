@@ -1,3 +1,4 @@
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 /** Native Write is data for the fixed metadata owner; raw tool execution stays denied. */
 import {
   existsSync,
@@ -5,7 +6,6 @@ import {
   readFileSync,
   rmSync,
   statSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
@@ -52,7 +52,7 @@ describe("native private context metadata boundary", () => {
     content = `<!-- lisa-required-access:v1\n${JSON.stringify(header)}${content.slice(at)}`;
     const sentinel = path.join(f.root, "sentinel");
     writeFileSync(sentinel, "unchanged");
-    if (mode === "symlink") symlinkSync(sentinel, target);
+    if (mode === "symlink") createSymlink(sentinel, target);
     if (mode === "eas")
       writeFileSync(path.join(f.root, ".easignore"), "node_modules\n");
     if (mode === "binding") {

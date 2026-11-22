@@ -1,3 +1,4 @@
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 /** Documented Codex command-string envelope; real before verdict controls raw patch effects. */
 import {
   existsSync,
@@ -5,7 +6,6 @@ import {
   readFileSync,
   rmSync,
   statSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
@@ -17,7 +17,7 @@ import {
   codexContext,
   contextPatch,
 } from "../../helpers/task-codex-context.js";
-import { readConfig } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
+import { readTaskConfig as readConfig } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
 import { requirementsContext } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs";
 const roots: string[] = [],
   CONTEXT = ".lisa/work-item-context.md";
@@ -107,12 +107,12 @@ describe("documented Codex private metadata command envelope", () => {
       writeFileSync(path.join(f.root, ".easignore"), "node_modules\n");
     const sentinel = path.join(f.root, "sentinel");
     writeFileSync(sentinel, "unchanged");
-    if (mode === "symlink") symlinkSync(sentinel, target);
+    if (mode === "symlink") createSymlink(sentinel, target);
     if (mode === "ignore") {
       rmSync(path.join(f.root, ".gitignore"));
       const exclude = path.join(f.root, ".git/info/exclude");
       rmSync(exclude, { force: true });
-      symlinkSync(sentinel, exclude);
+      createSymlink(sentinel, exclude);
     }
     const r = codexContext(f, command);
     expect(r.result.status).toBe(2);

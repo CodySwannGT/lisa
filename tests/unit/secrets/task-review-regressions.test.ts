@@ -1,3 +1,4 @@
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 /** Real entrypoint reproductions of the combined review findings. */
 import {
   chmodSync,
@@ -5,14 +6,13 @@ import {
   readFileSync,
   rmSync,
   statSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { taskFixture } from "../../helpers/task-readiness-fixture.js";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
-import { readConfig } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
+import { readTaskConfig as readConfig } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
 const roots: string[] = [];
 const zero = { claim: 0, branch: 0, code: 0, external: 0 };
 const context = ".lisa/work-item-context.md";
@@ -132,7 +132,7 @@ describe("combined review real entrypoints", () => {
         local = path.join(f.root, ".lisa.config.local.json");
       mkdirSync(dir);
       if (mode === "inaccessible") writeFileSync(target, "{}");
-      symlinkSync(target, local);
+      createSymlink(target, local);
       if (mode === "inaccessible") {
         expect(process.getuid?.()).not.toBe(0);
         chmodSync(dir, 0);

@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { candidate, failure } from "./task-readiness.mjs";
 import { githubAccess, githubEnvironment } from "./task-github.mjs";
 import { AccessFailure } from "./config-layers.mjs";
-import { readConfig } from "./surfaces.mjs";
+import { readTaskConfig } from "./surfaces.mjs";
 import { taskBinding } from "./task-requirements.mjs";
 import {
   intakeRequest,
@@ -95,7 +95,7 @@ function selectedAccess(cfg, repo) {
 export function runIntakeRead(args = process.argv.slice(2)) {
   let cfg;
   try {
-    cfg = readConfig();
+    cfg = readTaskConfig();
     const request = intakeRequest(args, cfg),
       binding = taskBinding(cfg.projectRoot);
     if (

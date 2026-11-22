@@ -11,7 +11,7 @@ import {
   installIntakeGh,
 } from "../../helpers/task-intake-gh.js";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
-import { readConfig } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
+import { readTaskConfig as readConfig } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
 import { requirementsContext } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs";
 import { classifyReadyCandidate } from "../../../plugins/src/base/scripts/intake-blocker-reprobe.mjs";
 const roots: string[] = [];

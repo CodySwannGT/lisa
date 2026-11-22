@@ -230,7 +230,10 @@ function projectAnchors(env) {
  * @param {string} cwd - Directory to start from.
  * @returns {string | null} Absolute path to the config, or `null` if none.
  */
-function locateConfig(cwd) {
+const committedConfig = ".lisa.config.json";
+const localConfig = ".lisa.config.local.json";
+
+function locateConfig(cwd, names) {
   let dir = resolve(cwd);
   const start = dir;
   const present = inspectConfigPath;
@@ -239,7 +242,7 @@ function locateConfig(cwd) {
     return { path: null, root: dir, status: "undiscovered", boundary: false };
   if (!startStat.isDirectory()) throw new AccessFailure("config-unreadable");
   for (;;) {
-    for (const name of [".lisa.config.json", ".lisa.config.local.json"]) {
+    for (const name of names) {
       const candidate = join(dir, name);
       if (present(candidate))
         return { path: candidate, root: dir, status: "valid", boundary: true };
@@ -267,6 +270,15 @@ function locateConfig(cwd) {
  * @returns {{provider: string, bootstrap: {sources: string[], key: string|null}, require: string[]|null, requiredFloor: readonly string[], rotating: string[], namespace: string, narrow: object, surface: string, routing: {tracker?: string, source?: string}, capabilities: object, configPath: string|null, projectRoot: string, effective: object, provenance: {status: string, provider: string, files: string[]}}} Resolved configuration with defaults applied. `configPath` is the file the values came from, or `null` when none was found and the defaults apply.
  */
 export function readConfig(cwd = process.cwd(), env = process.env) {
+  return projectSecretsConfig(cwd, env, false);
+}
+
+/** Read and validate the effective configuration for a tracked task. */
+export function readTaskConfig(cwd = process.cwd(), env = process.env) {
+  return projectSecretsConfig(cwd, env, true);
+}
+
+function projectSecretsConfig(cwd, env, task) {
   // Walk from `cwd` first, then from whatever the harness says the project is.
   //
   // A walk from `cwd` alone does not close this. The SessionStart hook that
@@ -280,12 +292,14 @@ export function readConfig(cwd = process.cwd(), env = process.env) {
   //
   // cwd wins when it finds something, because an explicit working directory is
   // intent and the project variable is only ever a hint about the session.
-  const own = locateConfig(cwd);
-  const found = own.boundary
+  const names = task ? [committedConfig, localConfig] : [committedConfig];
+  const locate = root => locateConfig(root, names);
+  const selected = candidate =>
+    task ? candidate.boundary : candidate.path !== null;
+  const own = locate(cwd);
+  const found = selected(own)
     ? own
-    : (projectAnchors(env)
-        .map(locateConfig)
-        .find(candidate => candidate.boundary) ?? own);
+    : (projectAnchors(env).map(locate).find(selected) ?? own);
   const path = found.path;
   // No repository is a real, supported state — not just a missing file.
   //
@@ -327,14 +341,15 @@ export function readConfig(cwd = process.cwd(), env = process.env) {
     );
   }
   const projectRoot = realpathSync(dirname(path));
-  const layerStates = [".lisa.config.json", ".lisa.config.local.json"]
+  const layerStates = names
     .map(name => join(projectRoot, name))
-    .map(readConfigLayer);
+    .map(file => readConfigLayer(file, task));
   const presentLayers = layerStates.filter(layer => layer.status === "valid");
   const files = presentLayers.map(layer => layer.path);
   const layers = presentLayers.map(layer => layer.value);
-  const root = mergeConfigLayers(...layers);
-  validateConfigLayer(root);
+  const root = task
+    ? validateConfigLayer(mergeConfigLayers(...layers))
+    : layers[0];
   const metadata = {
     projectRoot,
     effective: root,

@@ -6,7 +6,7 @@ import { taskFixture } from "../../helpers/task-readiness-fixture.js";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { notionOwnerContinuation } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/task-access.mjs";
 import { credentialAvailability } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/task-readiness.mjs";
-import { readConfig } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
+import { readTaskConfig as readConfig } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
 const roots: string[] = [];
 const FETCH_PROBE = "notion:fetch-configured-database";
 const DATABASE = "database";

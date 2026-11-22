@@ -19,6 +19,7 @@ try {
     (event.tool_name === "Bash" &&
       [
         "pwd",
+        "ls -la",
         "git status --short",
         "git status --porcelain=v1",
         "git rev-parse HEAD",

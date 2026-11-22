@@ -2256,7 +2256,8 @@
       "f21cdcb54b353714a92c2d1e25fd6b76318e8e8d7cb90cdb016f174923c532ef"
     ],
     "scripts/lisa-hooks/task-readiness-guard.sh": [
-      "5bd8194d4ba490f3a788d77bc7186f15809bb9a8ccb7b64db02aeb5337409d97"
+      "5bd8194d4ba490f3a788d77bc7186f15809bb9a8ccb7b64db02aeb5337409d97",
+      "6cb8eadda0ed0cb3a2d17eb71052435b423ab175c16945b39e9474fb4a5d0f49"
     ],
     "scripts/lisa-hooks/worktree-binding-guard.mjs": [
       "16d60be6fab678b3b65a184ae9b0cbb132dcfb3190d58e91227fe283b1ff589c",
@@ -5389,7 +5390,8 @@
       "f21cdcb54b353714a92c2d1e25fd6b76318e8e8d7cb90cdb016f174923c532ef"
     ],
     "scripts/lisa-hooks/task-readiness-guard.sh": [
-      "5bd8194d4ba490f3a788d77bc7186f15809bb9a8ccb7b64db02aeb5337409d97"
+      "5bd8194d4ba490f3a788d77bc7186f15809bb9a8ccb7b64db02aeb5337409d97",
+      "6cb8eadda0ed0cb3a2d17eb71052435b423ab175c16945b39e9474fb4a5d0f49"
     ],
     "scripts/lisa-hooks/worktree-binding-guard.mjs": [
       "16d60be6fab678b3b65a184ae9b0cbb132dcfb3190d58e91227fe283b1ff589c",

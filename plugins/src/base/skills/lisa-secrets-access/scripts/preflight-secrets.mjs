@@ -36,7 +36,7 @@ import { realpathSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { fetchAll } from "./providers.mjs";
-import { readConfig } from "./surfaces.mjs";
+import { readConfig, readTaskConfig } from "./surfaces.mjs";
 import { readMaterialized } from "./resolve-secret.mjs";
 import { failure } from "./task-readiness.mjs";
 import { runTaskAction } from "./task-action.mjs";
@@ -360,7 +360,7 @@ function main() {
     return;
   }
   if (process.argv.includes("--prepare")) {
-    const cfg = readConfig();
+    const cfg = readTaskConfig();
     const index = process.argv.indexOf("--ref");
     const input = JSON.parse(readFileSync(0, "utf8"));
     console.log(

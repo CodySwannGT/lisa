@@ -10,7 +10,7 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 # Package-backed on host projects; plugin and OpenCode installs carry the sibling.
 exec node --input-type=module -e '
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, lstatSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 try {
@@ -31,9 +31,21 @@ try {
     if (result.stderr) process.stderr.write(result.stderr);
     process.exitCode = result.status === 0 ? 0 : 2;
   } else if (!["Read", "Glob", "Grep", "read", "glob", "grep"].includes(event.tool_name) &&
-    !(event.tool_name === "Bash" && ["pwd", "git status --short", "git status --porcelain=v1", "git rev-parse HEAD"].includes(event.tool_input?.command))) {
-    console.error("tool-missing: Update the installed Lisa readiness tool before affected work.");
-    process.exitCode = 2;
+    !(event.tool_name === "Bash" && ["pwd", "ls -la", "git status --short", "git status --porcelain=v1", "git rev-parse HEAD"].includes(event.tool_input?.command))) {
+    const git = spawnSync("git", ["rev-parse", "--path-format=absolute", "--show-toplevel", "--git-path", "lisa/work-item.json"], {
+      cwd: root, encoding: "utf8", timeout: 2000, killSignal: "SIGKILL"
+    });
+    const [project, binding] = git.status === 0 ? git.stdout.trim().split("\n") : [];
+    const declared = path => {
+      try { lstatSync(path); return true; }
+      catch (error) { return !["ENOENT", "ENOTDIR"].includes(error.code); }
+    };
+    const scopeFiles = [".lisa/work-item-context.md", ".lisa.config.json", ".lisa.config.local.json"];
+    const active = [root, project].some(dir => dir && scopeFiles.some(file => declared(join(dir, file)))) || (binding && declared(binding));
+    if (active) {
+      console.error("tool-missing: Update the installed Lisa readiness tool before affected work.");
+      process.exitCode = 2;
+    }
   }
 } catch {
   console.error("requirements-stale: Refresh complete task requirements before affected work.");

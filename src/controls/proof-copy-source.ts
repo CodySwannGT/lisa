@@ -8,7 +8,7 @@ export interface ProofCopySource {
   /** The commit the operator is on. */
   readonly commit: string;
   /** Traceability and attribution trailers from that committed baseline. */
-  readonly commitTrailers: string;
+  readonly commitTrailers?: string;
   /** The branch the operator is on; `null` on a detached `HEAD`. */
   readonly branch: string | null;
   /** Whether the working copy holds anything that is not committed. */
@@ -72,7 +72,9 @@ export async function readProofCopySource(
     source: {
       branch: head === "(detached)" ? null : head,
       commit,
-      commitTrailers: trailers.stdout.trim(),
+      ...(trailers.stdout.trim() === ""
+        ? {}
+        : { commitTrailers: trailers.stdout.trim() }),
       dirty: lines.some(line => line !== "" && !line.startsWith("# ")),
     },
   };

@@ -8,7 +8,7 @@ import { intakeOwnerCommand } from "./task-intake-owner.js";
 import { nativeBash } from "./task-native-bash.js";
 import { nativeWrite } from "./task-native-context.js";
 import { driveTask } from "./task-readiness-continuation.js";
-import { readConfig } from "../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
+import { readTaskConfig as readConfig } from "../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
 import { requirementsContext } from "../../plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs";
 const CONTEXT = ".lisa/work-item-context.md";
 /** Owned strict fixture, including its private synthetic source value. */

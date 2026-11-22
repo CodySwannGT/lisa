@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AccessFailure } from "./config-layers.mjs";
-import { readConfig } from "./surfaces.mjs";
+import { readTaskConfig } from "./surfaces.mjs";
 import { taskReadiness, failure } from "./task-readiness.mjs";
 import { readTaskRequirements } from "./task-requirements.mjs";
 import { lifecycleEvents, resetNativeEvent } from "./task-native-lifecycle.mjs";
@@ -50,6 +50,7 @@ function orientation(input) {
     readinessOwnerInvocation(input.tool_input?.command) ||
     [
       "pwd",
+      "ls -la",
       "git status --short",
       "git status --porcelain=v1",
       "git rev-parse HEAD",
@@ -123,7 +124,7 @@ export function runTaskAction(argv = process.argv) {
       }
       return;
     }
-    cfg = readConfig(input?.cwd ?? process.cwd());
+    cfg = readTaskConfig(input?.cwd ?? process.cwd());
     if (hook && nativeContext(input, cfg)) {
       resetNativeEvent(input);
       console.error(
@@ -160,9 +161,10 @@ export function runTaskAction(argv = process.argv) {
     }
     if (hook && input.hook_event_name !== "PreToolUse")
       result = failure("requirements-stale");
-    else if (hook && result.code === "no-active-task")
+    else if (hook && result.code === "no-active-task") {
+      if (cfg.provenance?.status === "absent") return;
       result = failure("requirements-stale");
-    else if (hook && result.outcome === "NATIVE_OWNER_REQUIRED") {
+    } else if (hook && result.outcome === "NATIVE_OWNER_REQUIRED") {
       const decision = nativeAction(cfg, header, result, input);
       if (decision.allowed) result = { allowed: true, code: decision.code };
       else {

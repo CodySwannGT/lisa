@@ -224,7 +224,9 @@ describe("enforcement in a host layout", () => {
       label: "host lisa-enforcement-fallback.sh",
       command: BASH,
       args: [path.join(root, SCRIPTS, FALLBACK_NAME)],
+      cwd: root,
       input: JSON.stringify({
+        cwd: root,
         tool_name: "Bash",
         tool_input: { command },
       }),
@@ -238,6 +240,16 @@ describe("enforcement in a host layout", () => {
 
   it("blocks the bypass with no plugin and no plugins directory", () => {
     expect(runInHost(hostProject(), BYPASS)).toBe(BLOCKED);
+  });
+
+  it("withholds an action in a configured host whose readiness owner is missing", () => {
+    const root = hostProject();
+    writeFileSync(
+      path.join(root, ".lisa.config.json"),
+      '{"tracker":"github"}\n'
+    );
+
+    expect(runInHost(root, "touch new-file.txt")).toBe(BLOCKED);
   });
 
   it("leaves the retired safety net inactive", () => {
@@ -304,7 +316,12 @@ describe("the plugin registry cannot switch enforcement off", () => {
       label: "host lisa-enforcement-fallback.sh",
       command: BASH,
       args: [path.join(root, SCRIPTS, FALLBACK_NAME)],
-      input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
+      cwd: root,
+      input: JSON.stringify({
+        cwd: root,
+        tool_name: "Bash",
+        tool_input: { command },
+      }),
       env: {
         ...process.env,
         CLAUDE_PROJECT_DIR: root,

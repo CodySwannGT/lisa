@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { taskFixture } from "../../helpers/task-readiness-fixture.js";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
-import { readConfig } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
+import { readTaskConfig as readConfig } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
 import {
   credentialAvailability,
   taskReadiness,

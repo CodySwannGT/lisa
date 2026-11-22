@@ -1,10 +1,10 @@
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 /** Actual wrapper/native callback execution, separated from generated inspection. */
 import {
   cpSync,
   mkdirSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
@@ -87,7 +87,7 @@ describe("task readiness native adapters", () => {
   it("OpenCode's actual before callback throws before the mutable continuation, and its success control writes once", () => {
     const f = fixture();
     mkdirSync(path.join(f.root, "plugins"));
-    symlinkSync(f.plugin, path.join(f.root, "plugins/lisa"));
+    createSymlink(f.plugin, path.join(f.root, "plugins/lisa"));
     const dir = path.join(f.root, "adapter");
     mkdirSync(dir);
     cpSync(

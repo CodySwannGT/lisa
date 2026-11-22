@@ -1,5 +1,6 @@
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 /** Ordinary patches use actual readiness; only context operations enter metadata parsing. */
-import { readFileSync, writeFileSync, rmSync, symlinkSync } from "node:fs";
+import { readFileSync, writeFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { taskFixture } from "../../helpers/task-readiness-fixture.js";
@@ -35,7 +36,7 @@ describe("ordinary versus private metadata patch dispatch", () => {
       target = path.join(f.root, CONTEXT),
       content = readFileSync(target, "utf8"),
       alias = path.join(f.root, "context-alias.md");
-    symlinkSync(target, alias);
+    createSymlink(target, alias);
     const r = nativeWrite(f, content, alias);
     expect(r.guard.status).toBe(2);
     expect(r.rawWrites).toBe(0);
@@ -84,7 +85,7 @@ describe("ordinary versus private metadata patch dispatch", () => {
       target = path.join(f.root, CONTEXT),
       content = readFileSync(target, "utf8"),
       alias = path.join(f.root, "alias.md");
-    symlinkSync(target, alias);
+    createSymlink(target, alias);
     const names: Record<string, string> = {
       relative: CONTEXT,
       normalized: `${f.root}/.lisa/../.lisa/work-item-context.md`,

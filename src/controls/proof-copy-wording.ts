@@ -36,9 +36,10 @@ const SHORT_COMMIT = 7;
  * @param trailers - The baseline's work-item and attribution trailers
  * @returns The message
  */
-export function proofCommitMessage(entryId: string, trailers: string): string {
+export function proofCommitMessage(entryId: string, trailers = ""): string {
+  if (trailers === "") return `chore: control proof for ${entryId}`;
   const message = `chore: exercise the declared control\n\nControl entry ${JSON.stringify(entryId)}`;
-  return trailers === "" ? message : `${message}\n\n${trailers}`;
+  return `${message}\n\n${trailers}`;
 }
 
 /**

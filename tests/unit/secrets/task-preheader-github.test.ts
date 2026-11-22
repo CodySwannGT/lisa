@@ -17,7 +17,7 @@ import { intakeOwnerCommand } from "../../helpers/task-intake-owner.js";
 import { intakeCommands } from "../../helpers/task-intake-gh.js";
 import { nativeBash } from "../../helpers/task-native-bash.js";
 import { nativeWrite } from "../../helpers/task-native-context.js";
-import { readConfig } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
+import { readTaskConfig as readConfig } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
 import { requirementsContext } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs";
 import { classifyReadyCandidate } from "../../../plugins/src/base/scripts/intake-blocker-reprobe.mjs";
 const roots: string[] = [],

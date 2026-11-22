@@ -2,7 +2,7 @@
 import { AccessFailure } from "./config-layers.mjs";
 import { readinessProvider } from "./providers.mjs";
 import { readMaterialized } from "./resolve-secret.mjs";
-import { readConfig } from "./surfaces.mjs";
+import { readTaskConfig } from "./surfaces.mjs";
 import { readTaskRequirements } from "./task-requirements.mjs";
 import { routingFloor, routingCapabilityMatches } from "./routing-floor.mjs";
 import {
@@ -166,7 +166,7 @@ export function taskReadiness(options = {}) {
       root = process.cwd(),
       ref,
       tracker,
-      cfg = readConfig(root),
+      cfg = readTaskConfig(root),
       requirements,
       binding,
       env = process.env,

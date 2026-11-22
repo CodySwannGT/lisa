@@ -20,7 +20,7 @@ export function inspectConfigPath(path) {
 }
 
 /** Read all present layers, reporting only typed failures, never parse text. */
-export function readConfigLayer(path) {
+export function readConfigLayer(path, validate = true) {
   if (!inspectConfigPath(path)) return { status: "absent", path };
   let text;
   try {
@@ -34,5 +34,9 @@ export function readConfigLayer(path) {
   } catch {
     throw new AccessFailure("config-invalid");
   }
-  return { status: "valid", path, value: validateConfigLayer(value) };
+  return {
+    status: "valid",
+    path,
+    value: validate ? validateConfigLayer(value) : value,
+  };
 }

@@ -53,17 +53,23 @@ const NO_VERIFY_COMMIT = "git commit --no-verify -m x";
  * Run the fallback against a tool payload.
  * @param command The Bash command Claude proposes to run.
  * @param configDir Where the plugin registry would live.
+ * @param root The worktree where the tool would run.
  * @returns Exit status and combined output.
  */
 function runFallback(
   command: string,
-  configDir: string
+  configDir: string,
+  root = REPO_ROOT
 ): { status: number | null; output: string } {
   const result = boundedSpawnSync({
     label: "the enforcement fallback",
     command: BASH,
     args: [FALLBACK],
-    input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
+    input: JSON.stringify({
+      cwd: root,
+      tool_name: "Bash",
+      tool_input: { command },
+    }),
     env: {
       ...process.env,
       CLAUDE_PROJECT_DIR: REPO_ROOT,
@@ -85,9 +91,24 @@ describe("enforcement fallback when no plugin is installed", () => {
   });
 
   it("leaves the retired native safety net inactive", () => {
-    const { status } = runFallback("rm -rf $UNSET_VAR/data", NO_PLUGIN);
+    const scratch = mkdtempSync(path.join(tmpdir(), "lisa-fallback-unbound-"));
+    try {
+      const git = boundedSpawnSync({
+        label: "the unbound safety-net fixture",
+        command: "git",
+        args: ["init", "--quiet", scratch],
+      });
+      expect(git.status).toBe(0);
+      const { status } = runFallback(
+        "rm -rf $UNSET_VAR/data",
+        NO_PLUGIN,
+        scratch
+      );
 
-    expect(status).toBe(0);
+      expect(status).toBe(0);
+    } finally {
+      rmSync(scratch, { force: true, recursive: true });
+    }
   });
 
   it("lets an ordinary command through", () => {

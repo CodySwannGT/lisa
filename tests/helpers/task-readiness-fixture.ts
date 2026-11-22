@@ -1,15 +1,15 @@
+import { createSymlink } from "../support/borrowed-node-modules.mjs";
 /** Isolated real-hook continuation fixture; never inherits vendor credentials. */
 import {
   cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { readConfig } from "../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
+import { readTaskConfig as readConfig } from "../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
 import { requirementsContext } from "../../plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs";
 import { readEnv } from "../../src/utils/process-environment.js";
 import { boundedSpawnSync } from "./io-latency-budget.js";
@@ -95,9 +95,9 @@ function install(root: string) {
   );
   for (const name of ["bash", "cat", "dirname", "jq", "git"]) {
     const found = locate(name);
-    if (found) symlinkSync(found, path.join(bin, name));
+    if (found) createSymlink(found, path.join(bin, name));
   }
-  symlinkSync(process.execPath, path.join(bin, "node"));
+  createSymlink(process.execPath, path.join(bin, "node"));
   installTaskTools(bin, calls, process.execPath);
   if (
     boundedSpawnSync({
