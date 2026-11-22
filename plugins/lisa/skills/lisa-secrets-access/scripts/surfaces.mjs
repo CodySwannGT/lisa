@@ -273,7 +273,11 @@ export function readConfig(cwd = process.cwd(), env = process.env) {
   return projectSecretsConfig(cwd, env, false);
 }
 
-/** Read and validate the effective configuration for a tracked task. */
+/** Read and validate the effective configuration for a tracked task.
+ * @param {string} [cwd] Directory to look in.
+ * @param {NodeJS.ProcessEnv} [env] Environment of the calling surface.
+ * @returns {ReturnType<typeof readConfig>} Resolved configuration and provenance.
+ */
 export function readTaskConfig(cwd = process.cwd(), env = process.env) {
   return projectSecretsConfig(cwd, env, true);
 }
