@@ -1538,7 +1538,8 @@
     ],
     "scripts/lib/review-policy-reader.mjs": [
       "6e69a655501acfa745af0b3c6e64c6f480e2b7c5bf897338daa910194992eb8c",
-      "a207cebcd851d23beff91274f1f8d8bfc7ca4c94a91d5d43b00e83d265403f9a"
+      "a207cebcd851d23beff91274f1f8d8bfc7ca4c94a91d5d43b00e83d265403f9a",
+      "c3afb9304a595c2a3a54720cba9378a5929e90f3706ca2fa6d27499205061d07"
     ],
     "scripts/lib/review-policy.mjs": [
       "58278591291b31a259c895741099146b762145991584ea87145e92c218a5cfa6",
@@ -4797,7 +4798,8 @@
     ],
     "scripts/lib/review-policy-reader.mjs": [
       "6e69a655501acfa745af0b3c6e64c6f480e2b7c5bf897338daa910194992eb8c",
-      "a207cebcd851d23beff91274f1f8d8bfc7ca4c94a91d5d43b00e83d265403f9a"
+      "a207cebcd851d23beff91274f1f8d8bfc7ca4c94a91d5d43b00e83d265403f9a",
+      "c3afb9304a595c2a3a54720cba9378a5929e90f3706ca2fa6d27499205061d07"
     ],
     "scripts/lib/review-policy.mjs": [
       "58278591291b31a259c895741099146b762145991584ea87145e92c218a5cfa6",

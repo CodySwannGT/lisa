@@ -1,5 +1,5 @@
-# Seeded by Lisa on first setup. The default-branch review policy consumes
-# the native event signal only and never runs source from the pull request.
+# Seeded by Lisa on first setup — this file is YOURS.
+# Lisa will not overwrite it. (copy-overwrite assets ARE replaced each run.)
 name: Review policy activity
 
 on:

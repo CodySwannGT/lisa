@@ -16,6 +16,8 @@ import { readGates } from "../lisa-gates.mjs";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+const NOT_REVIEWED = "not-reviewed";
+
 /** Read the same canonical project config used by the registry. */
 export function loadReviewConfig(root) {
   return readGates(root).config;
@@ -252,7 +254,7 @@ export function readPolicyReview({
       ) {
         return {
           ...verdict,
-          outcome: "not-reviewed",
+          outcome: NOT_REVIEWED,
           reasons: ["review-evidence-changed-after-read"],
         };
       }
@@ -270,7 +272,7 @@ export function readPolicyReview({
     ) {
       return {
         ...verdict,
-        outcome: "not-reviewed",
+        outcome: NOT_REVIEWED,
         reasons: [
           ...verdict.reasons,
           "head-or-holds-changed-after-evidence-read",
@@ -280,7 +282,7 @@ export function readPolicyReview({
     return verdict;
   } catch (error) {
     return {
-      outcome: "not-reviewed",
+      outcome: NOT_REVIEWED,
       sha: head,
       providers: [],
       evidence: [],
