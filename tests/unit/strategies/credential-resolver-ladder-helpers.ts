@@ -82,7 +82,7 @@ export interface LadderSkill {
   readonly file?: string;
 }
 
-export const readSkill = (surface: string, skill: string): string =>
+const readSkill = (surface: string, skill: string): string =>
   readFileSync(path.resolve(surface, `skills/${skill}/SKILL.md`), "utf8");
 
 /** Where `lisa-linear-access` ships `read_linear_key()`, relative to a surface. */

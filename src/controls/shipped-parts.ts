@@ -140,7 +140,7 @@ export async function readFolderProjects(
  * @param detect - The same project type detector used for a single project
  * @returns The folder's facts, or a manifest read error
  */
-export async function readShippedFolder(
+async function readShippedFolder(
   root: string,
   scope: string,
   detect = detectSupportedTypes

@@ -15,7 +15,7 @@ export const notionRequirement = {
   operation: "database-read",
   resource: DATABASE,
 };
-export const executableRequirement = {
+const executableRequirement = {
   id: "api-access",
   kind: "capability",
   credential_names: ["GITGUARDIAN_API_KEY"],

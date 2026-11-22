@@ -9,9 +9,9 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { env as processEnv } from "node:process";
 import { readConfig } from "../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
 import { requirementsContext } from "../../plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs";
+import { readEnv } from "../../src/utils/process-environment.js";
 import { boundedSpawnSync } from "./io-latency-budget.js";
 import { installTaskTools } from "./task-readiness-tools.js";
 import { driveTask } from "./task-readiness-continuation.js";
@@ -20,11 +20,12 @@ const BASE = path.resolve(__dirname, "../../plugins/src/base");
 const CONFIG = ".lisa.config.json";
 const CONTEXT = ".lisa/work-item-context.md";
 /** Required executable and private fixture locations. */
-interface FixtureEnvironment extends Record<string, string> {
+export interface FixtureEnvironment extends Record<string, string> {
   PATH: string;
   HOME: string;
   XDG_CONFIG_HOME: string;
   TMPDIR: string;
+  LISA_SECRETS_SURFACE: string;
 }
 export const HEADER = "<!-- lisa-required-access:v1\n";
 const REQUIRED_ACCESS = [
@@ -43,7 +44,7 @@ const REQUIRED_ACCESS = [
  * @returns Absolute executable location, when installed.
  */
 function locate(name: string): string | undefined {
-  return (processEnv.PATH ?? "")
+  return (readEnv("PATH") ?? "")
     .split(path.delimiter)
     .map(p => path.join(p, name))
     .find(existsSync);

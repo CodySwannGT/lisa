@@ -12594,7 +12594,6 @@
     "tests/helpers/nightly-e2e-selection-harness.ts": true,
     "tests/helpers/nightly-e2e-tracking-harness.ts": true,
     "tests/helpers/nightly-e2e-waiver-harness.ts": true,
-    "tests/helpers/opencode-plugin-rosters.ts": true,
     "tests/helpers/owned-temp-dirs.ts": true,
     "tests/helpers/package-lisa-apply-harness.ts": true,
     "tests/helpers/package-mention-fixture.ts": true,
