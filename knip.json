@@ -17,6 +17,7 @@
         "tests/fixtures/session-manager/support/stubs/*.mjs",
         "tests/helpers/__fixtures__/plugin-registration-cli.mjs",
         "tests/helpers/__fixtures__/{coverage-scratch-concurrent,margin-guard-case}.ts",
+        "tests/helpers/child-budget-test-runner.ts",
         "tests/helpers/history-scanner-global-setup.ts",
         "tests/support/work-item-{fake-aws,stateful-gh,stateful-linear}.mjs"
       ],

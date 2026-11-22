@@ -25,10 +25,10 @@ import {
   BOUNDED_SPAWN_BASE_MS,
   boundedExecFileSync,
   boundedSpawnSync,
-  ioLatencyBudgetMs,
   ChildFailure,
   useIoLatencyBudget,
 } from "../../helpers/io-latency-budget.js";
+import type { ChildBudgetObservation } from "../../helpers/fresh-child-budget.js";
 
 // Two cases here start a real child and wait for a real kill.
 useIoLatencyBudget();
@@ -144,17 +144,27 @@ describe("boundedExecFileSync", () => {
     expect(message).not.toMatch(/Command failed/u);
   });
 
-  it("derives the child budget from ioLatencyBudgetMs", () => {
+  it("uses the fresh child decision and charges calibration to its containing window", () => {
     const recorded: SpawnSyncOptionsWithStringEncoding[] = [];
+    const readings: ChildBudgetObservation[] = [];
 
     boundedExecFileSync({
       label: "recorder",
       command: process.execPath,
       args: ["-e", ""],
       spawn: recordingSpawn(recorded),
+      observeBudget: reading => readings.push(reading),
     });
 
-    expect(recorded[0]?.timeout).toBe(ioLatencyBudgetMs(BOUNDED_SPAWN_BASE_MS));
+    const reading = readings[0]!;
+    expect(recorded[0]?.timeout).toBe(reading.timeoutMs);
+    expect(reading.baseMs).toBe(BOUNDED_SPAWN_BASE_MS);
+    expect(reading.nominalTimeoutMs).toBe(
+      Math.round(reading.baseMs * reading.slowdown)
+    );
+    expect(reading.calibrationMs + reading.timeoutMs).toBeLessThanOrEqual(
+      reading.operationLimitMs
+    );
   });
 });
 
