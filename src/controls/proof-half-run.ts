@@ -30,7 +30,7 @@
  * @module controls/proof-half-run
  */
 import { observeHalf } from "./proof-judgement.js";
-import type { RunnableProof } from "./proof-plan.js";
+import { proofTrigger, type RunnableProof } from "./proof-plan.js";
 import type { ProofJudge } from "./proof-tools.js";
 import type {
   PatchOutcome,
@@ -113,20 +113,9 @@ async function triggered(
   half: ProofHalf,
   workspace: ProofWorkspace
 ): Promise<ProofAnswer> {
-  const { entry, moment, mechanism, timeLimitSeconds } = proof;
+  const { mechanism } = proof;
   try {
-    const omitFixtureWorkItem =
-      half === "violation" && entry.proof.violation_commit === "omit-work-item";
-    return await workspace.trigger({
-      entry,
-      moment,
-      mechanism,
-      timeoutMs: timeLimitSeconds * 1000,
-      ...(omitFixtureWorkItem ? { omitFixtureWorkItem: true } : {}),
-      ...(entry.proof.dependency_fixture === "bun-production-advisory"
-        ? { auditFixture: half }
-        : {}),
-    });
+    return await workspace.trigger(proofTrigger(proof, half));
   } catch (error) {
     return {
       command: [...mechanism.argv],

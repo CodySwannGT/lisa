@@ -27,6 +27,7 @@ import {
   type ProofEntryResult,
   type ProofHalf,
   type ProofOutcome,
+  type ProofTrigger,
 } from "./proof-types.js";
 import { PULL_REQUEST_MOMENT } from "./pull-request-executor.js";
 import {
@@ -69,6 +70,31 @@ export interface RunnableProof {
   readonly patches: Readonly<
     Record<ProofHalf, { readonly file: string; readonly text: string }>
   >;
+}
+
+/** Describe the exact command and disposable input for one half.
+ * @param proof - The planned pair.
+ * @param half - The clean or violating input.
+ * @returns The input to prepare before running the check.
+ */
+export function proofTrigger(
+  proof: RunnableProof,
+  half: ProofHalf
+): ProofTrigger {
+  const { entry, moment, mechanism, timeLimitSeconds } = proof;
+  return {
+    entry,
+    moment,
+    mechanism,
+    timeoutMs: timeLimitSeconds * 1000,
+    ...(half === "violation" &&
+    entry.proof.violation_commit === "omit-work-item"
+      ? { omitFixtureWorkItem: true }
+      : {}),
+    ...(entry.proof.dependency_fixture === "bun-production-advisory"
+      ? { auditFixture: half }
+      : {}),
+  };
 }
 
 /** A proof to run, or the result of an entry that cannot be proved. */
