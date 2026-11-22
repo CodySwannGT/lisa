@@ -117,16 +117,34 @@ function readConfig(file) {
 }
 
 /**
+ * Whether parsed JSON is an object that can hold configuration keys.
+ * @param {unknown} value - Parsed configuration value
+ * @returns {boolean} Whether the value is a config object
+ */
+function isConfigObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+/**
+ * Read the raw block, preserving invalid declarations for the mode resolver.
+ * @param {unknown} config - Parsed config file
+ * @returns {unknown} Raw human-gate block
+ */
+function humanGateBlock(config) {
+  return isConfigObject(config) ? config.humanGate : undefined;
+}
+
+/**
  * The effective human-only classes: local override replaces global when set.
  * @param {unknown} local - Parsed local config
  * @param {unknown} global - Parsed global config
  * @returns {unknown[]} Declared classes
  */
 export function resolveHumanOnly(local, global) {
-  const pick = config =>
-    config && typeof config === "object"
-      ? config.humanGate?.humanOnly
-      : undefined;
+  const pick = config => {
+    const block = humanGateBlock(config);
+    return isConfigObject(block) ? block.humanOnly : undefined;
+  };
   const value = pick(local) ?? pick(global);
   return Array.isArray(value) ? value : [];
 }
@@ -142,27 +160,37 @@ export function resolveHumanOnly(local, global) {
  * as `rejected` (its JSON spelling) so the caller can report it.
  * @param {unknown} local - Parsed local config
  * @param {unknown} global - Parsed global config
- * @returns {{ mode: string, rejected?: string }} The mode in force
+ * @returns {{ mode: string, rejected?: string, rejectedBlock?: true }} The mode in force
  */
 export function resolveHumanGateMode(local, global) {
-  const pick = config =>
-    config && typeof config === "object" ? config.humanGate?.mode : undefined;
+  const pick = config => {
+    const block = humanGateBlock(config);
+    if (!isConfigObject(block))
+      return { value: block, mode: undefined, malformed: true };
+    return {
+      value: block.mode,
+      mode: normalizeHumanGateMode(block.mode),
+      malformed: false,
+    };
+  };
   // Every declaration is judged, so a typo in the committed file is reported
   // even while a valid local value is in force.
   const declared = [pick(local), pick(global)].filter(
-    value => value !== undefined
+    entry => entry.value !== undefined
   );
-  const valid = declared
-    .map(normalizeHumanGateMode)
-    .find(mode => HUMAN_GATE_MODES.includes(mode));
+  const valid = declared.find(entry => HUMAN_GATE_MODES.includes(entry.mode));
   const invalid = declared.find(
-    value => !HUMAN_GATE_MODES.includes(normalizeHumanGateMode(value))
+    entry => !HUMAN_GATE_MODES.includes(entry.mode)
   );
   const mode =
-    valid ?? (invalid === undefined ? DEFAULT_HUMAN_GATE_MODE : "strict");
+    valid?.mode ?? (invalid === undefined ? DEFAULT_HUMAN_GATE_MODE : "strict");
   return invalid === undefined
     ? { mode }
-    : { mode, rejected: JSON.stringify(invalid) };
+    : {
+        mode,
+        rejected: JSON.stringify(invalid.value),
+        ...(invalid.malformed ? { rejectedBlock: true } : {}),
+      };
 }
 
 /**
@@ -170,23 +198,24 @@ export function resolveHumanGateMode(local, global) {
  * human-only classes, each resolved local-then-global.
  * @param {unknown} local - Parsed local config
  * @param {unknown} global - Parsed global config
- * @returns {{ mode: string, humanOnly: unknown[], rejected?: string }} Policy
+ * @returns {{ mode: string, humanOnly: unknown[], rejected?: string, rejectedBlock?: true }} Policy
  */
 export function resolveHumanGatePolicy(local, global) {
-  const { mode, rejected } = resolveHumanGateMode(local, global);
   return {
-    mode,
+    ...resolveHumanGateMode(local, global),
     humanOnly: resolveHumanOnly(local, global),
-    ...(rejected === undefined ? {} : { rejected }),
   };
 }
 
 /**
  * The stderr line for an invalid `humanGate.mode`.
  * @param {string} rejected - JSON spelling of the declared value
+ * @param {boolean} rejectedBlock - Whether the whole block was invalid
  * @returns {string} One warning line
  */
-function invalidModeWarning(rejected) {
+function invalidModeWarning(rejected, rejectedBlock) {
+  if (rejectedBlock)
+    return `Invalid humanGate: ${rejected} is not an object.\n`;
   const accepted = HUMAN_GATE_MODES.map(value => `"${value}"`).join(" | ");
   return `Invalid humanGate.mode: ${rejected} is not one of ${accepted}; ignored.\n`;
 }
@@ -250,12 +279,12 @@ export function main(argv, io = {}) {
     error(`${failed.error}\n`);
     return 2;
   }
-  const { rejected, ...policy } = resolveHumanGatePolicy(
+  const { rejected, rejectedBlock, ...policy } = resolveHumanGatePolicy(
     local.value,
     global.value
   );
   if (rejected !== undefined) {
-    error(invalidModeWarning(rejected));
+    error(invalidModeWarning(rejected, rejectedBlock === true));
     error(`humanGate.mode in force: "${policy.mode}".\n`);
   }
   if (command === "policy") {
