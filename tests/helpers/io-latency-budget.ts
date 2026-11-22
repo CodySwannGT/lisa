@@ -577,9 +577,7 @@ export function assertChildCompleted(
     throw new Error(pipeClosedDiagnostic(outcome, label));
   }
   const cause =
-    outcome.error === undefined
-      ? `killed by signal ${String(outcome.signal)}`
-      : outcome.error.message;
+    outcome.error?.message ?? `killed by signal ${String(outcome.signal)}`;
   const output = describeChildOutput(outcome.stdout, outcome.stderr);
   const measurement = budget
     ? describeChildBudget(budget)
@@ -793,21 +791,22 @@ export interface BoundedSpawn {
  * @returns The completed child, streams decoded as UTF-8
  */
 export function boundedSpawnSync(spec: BoundedSpawn): SpawnSyncReturns<string> {
-  return runBoundedChild(
-    spec,
-    {
-      baseMs: spec.baseMs ?? BOUNDED_SPAWN_BASE_MS,
-      quietReferenceMs: QUIET_SPAWN_LATENCY_MS,
-      maxSlowdown: MAX_SPAWN_SLOWDOWN,
-      referenceDeadlineMs: REFERENCE_SPAWN_DEADLINE_MS,
-      ...containingChildWindow(
-        scaledCaseWindow.has(localVitestConfig),
-        1 / CASE_BUDGET_MARGIN,
-        MARGIN_FRACTION
-      ),
-    },
-    assertChildCompleted
+  const baseMs = spec.baseMs ?? BOUNDED_SPAWN_BASE_MS;
+  const window = containingChildWindow(
+    scaledCaseWindow.has(localVitestConfig),
+    1 / CASE_BUDGET_MARGIN,
+    MARGIN_FRACTION
   );
+  const policy = window
+    ? {
+        ...window,
+        baseMs,
+        quietReferenceMs: QUIET_SPAWN_LATENCY_MS,
+        maxSlowdown: MAX_SPAWN_SLOWDOWN,
+        referenceDeadlineMs: REFERENCE_SPAWN_DEADLINE_MS,
+      }
+    : ioLatencyBudgetMs(baseMs);
+  return runBoundedChild(spec, policy, assertChildCompleted);
 }
 
 /**

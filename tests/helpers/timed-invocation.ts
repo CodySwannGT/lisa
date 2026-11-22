@@ -23,24 +23,42 @@ export function publishTimedInvocation(
 
 /**
  * Read an actual finite invocation, without guessing a hook age or default.
- * @returns The runner's current invocation values
+ * @returns The runner's current invocation, or undefined during test collection
  */
-export function currentTimedInvocation(): TimedInvocation {
+export function activeTimedInvocation(): TimedInvocation | undefined {
   const reader = (globalThis as unknown as Record<symbol, unknown>)[
     INVOCATION_KEY
   ];
-  const value: TimedInvocation | undefined =
-    typeof reader === "function" ? reader() : undefined;
+  if (typeof reader !== "function") throw missingTimingOwner();
+  const value: TimedInvocation | undefined = reader();
+  if (value === undefined) return value;
   if (
-    !value ||
     !Number.isFinite(value.startedAtMs) ||
     !Number.isFinite(value.nowMs) ||
     !Number.isFinite(value.timeoutMs) ||
     value.timeoutMs <= 0
   ) {
-    throw new Error(
-      "Child admission refused: actual finite Vitest invocation unavailable; use the configured child-budget runner."
-    );
+    throw missingTimingOwner();
   }
   return value;
+}
+
+/**
+ * Report that the expected native timer could not be read.
+ * @returns An error for the caller or its test harness
+ */
+function missingTimingOwner(): Error {
+  return new Error(
+    "Child admission refused: actual finite Vitest invocation unavailable; use the configured child-budget runner."
+  );
+}
+
+/**
+ * Require native timing when a caller is asserting the timed contract itself.
+ * @returns The active native invocation
+ */
+export function currentTimedInvocation(): TimedInvocation {
+  const active = activeTimedInvocation();
+  if (active === undefined) throw missingTimingOwner();
+  return active;
 }

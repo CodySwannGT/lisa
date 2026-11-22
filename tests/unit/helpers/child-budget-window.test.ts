@@ -14,6 +14,11 @@ import {
   TestRunner,
   vi,
 } from "vitest";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+
+const HOOK_LIMIT = ioLatencyBudgetMs(10_000);
+const LATE_START = HOOK_LIMIT - 1_000;
+
 const p = vi.hoisted(() => ({
   now: 0,
   reference: 18,
@@ -174,40 +179,40 @@ describe("R2 actual hook override and one consumed window", () => {
     actual = control(0, 72);
     try {
       early = child("hook-early", 400, 1);
-      p.now = 9000;
-      late = child("hook-late", 400, 10000);
-      repeated = child("hook-repeated", 400, 10000);
-      p.now = 10000;
+      p.now = LATE_START;
+      late = child("hook-late", 400, HOOK_LIMIT);
+      repeated = child("hook-repeated", 400, HOOK_LIMIT);
+      p.now = HOOK_LIMIT;
       exhausted = child("hook-exhausted", 400);
     } finally {
       vi.restoreAllMocks();
       Object.defineProperty(scope, key, { value: originalReader });
     }
-  }, 10000);
+  }, HOOK_LIMIT);
   it("the actual hook override reaches the budget decision", () => {
-    expect(actual.timeoutMs).toBeCloseTo(10000, 9);
+    expect(actual.timeoutMs).toBeCloseTo(HOOK_LIMIT, 9);
     expect(early.error).toBeUndefined();
-    expect(early.reading!.parentBudgetMs).toBeCloseTo(10000, 9);
+    expect(early.reading!.parentBudgetMs).toBeCloseTo(HOOK_LIMIT, 9);
     expect(early.reading!.timeoutMs).toBeCloseTo(1600, 9);
   });
   it("late hook calibration and target stay before that same deadline", () => {
-    expect(late.reading!.parentElapsedMs).toBe(9000);
+    expect(late.reading!.parentElapsedMs).toBe(LATE_START);
     expect(late.reading!.calibrationMs).toBe(72);
-    expect(late.finished).toBeLessThan(10000);
+    expect(late.finished).toBeLessThan(HOOK_LIMIT);
     expect(late.dispatched!.bound).toBeLessThan(928);
     expect(
       late.dispatched!.bound * 2.5 + late.reading!.calibrationMs
-    ).toBeLessThanOrEqual(10000 - late.reading!.parentElapsedMs);
+    ).toBeLessThanOrEqual(HOOK_LIMIT - late.reading!.parentElapsedMs);
     expect(late.error).toMatch(/controlled target timeout/);
   });
   it("repeated call spends the original hook window rather than renewing", () => {
     expect(repeated.error).toBeDefined();
-    expect(repeated.reading!.parentBudgetMs).toBeCloseTo(10000, 9);
+    expect(repeated.reading!.parentBudgetMs).toBeCloseTo(HOOK_LIMIT, 9);
     expect(repeated.reading!.parentElapsedMs).toBe(late.finished);
     expect(
       repeated.dispatched!.bound * 2.5 + repeated.reading!.calibrationMs
-    ).toBeLessThanOrEqual(10000 - late.finished);
-    expect(repeated.finished).toBeLessThan(10000);
+    ).toBeLessThanOrEqual(HOOK_LIMIT - late.finished);
+    expect(repeated.finished).toBeLessThan(HOOK_LIMIT);
     expect(exhausted.error).toMatch(/headroom/);
     expect(exhausted.dispatched).toBeUndefined();
   });

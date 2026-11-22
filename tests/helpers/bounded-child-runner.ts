@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import type { SpawnSyncReturns } from "node:child_process";
 import { TestRunner, vi } from "vitest";
-import { currentTimedInvocation } from "./timed-invocation.js";
+import { activeTimedInvocation } from "./timed-invocation.js";
 import {
   completedChildBudget,
   freshChildBudget,
@@ -22,7 +22,7 @@ import type {
  * @param scaled - Whether the file opted into the existing scaled margin
  * @param flatShare - Existing flat child/case headroom share
  * @param scaledShare - Existing scaled passing-case margin
- * @returns A fixed containing-window snapshot
+ * @returns A fixed containing-window snapshot, when Vitest is timing this call
  */
 export function containingChildWindow(
   scaled: boolean,
@@ -35,7 +35,8 @@ export function containingChildWindow(
     : performance.now.bind(performance);
   const capturedAtMs = now();
   const task = TestRunner.getCurrentTest();
-  const window = currentTimedInvocation();
+  const window = activeTimedInvocation();
+  if (window === undefined) return undefined;
   const elapsedMs = Math.max(0, window.nowMs - window.startedAtMs);
   const hookRunning = Object.values(task?.result?.hooks ?? {}).includes("run");
   const inBody = task?.result?.state === "run" && !hookRunning;
@@ -64,25 +65,37 @@ export function containingChildWindow(
 }
 
 /**
+ * Choose one measured admission or the existing finite library-collection cap.
+ * @param policy - Timed admission facts or the precomputed collection cap
+ * @returns Values to use for this dispatch
+ */
+function dispatchBudget(policy: ChildBudgetPolicy | number) {
+  if (typeof policy === "number") {
+    return { budget: undefined, now: Date.now, timeoutMs: policy };
+  }
+  const budget = freshChildBudget(policy);
+  return { budget, now: policy.parentWindow.now, timeoutMs: budget.timeoutMs };
+}
+
+/**
  * Run once under a fixed budget and preserve the owning helper's error rules.
  * @param spec - Child transport and declared input relationship
- * @param policy - Canonical constants and containing-window snapshot
+ * @param policy - Timed window or the existing cap for collection-time work
  * @param complete - Actual helper completion/error assertion
  * @returns The real child result, including ordinary nonzero status and streams
  */
 export function runBoundedChild(
   spec: BoundedSpawn,
-  policy: ChildBudgetPolicy,
+  policy: ChildBudgetPolicy | number,
   complete: (
     outcome: ChildOutcome,
     label: string,
     tolerance: PipeErrorTolerance,
     timing: { timeoutMs: number; elapsedMs: number },
-    budget: ChildBudgetObservation
+    budget?: ChildBudgetObservation
   ) => void
 ): SpawnSyncReturns<string> {
-  const now = policy.parentWindow.now;
-  const budget = freshChildBudget(policy);
+  const { budget, now, timeoutMs } = dispatchBudget(policy);
   const spawn = spec.spawn ?? spawnSync;
   try {
     const dispatchStarted = now();
@@ -94,7 +107,7 @@ export function runBoundedChild(
       killSignal: "SIGKILL",
       maxBuffer: spec.maxBuffer,
       stdio: spec.stdio,
-      timeout: budget.timeoutMs,
+      timeout: timeoutMs,
     });
     complete(
       outcome,
@@ -103,16 +116,16 @@ export function runBoundedChild(
         ? "child-may-exit-before-reading"
         : "child-must-consume-input",
       {
-        timeoutMs: budget.timeoutMs,
+        timeoutMs,
         elapsedMs: now() - dispatchStarted,
       },
-      completedChildBudget(budget, now)
+      budget && completedChildBudget(budget, now)
     );
     return outcome;
   } finally {
     // This optional test seam expects a nonthrowing observer. A throwing callback
     // replaces any pending child error and can interrupt outer exec status
     // conversion; generalized fallible-sink/error-priority handling is deferred.
-    spec.observeBudget?.(completedChildBudget(budget, now));
+    if (budget) spec.observeBudget?.(completedChildBudget(budget, now));
   }
 }

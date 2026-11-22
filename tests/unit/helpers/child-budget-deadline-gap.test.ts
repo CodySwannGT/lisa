@@ -14,6 +14,11 @@ import {
 } from "../../helpers/bounded-child-runner.js";
 import type { ChildBudgetObservation } from "../../helpers/fresh-child-budget.js";
 
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+
+const CASE_LIMIT = ioLatencyBudgetMs(1_000);
+const CAPTURE_AGE = CASE_LIMIT - 100;
+
 const profile = vi.hoisted(() => ({
   now: 0,
   references: 0,
@@ -60,8 +65,8 @@ describe.each([false, true])(
         let reading: ChildBudgetObservation | undefined;
         let bound: number | undefined;
         let failure: Error | undefined;
-        expect(actual.timeoutMs).toBeCloseTo(1000, 9);
-        profile.now = 900;
+        expect(actual.timeoutMs).toBeCloseTo(CASE_LIMIT, 9);
+        profile.now = CAPTURE_AGE;
         profile.references = 0;
         if (fake) {
           vi.useFakeTimers();
@@ -73,12 +78,14 @@ describe.each([false, true])(
         Object.defineProperty(scope, key, {
           value: () => ({ ...actual, nowMs: actual.startedAtMs + profile.now }),
         });
+        const window = containingChildWindow(false, 1 / 2.5, 0.5);
+        if (!window) throw new Error("Expected a timed case");
         const policy = {
           baseMs: 40,
           quietReferenceMs: 18,
           maxSlowdown: 8,
           referenceDeadlineMs: 30000,
-          ...containingChildWindow(false, 1 / 2.5, 0.5),
+          ...window,
         };
         profile.now += gap;
         try {
@@ -112,7 +119,7 @@ describe.each([false, true])(
         profile.journal.push({
           fake,
           gap,
-          capturedAge: 900,
+          capturedAge: CAPTURE_AGE,
           actualInvocationStartedAtMs: actual.startedAtMs,
           actualInvocationDeadlineMs: actual.startedAtMs + actual.timeoutMs,
           policy,
@@ -130,11 +137,13 @@ describe.each([false, true])(
           expect(failure).toBeUndefined();
           expect(profile.references).toBe(1);
           expect(bound).toBe(gap === 40 ? 16 : 32);
-          expect(bound! * 2.5).toBeLessThanOrEqual(1000 - (900 + gap + 18));
-          expect(profile.now).toBe(900 + gap + 19);
+          expect(bound! * 2.5).toBeLessThanOrEqual(
+            CASE_LIMIT - (CAPTURE_AGE + gap + 18)
+          );
+          expect(profile.now).toBe(CAPTURE_AGE + gap + 19);
         }
       },
-      1000
+      CASE_LIMIT
     );
   }
 );

@@ -4,6 +4,11 @@ import type { ChildBudgetObservation } from "../helpers/fresh-child-budget.js";
 import { currentTimedInvocation } from "../helpers/timed-invocation.js";
 import type { TimedInvocation } from "../helpers/timed-invocation.js";
 
+import { ioLatencyBudgetMs } from "../helpers/io-latency-budget.js";
+
+const HOOK_LIMIT = ioLatencyBudgetMs(1_000);
+const LATE_START = HOOK_LIMIT - 200;
+
 /** Value-only outcome of one real reference or target primitive call. */
 interface Stage {
   kind: "reference" | "target";
@@ -159,22 +164,22 @@ async function runHook(
  * @param result - Actual hook outcome, including absent undispatched work
  */
 function assertWindow(result: HookReading): void {
-  // Emit in the assertion case, outside the measured hook's1000ms window.
+  // Emit in the assertion case, outside the measured hook's timed window.
   const { targetDispatchCount } = result;
   const { invocation, beforeChild, completed } = result;
   console.log(
-    `HOOK_WINDOW_JOURNAL ${JSON.stringify({ classification: "REAL1000ms hook; actual owned Node reference/target; added72ms reference-program work, not OS contention", branch: targetDispatchCount ? "target-dispatched" : result.stages[0]?.errorCode === "ETIMEDOUT" ? "reference-timeout/no-target" : "unexpected/no-target", originalDeadlineMs: result.invocation.startedAtMs + result.invocation.timeoutMs, ...result })}`
+    `HOOK_WINDOW_JOURNAL ${JSON.stringify({ classification: "Owned Node reference and target under an observed Vitest hook deadline, with 72ms of controlled reference work", branch: targetDispatchCount ? "target-dispatched" : result.stages[0]?.errorCode === "ETIMEDOUT" ? "reference-timeout/no-target" : "unexpected/no-target", originalDeadlineMs: result.invocation.startedAtMs + result.invocation.timeoutMs, ...result })}`
   );
-  expect(invocation.timeoutMs).toBeCloseTo(1000, 9);
+  expect(invocation.timeoutMs).toBeCloseTo(HOOK_LIMIT, 9);
   for (const value of [invocation, beforeChild, completed]) {
     expect(Number.isFinite(value.startedAtMs)).toBe(true);
     expect(Number.isFinite(value.nowMs)).toBe(true);
     expect(value.startedAtMs).toBe(invocation.startedAtMs);
-    expect(value.timeoutMs).toBeCloseTo(1000, 9);
+    expect(value.timeoutMs).toBeCloseTo(HOOK_LIMIT, 9);
     expect(value.nowMs).toBeGreaterThanOrEqual(value.startedAtMs);
-    expect(value.nowMs).toBeLessThan(invocation.startedAtMs + 1000);
+    expect(value.nowMs).toBeLessThan(invocation.startedAtMs + HOOK_LIMIT);
   }
-  expect(result.callbackElapsedMs).toBeLessThan(1000);
+  expect(result.callbackElapsedMs).toBeLessThan(HOOK_LIMIT);
   expect(
     result.stages.filter(stage => stage.kind === "reference")
   ).toHaveLength(1);
@@ -183,12 +188,12 @@ function assertWindow(result: HookReading): void {
     expect(Number.isFinite(stage.boundMs)).toBe(true);
     expect(stage.boundMs).toBeGreaterThan(0);
     expect(stage.boundMs).toBeLessThanOrEqual(
-      invocation.startedAtMs + 1000 - stage.startedAtMs
+      invocation.startedAtMs + HOOK_LIMIT - stage.startedAtMs
     );
     expect(Number.isFinite(stage.startedAtMs)).toBe(true);
     expect(stage.startedAtMs).toBeGreaterThanOrEqual(beforeChild.nowMs);
     expect(stage.endedAtMs).toBeGreaterThan(stage.startedAtMs);
-    expect(stage.endedAtMs).toBeLessThan(invocation.startedAtMs + 1000);
+    expect(stage.endedAtMs).toBeLessThan(invocation.startedAtMs + HOOK_LIMIT);
     expect(Number.isFinite(stage.pid)).toBe(true);
     expect(stage.pid).toBeGreaterThanOrEqual(0);
     if (stage.pid > 0) expect(stage.directPidAbsent).toBe(true);
@@ -215,19 +220,19 @@ function assertSelectedChild(result: HookReading): Stage {
   expect(result.targetDispatchCount).toBe(1);
   expect(result.stages).toHaveLength(2);
   expect(reading).toBeDefined();
-  expect(reading.parentBudgetMs).toBeCloseTo(1000, 9);
+  expect(reading.parentBudgetMs).toBeCloseTo(HOOK_LIMIT, 9);
   expect(reading.parentWindow.nativeStartedAtMs).toBe(
     result.invocation.startedAtMs
   );
   expect(reading.parentWindow.nativeDeadlineMs).toBe(
-    result.invocation.startedAtMs + 1000
+    result.invocation.startedAtMs + HOOK_LIMIT
   );
   expect(reading.parentWindow.clockDomain).toBe("performance");
   expect(reading.calibrationMs + reading.timeoutMs * 2.5).toBeLessThanOrEqual(
-    1000 - reading.parentElapsedMs
+    HOOK_LIMIT - reading.parentElapsedMs
   );
   expect(reading.operationElapsedMs).toBeLessThan(
-    1000 - reading.parentElapsedMs
+    HOOK_LIMIT - reading.parentElapsedMs
   );
   expect(target.kind).toBe("target");
   expect(target.boundMs).toBe(reading.timeoutMs);
@@ -239,13 +244,13 @@ function assertSelectedChild(result: HookReading): Stage {
 describe("actual late short hook retains remaining2.5headroom", () => {
   let result: HookReading;
   beforeAll(async () => {
-    result = await runHook(800, "setInterval(()=>{},1000)");
-  }, 1000);
+    result = await runHook(LATE_START, "setInterval(()=>{},1000)");
+  }, HOOK_LIMIT);
   it("requires an attributable reference timeout or all dispatched-target bounds", () => {
     assertWindow(result);
     expect(
       result.beforeChild.nowMs - result.invocation.startedAtMs
-    ).toBeGreaterThanOrEqual(800);
+    ).toBeGreaterThanOrEqual(LATE_START);
     const reference = result.stages[0]!;
     if (reference.errorCode === "ETIMEDOUT") {
       expect(reference.kind).toBe("reference");
@@ -268,12 +273,14 @@ describe("actual late short hook retains remaining2.5headroom", () => {
       const operationWindow = Number(allocation![1]);
       expect(operationWindow).toBeGreaterThan(0);
       expect(operationWindow).toBeLessThanOrEqual(
-        result.invocation.startedAtMs + 1000 - result.beforeChild.nowMs
+        result.invocation.startedAtMs + HOOK_LIMIT - result.beforeChild.nowMs
       );
       expect(reference.boundMs).toBeLessThanOrEqual(operationWindow);
     } else {
       const target = assertSelectedChild(result);
-      expect(result.reading!.parentElapsedMs).toBeGreaterThanOrEqual(800);
+      expect(result.reading!.parentElapsedMs).toBeGreaterThanOrEqual(
+        LATE_START
+      );
       expect(target.errorCode).toBe("ETIMEDOUT");
       expect(target.signal).toBe("SIGKILL");
       expect(target.status).toBeNull();
@@ -286,7 +293,7 @@ describe("actual ordinary short hook permits healthy work", () => {
   let result: HookReading;
   beforeAll(async () => {
     result = await runHook(0, 'process.stdout.write("healthy-hook\\n")');
-  }, 1000);
+  }, HOOK_LIMIT);
   it("requires a successful reference and healthy target, never a refusal", () => {
     assertWindow(result);
     const target = assertSelectedChild(result);
