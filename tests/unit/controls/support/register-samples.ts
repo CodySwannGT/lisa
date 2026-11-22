@@ -59,14 +59,14 @@ export const PARAMETER: Required<ControlParameter> = {
   direction: "floor",
 };
 
-/** A proof with every key filled in. */
-export const PROOF: Required<ControlProof> = {
+/** A paired patch proof with each common field filled in. */
+export const PROOF = {
   violation: ".lisa/controls/proofs/lint.violation.patch",
   clean: ".lisa/controls/proofs/lint.clean.patch",
   failure_shape: ["Found 1 error"],
   timeout_seconds: 120,
   external_effects: [],
-};
+} satisfies ControlProof;
 
 /** A place the audit found a check, with every key. */
 const LOCATOR: Required<EvidenceLocator> = {

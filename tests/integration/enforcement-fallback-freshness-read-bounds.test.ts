@@ -21,6 +21,10 @@ import {
 
 afterEach(cleanupScratchRoots);
 
+const GUARD_FILES = SELECTED_GUARDS.length * 2;
+const GUARD_LIMIT = 1024 * 1024;
+const METADATA_LIMIT = 4 * 64 * 1024 + 4 * 1024 * 1024;
+
 /** Real fs operations are delegated; one owned template optionally changes. */
 const OBSERVER = [
   'import fs from "node:fs";',
@@ -184,11 +188,8 @@ describe("finite actual diagnostic file reads", () => {
         (total, operation) => total + (operation.bytes ?? 0),
         0
       );
-      expect(bytes).toBe(
-        mode === "maximum"
-          ? 14 * 1024 * 1024 + 4 * 64 * 1024 + 4 * 1024 * 1024
-          : 12 * 1024 * 1024 + 4 * 64 * 1024 + 4 * 1024 * 1024
-      );
+      const guardedFiles = mode === "maximum" ? GUARD_FILES : GUARD_FILES - 2;
+      expect(bytes).toBe(guardedFiles * GUARD_LIMIT + METADATA_LIMIT);
       expect(result.output).toMatch(
         mode === "maximum"
           ? /Refused by .*block-no-verify\.sh \(matches installed template/u
@@ -196,7 +197,7 @@ describe("finite actual diagnostic file reads", () => {
       );
     }
   );
-  it("reads only seven selected pairs and five bounded metadata paths", () => {
+  it("reads only the selected guard pairs and five bounded metadata paths", () => {
     const result = observed();
     // Node loads the canonical helper module after this preload; that artifact
     // read is not guard/metadata evidence. Keep it visible and separate.
@@ -208,12 +209,19 @@ describe("finite actual diagnostic file reads", () => {
       (total, operation) => total + (operation.bytes ?? 0),
       0
     );
-    expect(opened).toHaveLength(19);
-    expect(
-      opened.filter(operation => operation.file.endsWith(".sh"))
-    ).toHaveLength(14);
+    expect(opened).toHaveLength(GUARD_FILES + 5);
+    const guards = opened.filter(operation => operation.file.endsWith(".sh"));
+    expect(guards).toHaveLength(GUARD_FILES);
+    for (const guard of SELECTED_GUARDS) {
+      expect(
+        guards.filter(
+          operation => path.basename(operation.file) === `${guard}.sh`
+        ),
+        guard
+      ).toHaveLength(2);
+    }
     expect(bytes).toBeLessThanOrEqual(
-      14 * (1024 * 1024 + 1) + 4 * (64 * 1024 + 1) + 4 * 1024 * 1024 + 1
+      GUARD_FILES * (GUARD_LIMIT + 1) + METADATA_LIMIT + 5
     );
     expect(result.output).toMatch(
       /Refused by .*block-no-verify\.sh \(matches installed template/u

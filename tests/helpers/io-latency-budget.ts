@@ -2,6 +2,13 @@ import { spawnSync } from "node:child_process";
 import type { SpawnSyncOptions, SpawnSyncReturns } from "node:child_process";
 import { afterEach, beforeEach, vi } from "vitest";
 
+import { describeChildBudget } from "./fresh-child-budget.js";
+import {
+  containingChildWindow,
+  runBoundedChild,
+} from "./bounded-child-runner.js";
+import type { ChildBudgetObservation } from "./fresh-child-budget.js";
+
 import localVitestConfig from "../../vitest.config.local.js";
 import {
   type CapturedStream,
@@ -189,12 +196,14 @@ export function slowdownFactorFrom(latencyMs: number): number {
 /**
  * This worker's spawn slowdown, measured once when the module is first loaded.
  *
- * Once per worker process rather than once per case: the measurement itself
- * costs five spawns, and vitest's `forks` pool gives each file its own process,
- * so file-scoped is both cheap and representative of the conditions that file
- * will actually run under.
+ * This five-spawn snapshot is provenance for the file's fixed case/hook window.
+ * It is not evidence of later child conditions: boundedSpawnSync takes a fresh
+ * single reference and charges it to a fixed containing window at each dispatch.
  */
 const WORKER_SPAWN_SLOWDOWN = slowdownFactorFrom(measureSpawnLatencyMs());
+
+// A file's opt-in parent window remains fixed; child observations never refresh it.
+const scaledCaseWindow = new WeakMap<object, number>();
 
 /**
  * Read the slowdown this worker measured at load time.
@@ -207,8 +216,9 @@ export function workerSpawnSlowdown(): number {
 /**
  * Scale a quiet-box budget by this worker's measured slowdown.
  *
- * Use this for every `spawnSync` timeout in a test as well as for the case
- * budget. A hardcoded child timeout is the same defect at a smaller scale, and
+ * This retains initialization-scoped explicit case/hook budgets. Child work
+ * uses boundedSpawnSync's fresh, containing-window-limited admission instead.
+ * A hardcoded child timeout is the same defect at a smaller scale, and
  * it fails worse: `spawnSync` kills the child and returns empty output, so the
  * assertion that follows reports "expected '' to contain ..." and says nothing
  * about time at all. {@link assertChildCompleted} exists for that.
@@ -440,9 +450,10 @@ export interface ScaledCaseBudgetReading {
  * apart, and nothing watches the case — so the guarantee has to be bought
  * statically, which is what {@link CASE_BUDGET_MARGIN} is for.
  *
- * In a file that DOES call it, both sides are `x the same measured slowdown`,
- * so the ratio is exact and machine-independent — the flat number, and the
- * ceiling, drop out of both sides. What that file has instead is a LIVE guard:
+ * This declaration check compares quiet-box bases. At runtime, fresh child
+ * observations may differ from the fixed file sample, so admission separately
+ * caps calibration plus child time inside the actual containing margin.
+ * The file also retains its LIVE guard:
  * {@link useIoLatencyBudget} fails any passing case whose quiet-equivalent cost
  * exceeds {@link MARGIN_FRACTION} of its base. So the operative ceiling on a
  * case there is not the deadline at all — it is `MARGIN_FRACTION x caseBase`,
@@ -547,18 +558,17 @@ function isDeclaredEarlyExit(outcome: ChildOutcome): boolean {
  * Defaults to `"child-must-consume-input"`, so tolerating a pipe error is
  * always an explicit act at the callsite.
  * @param timing - Elapsed time and the timeout, when the caller measured them
+ * @param budget - Actual fresh dispatch facts, when recorded by the owning helper
  */
 export function assertChildCompleted(
   outcome: ChildOutcome,
   label: string,
   tolerance: PipeErrorTolerance = "child-must-consume-input",
-  timing?: ChildTiming
+  timing?: ChildTiming,
+  budget?: ChildBudgetObservation
 ): void {
   if (outcome.error === undefined && (outcome.signal ?? null) === null) return;
-  if (
-    outcome.error !== undefined &&
-    errnoCodeOf(outcome.error) === PIPE_CLOSED_CODE
-  ) {
+  if (outcome.error && errnoCodeOf(outcome.error) === PIPE_CLOSED_CODE) {
     if (
       tolerance === "child-may-exit-before-reading" &&
       isDeclaredEarlyExit(outcome)
@@ -567,16 +577,14 @@ export function assertChildCompleted(
     throw new Error(pipeClosedDiagnostic(outcome, label));
   }
   const cause =
-    outcome.error === undefined
-      ? `killed by signal ${String(outcome.signal)}`
-      : outcome.error.message;
+    outcome.error?.message ?? `killed by signal ${String(outcome.signal)}`;
   const output = describeChildOutput(outcome.stdout, outcome.stderr);
+  const measurement = budget
+    ? describeChildBudget(budget)
+    : `Initialization-only spawn factor=${WORKER_SPAWN_SLOWDOWN.toFixed(2)}x. Measurement age is unavailable.`;
   throw new Error(
-    `${label} did not complete: ${cause}${describeChildTiming(timing)}. Its ` +
-      `budget was scaled by a measured ` +
-      `${WORKER_SPAWN_SLOWDOWN.toFixed(2)}x spawn slowdown, so this is a real ` +
-      `hang or a machine past ${MAX_SPAWN_SLOWDOWN}x — not ordinary variance. ` +
-      `See tests/helpers/io-latency-budget.ts.${output}`
+    `${label} did not complete: ${cause}${describeChildTiming(timing)}. ` +
+      `${measurement} See tests/helpers/io-latency-budget.ts.${output}`
   );
 }
 
@@ -756,6 +764,8 @@ export interface BoundedSpawn {
   readonly maxBuffer?: number;
   /** Test seam: stands in for `spawnSync` so the budget can be observed. */
   readonly spawn?: typeof spawnSync;
+  /** Value-only post-operation instrumentation; never selects or refreshes a bound. */
+  readonly observeBudget?: (reading: ChildBudgetObservation) => void;
 }
 
 /**
@@ -781,28 +791,22 @@ export interface BoundedSpawn {
  * @returns The completed child, streams decoded as UTF-8
  */
 export function boundedSpawnSync(spec: BoundedSpawn): SpawnSyncReturns<string> {
-  const spawn = spec.spawn ?? spawnSync;
-  const timeoutMs = ioLatencyBudgetMs(spec.baseMs ?? BOUNDED_SPAWN_BASE_MS);
-  const started = Date.now();
-  const outcome = spawn(spec.command, [...spec.args], {
-    cwd: spec.cwd,
-    encoding: "utf-8",
-    env: spec.env,
-    input: spec.input,
-    killSignal: "SIGKILL",
-    maxBuffer: spec.maxBuffer,
-    stdio: spec.stdio,
-    timeout: timeoutMs,
-  });
-  assertChildCompleted(
-    outcome,
-    spec.label,
-    spec.childMayExitBeforeReading === true
-      ? "child-may-exit-before-reading"
-      : "child-must-consume-input",
-    { timeoutMs, elapsedMs: Date.now() - started }
+  const baseMs = spec.baseMs ?? BOUNDED_SPAWN_BASE_MS;
+  const window = containingChildWindow(
+    scaledCaseWindow.has(localVitestConfig),
+    1 / CASE_BUDGET_MARGIN,
+    MARGIN_FRACTION
   );
-  return outcome;
+  const policy = window
+    ? {
+        ...window,
+        baseMs,
+        quietReferenceMs: QUIET_SPAWN_LATENCY_MS,
+        maxSlowdown: MAX_SPAWN_SLOWDOWN,
+        referenceDeadlineMs: REFERENCE_SPAWN_DEADLINE_MS,
+      }
+    : ioLatencyBudgetMs(baseMs);
+  return runBoundedChild(spec, policy, assertChildCompleted);
 }
 
 /**
@@ -905,6 +909,7 @@ export function useIoLatencyBudget(
   // Keyed by task rather than held in a shared slot, so a nested case can never
   // read a sibling's start time.
   const startedAt = new WeakMap<object, number>();
+  scaledCaseWindow.set(localVitestConfig, budgetMs);
   vi.setConfig({ testTimeout: budgetMs, hookTimeout: budgetMs });
   beforeEach(context => {
     if (context.task !== undefined)

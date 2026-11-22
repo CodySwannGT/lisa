@@ -48,7 +48,11 @@ Every profile it writes is scoped `<project>-agent-<stage>`, with the private
 source profile at `<project>-agent-bootstrap`. The project component comes from
 `LISA_AWS_PROFILE_NAMESPACE`, then the bundle's `namespace`, then
 `<owner>-<repository>` from the git origin remote; when none resolves the script
-writes nothing. Bare stage names state a stage but not an owner, so on a
+writes nothing. `<stage>` is the bundle key with at most one leading `agent-`
+removed, so `agent-dev` and `dev` both become `<project>-agent-dev`; an earlier
+run's doubled `<project>-agent-agent-<stage>` names are removed, and
+`lisa-secrets-access` emits the same names for the same bundle and namespace.
+Bare stage names state a stage but not an owner, so on a
 workstation carrying more than one organisation two bundles declaring the same
 stages overwrite each other in the shared `~/.aws/config` — silently, since the
 surviving profile is perfectly well-formed. `default` cannot be namespaced, so

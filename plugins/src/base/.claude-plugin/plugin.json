@@ -7,6 +7,7 @@
   },
   "hooks": {
     "UserPromptSubmit": [
+      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh --reset-native" }] },
       {
         "matcher": "",
         "hooks": [
@@ -18,6 +19,10 @@
       }
     ],
     "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh --observe-native" }]
+      },
       {
         "matcher": "Bash",
         "hooks": [
@@ -83,6 +88,15 @@
       }
     ],
     "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh --task-hook"
+          }
+        ]
+      },
       {
         "matcher": "Bash",
         "hooks": [
@@ -251,7 +265,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh --session-start"
           }
         ]
       },
@@ -329,7 +343,17 @@
         ]
       }
     ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh --observe-native" }]
+      }
+    ],
     "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh --reset-native" }]
+      },
       {
         "matcher": "",
         "hooks": [

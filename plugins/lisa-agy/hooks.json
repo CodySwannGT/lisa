@@ -1,4 +1,17 @@
 {
+  "lisa-task-readiness": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/.gemini/config/plugins/lisa/hooks/secrets-preflight.agy.sh\""
+          }
+        ]
+      }
+    ]
+  },
   "lisa-block-no-verify": {
     "PreToolUse": [
       {

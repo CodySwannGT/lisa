@@ -109,6 +109,11 @@ const config: ViteUserConfig = {
     },
   ],
   test: {
+    // Read the actual effective test/hook timer; no timeout or policy override.
+    runner: path.resolve(
+      import.meta.dirname,
+      "tests/helpers/child-budget-test-runner.ts"
+    ),
     projects: [
       { extends: true, test: { name: "freshness-deadline" } },
       { extends: true, test: { name: "history-scanner" } },

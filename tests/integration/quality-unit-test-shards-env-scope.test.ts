@@ -9,7 +9,7 @@
  *
  * Lisa's own named regression specs (Node 24, Rails hook installation, nightly
  * discovery, required-check registration, host-name target-scope, completion
- * authorization) also run `lisa-test-run`. They live in their own job,
+ * authorization, task readiness and dependency audit) also run `lisa-test-run`. They live in their own job,
  * `🧾 Named Regression Specs`, which starts beside the shards instead of
  * after the aggregate (CodySwannGT/lisa#4675). A shard variable visible there
  * could make those steps replay shard reports and pass without running their
@@ -25,7 +25,10 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { jobIn, stepsIn } from "./quality-gate-facade-fixture.js";
 import { executeStep } from "./quality-unit-test-shards-fixture.js";
-import type { WorkflowJob } from "../helpers/workflow-test-utils.js";
+import type {
+  WorkflowJob,
+  WorkflowStep,
+} from "../helpers/workflow-test-utils.js";
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 
 const SHARD_VARIABLES = [
@@ -130,6 +133,8 @@ describe.each(Object.keys(ARMS) as (keyof typeof ARMS)[])(
 
 /** The hosted step that names the dependency-audit scope specs. */
 const AUDIT_STEP = "Execute and name dependency-audit scope regression specs";
+const TASK_READINESS_STEP = "Execute and name task readiness regression specs";
+const TASK_READINESS_SCRIPT = "test:regression:task-readiness";
 
 /** Every spec the hosted dependency-audit step must name, in order. */
 const AUDIT_SPECS = [
@@ -152,7 +157,7 @@ const AUDIT_SPECS = [
   "tests/integration/quality-audit-fail-closed.test.ts",
 ];
 
-/** The seven named steps, in the order the job runs them. */
+/** The named steps, in the order the job runs them. */
 const NAMED_REGRESSION_STEPS = [
   "Execute and name Node 24 regression specs",
   "Execute and name Rails hook installation regression specs",
@@ -160,8 +165,23 @@ const NAMED_REGRESSION_STEPS = [
   "Execute and name required-check registration regression specs",
   "Execute and name host-name target-scope regression cases",
   "Execute and name completion authorization regression specs",
+  TASK_READINESS_STEP,
+  "Execute and name pre-push budget regression specs",
   AUDIT_STEP,
 ] as const;
+
+/** Read the actual command used by a named workflow step.
+ * @param step - The workflow step under test.
+ * @returns The command, expanding the task readiness package script.
+ */
+function namedCommand(step: WorkflowStep): string {
+  if (step.name !== TASK_READINESS_STEP) return step.run ?? "";
+  const manifest = JSON.parse(fs.readFileSync("package.json", "utf8")) as {
+    scripts: Readonly<Record<string, string>>;
+  };
+  expect(step.run).toBe(`bun run ${TASK_READINESS_SCRIPT}`);
+  return manifest.scripts[TASK_READINESS_SCRIPT] ?? "";
+}
 
 describe("test_named_regression_specs job (#4675)", () => {
   const job = jobIn("test_named_regression_specs") as WorkflowJob & {
@@ -182,7 +202,7 @@ describe("test_named_regression_specs job (#4675)", () => {
     expect(job.if).not.toContain(",test:unit,");
   });
 
-  it("runs the seven named steps in order", () => {
+  it("runs the named steps in order", () => {
     expect(named.map(step => step.name)).toEqual([...NAMED_REGRESSION_STEPS]);
   });
 
@@ -191,7 +211,7 @@ describe("test_named_regression_specs job (#4675)", () => {
       expect(step.if, step.name).toContain(
         "github.repository == 'CodySwannGT/lisa'"
       );
-      expect(step.run, step.name).toContain("--reporter=verbose");
+      expect(namedCommand(step), step.name).toContain("--reporter=verbose");
     }
     for (const step of steps) {
       const key = step.name ?? step.id ?? "";
@@ -234,7 +254,7 @@ describe("test_named_regression_specs job (#4675)", () => {
       (s.name ?? "").startsWith("Execute and name")
     );
     for (const step of regression) {
-      const specs = (step.run ?? "").match(/tests\/\S+\.test\.ts/gu) ?? [];
+      const specs = namedCommand(step).match(/tests\/\S+\.test\.ts/gu) ?? [];
       expect(specs.length, step.name).toBeGreaterThan(0);
       for (const spec of specs)
         expect(fs.existsSync(spec), `${step.name}: ${spec}`).toBe(true);

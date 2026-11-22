@@ -22,6 +22,7 @@ const NODE_SHIM = [
   "#!/bin/bash",
   'case "$1" in *lisa-enforcement-freshness.mjs) ;; *) exec "$LISA_DEADLINE_REAL_NODE" "$@" ;; esac',
   'printf "%s\\n" "$$" >> "$LISA_DEADLINE_ENTRIES"',
+  'if [ "$LISA_DEADLINE_MODE" = post-start-ps-failure ]; then LISA_DEADLINE_SHIM_PS=1 ps -p "$$" >/dev/null; [ "$?" -eq 127 ] || exit 98; fi',
   'case "$LISA_DEADLINE_MODE" in',
   ' normal|delayed-qualification|missing-runner|unsafe-tmp|anchor-startup|anchor-qualification|job-table-fork|job-table-empty|job-table-duplicate) exec "$LISA_DEADLINE_REAL_NODE" "$@" ;;',
   ' stall|post-start-ps-failure|early-parent-exit) printf "installed\\t9.9.9\\nguard0\\tmatching\\n"; trap "" TERM; /bin/sleep 30 & printf "%s\\n" "$!" >> "$LISA_DEADLINE_ENTRIES"; wait ;;',
@@ -82,7 +83,7 @@ function deadlineStartup(mode: string): string {
       : []),
     ...(mode === "post-start-ps-failure"
       ? [
-          'ps() { if [ -s "$LISA_DEADLINE_ENTRIES" ]; then return 127; fi; command ps "$@"; }; export -f ps',
+          'ps() { if [ -s "$LISA_DEADLINE_ENTRIES" ]; then local phase=ps-after-startup-failed; [ "${LISA_DEADLINE_SHIM_PS:-}" != 1 ] || phase=ps-shim-probe-failed; printf "%s\\n" "$phase" >> "$LISA_DEADLINE_PHASES"; return 127; fi; command ps "$@"; }; export -f ps',
         ]
       : []),
     "",

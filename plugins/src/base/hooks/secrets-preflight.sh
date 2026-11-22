@@ -33,6 +33,48 @@ ROOT="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/
 SECRETS="$ROOT/skills/lisa-secrets-access/scripts/preflight-secrets.mjs"
 TOOLS="$ROOT/skills/lisa-setup-remote-env/scripts/preflight-tools.mjs"
 
+# Event decoding has no jq dependency: losing jq must never turn a native
+# PreToolUse request into an advisory SessionStart request.
+if [ -n "$INPUT" ] && command -v node >/dev/null 2>&1; then
+  HOOK_EVENT=$(printf '%s' "$INPUT" | node -e 'const fs=require("node:fs");try{const e=JSON.parse(fs.readFileSync(0,"utf8")).hook_event_name;process.stdout.write(["SessionStart","UserPromptSubmit","PostToolUse","PostToolUseFailure","SessionEnd"].includes(e)?e:"PreToolUse");}catch{process.stdout.write("PreToolUse");}')
+fi
+# A registered before hook cannot be downgraded by an envelope's event spelling.
+if [ "${1:-}" = "--task-hook" ]; then HOOK_EVENT="PreToolUse"; fi
+if [ "${1:-}" = "--reset-native" ]; then
+  if command -v node >/dev/null 2>&1 && [ -f "$SECRETS" ] && [ -n "$INPUT" ]; then
+    printf '%s' "$INPUT" | node "$SECRETS" --reset-native
+  fi
+  exit 0
+fi
+if [ "${1:-}" = "--session-start" ]; then HOOK_EVENT="SessionStart"; fi
+case "$HOOK_EVENT" in
+  SessionStart|UserPromptSubmit|SessionEnd)
+    if command -v node >/dev/null 2>&1 && [ -f "$SECRETS" ] && [ -n "$INPUT" ]; then
+      printf '%s' "$INPUT" | node "$SECRETS" --reset-native
+    fi
+    [ "$HOOK_EVENT" = SessionStart ] || exit 0
+    ;;
+esac
+# The manifest supplies the event arm independently of optional JSON decoders.
+# Missing Node AND jq cannot downgrade a real before-tool call to advisory.
+if [ "${1:-}" = "--observe-native" ]; then
+  if command -v node >/dev/null 2>&1 && [ -f "$SECRETS" ]; then
+    printf '%s' "$INPUT" | node "$SECRETS" --observe-native
+  fi
+  exit 0
+fi
+
+# Task checks are blocking; SessionStart keeps its existing advisory contract.
+# Node parses the native envelope and invokes the same preclaim decision owner.
+if [ "$HOOK_EVENT" = "PreToolUse" ]; then
+  if ! command -v node >/dev/null 2>&1 || [ ! -f "$SECRETS" ]; then
+    printf '%s\n' 'tool-missing: Restore the Lisa readiness tool before affected work.' >&2
+    exit 2
+  fi
+  printf '%s' "$INPUT" | node "$SECRETS" --hook
+  exit $?
+fi
+
 command -v node >/dev/null 2>&1 || exit 0
 # The hook's whole output is one `jq -n` document. Without jq there is nothing
 # to write, so exiting is the only honest outcome — the alternative is a hook

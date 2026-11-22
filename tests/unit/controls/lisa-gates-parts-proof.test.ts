@@ -9,7 +9,10 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { PROOF_DIRECTORY } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import {
+  PROOF_DIRECTORY,
+  validateGates,
+} from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import {
   API_COMMAND,
   CLEAN,
@@ -208,5 +211,33 @@ describe("a part's proof", () => {
     expect(problems).toHaveLength(2);
     expect(problems[0]).toContain(`${PARTS}[0].proof.external_effects[1]`);
     expect(problems[1]).toContain(`${PARTS}[0].proof.external_effects[2]`);
+  });
+});
+
+describe("task-level proof effects", () => {
+  it("requires declared external reads for the dependency audit push fixture", () => {
+    const proof = {
+      violation: VIOLATION,
+      clean: CLEAN,
+      dependency_fixture: "bun-production-advisory",
+    };
+    const push = { level: "required", proof };
+    const withEffects = {
+      ...push,
+      proof: {
+        ...proof,
+        external_effects: ["Reads public registry metadata."],
+      },
+    };
+
+    expect(
+      validateGates({ "dependency-vulnerability": { push: withEffects } })
+    ).toEqual([]);
+    expect(
+      validateGates({ "dependency-vulnerability": { push } }).join("\n")
+    ).toContain("external_effects");
+    expect(
+      validateGates({ "type-correctness": { push: withEffects } }).join("\n")
+    ).toContain("dependency_fixture");
   });
 });

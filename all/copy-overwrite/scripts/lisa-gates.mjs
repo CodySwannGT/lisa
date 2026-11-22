@@ -581,7 +581,7 @@ export const PART_EVIDENCE_FIELDS = Object.freeze(["locators", "questions"]);
 export const PART_EVIDENCE_LOCATOR_FIELDS = Object.freeze(["path", "line"]);
 
 /**
- * The keys a part's `proof` may carry. All are optional.
+ * The keys a paired proof may carry. All are optional.
  *
  * - `violation` and `clean` — the two halves of the paired proof, each the
  *   path of a patch file under {@link PROOF_DIRECTORY}.
@@ -599,6 +599,15 @@ export const PROOF_FIELDS = Object.freeze([
   FAILURE_SHAPE_FIELD,
   "timeout_seconds",
   "external_effects",
+]);
+
+const TRACEABILITY_PROOF_FIELDS = Object.freeze([
+  ...PROOF_FIELDS,
+  "violation_commit",
+]);
+const AUDIT_PROOF_FIELDS = Object.freeze([
+  ...PROOF_FIELDS,
+  "dependency_fixture",
 ]);
 
 /**
@@ -2883,9 +2892,15 @@ function runnerOwnedJobs() {
  * @param {GatesBlock} [options.gates] The existing gates block; its declarations win.
  * @param {Record<string, string>} [options.scripts] The project's package.json scripts.
  * @param {string} [options.runner] Task runner to record, when none is declared.
+ * @param {readonly {gate: string, moment: string, task: string, proof: {violation: string, clean: string, failure_shape: string[]}}[]} [options.proofs] Shipped proof pairs whose installed inputs match the template.
  * @returns {{gates: GatesBlock, seeded: Array<{gate: string, moment: string, run: string|null}>, skipped: Array<{gate: string, moment: string, reason: string}>}} The merged block and what it did.
  */
-export function seedGates({ gates = {}, scripts = {}, runner } = {}) {
+export function seedGates({
+  gates = {},
+  scripts = {},
+  runner,
+  proofs = [],
+} = {}) {
   const seeded = [];
   const skipped = [];
   const next = { ...gates };
@@ -2932,9 +2947,23 @@ export function seedGates({ gates = {}, scripts = {}, runner } = {}) {
       run === REGISTRY[gate]?.taskAt?.[momentFamily(moment)] ||
       (REGISTRY[gate]?.taskAt?.[momentFamily(moment)] === undefined &&
         run === REGISTRY[gate]?.task);
+    const proof = proofs.find(
+      candidate =>
+        candidate.gate === gate &&
+        candidate.moment === moment &&
+        candidate.task === run
+    )?.proof;
+    const declaration = useDefault
+      ? { level: "required" }
+      : { level: "required", run };
     next[gate] = {
       ...next[gate],
-      [moment]: useDefault ? "required" : { level: "required", run },
+      [moment]:
+        proof === undefined
+          ? useDefault
+            ? "required"
+            : declaration
+          : { ...declaration, failure_shape: proof.failure_shape, proof },
     };
     seeded.push({ gate, moment, run: useDefault ? null : run });
   }
@@ -4465,6 +4494,7 @@ function validateGate(id, gate) {
   problems.push(...validateOwner(id, gate.owner));
   problems.push(...validateTier(id, gate.tier));
   problems.push(...validateParts(id, gate));
+  problems.push(...validateTaskProofs(id, gate));
 
   for (const [moment, value] of Object.entries(gate)) {
     // A key that is neither a known field nor a well-formed moment is a typo,
@@ -5643,9 +5673,10 @@ function validateExternalEffects(where, effects) {
  * Validate a part's paired proof.
  * @param {string} where The key being validated.
  * @param {*} proof The declared value, if any.
+ * @param {string} [pushGate] Registry gate for a task's push proof.
  * @returns {string[]} Problems.
  */
-function validateProof(where, proof) {
+function validateProof(where, proof, pushGate) {
   if (proof === undefined) return [];
   if (!isKeyed(proof)) {
     return [
@@ -5653,8 +5684,13 @@ function validateProof(where, proof) {
         `two halves of the proof, "violation" and "clean".`,
     ];
   }
+  const traceabilityPush = pushGate === "traceability";
+  const auditPush = pushGate === DEPENDENCY_VULNERABILITY;
+  let fields = PROOF_FIELDS;
+  if (traceabilityPush) fields = TRACEABILITY_PROOF_FIELDS;
+  if (auditPush) fields = AUDIT_PROOF_FIELDS;
   const problems = [
-    ...unknownKeyProblems(where, proof, PROOF_FIELDS),
+    ...unknownKeyProblems(where, proof, fields),
     ...validateProofFile(`${where}.violation`, proof.violation),
     ...validateProofFile(`${where}.clean`, proof.clean),
   ];
@@ -5663,6 +5699,34 @@ function validateProof(where, proof) {
       `${where}.clean is the same file as ${where}.violation. The two ` +
         `halves are different changes: one that breaks the rule and one ` +
         `that does not.`
+    );
+  }
+  if (
+    traceabilityPush &&
+    proof.violation_commit !== undefined &&
+    proof.violation_commit !== "omit-work-item"
+  ) {
+    problems.push(
+      `${where}.violation_commit accepts "omit-work-item" on the traceability push proof.`
+    );
+  }
+  if (
+    auditPush &&
+    proof.dependency_fixture !== undefined &&
+    proof.dependency_fixture !== "bun-production-advisory"
+  ) {
+    problems.push(
+      `${where}.dependency_fixture accepts "bun-production-advisory" on the dependency audit push proof.`
+    );
+  }
+  if (
+    auditPush &&
+    proof.dependency_fixture === "bun-production-advisory" &&
+    (!Array.isArray(proof.external_effects) ||
+      proof.external_effects.length === 0)
+  ) {
+    problems.push(
+      `${where}.external_effects must describe the registry and advisory reads for the dependency audit fixture.`
     );
   }
   return [
@@ -5677,6 +5741,27 @@ function validateProof(where, proof) {
       proof.external_effects
     ),
   ];
+}
+
+/**
+ * Validate a paired proof declared for a task at a local Git moment.
+ * @param {string} id Gate id.
+ * @param {object} gate Gate declaration.
+ * @returns {string[]} Problems.
+ */
+function validateTaskProofs(id, gate) {
+  return Object.entries(gate).flatMap(([moment, value]) => {
+    if (!isMoment(moment) || !isKeyed(value) || value.proof === undefined)
+      return [];
+    const where = `gates."${id}"."${moment}".proof`;
+    if (moment !== COMMIT && moment !== PUSH) {
+      return [`${where} can be declared only at commit or push.`];
+    }
+    if (gate.parts !== undefined) {
+      return [`${where} belongs on each part when the gate declares parts.`];
+    }
+    return validateProof(where, value.proof, moment === PUSH ? id : undefined);
+  });
 }
 
 /** A well-formed place, shown in every message that refuses one. */

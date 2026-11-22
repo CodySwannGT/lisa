@@ -90,10 +90,16 @@ describe("assertChildCompleted", () => {
     ).toThrow(/compiler did not complete: spawnSync ETIMEDOUT/u);
   });
 
-  it("reports the measured slowdown so the reader can rule out variance", () => {
+  it("labels the initialization snapshot without diagnosing a later cause", () => {
     expect(() =>
       assertChildCompleted({ error: undefined, signal: "SIGKILL" }, "packer")
     ).toThrow(new RegExp(`${workerSpawnSlowdown().toFixed(2)}x`, "u"));
+    expect(() => assertChildCompleted({ signal: "SIGKILL" }, "packer")).toThrow(
+      "Initialization-only"
+    );
+    expect(() => assertChildCompleted({ signal: "SIGKILL" }, "packer")).toThrow(
+      "Measurement age is unavailable"
+    );
   });
 
   it("names an I/O error on the pipe when the write to stdin failed", () => {

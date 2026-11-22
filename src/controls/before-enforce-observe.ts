@@ -33,7 +33,7 @@ import { prepareEvidenceExcerpt } from "./evidence-write.js";
 import { WORKSPACE_PLACEHOLDER } from "./proof-half-run.js";
 import type { ProofHalf } from "./proof-halves.js";
 import { observeHalf } from "./proof-judgement.js";
-import type { RunnableProof } from "./proof-plan.js";
+import { proofTrigger, type RunnableProof } from "./proof-plan.js";
 import type { ProofJudge } from "./proof-tools.js";
 import type {
   PatchOutcome,
@@ -128,7 +128,7 @@ export async function observe(
   half: ProofHalf = VIOLATION
 ): Promise<Observation> {
   const { workspace, clock } = context;
-  const { entry, moment, mechanism, timeLimitSeconds } = proof;
+  const { entry } = proof;
   const startedAt = clock().toISOString();
   const planted = await guarded(() =>
     workspace.plant(proof.patches[half].text)
@@ -136,12 +136,7 @@ export async function observe(
   if (planted.problem !== null) {
     return { planted: false, problem: planted.problem };
   }
-  const answer = await act({
-    entry,
-    moment,
-    mechanism,
-    timeoutMs: timeLimitSeconds * 1000,
-  }).catch(
+  const answer = await act(proofTrigger(proof, half)).catch(
     (error: unknown): ProofAnswer => ({
       command: [],
       cwd: workspace.root,

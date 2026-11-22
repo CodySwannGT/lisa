@@ -194,6 +194,10 @@ export interface ControlProof {
   readonly timeout_seconds: number | null;
   /** What the proof does outside the repository; `[]` says nothing. */
   readonly external_effects: readonly string[] | null;
+  /** Omit the work item only from the disposable violation commit. */
+  readonly violation_commit?: "omit-work-item";
+  /** Stage an exact registry dependency in the disposable Bun lockfile. */
+  readonly dependency_fixture?: "bun-production-advisory";
 }
 
 /** A place the audit found a check: the audit report's own locator. */

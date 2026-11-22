@@ -109,6 +109,32 @@ describe("installAwsProfiles", () => {
     expect(config).toContain(`[profile ${DEV_SECTION}]`);
   });
 
+  it.each(["\n", "\r\n"])(
+    "preserves the %j separator before another owner's managed block",
+    newline => {
+      const home = scratchHome();
+      const file = path.join(home, CONFIG);
+      installAwsProfiles(BUNDLE, { home, owner: "globex" });
+      const foreign = readFileSync(file, "utf8");
+      const operator = ["[profile operator]", "sso_session = mine", ""].join(
+        newline
+      );
+      const adopted = `[profile ${DEV_SECTION}]\nsource_profile = ${OWNER}-agent-bootstrap\n`;
+      writeFileSync(file, operator + adopted + foreign);
+
+      expect(installAwsProfiles(BUNDLE, { home, owner: OWNER })).toEqual([
+        DEV_SECTION,
+      ]);
+      const config = readFileSync(file, "utf8");
+      expect(config.startsWith(operator + foreign)).toBe(true);
+      expect(
+        config
+          .split(/\r?\n/u)
+          .filter(line => line === `[profile ${DEV_SECTION}]`)
+      ).toHaveLength(1);
+    }
+  );
+
   it("replaces its own block instead of stacking it every session", () => {
     const home = scratchHome();
     installAwsProfiles(BUNDLE, { home, owner: OWNER });

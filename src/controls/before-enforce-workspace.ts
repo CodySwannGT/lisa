@@ -33,6 +33,7 @@ import { compareCodeUnits } from "./canonical-json.js";
 import { copyGit } from "./proof-copy-git.js";
 import { proofCopyWorkspace } from "./proof-copy-workspace.js";
 import type { ProofCopy } from "./proof-copy.js";
+import { preparePushProof } from "./proof-push-fixture.js";
 import type { ProofTools } from "./proof-tools.js";
 import type { PatchOutcome, ProofAnswer, ProofTrigger } from "./proof-types.js";
 import { directProofWorkspace } from "./proof-workspace.js";
@@ -70,7 +71,23 @@ export function beforeEnforceWorkspace(
     root: copy.clone,
     plant: async patch => asCloned.apply(patch),
     attempt: async request => asCloned.trigger(request),
-    measure: async request => direct.trigger(request),
+    measure: async request => {
+      if (
+        request.auditFixture !== undefined ||
+        request.entry.proof.violation_commit === "omit-work-item"
+      ) {
+        const problem = preparePushProof(copy, tools, request);
+        if (problem !== null)
+          return {
+            command: [...request.mechanism.argv],
+            cwd: copy.clone,
+            code: null,
+            output: null,
+            notStarted: problem,
+          };
+      }
+      return direct.trigger(request);
+    },
     // The copy's own reset: the starting commit, with anything a command
     // left behind removed. It does not need the patch to undo it.
     restore: async () => asCloned.restore(""),

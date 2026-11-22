@@ -350,9 +350,16 @@ part left without them stays unproved however well everything else is set up. Wr
 knowing the tool, which is why you write them. Code then tries them and tells you whether they
 work.
 
-**On the paved road, skip this step.** This release writes no test changes for the checks Lisa
-ships for a supported project type. Those checks read unproved until a proof is declared for them,
-and your closing message says so plainly.
+**On the paved road, reuse the installed proof pairs.** Lisa seeds a pair when its installed files
+and task match the shipped template. The traceability pair uses the native push gate in a
+disposable copy. Its clean case reads the live work item from the baseline commit, so run that
+proof with `--acknowledge-external-effects` after confirming tracker read access. A check without
+an applicable pair reads unproved. The shipped test and coverage recipes require Vitest.
+
+The production dependency pair uses a Bun text lockfile. It changes the version of an existing
+transitive dependency to a version with a public advisory and a patched version in separate
+disposable lockfiles. Dependency installation and lifecycle scripts are disabled. The pair reads
+registry metadata and the live advisory service when external effects are acknowledged.
 
 Take the parts you declared in this run one at a time.
 
@@ -440,6 +447,13 @@ the repository's lockfile, declared package manager and hook configuration to
 identify the commands. For example, a Bun project with Lefthook may need
 `[["bun", "install", "--frozen-lockfile"], ["./node_modules/.bin/lefthook", "install"]]`.
 Record the approved commands in the committed config before trying the pairs.
+
+The whole-repository TypeScript setup includes pairs for staged lint, formatting, structural rules,
+slow lint, type checking, dead code, unit tests, integration tests, and coverage when the installed
+tasks and patch files match the template. The formatting pair starts with CSS the formatter cannot parse.
+Add a proof for each remaining required control. Commit the current work item and attribution
+trailers with the proof setup. The temporary commit uses those trailers so the installed Git hooks
+can validate it through their usual path.
 
 Before the first run that uses those commands, show their exact arguments and
 ask the operator once. For example, “May I run these setup commands in the
@@ -543,10 +557,8 @@ In plain language, for someone who does not code:
 3. Each threshold: what is measured, the value measured today, and the value the operator
    confirmed.
 4. For each check, in one sentence, that a test change showed it catches a problem: it refused a
-   small change that breaks its rule and let a harmless one through. Name each check that has no
-   test changes and say why: on the paved road, because this release does not write them for the
-   checks that come with the project type; otherwise, what stood in the way. A check without them
-   stays unproved.
+   small change that breaks its rule and let a harmless one through. Name each unproved check
+   and state the reason the proof did not apply or could not run.
 5. What was **not** declared and why: each open question, with who is likely to know the answer,
    and that it is answered by typing on its answer line in `.lisa/audit/report.md` and running
    `/lisa:audit` again; each proposal the operator declined; each decision still waiting because

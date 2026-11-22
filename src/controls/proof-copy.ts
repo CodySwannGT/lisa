@@ -62,7 +62,6 @@ import {
   copyCarrierGit,
   copyGit,
   gitSaid,
-  sourceGit,
   type GitExit,
 } from "./proof-copy-git.js";
 import {
@@ -70,6 +69,10 @@ import {
   prepareProofCopy,
 } from "./proof-copy-preparation.js";
 import type { PreparedProofCopy } from "./proof-copy-prepared-state.js";
+import {
+  readProofCopySource,
+  type ProofCopySource,
+} from "./proof-copy-source.js";
 import { BASE_COMMIT_MESSAGE } from "./proof-copy-wording.js";
 import { recordProofScratchOwner } from "./proof-scratch.js";
 
@@ -92,16 +95,6 @@ const COPY_SETTINGS: readonly (readonly [string, string])[] = [
   ["gc.auto", "0"],
   ["maintenance.auto", "false"],
 ];
-
-/** What was read from the operator's repository, without changing it. */
-interface ProofCopySource {
-  /** The commit the operator is on. */
-  readonly commit: string;
-  /** The branch the operator is on; `null` on a detached `HEAD`. */
-  readonly branch: string | null;
-  /** Whether the working copy holds anything that is not committed. */
-  readonly dirty: boolean;
-}
 
 /** A disposable copy, ready for proofs. */
 export interface ProofCopy {
@@ -188,57 +181,6 @@ function firstFailure(steps: readonly Step[]): string | null {
       ? null
       : `Could not ${step.doing}, so no proof was run: ${gitSaid(exit)}`;
   }, null);
-}
-
-/**
- * Read the commit and branch the operator is on, and whether anything is
- * uncommitted, without changing the repository.
- * @param root - Real path of the operator's repository
- * @returns What was read, or why the repository cannot be copied
- */
-async function readSource(
-  root: string
-): Promise<
-  | { readonly problem: null; readonly source: ProofCopySource }
-  | { readonly problem: string }
-> {
-  const git = sourceGit(root);
-  const top = git(["rev-parse", "--show-toplevel"]);
-  if (top.code !== 0 || (await realpath(top.stdout)) !== root) {
-    return {
-      problem: `${root} is not the top folder of a git repository, so there is no commit or push to prove a check at. Give the top folder of the repository.`,
-    };
-  }
-  const status = git([
-    "status",
-    "--porcelain=v2",
-    "--branch",
-    "--untracked-files=normal",
-  ]);
-  const lines = status.stdout.split("\n");
-  const header = (name: string): string | undefined =>
-    lines.find(line => line.startsWith(`# ${name} `))?.slice(name.length + 3);
-  const commit = header("branch.oid");
-  const head = header("branch.head");
-  if (status.code !== 0 || commit === undefined || head === undefined) {
-    return {
-      problem: `The state of this repository could not be read, so no proof was run: ${gitSaid(status)}`,
-    };
-  }
-  if (commit === "(initial)") {
-    return {
-      problem:
-        "This repository has no commit yet, so there is nothing a commit or push check could be proved against. Make a first commit, then run this again.",
-    };
-  }
-  return {
-    problem: null,
-    source: {
-      branch: head === "(detached)" ? null : head,
-      commit,
-      dirty: lines.some(line => line !== "" && !line.startsWith("# ")),
-    },
-  };
 }
 
 /**
@@ -426,7 +368,7 @@ export async function buildProofCopy(
   folder: string,
   dependencies: ProofCopyDependencies = {}
 ): Promise<ProofCopyBuild> {
-  const read = await readSource(root);
+  const read = await readProofCopySource(root);
   if (read.problem !== null) return read;
   const paths = await carriedPaths(root);
   if (paths.problem !== null) return paths;

@@ -18,6 +18,35 @@ Repository name for scoped comments and logs: `basename $(git rev-parse --show-t
 
 Pass the issue number, `<org>/<repo>#<number>`, or GitHub issue URL to the reader from the Lisa checkout. The reader resolves `.lisa.config.local.json` over `.lisa.config.json` before any GitHub request. A bare number uses `github.org` and `github.repo`. Configuration or syntax failure stops the read.
 
+### Pre-header configured-source reader
+
+Before the complete issue is known, invoke this exact installed owner command
+with only the configured canonical ref, fixed read name and issue/PR number:
+
+```text
+node '<absolute installed lisa-secrets-access>/scripts/preflight-secrets.mjs' --intake-read --ref <org>/<repo>#<primary-number> --read <operation> --number <read-number>
+```
+
+Use `issue`, `comments`, `comment-count`, `graph`, `history`, `closing-prs`,
+`blocked-by`, `blocking`, `pr`, or `review-threads`. For `thread-comments` ONLY,
+replace `--number <read-number>` with `--thread <returned-thread-node-id>`.
+The installed reader verifies the thread's repository before retrieving its comments. Use the installed reader for thread comments.
+Each invocation freshly proves the configured repository scope, validates any
+observed actor, then executes only its fixed read. A selected credential is carried in child environment
+memory, never command arguments/output/files or context. Comments are returned
+as one flattened array; graph/history/thread connections retain all raw pages.
+Read related issue/comment and PR/thread inputs with the same fixed operations;
+compare comment counts and terminal pagination before declaring completeness.
+Run the shipped hold classifier with the complete body/comments/actor inputs,
+then prepare the truthful private context/header and evaluate full task readiness
+before claim or implementation. This bounded repository read grants no mutation
+and proves no unrelated task capability or provider health.
+
+The installed reader owns the fixed API queries and pagination. The native
+`gh` examples below support read-only orientation. Use the installed reader
+for complete intake because it resolves configured credentials. Route
+cross-repository and other-tracker access through the documented access owner.
+
 ## Phase 2 — Fetch Primary Issue
 
 ```bash

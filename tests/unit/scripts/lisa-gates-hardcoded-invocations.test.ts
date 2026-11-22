@@ -292,6 +292,44 @@ describe("seeding a gates block", () => {
     expect(result.gates[TYPE_CORRECTNESS]?.[PUSH]).toBe("required");
   });
 
+  it("attaches a shipped proof to the exact seeded task and preserves an existing declaration", () => {
+    const proof = {
+      violation: ".lisa/controls/proofs/compiler.violation.patch",
+      clean: ".lisa/controls/proofs/compiler.clean.patch",
+      failure_shape: ["TS2344"],
+    };
+    const candidate = {
+      gate: TYPE_CORRECTNESS,
+      moment: PUSH,
+      task: "typecheck",
+      proof,
+    };
+
+    const seeded = seedGates({
+      scripts: TEMPLATE_SCRIPTS,
+      proofs: [candidate],
+    });
+    expect(seeded.gates[TYPE_CORRECTNESS]?.[PUSH]).toEqual({
+      level: "required",
+      failure_shape: proof.failure_shape,
+      proof,
+    });
+    const differentTask = { ...candidate, task: "lint" };
+    const mismatch = seedGates({
+      scripts: TEMPLATE_SCRIPTS,
+      proofs: [differentTask],
+    });
+    expect(mismatch.gates[TYPE_CORRECTNESS]?.[PUSH]).toBe("required");
+
+    const gates = { [TYPE_CORRECTNESS]: { [PUSH]: "optional" } };
+    const existing = seedGates({
+      gates,
+      scripts: TEMPLATE_SCRIPTS,
+      proofs: [candidate],
+    });
+    expect(existing.gates[TYPE_CORRECTNESS]?.[PUSH]).toBe("optional");
+  });
+
   it("declares nothing whose prover the project does not have", () => {
     expect(seedGates({ scripts: {} }).seeded).toEqual([]);
   });

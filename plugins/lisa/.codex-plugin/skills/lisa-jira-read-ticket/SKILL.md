@@ -14,6 +14,15 @@ Fetch the full scope of the ticket AND its related graph. Downstream agents must
 
 Repository name for scoped comments and logs: `basename $(git rev-parse --show-toplevel)`.
 
+When preparing the first task context for a configured Jira issue, use the scoped intake command from the installed `lisa-secrets-access` skill. Use the literal absolute path to its script and the configured project's issue key.
+
+```bash
+node /absolute/lisa-secrets-access/scripts/preflight-secrets.mjs --tracker-intake-read --ref PROJ-123 --read issue
+node /absolute/lisa-secrets-access/scripts/preflight-secrets.mjs --tracker-intake-read --ref PROJ-123 --read comments
+```
+
+The token route returns the full issue and remote links, and the comments command reads all pages in order. If the token is unavailable, the command can read the issue through an already authenticated `acli` session on the configured site. That route reports `remoteLinks: null` and returns comments only when the embedded page is complete. Use the Atlassian access owner's native Jira issue and remote-link reads against the configured cloud and issue key to fill missing data. Check the embedded comment total before treating native context as complete.
+
 ## Phase 1 — Resolve Context
 
 1. Invoke `lisa-atlassian-access` via the Skill tool with `operation: list-sites` to confirm the configured site is reachable and resolve the cloud ID.

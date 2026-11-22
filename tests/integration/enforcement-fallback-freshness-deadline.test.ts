@@ -25,6 +25,16 @@ function expectDiagnosticCleanup(result: DeadlineObservation): void {
 }
 
 describe("optional freshness diagnostic deadline", () => {
+  it("reaches the producer without replaying diagnostic Bash startup inside the node shim", async () => {
+    const result = await observeDeadline("node-shim-startup");
+    expectDiagnosticCleanup(result);
+    expect(result.entered).toBe(true);
+    expect(result.phases).not.toContain("redundant-shell-startup");
+    expect(result.status).toBe(2);
+    expect(result.guards).toEqual(SELECTED_GUARDS.map(name => `${name}.sh`));
+    expect(result.diagnosticMs).toBeLessThanOrEqual(3_000);
+    expect(result.survivingPids).toEqual([]);
+  });
   it("reaches a stalled helper and still dispatches all real guards with the original refusal", async () => {
     const result = await observeDeadline();
     expectDiagnosticCleanup(result);
@@ -113,10 +123,13 @@ describe("optional freshness diagnostic deadline", () => {
     }
   );
 
-  it("remains bounded when ps fails after actual helper startup", async () => {
+  it("remains bounded without calling ps after starting the helper", async () => {
     const result = await observeDeadline("post-start-ps-failure");
     expectDiagnosticCleanup(result);
     expect(result.entered).toBe(true);
+    expect(result.phases).toContain("ps-shim-probe-failed");
+    // The production watchdog uses Bash job control and its live group anchor.
+    expect(result.phases).not.toContain("ps-after-startup-failed");
     expect(result.unobservedHelperPids).toEqual([]);
     expect(result.timedOut).toBe(false);
     expect(result.status).toBe(2);

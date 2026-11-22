@@ -3132,6 +3132,27 @@ jobs:
           --reporter=verbose
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: Execute and name task readiness regression specs
+        if: github.repository == 'CodySwannGT/lisa'
+        run: bun run test:regression:task-readiness
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: Execute and name pre-push budget regression specs
+        if: github.repository == 'CodySwannGT/lisa'
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/integration/child-budget-hook-window.test.ts
+          tests/unit/helpers/bounded-exec-file-sync.test.ts
+          tests/unit/helpers/bounded-spawn-sync.test.ts
+          tests/unit/helpers/child-budget-deadline-gap.test.ts
+          tests/unit/helpers/child-budget-reference-recheck.test.ts
+          tests/unit/helpers/child-budget-window.test.ts
+          tests/unit/helpers/child-completion-diagnostics.test.ts
+          tests/unit/helpers/fresh-child-budget.test.ts
+          tests/unit/helpers/timed-invocation.test.ts
+          --reporter=verbose
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       # #4521: the hosted log must name each scoped-audit spec as executed and
       # passed. An explicit file list fails when none of them is found, and the
       # quality-unit-test-shards-env-scope test fails if any listed file is
