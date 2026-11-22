@@ -48,6 +48,10 @@ import {
   validatePushGateConfig,
   type PushGateConfig,
 } from "./project-config-push-gate.js";
+import {
+  validateReviewConfig,
+  type ReviewConfig,
+} from "./project-config-review.js";
 
 export {
   AUTO_LOADED_RULES_DIR_PREFIXES,
@@ -101,6 +105,8 @@ export const LEGACY_PROJECT_RULES_FILE = ".claude/rules/PROJECT_RULES.md";
  * versions; unknown fields are preserved on round-trip.
  */
 export interface ProjectConfig {
+  /** Acceptable review providers and their requirements. */
+  readonly review?: ReviewConfig;
   /** Target harness(es) for emitted artifacts */
   readonly harness?: Harness;
   /**
@@ -336,6 +342,8 @@ export function validateProjectConfig(
   const nightlyE2E = validateNightlyE2EConfig(obj.nightlyE2E, configPath);
   const starter = validateStarterConfig(obj.starter);
   const pushGate = validatePushGateConfig(obj.pushGate, configPath);
+  const review =
+    obj.review === undefined ? undefined : validateReviewConfig(obj.review);
   // An absent key stays absent rather than becoming `key: undefined`.
   const validated = {
     harness,
@@ -347,6 +355,7 @@ export function validateProjectConfig(
     nightlyE2E,
     starter,
     pushGate,
+    review,
   };
   return Object.fromEntries(
     Object.entries(validated).filter(([, value]) => value !== undefined)

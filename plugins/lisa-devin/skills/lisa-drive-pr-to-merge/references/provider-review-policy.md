@@ -1,0 +1,10 @@
+# Provider review policy
+
+Read the repository’s default branch and current commit through GitHub before deciding which review gate applies. Read `.lisa.config.json` at that commit. Use this procedure when it contains `review`. Retain the ordinary review path when the key is absent. Stop if the governing configuration is unreadable.
+
+1. Record the live pull request head. Address review-body findings, unresolved threads, and change requests through the ordinary review cycle.
+2. When the project accepts independent agent review, have a separate agent session inspect that exact diff. The pull request author's GitHub account may post the report. Use an account with repository write access. Run `node scripts/post-agent-review.mjs --repo "$repo" --pr "$pr" --report "$report"` from the trusted installation. Record the native review ID and workflow run ID. [Review report format](https://github.com/CodySwannGT/lisa/blob/main/docs/review-policy.md#agent-review)
+3. For a review posted independently of that command, or if the head’s review evidence changed, dispatch `review-policy.yml` on the API-discovered default branch with `pr` and exact `sha`. Follow that native run to completion. Verify its source and receipt with `node scripts/check-review-policy-run.mjs --repo "$repo" --pr "$pr" --sha "$head" --run "$run"` and refresh the evidence with `node scripts/check-review-policy.mjs --repo "$repo" --pr "$pr" --sha "$head" --json`. Run both from the trusted default-branch checkout.
+4. Only proceed when both reads affirm the exact head, standing review objections and holds are clear, and all other required checks and approvals are satisfied. Expect `REVIEWED (<providers>)` for an accepted review. Report the provider names from the outcome. A failed, incomplete, or obsolete run requires re-evaluation. Keep the PR open if a required reviewer has yet to finish.
+
+For this policy, use the normal expected-head merge after reading the current evidence. An approval or receipt for one head gives no merge authority to a later push. The existing reviewer-specific substitute path remains available for repositories using the legacy review declaration.

@@ -238,7 +238,7 @@ Each task must have their learnings captured to the ledger by the learner subage
 
 ## Implement valid suggestions
 
-When review, CodeRabbit, local-review, product, quality, security, or specialist
+When review, product, quality, security, or specialist
 feedback arrives, apply the `convergent-review` rule before changing code:
 
 1. Normalize each finding into severity, blocking yes/no, concrete failure

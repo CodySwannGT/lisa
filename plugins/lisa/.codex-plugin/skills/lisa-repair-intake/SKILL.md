@@ -41,7 +41,7 @@ close-out** roles and moves work *unstuck* or *fully closed*:
   re-dispatch** to the build agent — whose `drive-pr-to-merge` fix-mode loop resolves conflicts — because
   a conflict, unlike a failing external check, is fixable by re-running the build; only a conflict that
   survives that single attempt (or that the agent says needs design input) becomes a fix ticket. The
-  genuinely non-resolvable blockers — failing checks / unaddressed CodeRabbit or `CHANGES_REQUESTED`
+  genuinely non-resolvable blockers — failing checks / unaddressed review or `CHANGES_REQUESTED`
   review / a failed deploy — get a build-ready leaf fix ticket with the item moved to `blocked` (blocked
   by that ticket) instead of blindly re-dispatching the agent, which would just churn against them.
 - **Recoverable blocked** — an item in `blocked` whose blocker may now be gone. The blocker is
@@ -250,7 +250,7 @@ missing is the env transition build-intake never applied (its merge gate left th
 because the merge landed after its agent returned). The recovery is judged on PR merge state, not
 elapsed time — and crucially **post-merge activity does not defer it**. A freshly-merged PR keeps
 producing activity that the signal below would otherwise read as keep-alive (a queued/in-progress
-release or deploy check-run, a post-merge CodeRabbit summary comment), so gating merged-PR recovery
+release or deploy check-run, a post-merge reviewer summary comment), so gating merged-PR recovery
 on staleness strands a *completed* leaf in `claimed` for as long as that activity keeps the clock
 warm — exactly the failure that leaves a shipped Sub-task showing `status:in-progress` for a day
 while its parents roll up against it. Recover it regardless of recent activity (Build `claimed`
@@ -293,7 +293,7 @@ PRD `in_review`, a recent comment or page edit is active.
 Count only **forward-progress** signals as keep-alive: new commits, a review that was just
 requested or posted, an in-progress/queued check run, a fresh progress comment. A **settled
 blocker state** — a failing/errored check run, `CONFLICTING` mergeability, a `CHANGES_REQUESTED`
-review, an unaddressed CodeRabbit/reviewer change request, or a failed deployment — is NOT
+review, an unaddressed change request, or a failed deployment — is NOT
 keep-alive activity: it does not reset the staleness clock. The clock runs from the last genuine
 progress event, so a PR that has been sitting failed/conflicted/awaiting-changes for longer than
 `stale_after` counts as stalled and is diagnosed below.
@@ -355,7 +355,7 @@ a PR that cannot merge or a deploy that failed — it just churns.
      survives that single attempt — the same conflicting head still `CONFLICTING` on a later cycle — or
      that the agent reports needs design input, falls through to the fix-ticket path (diagnosis step 5).
    - **A real external blocker re-running the build cannot fix** (failing checks / `CHANGES_REQUESTED` /
-     unaddressed CodeRabbit; or a failed deploy) → **do not dispatch the agent**. File a build-ready leaf
+     unresolved review findings; or a failed deploy) → **do not dispatch the agent**. File a build-ready leaf
      fix ticket for the blocker, move this item `claimed → blocked` with an `is blocked by` link to that
      ticket, and record it. The existing "Build `blocked` → unblock if cleared" path resumes this item on
      a later cycle once the fix ticket is terminal — a self-healing loop. Skip the resume steps below.
@@ -520,8 +520,8 @@ branch — operate on it the same way.
   without anyone noticing. Verify before filing, never after.
 - **Failing required checks** — `statusCheckRollup` has a `FAILURE`/`ERROR`/`TIMED_OUT` conclusion,
   or `mergeStateStatus = UNSTABLE`/`BLOCKED` due to checks.
-- **Change requests outstanding** — `reviewDecision = CHANGES_REQUESTED`, or unresolved CodeRabbit
-  (or other reviewer) comments that request changes and have not been addressed by a newer commit.
+- **Change requests outstanding** — `reviewDecision = CHANGES_REQUESTED`, or unresolved reviewer
+  comments that request changes and have not been addressed by a newer commit.
 - **Branch-protection / approvals blocked** — `mergeStateStatus = BLOCKED` for a reason other than
   a transient check still running.
 - **Failed deploy** — the deployment for the item's merge/branch reports a failed/errored status
