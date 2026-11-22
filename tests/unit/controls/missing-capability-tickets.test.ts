@@ -185,6 +185,36 @@ describe("the missing-capability ticket flow", () => {
     expect(PROSE).toMatch(/open and\s+closed/u);
   });
 
+  it("looks up a marked open parent once, passes it to every new ticket, and counts the children", () => {
+    expect(PROSE).toContain(
+      "[lisa-control-gap-parent] repository=<owner>/<repo>"
+    );
+    expect(PROSE).toContain("Use the oldest open match");
+    expect(PROSE).toContain("Missing capabilities found by the audit");
+    expect(PROSE).toContain("None — container: state rolls up from children");
+    expect(PROSE).toContain("pass the same reference as `parent_ref`");
+    expect(PROSE).toContain("Skip a parent marker when matching a gap");
+    expect(PROSE).toContain("Count only the gap tickets");
+    expect(PROSE).toContain(
+      "lisa-linear-access operation: list-projects team:<team>"
+    );
+    expect(PROSE).toContain("get-project id:<ID>");
+  });
+
+  it("requires complete Epic pages with descriptions before filing", () => {
+    expect(PROSE).toContain(
+      "repos/<owner>/<repo>/issues?state=open&labels=type%3AEpic&per_page=100"
+    );
+    expect(PROSE).toContain("gh api --paginate --slurp");
+    expect(PROSE).toContain(
+      "project = <project> AND issuetype = Epic AND statusCategory != Done"
+    );
+    expect(PROSE).toContain("`nextPageToken`");
+    expect(PROSE).toMatch(
+      /a required field is absent, or a page repeats without advancing,\s+report the new gap tickets as blocked and file nothing/u
+    );
+  });
+
   it("mentions a requirement's id only where the marker or the output carries it", () => {
     const withId = TEXT.split("\n").filter(line =>
       new RegExp(String.raw`\b(?:${CRITERION_ID_SOURCE})\b`, "u").test(line)

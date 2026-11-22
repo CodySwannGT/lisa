@@ -465,6 +465,43 @@ function isTrustedAuthor(item, context) {
 }
 
 /**
+ * @typedef {object} OrderingOptions
+ * @property {string | null} [me] - Current tracker identity
+ * @property {readonly unknown[]} [operators] - Configured operator identities
+ * @property {readonly unknown[]} [trustedAuthorIds] - Configured issue authors
+ * @property {readonly string[]} [trustedHumanActorIds] - Configured hold releasers
+ * @property {(ref: string) => unknown} [commentsFor] - Current provider comments
+ * @property {string} [humanNeededLabel] - Human-needed label
+ * @property {unknown} [humanOnly] - Human-only reasons
+ * @property {unknown} [humanGateMode] - Human-gate mode
+ */
+
+/**
+ * Read comments only when a hold is still active and the policy can honor a release.
+ * @param {Record<string, any>} item - Normalized issue
+ * @param {ReturnType<typeof orderingContext>} context - Queue policy
+ * @returns {boolean} Whether a hold still bars dispatch
+ */
+function hasUnreleasedHold(item, context) {
+  const hold = {
+    labels: item.labels,
+    body: item.body,
+    comments: item.comments,
+    trustedHumanActorIds:
+      context.trustedHumanActorIds ?? item.trustedHumanActorIds,
+    humanNeededLabel: context.humanNeededLabel,
+    humanOnly: context.humanOnly,
+    humanGateMode: context.humanGateMode,
+  };
+  return (
+    isHumanGated(hold) &&
+    (!context.commentsFor ||
+      !hold.trustedHumanActorIds?.length ||
+      isHumanGated({ ...hold, comments: context.commentsFor(item.ref) }))
+  );
+}
+
+/**
  * Why an item may not be dispatched, or null when it may.
  *
  * Order matters only for the reason reported: an item can fail several rules,
@@ -483,21 +520,7 @@ function exclusionReason(item, context) {
     return "assigned-to-other";
   }
   if (item.isContainer === true) return "container";
-  if (
-    isHumanGated({
-      labels: item.labels,
-      body: item.body,
-      comments: item.comments,
-      trustedHumanActorIds: item.trustedHumanActorIds,
-      humanNeededLabel: context.humanNeededLabel,
-      // The project's policy decides whether a lifted hold is valid again
-      // (CodySwannGT/lisa#4687): omitted, strict holds read as access-only.
-      humanOnly: context.humanOnly,
-      humanGateMode: context.humanGateMode,
-    })
-  ) {
-    return "human-gated";
-  }
+  if (hasUnreleasedHold(item, context)) return "human-gated";
   if (context.trusted.length > 0 && !isTrustedAuthor(item, context)) {
     return "untrusted-author";
   }
@@ -536,7 +559,7 @@ function compareWithinGroup(left, right) {
  * `blockers-unreadable` (CodySwannGT/lisa#5065); every other item is still
  * offered.
  * @param {readonly Record<string, any>[]} items - Normalized items
- * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string, humanOnly?: unknown, humanGateMode?: unknown }} [options]
+ * @param {OrderingOptions} [options]
  * @returns {{ ordered: Record<string, any>[], excluded: { ref: string, reason: string }[] }}
  */
 export function orderReadyQueue(items, options = {}) {
@@ -572,7 +595,7 @@ function unreadableBlockers(item) {
  * again, so it waits until someone edits it. Grouping and ordering match
  * {@link orderReadyQueue}.
  * @param {readonly Record<string, any>[]} items - Normalized items
- * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string, humanOnly?: unknown, humanGateMode?: unknown, validationFailures?: Readonly<Record<string, { updatedAt?: string }>> }} [options]
+ * @param {OrderingOptions & { validationFailures?: Readonly<Record<string, { updatedAt?: string }>> }} [options]
  * @returns {{ ordered: Record<string, any>[], excluded: { ref: string, reason: string }[] }}
  */
 export function orderBacklogQueue(items, options = {}) {
@@ -614,13 +637,15 @@ function configuredEntries(entries) {
 
 /**
  * The identities and policy every ordering judges against.
- * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string, humanOnly?: unknown, humanGateMode?: unknown }} options
+ * @param {OrderingOptions} options
  */
 function orderingContext(options) {
   return {
     me: idOrNull(options.me),
     operators: configuredEntries(options.operators),
     trusted: configuredEntries(options.trustedAuthorIds),
+    trustedHumanActorIds: options.trustedHumanActorIds,
+    commentsFor: options.commentsFor,
     humanNeededLabel: options.humanNeededLabel ?? DEFAULT_HUMAN_NEEDED_LABEL,
     humanOnly: options.humanOnly,
     humanGateMode: options.humanGateMode,

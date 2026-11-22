@@ -75,6 +75,7 @@ import {
 } from "./bdd/discover.mjs";
 import { loadScenarios } from "./bdd/parse.mjs";
 import { appendCiSummary } from "./bdd/ci-summary.mjs";
+import { COVERAGE_COMMAND } from "./bdd/projection-render.mjs";
 import { writeFeatureArtifacts } from "./bdd/projection.mjs";
 import { buildReport } from "./bdd/report.mjs";
 import {
@@ -306,7 +307,9 @@ function validateAll({
  */
 const MISSING_BASE_DEFECT = defect(
   "baseline",
-  "BDD_BASE_SHA is required: without a base revision the gate cannot tell coverage that was given back from coverage that was never there, so it refuses to claim either."
+  "BDD_BASE_SHA is required to check for lost coverage. " +
+    `Run \`${COVERAGE_COMMAND}\` to compare with the default branch. ` +
+    "For a different target branch, replace origin/HEAD with its remote-tracking ref."
 );
 
 /**

@@ -41,7 +41,7 @@
     "all/copy-overwrite/scripts/lib/build-marker.mjs":
       "505519d9632ab86572cfdeca917d93599256cf8e798987ad593a82296a7d8175",
     "all/copy-overwrite/scripts/lib/changed-paths.mjs":
-      "bcf755d8c1905cddd84622c9a520f7bcc16b19379b9f933a8b5657bb6df9f391",
+      "f9089dfab2a892e2512abc4ad4ee336fedc46253c8fe5b8c257c76dad1ac72a3",
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs":
       "a9c3fa0ee9c3de9c610e009c6775088237c1e8ebd69ff4d9fd829de2db1c206a",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
@@ -53,7 +53,7 @@
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs":
       "0b323e9c53b6909eca61fa84bf2c85683a686e380760e2fe2fb52b09c6611026",
     "all/copy-overwrite/scripts/lib/completion-proof-content.mjs":
-      "98b1901e0912d72a639028f22837a8abecaeeef6fba0654990bca2285239ea08",
+      "25d44e9eeed728d046a45e5662691c7112cb271b5decc48ea9fe0fe038812538",
     "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs":
       "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
@@ -365,13 +365,13 @@
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "42beca1ca7830cd56f617102c61644c877a232d10a37811b8357bdb1a9c6cc29",
+      "314064656e925d751b6bd6593359d581fb485c1ba8ebccb27d918b855ec807af",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "c2fc91c3a1c40e54c084063aef9e787064f43551da66c0c14ff7b105590777c8",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "52de545390c4f37b0505db43cf74cc1efd22647eca98292d84ab660b79878529",
+      "b8b44650434695019718576752a1735ee0adcaab2fe8f4eb30cb9c4150fb136c",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "73ac5af581d16992dd9cc273b4e2f6b55bd6a2629abe23b7658563cf433e082c",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
@@ -409,7 +409,7 @@
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "32d9ba926ee0c7f8a5f4ab80c9377b6693d01438990667e85be2e33997af42e6",
+      "d124e35b28292948ee4cf94c99b81bb346eb5fa40f8d826877acaedcbd1ec69b",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -425,7 +425,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "b206a2880f155a3ad008c5e907cecbaf6ea5dffc00c2a4bcdf7ee23ca72cccd8",
+      "4bae62519d08a3a821298b2cf88155a1946563dfeae38547b6480a75b2b35e04",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -433,7 +433,7 @@
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
       "6b7afe4ffeba8aaa53871d8855172f7eacde05953b1321145218ec638ff5c1c4",
     "all/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "f837708fc5baf19b5e8e9adf88bcce810f8257d00075265775982b38063dc5d3",
+      "76cdcc3a28a04686e6ddc3cd1f54e3bb9c4fb28a8033692dc86e1ffb7adb0ced",
     "all/copy-overwrite/scripts/threshold-ratchet-families.mjs":
       "b9e64446a177616c365d04f21f3c3a1488975843be828fd72d9c9f5d331a22e3",
     "all/create-only/.agents/rules/README.md":
@@ -627,7 +627,7 @@
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
       "4011bcc9643b93522d2082363a2e9de3309d92f82ec054d2988860bb7cd3d16c",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
-      "5b45f4d37eb2faa40870f2ab75884d914d7a08bf1cbd7fb45929f91ede1e18e2",
+      "7a4d20dd130524161f0860fb2199782891bc91a906988b3aaec041ec4db178e2",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "99764b136eaa7bba3b7abf78f60bc6805f8c008a9cac59c78c5eadba35cecdc7",
     "expo/copy-overwrite/scripts/check-lighthouse-details.mjs":
@@ -697,7 +697,7 @@
     "expo/create-only/tsconfig.json":
       "fdb99e32d1588e75735755d7b5caab406ad8387c21a3d820cd3b40cb9218a191",
     "expo/create-only/tsconfig.local.json":
-      "dad4b4a00c890ce8c30db87ad3f8e92e2273e31c2c2a6436d0ab327b47f72758",
+      "dfaff3932fe73440e589998992eccd336a984b5984b31be91a05a20449dcdbc0",
     "expo/deletions.json":
       "d968e902b82b35202d22e7513b4647a4298ac76185872234bcbe13a1a9c2715f",
     "expo/github-rulesets/bdd-coverage.json":
@@ -1113,7 +1113,7 @@
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "7ec3db9a519a5ce95277d75ab347d2ee52970bc4ccb7ae554bccba8628290c19",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "eeab0883ea9d032d7ca10bf4dd598ed864e66380260bd452db00e2eb05e51e59",
+      "7355609a407cbcbbfc59b1aed95057459f80a195f89541aae409906d6b955ef0",
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
@@ -1189,7 +1189,7 @@
     "plugins/src/base/hooks/sonar-secrets.sh":
       "554fb65766d617c8b57411b0d53906b7358c219dd2031708370ffc91e97f7381",
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
-      "1e250e09de777c2507861652b6eb810bf5fcc25e498c211b949c185fd2d744bd",
+      "335426213e2a0daa37389da12932fbf87b4cab6e2ee2c2318ef624548e370dac",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
       "e0aae600cc3187e832b5a959f60869c87a95b32ab8ee2ccbf9f959e41deacd3b",
     "plugins/src/base/hooks/threshold-ratchet.mjs":
@@ -1261,7 +1261,7 @@
     "plugins/src/base/rules/reference/completion-authorization.md":
       "75646f8f5b1c5aedf750e37ed3b5a1f09f6fd85932037c85ac1e8930b67100b1",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "5e75ef2b3865361e67fa5f7f25cb53ab617b92d69cdbc810e7bd355aab3720c8",
+      "3db169298b6e233b274e8662a9ab040e1605080bbce10b94349686184896053e",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1433,7 +1433,7 @@
     "plugins/src/base/scripts/queue-status-prd-readers.mjs":
       "32b4366fc292062c869793aeaf5b006ff400df5da09ee510f862e15d59a77770",
     "plugins/src/base/scripts/ready-queue-order.mjs":
-      "dd41b11715511c6750944a917cfc159061a139ecbab324ee1731cd103ae3f16a",
+      "02d2216053cf89da887cbec541cd4b175fd39dfaa340e451293b3b7106a7d161",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
       "7341831fa2dc52bdf792306196430548a7efec91993e1ad7f5c6b737a9def8a5",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
@@ -1521,7 +1521,7 @@
     "plugins/src/base/skills/lisa-enforce/SKILL.md":
       "a34ed0e80a87b2d24211876711cb571eb0922d96b6ab08f2bd826416b977feed",
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
-      "0cc51d8a05524d6449ab30bd2a5b60687c26617d2cd5e571c9fce68ad9feb3c8",
+      "3bb11b4e18bb724dea9b98620fdb8a7fa2debb7aeb58abf64d5fc0cf54428b02",
     "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md":
       "7b926efa4ec1a7c68af9fd1443bf9dd9dd4688efc121c18b688b46a51afada2c",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
@@ -1657,7 +1657,7 @@
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "17251e8d6c762b69b2ca6a77d9cfe44beba31dfc0444de4cde051747e2c99eab",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
-      "723f951c856774f03e19ef7400f4f1885b8ad35147a6948bdff5d58911315e0b",
+      "ba0576e617850360e1e800612301d841570e3ce452fa621cb99cb0b8d607e4d9",
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
       "f6de212c8ac7a905e754b82e08b0696d8d03f81b8e6b281e02fb28e3a489552d",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
@@ -1793,7 +1793,7 @@
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "4933d038cfe8299d28828652f9d800fb64ba23ad5f5dc05ef0de09938ad2d567",
+      "dde744d8d44308d0e803a975ac6cd9613ea0734a9c5d6be02ec22bddc4106fc0",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "7e59e966dca77962bb67a836a6e86f8a2ec20875de2c8ab06a649c18ffb84533",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1815,7 +1815,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-overruled.mjs":
       "cab60f2dfee7f33a8a5f16ec94cb1b2ab17cf384886ee5eb738fb015535d6567",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs":
-      "8faa0ee5a26cbfa7708e917a02cb814efe7e639007c8526ad3934dbc4f3f21fc",
+      "80593aff1ed42f3e65ed0049ba32f96dc001542fd2712cf4847d278bc1c433f5",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs":
       "aab705023d16ae42d6994450da0c914230ccab92823babb81697941c3760e8a8",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
@@ -1871,7 +1871,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs":
       "332bebf7a73c1d95bafe0e82239c18838dd53df7ca043c5cf4c3bb1043497324",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
-      "7dac63717d0d207904f8077f539512dc95e4cf6da5607042716282f1f6f35361",
+      "95fec196f74ce761157f5fb4b8f9175e15db9b8d9b93b7a69371343e3b41fc5e",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
       "adf56eb60769ffb8ace6a5aefe85e37107db1d73e4d73ab4cf29ab045ca8c76c",
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":
@@ -1881,7 +1881,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs":
       "433c1afb36641eb3eb271f1803c7dfba556dd98e535627d00cfc8e3135a5d68f",
     "plugins/src/base/skills/lisa-session-manager/scripts/stale-links-github.mjs":
-      "73b0da0fc25973f3ac75a0f2a1bb2e3f25417eace4d13bc4399e52e920b60a63",
+      "238beff6631928d26c63ade30324682a8b984f59b5bf3087c8d5317058421186",
     "plugins/src/base/skills/lisa-session-manager/scripts/stale-links-state.mjs":
       "058e1f2ffc9f0c36089c69b3bc75c5f215107b0c2669f73617cd33a374026ac2",
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs":
@@ -1997,7 +1997,7 @@
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
       "bda6007451009e28a3ddc3ede691a7b29a475f4cf725a283438cbec10d50a805",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
-      "c4656c11936ca8f2f05091ba5d4922cadca293cf822b644e5ee46cbf22103706",
+      "4b9dfd58c4ec5e7738910534188c245ff6f71ccffa1b0bfc9208c6a9492e38b4",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
       "4b95e256e0c9e7ce87fb5b827fcfc94496757e600247c639ecf50d06e4e910b3",
     "plugins/src/base/skills/lisa-tracker-read/SKILL.md":
@@ -2623,7 +2623,7 @@
     "rails/copy-overwrite/lefthook.yml":
       "239999bd4abd06a9aec7e3309275b37a722ca2a53879f18643360cf5e909b74e",
     "rails/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "df39aa29b19817f67726107fec45078ce639f14a682cf6d5587ba37617f31ac9",
+      "4679c1e7cc92f960bad81854b9ce68a14aa0e404f2264cca0c2d6186008a17eb",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "62add29cbcca6ac6b2346120393d41e219267f74d7ea6c66dc1482c5dbdb118a",
     "rails/copy-overwrite/scripts/lisa-rails-ast-grep.mjs":
@@ -2645,7 +2645,7 @@
     "rails/copy-overwrite/scripts/lisa_simplecov_collate.rb":
       "e9a11edd45c0442c2ec8f59b0fa5d2492d4cfac99398aa3697e70947063a5cc7",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "f837708fc5baf19b5e8e9adf88bcce810f8257d00075265775982b38063dc5d3",
+      "76cdcc3a28a04686e6ddc3cd1f54e3bb9c4fb28a8033692dc86e1ffb7adb0ced",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
       "b9e64446a177616c365d04f21f3c3a1488975843be828fd72d9c9f5d331a22e3",
     "rails/copy-overwrite/sgconfig.yml":
@@ -3189,7 +3189,7 @@
     "typescript/copy-overwrite/knip.json":
       "7157e57bfe01b8e750bb789a5ec15713dacdfa29c1f913b5d2d09416f2359b46",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "df39aa29b19817f67726107fec45078ce639f14a682cf6d5587ba37617f31ac9",
+      "4679c1e7cc92f960bad81854b9ce68a14aa0e404f2264cca0c2d6186008a17eb",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "84a7dcd3501eb75c2bd90c2ebe31e6ad4ae4f2bd62b6862ecda91ab8609ad245",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -3221,7 +3221,7 @@
     "typescript/copy-overwrite/scripts/reconcile-nightly-e2e-tracking.mjs":
       "d061c7513acdf1e187cf916dca53432a06a78e43bd0068a0b315ad351a4b72db",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "f837708fc5baf19b5e8e9adf88bcce810f8257d00075265775982b38063dc5d3",
+      "76cdcc3a28a04686e6ddc3cd1f54e3bb9c4fb28a8033692dc86e1ffb7adb0ced",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
       "b9e64446a177616c365d04f21f3c3a1488975843be828fd72d9c9f5d331a22e3",
     "typescript/copy-overwrite/sgconfig.yml":
@@ -11244,6 +11244,7 @@
     "src/claude/claude-md-installer.ts": true,
     "src/cli-load-diagnostic.ts": true,
     "src/cli/admit-cmd.ts": true,
+    "src/cli/apply-cmd.ts": true,
     "src/cli/apply.ts": true,
     "src/cli/check-cmd.ts": true,
     "src/cli/check-learnings-budget-cmd.ts": true,
@@ -13414,6 +13415,7 @@
     "tests/unit/controls/lisa-gates-parts-resolution.test.ts": true,
     "tests/unit/controls/lisa-gates-parts.test.ts": true,
     "tests/unit/controls/lisa-gates-unenforceable-on.test.ts": true,
+    "tests/unit/controls/lisa-run-gates-declaration-removal.test.ts": true,
     "tests/unit/controls/lisa-run-gates-no-builtins.test.ts": true,
     "tests/unit/controls/lisa-run-gates-no-manifest.test.ts": true,
     "tests/unit/controls/lisa-run-gates-parts-assertion.test.ts": true,
@@ -13799,6 +13801,7 @@
     "tests/unit/hooks/auto-update.test.ts": true,
     "tests/unit/hooks/block-blind-automerge-uncovered-base.test.ts": true,
     "tests/unit/hooks/block-blind-automerge.test.ts": true,
+    "tests/unit/hooks/block-direct-issue-create-body-file.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-bypasses.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-comment-lex.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-container.test.ts": true,
@@ -14492,6 +14495,7 @@
     "tests/unit/scripts/third-party-review-substitute-authors.test.ts": true,
     "tests/unit/scripts/third-party-review-vendor-config.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-baseline.test.ts": true,
+    "tests/unit/scripts/threshold-ratchet-edited-exceptions.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-exception-fence.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-exception-only.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-exemption-expiry.test.ts": true,
@@ -14690,6 +14694,7 @@
     "tests/unit/session-manager/cli-overruled.test.ts": true,
     "tests/unit/session-manager/cli-queue-backlog.test.ts": true,
     "tests/unit/session-manager/cli-queue-operators.test.ts": true,
+    "tests/unit/session-manager/cli-queue-release-trust.test.ts": true,
     "tests/unit/session-manager/cli-release-trust.test.ts": true,
     "tests/unit/session-manager/cli-setup-gap-edges.test.ts": true,
     "tests/unit/session-manager/cli-setup-gap-persist.test.ts": true,
@@ -14779,6 +14784,7 @@
     "tests/unit/standards/test-evidence.test.ts": true,
     "tests/unit/strategies/access-doc-adapters.test.ts": true,
     "tests/unit/strategies/agent-skill-layer-contract.test.ts": true,
+    "tests/unit/strategies/artifact-tsconfig-selection.test.ts": true,
     "tests/unit/strategies/automation-run-history-helpers.ts": true,
     "tests/unit/strategies/automation-run-record-cli.test.ts": true,
     "tests/unit/strategies/automation-run-record-preservation.test.ts": true,

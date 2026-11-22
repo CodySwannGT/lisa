@@ -147,6 +147,7 @@ import {
   pathsOutside,
   PUSH_REFS_STDIN,
   readPushRefs,
+  declarationProblemAt,
   touchesFolder,
 } from "./lib/changed-paths.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
@@ -174,6 +175,7 @@ import {
   formatIdentityLine,
   lisaIdentity,
   momentsExecutedBy,
+  parseGatesConfig,
   planDigest,
   projectScripts,
   readGates,
@@ -3074,6 +3076,28 @@ export function main(argv = process.argv.slice(2)) {
     );
     console.error("   Nothing was proved by the gate registry at this moment.");
     return settle(EXIT.RUNNER_FAILED, EVIDENCE_VERDICT.RUNNER_FAILED);
+  }
+
+  const declarationProblem = standalone
+    ? declarationProblemAt({
+        moment,
+        root: process.cwd(),
+        pushRefs: pushRefsFlag,
+        ...(stdinRefs === undefined ? {} : { read: () => stdinRefs }),
+        declares(text) {
+          if (text === null) return false;
+          try {
+            return Object.keys(parseGatesConfig(text).gates).length > 0;
+          } catch {
+            // A malformed declaration cannot supply checks for the change.
+            return false;
+          }
+        },
+      })
+    : null;
+  if (declarationProblem !== null) {
+    console.error(declarationProblem);
+    return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.BLOCKED);
   }
 
   // The gates BLOCK is the migration switch. Its absence means this project
