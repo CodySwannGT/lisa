@@ -12550,6 +12550,7 @@
     "tests/helpers/bounded-child-runner.ts": true,
     "tests/helpers/canonical-entry.ts": true,
     "tests/helpers/child-bound-scan.ts": true,
+    "tests/helpers/child-budget-hook-observations.ts": true,
     "tests/helpers/child-budget-test-runner.ts": true,
     "tests/helpers/child-output-tail.ts": true,
     "tests/helpers/cleanup-sweep-skip.ts": true,

@@ -144,7 +144,13 @@ function measureWithinReferenceWindow(
       : Math.floor(referenceStarted + referenceTimeout - recheckAt);
   const sample =
     recheckAt !== null && remaining > 0
-      ? measureReference(now, recheckAt, remaining, operationLimitMs)
+      ? measureReference(
+          now,
+          recheckAt,
+          remaining,
+          operationLimitMs,
+          first.referenceMs
+        )
       : first;
   const rejectedReferenceMs = sample === first ? null : first.referenceMs;
   return { sample, rejectedReferenceMs };
@@ -164,13 +170,15 @@ interface ReferenceSample {
  * @param started - Reference start on that clock
  * @param timeout - Remaining fixed reference allowance
  * @param operationLimitMs - Original containing headroom
+ * @param rejectedReferenceMs - Earlier completed sample above the clamp, if rechecked
  * @returns Measured latency and completion time
  */
 function measureReference(
   now: () => number,
   started: number,
   timeout: number,
-  operationLimitMs: number
+  operationLimitMs: number,
+  rejectedReferenceMs: number | null = null
 ): ReferenceSample {
   const reference = spawnSync(process.execPath, ["-e", ""], {
     killSignal: "SIGKILL",
@@ -178,14 +186,28 @@ function measureReference(
     timeout,
   });
   const sampledAtMs = now();
+  const referenceMs = sampledAtMs - started;
+  const bounds = `reference bound=${timeout}ms, fixed operation window=${operationLimitMs}ms.${
+    rejectedReferenceMs === null
+      ? ""
+      : ` ${rejectedReference(rejectedReferenceMs).trim()}`
+  }`;
   if (reference.error || reference.signal || reference.status !== 0) {
     throw new Error(
       `Child admission reference did not complete: status=${reference.status}, ` +
-        `signal=${reference.signal}, error=${reference.error?.message ?? "none"}; ` +
-        `reference bound=${timeout}ms, fixed operation window=${operationLimitMs}ms.`
+        `signal=${reference.signal}, error=${reference.error?.message ?? "none"}; ${
+          bounds
+        }`
     );
   }
-  return { referenceMs: sampledAtMs - started, sampledAtMs };
+  if (sampledAtMs > started + timeout) {
+    throw new Error(
+      `Child admission reference completed after its bound: elapsed=${referenceMs}ms; ${
+        bounds
+      }`
+    );
+  }
+  return { referenceMs, sampledAtMs };
 }
 
 /**
@@ -196,7 +218,7 @@ function measureReference(
 function rejectedReference(referenceMs: number | null): string {
   return referenceMs === null
     ? ""
-    : `rejected first reference=${referenceMs.toFixed(2)}ms; `;
+    : `rejected first reference=${referenceMs}ms; `;
 }
 
 /**

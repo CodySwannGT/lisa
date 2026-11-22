@@ -1,5 +1,9 @@
 /** Controlled reproduction using the two recorded over-limit startup samples. */
-import type { spawnSync, SpawnSyncReturns } from "node:child_process";
+import type {
+  spawnSync,
+  SpawnSyncOptions,
+  SpawnSyncReturns,
+} from "node:child_process";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -10,15 +14,30 @@ import {
   type ChildBudgetPolicy,
 } from "../../helpers/fresh-child-budget.js";
 
-const profile = vi.hoisted(() => ({ time: 0, samples: [] as number[] }));
+const profile = vi.hoisted(() => ({
+  time: 0,
+  samples: [] as Array<number | { timeout: number }>,
+  bounds: [] as number[],
+}));
 
 vi.mock("node:child_process", async original => ({
   ...(await original<typeof import("node:child_process")>()),
-  spawnSync: vi.fn(() => {
+  spawnSync: vi.fn((_command, _args, options: SpawnSyncOptions) => {
     const samplingCost = profile.samples.shift();
     if (samplingCost === undefined) throw new Error("unexpected reference");
-    profile.time += samplingCost;
-    return { status: 0, signal: null };
+    profile.bounds.push(options.timeout ?? 0);
+    if (typeof samplingCost === "number") {
+      profile.time += samplingCost;
+      return { status: 0, signal: null };
+    }
+    profile.time += samplingCost.timeout;
+    return {
+      status: null,
+      signal: "SIGKILL",
+      error: Object.assign(new Error("reference timeout"), {
+        code: "ETIMEDOUT",
+      }),
+    };
   }),
 }));
 
@@ -61,6 +80,7 @@ const success: SpawnSyncReturns<string> = {
 describe("bounded reference recheck", () => {
   beforeEach(() => {
     profile.time = 0;
+    profile.bounds = [];
   });
 
   it("charges an isolated over-limit sample and uses one fresh admissible recheck", () => {
@@ -87,7 +107,7 @@ describe("bounded reference recheck", () => {
     expect(reading.rejectedReferenceMs).toBeCloseTo(164.5355);
     expect(reading.timeoutMs).toBe(6000);
     expect(describeChildBudget(reading)).toContain(
-      "rejected first reference=164.54ms"
+      "rejected first reference=164.5355ms"
     );
   });
 
@@ -106,10 +126,30 @@ describe("bounded reference recheck", () => {
         policy(),
         vi.fn()
       )
-    ).toThrow(/rejected first reference=149\.59ms.*no host-load cause/u);
+    ).toThrow(/rejected first reference=149\.594875ms.*no host-load cause/u);
 
     expect(profile.samples).toEqual([18]);
     expect(child).not.toHaveBeenCalled();
+  });
+
+  it("refuses a recheck that reports completion after the original reference deadline", () => {
+    profile.samples = [150, 60, 18];
+
+    expect(() => freshChildBudget(policy(200))).toThrow(
+      /completed after its bound: elapsed=60ms.*reference bound=50ms.*rejected first reference=150ms/u
+    );
+    expect(profile.bounds).toEqual([200, 50]);
+    expect(profile.samples).toEqual([18]);
+  });
+
+  it("retains the first sample and actual transport failure when the recheck times out", () => {
+    profile.samples = [150, { timeout: 50 }, 18];
+
+    expect(() => freshChildBudget(policy(200))).toThrow(
+      /signal=SIGKILL, error=reference timeout.*reference bound=50ms.*rejected first reference=150ms/u
+    );
+    expect(profile.bounds).toEqual([200, 50]);
+    expect(profile.samples).toEqual([18]);
   });
 
   it("spends only the original reference window even when a new sample would pass", () => {
