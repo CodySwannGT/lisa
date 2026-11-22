@@ -225,7 +225,6 @@ export function evaluateReviewPolicy({
         checkRuns,
         head,
         canWrite,
-        authorId: pull.user?.id,
         settings: policy.adapters[provider],
       },
       externalRead

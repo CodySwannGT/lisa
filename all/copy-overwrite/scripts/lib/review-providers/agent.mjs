@@ -49,20 +49,13 @@ export function agentPacket(review, head) {
 }
 
 /** Only an authenticated repository writer's submitted PR review grants credit. */
-export function agentEvidence({
-  reviews,
-  head,
-  canWrite,
-  authorId,
-  settings = {},
-}) {
+export function agentEvidence({ reviews, head, canWrite, settings = {} }) {
   return reviews
     .filter(
       review =>
         review.commit_id === head &&
         ["COMMENTED", "APPROVED"].includes(review.state) &&
         submittedReview(review) &&
-        review.user.id !== authorId &&
         (settings.actorId === undefined ||
           review.user.id === settings.actorId) &&
         canWrite(review.user.login) &&

@@ -102,7 +102,11 @@ function hostedFixture(review: object, reviews = [REVIEW], pull = PULL) {
           },
         },
       };
-    if (route === `${ROOT}/collaborators/reviewer/permission`)
+    if (
+      [REVIEWER, AUTHOR].some(
+        user => route === `${ROOT}/collaborators/${user.login}/permission`
+      )
+    )
       return { permission: "write" };
     if (route === STATUS_ROUTE)
       return [
@@ -179,6 +183,23 @@ describe("provider-neutral hosted review policy", () => {
     }
   );
 
+  it("credits a separate agent session posted through the pull request author's account", () => {
+    const fixture = hostedFixture({ providers: ["agent"] }, [
+      { ...REVIEW, user: AUTHOR },
+    ]);
+    const result = runReviewPolicyEvent({
+      ...fixture,
+      env: EVENT_ENV,
+      event: EVENT,
+    });
+
+    expect(result.checks[0]).toMatchObject({
+      conclusion: "success",
+      providers: ["agent"],
+      head: HEAD,
+    });
+  });
+
   it("withholds credit when the explicitly required provider has no review", () => {
     const fixture = hostedFixture({
       providers: ["agent", "coderabbit"],
@@ -252,18 +273,39 @@ describe("provider-neutral hosted review policy", () => {
 });
 
 describe("native agent review publication", () => {
-  it("refuses the pull request author's account before a write", () => {
-    const api = vi.fn<typeof reviewApi>(([route]) =>
-      route === PULL_ROUTE ? PULL : AUTHOR
-    );
+  it("submits and verifies a review comment through the pull request author's account", () => {
+    const review = { ...REVIEW, user: AUTHOR };
+    const api = vi.fn<typeof reviewApi>(([route]): unknown => {
+      if (route === PULL_ROUTE) return PULL;
+      if (route === "user") return AUTHOR;
+      if (route === `${ROOT}/collaborators/${AUTHOR.login}/permission`)
+        return { permission: "write" };
+      if (route === REVIEW_PAGE) return [[]];
+      if (
+        [
+          `${PULL_ROUTE}/reviews`,
+          `${PULL_ROUTE}/reviews/${review.id}`,
+        ].includes(route!)
+      )
+        return review;
+      throw new Error(`Unexpected native API read ${route}`);
+    });
 
-    expect(() =>
+    expect(
       postAgentReview({ repo: REPO, pr: 19, packet: PACKET, api })
-    ).toThrow("other than the pull request author");
-    expect(api.mock.calls.map(([args]) => args)).toEqual([
-      [PULL_ROUTE],
-      ["user"],
-    ]);
+    ).toEqual({
+      reviewId: review.id,
+      head: HEAD,
+      reviewerId: AUTHOR.id,
+    });
+    expect(api).toHaveBeenCalledWith(
+      [`${PULL_ROUTE}/reviews`, "--method", "POST", "--input", "-"],
+      {
+        commit_id: HEAD,
+        event: "COMMENT",
+        body: review.body,
+      }
+    );
   });
 
   it("reuses a verified identical submitted review on retry", () => {

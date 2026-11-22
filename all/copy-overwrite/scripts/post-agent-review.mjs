@@ -78,11 +78,10 @@ export function postAgentReview({ repo, pr, packet, api = reviewApi }) {
   if (
     nativeNumber(pull.user?.id) === null ||
     nativeNumber(reviewer.id) === null ||
-    pull.user.id === reviewer.id ||
     !/^[A-Za-z0-9_-]+$/u.test(reviewer.login ?? "")
   )
     throw new Error(
-      "The reviewer must authenticate as an account other than the pull request author"
+      "GitHub did not return a valid pull request author and authenticated reviewer"
     );
   const permission = api([
     `repos/${repo}/collaborators/${reviewer.login}/permission`,

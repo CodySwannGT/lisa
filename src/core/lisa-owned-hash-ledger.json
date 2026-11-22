@@ -1532,9 +1532,11 @@
       "a207cebcd851d23beff91274f1f8d8bfc7ca4c94a91d5d43b00e83d265403f9a"
     ],
     "scripts/lib/review-policy.mjs": [
-      "9818422981188b10eed008062323ebac198c38033f3471d32d3b2d6def15c504"
+      "9818422981188b10eed008062323ebac198c38033f3471d32d3b2d6def15c504",
+      "d97bcff58ba0e4bb477bd2d4bea83c5f0ccbd90cac945978a342cb7761101e2d"
     ],
     "scripts/lib/review-providers/agent.mjs": [
+      "858554e0fb56d675afc6b7bb1a8f32adc0953108a5260c9d4fef9bc603484b12",
       "a76e56cb33d2cbd2123439a77c577b04876062696857fde374c8b643df977710"
     ],
     "scripts/lib/review-providers/coderabbit.mjs": [
@@ -3148,7 +3150,8 @@
       "fe9d5afd29b0187281466822f5af4825ab467cc15189f4c486f6959419eb90a6"
     ],
     "scripts/post-agent-review.mjs": [
-      "2cbc8e8cd8213f9c253ae722ddf045431b2005da62544aa16b20774c73e476d4"
+      "2cbc8e8cd8213f9c253ae722ddf045431b2005da62544aa16b20774c73e476d4",
+      "3b605b01ce7404d8e930629005896248ca115e0692bda6cf2d340e44c9f35a58"
     ],
     "scripts/reconcile-nightly-e2e-tracking-cli.mjs": [
       "0ca6615153c300a12ac0ec08fc0bc8bc3c5b488bad4b4802f0d9a7eb81e09a49",
@@ -4739,9 +4742,11 @@
       "a207cebcd851d23beff91274f1f8d8bfc7ca4c94a91d5d43b00e83d265403f9a"
     ],
     "scripts/lib/review-policy.mjs": [
-      "9818422981188b10eed008062323ebac198c38033f3471d32d3b2d6def15c504"
+      "9818422981188b10eed008062323ebac198c38033f3471d32d3b2d6def15c504",
+      "d97bcff58ba0e4bb477bd2d4bea83c5f0ccbd90cac945978a342cb7761101e2d"
     ],
     "scripts/lib/review-providers/agent.mjs": [
+      "858554e0fb56d675afc6b7bb1a8f32adc0953108a5260c9d4fef9bc603484b12",
       "a76e56cb33d2cbd2123439a77c577b04876062696857fde374c8b643df977710"
     ],
     "scripts/lib/review-providers/coderabbit.mjs": [
@@ -6285,7 +6290,8 @@
       "fe9d5afd29b0187281466822f5af4825ab467cc15189f4c486f6959419eb90a6"
     ],
     "scripts/post-agent-review.mjs": [
-      "2cbc8e8cd8213f9c253ae722ddf045431b2005da62544aa16b20774c73e476d4"
+      "2cbc8e8cd8213f9c253ae722ddf045431b2005da62544aa16b20774c73e476d4",
+      "3b605b01ce7404d8e930629005896248ca115e0692bda6cf2d340e44c9f35a58"
     ],
     "scripts/reconcile-nightly-e2e-tracking-cli.mjs": [
       "0ca6615153c300a12ac0ec08fc0bc8bc3c5b488bad4b4802f0d9a7eb81e09a49",

@@ -15,7 +15,7 @@ Use `providers: ["agent"]` for independent agent review. Set `requiredProviders`
 
 ## Agent review
 
-Have an independent reviewer inspect the exact diff and record the outcomes of their findings. The author of the pull request and the reviewer must authenticate as different GitHub accounts. The reviewer needs repository write access.
+Have a separate agent session inspect the exact diff and record the outcomes of its findings. The report may be posted through the pull request author's GitHub account. The posting account needs repository write access.
 
 Save a JSON report with `schema_version: 1`, `provider: "agent"`, `status: "completed"`, `head_sha`, `source_session`, `reviewer_session`, and `scope`, the list of reviewed paths. Include the substantive review text in `review` and its UTF-8 SHA-256 in `review_sha256`. Include a `findings` array with an `evidence` string and a `disposition` of `fixed`, `pushed-back`, or `non-blocking` for each finding.
 
