@@ -22,6 +22,7 @@ import {
   attestIn,
   pullRequestSetting,
 } from "./support/attest-pull-request-run.js";
+import { UNMAPPED_EVIDENCE_NOTES } from "./support/attest-run.js";
 import {
   canaryPlatform,
   expectNoMerge,
@@ -113,6 +114,7 @@ describe("lisa controls attest, without the canary option", () => {
       expect.stringMatching(
         /^attest: Level 1 result: non-conforming\. Conforming or not applicable: 0 of 77 requirements\. /u
       ),
+      ...UNMAPPED_EVIDENCE_NOTES,
     ]);
     expect(run.stderr).toEqual([
       "attest: FAIL. 0 of 1 entry proved: 0 passed, 0 failed, 1 unproved, 0 unknown. Every entry has to pass",

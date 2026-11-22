@@ -22,7 +22,7 @@ entry's violating change and makes a real commit or push. So a plain run
 proves the chain Lisa installs: hook, carrier, gate runner, check. It says
 nothing about what the repository does today, before that chain exists.
 
-A before-enforce run builds the same copy and installs nothing in it.
+A before-enforce run builds the same copy without installing Lisa carriers.
 
 ## What the copy is
 
@@ -35,10 +35,11 @@ with `carriers: "none"`:
 - the files that describe the checks, taken from the working copy by explicit
   path, exactly as in a plain run: `.lisa.config.json`, the carrier record
   and what it lists, and `.lisa/controls/proofs/`;
-- **no carrier, no gate runner copied in, and no `core.hooksPath` set.**
+- any setup declared in the committed
+  [proof-copy preparation](paired-proof.md#preparing-the-disposable-copy).
+  The command uses the hooks the preparation installs.
 
-That leaves the clone wired exactly as a fresh clone of the repository is.
-In practice that means not wired at all. Git copies commits into a clone and
+With no preparation, the clone has no new wiring. Git copies commits into a clone and
 nothing else: not `core.hooksPath`, which is a setting of one checkout; not
 the files under `.git/hooks`; and nothing a hook manager wrote when somebody
 ran an install step. The copy's git also reads none of the machine's own

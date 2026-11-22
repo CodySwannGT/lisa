@@ -30,6 +30,11 @@ import {
   type FileEdit,
   type PlacedFile,
 } from "./carrier-types.js";
+import {
+  inAgentOrder,
+  isCodingAgent,
+  type CodingAgent,
+} from "./coding-agents.js";
 
 /** What every checkout needs beyond the committed files. */
 export const EACH_CHECKOUT: CarrierCloneSetup = {
@@ -41,10 +46,15 @@ export const EACH_CHECKOUT: CarrierCloneSetup = {
 /**
  * The record's content for a set of files.
  * @param files - Every file the command placed, from the repository root
+ * @param agents - Coding agents with an installed edit-time registration
  * @returns The record, key-ordered, ending with a newline
  */
-export function carrierRecordText(files: readonly string[]): string {
+export function carrierRecordText(
+  files: readonly string[],
+  agents: readonly CodingAgent[] = []
+): string {
   const record = {
+    ...(agents.length === 0 ? {} : { agents: inAgentOrder(agents) }),
     each_checkout: { ...EACH_CHECKOUT, hooks_path: CARRIER_HOOKS_FOLDER },
     files: [...files].sort(compareCodeUnits),
     schema_version: CARRIER_SCHEMA_VERSION,
@@ -54,7 +64,11 @@ export function carrierRecordText(files: readonly string[]): string {
 
 /** The files an earlier run recorded, or why the record cannot be used. */
 export type RecordedFiles =
-  | { readonly problem: null; readonly files: readonly string[] }
+  | {
+      readonly problem: null;
+      readonly files: readonly string[];
+      readonly agents: readonly CodingAgent[];
+    }
   | { readonly problem: string };
 
 /**
@@ -64,18 +78,31 @@ export type RecordedFiles =
  */
 export async function readRecordedFiles(root: string): Promise<RecordedFiles> {
   const file = path.join(root, CARRIER_RECORD_PATH);
+  const folder = await blockedFolder(root, CARRIER_RECORD_PATH);
+  if (folder !== null) {
+    return {
+      problem: `${folder} is not an ordinary folder (it may be a link), so ${CARRIER_RECORD_PATH} was not read.`,
+    };
+  }
   const kind = await pathKind(file);
-  if (kind === "missing") return { problem: null, files: [] };
+  if (kind === "missing") return { problem: null, files: [], agents: [] };
   const unusable = `${CARRIER_RECORD_PATH} is not a record this command wrote, so it cannot tell which files are its own. Remove the file, then run this again.`;
   if (kind !== "file") return { problem: unusable };
   try {
     const record = JSON.parse(await readFile(file, "utf8")) as {
       readonly files?: unknown;
+      readonly agents?: unknown;
     } | null;
     const files = record?.files;
     return Array.isArray(files) &&
       files.every((item): item is string => typeof item === "string")
-      ? { problem: null, files }
+      ? {
+          problem: null,
+          files,
+          agents: Array.isArray(record?.agents)
+            ? inAgentOrder(record.agents.filter(isCodingAgent))
+            : [],
+        }
       : { problem: unusable };
   } catch {
     return { problem: unusable };

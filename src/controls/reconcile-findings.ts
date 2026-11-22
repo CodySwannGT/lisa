@@ -39,6 +39,7 @@ import {
 /** How a moment is written after "is checked". */
 const WHEN: Readonly<Record<string, string>> = {
   commit: "at commit",
+  "post-tool": "after a file edit",
   push: "at push",
   "pull-request": "on a pull request",
 };
@@ -65,6 +66,9 @@ const UNDECLARED_NEXT = `If the team relies on this check, declare it in the "ga
  * @returns One or two plain sentences
  */
 function nextFor(entry: ControlRegisterEntry, point: ReconciledPoint): string {
+  if (point.location === "coding-agent") {
+    return `Run "${INSTALL_CARRIERS_INVOCATION} --agents" in this checkout. ${AGAIN}`;
+  }
   if (point.location !== "hosting-platform") {
     return `Run "${INSTALL_CARRIERS_INVOCATION}" in this checkout. ${AGAIN}`;
   }
@@ -114,9 +118,20 @@ export function pointFindings(
 ): readonly PointFinding[] {
   return points.flatMap(point => {
     const entry = register.entries.find(each => each.id === point.entry_id);
-    return entry === undefined || point.state !== "not-wired"
-      ? []
-      : [pointFinding(entry, point)];
+    if (entry === undefined || point.state !== "not-wired") return [];
+    return point.agent_verdicts === undefined
+      ? [pointFinding(entry, point)]
+      : point.agent_verdicts.flatMap(each =>
+          each.state !== "not-wired"
+            ? []
+            : [
+                {
+                  ...pointFinding(entry, { ...point, reason: each.reason }),
+                  agent: each.agent,
+                  next: `Run "${INSTALL_CARRIERS_INVOCATION} --agents=${each.agent}" in this checkout. ${AGAIN}`,
+                },
+              ]
+        );
   });
 }
 

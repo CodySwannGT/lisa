@@ -22,6 +22,7 @@ import {
   preCommitWith,
 } from "../../../src/controls/carrier-pre-commit.js";
 import { carrierMarkers } from "../../../src/controls/carrier-script.js";
+import { callsRunnerItself } from "../../../src/controls/carrier-shell-hook.js";
 import type { ManagerFileEdit } from "../../../src/controls/carrier-yaml-lines.js";
 import { loadYaml } from "../../../src/utils/yaml.js";
 
@@ -146,18 +147,17 @@ describe("the carrier in a Lefthook configuration", () => {
     });
   });
 
-  it("keeps every line of the configuration Lisa ships for a stack", () => {
-    const both = lefthookBoth(SHIPPED_LEFTHOOK);
-    const parsed = loadYaml(both) as Record<string, Record<string, Mapping>>;
-
-    expect(lost(SHIPPED_LEFTHOOK, both)).toEqual([]);
-    expect(parsed["pre-push"]?.commands?.[LEFTHOOK_COMMAND]).toEqual(
-      lefthookCommand("push")
-    );
-    expect(Object.keys(parsed["pre-commit"]?.commands ?? {})).toContain(
-      "rubocop"
-    );
-  });
+  it.each(["commit", "push"] as const)(
+    "recognizes the Rails template's existing %s runner",
+    moment => {
+      expect(callsRunnerItself(SHIPPED_LEFTHOOK, moment)).toBe(true);
+      expect(lefthookWith(SHIPPED_LEFTHOOK, moment)).toEqual({
+        problem: expect.stringContaining(
+          `already has a command named "${LEFTHOOK_COMMAND}"`
+        ),
+      });
+    }
+  );
 
   it("changes nothing the second time", () => {
     const both = lefthookBoth(LEFTHOOK);

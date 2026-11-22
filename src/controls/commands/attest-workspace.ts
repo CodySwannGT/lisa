@@ -31,18 +31,23 @@
  *   which a folder exists that nothing will remove.
  *
  * `close()` may be called any number of times. It also stops listening for
- * signals, so nothing of the run is left in the process afterwards.
+ * signals, so nothing of the run is left in the process afterwards. A later
+ * run sweeps abandoned copies from processes that were killed without cleanup.
  * @module controls/commands/attest-workspace
  */
-import { randomUUID } from "node:crypto";
 import { rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { isWithin, realPathOf } from "../carrier-owner.js";
 import { bindChecks, hostHookFiles } from "../checks-binding.js";
 import { buildProofCopy, type ProofCopy } from "../proof-copy.js";
 import { proofCopyWorkspace } from "../proof-copy-workspace.js";
 import { uncommittedNotes } from "../proof-copy-wording.js";
+import {
+  PROOF_SCRATCH_LIFETIME_MS,
+  proofScratchFolder,
+  sweepProofScratch,
+} from "../proof-scratch.js";
 import {
   openDirectProofWorkspace,
   type OpenProofWorkspace,
@@ -54,8 +59,7 @@ import {
   type SignalSource,
 } from "./attest-interruption.js";
 
-/** The start of the name of every run's temporary folder. */
-export const PROOF_SCRATCH_PREFIX = "lisa-attest-";
+export { PROOF_SCRATCH_PREFIX, proofScratchFolder } from "../proof-scratch.js";
 
 /** How often removing the folder is tried again when it is busy. */
 const REMOVE_RETRIES = 5;
@@ -77,14 +81,6 @@ export interface AttestWorkspaceChoice {
   readonly build?: typeof buildProofCopy;
   /** Takes the digest of what defines the checks in the copy. */
   readonly bind?: typeof bindChecks;
-}
-
-/**
- * Name a temporary folder for one run. Nothing is created.
- * @returns A path in the machine's temporary folder that no other run uses
- */
-export function proofScratchFolder(): string {
-  return path.join(tmpdir(), `${PROOF_SCRATCH_PREFIX}${randomUUID()}`);
 }
 
 /** What opening a disposable copy takes, each replaceable. */
@@ -122,6 +118,36 @@ function recordingNotes(copy: ProofCopy): readonly string[] {
 }
 
 /**
+ * Sweep the default temporary root before copying anything. A temporary root
+ * inside the checkout is left untouched, just as the copy builder requires.
+ * @param root - Real path of the operator's repository
+ * @param folder - Fresh temporary directory planned for this run
+ * @param notice - Where to tell the operator what happened
+ */
+async function sweepEarlierCopies(
+  root: string,
+  folder: string,
+  notice: (line: string) => void
+): Promise<void> {
+  const temporaryRoot = await realPathOf(path.dirname(folder));
+  if (isWithin(root, temporaryRoot)) return;
+  const { removed, young, active, unverified, failed, scanFailed } =
+    await sweepProofScratch(temporaryRoot);
+  if (scanFailed) {
+    notice(
+      "attest: Could not check the temporary folder for abandoned proof copies."
+    );
+    return;
+  }
+  if (removed + young + active + unverified + failed === 0) return;
+  const hours = PROOF_SCRATCH_LIFETIME_MS / 3_600_000;
+  notice(
+    `attest: Removed ${removed} abandoned proof copies. Kept ${young} younger than ${hours} hours, ` +
+      `${active} with an active process, ${unverified} without verified ownership, and ${failed} that could not be removed.`
+  );
+}
+
+/**
  * Build a disposable copy of a repository in a temporary folder of its own,
  * and promise its removal on every way out.
  *
@@ -138,6 +164,8 @@ export async function openProofCopy(
 ): Promise<ProofCopyOpening> {
   const folder = (choice.scratch ?? proofScratchFolder)();
   const notice = choice.notice ?? (line => process.stderr.write(`${line}\n`));
+  if (choice.scratch === undefined)
+    await sweepEarlierCopies(root, folder, notice);
   // Listening before the folder exists: a signal that arrives while the copy
   // is being made finds a handler that removes whatever is there so far.
   const watch = removeOnTermination(
@@ -162,7 +190,9 @@ export async function openProofCopy(
     }
   };
   try {
-    const built = await (choice.build ?? buildProofCopy)(root, folder);
+    const built = await (choice.build ?? buildProofCopy)(root, folder, {
+      notice,
+    });
     if (built.problem !== null) {
       await close();
       return built;

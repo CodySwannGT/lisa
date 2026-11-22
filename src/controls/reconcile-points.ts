@@ -10,17 +10,21 @@
  * | Where | Who answers | What can be established |
  * | --- | --- | --- |
  * | The checkout (commit, push) | The carrier check | Whether git starts the gate runner there, in this checkout |
- * | The coding agent (edit time) | The carrier check, once it reports such points | The same; until then, not verifiable |
+ * | The coding agent (edit time) | The carrier check and recorded registrations | Whether each installed agent's local hook starts the carrier |
  * | The hosting platform, pipeline written by the host | The file the register names | Whether it is there and runs the runner's pull-request command, as text |
  * | The hosting platform, GitHub | The platform's merge settings, when asked | Whether the entry's checks are required before a merge |
  * | A deployment pipeline, a scheduled run | Nobody | Not verifiable by this command |
  *
- * A carrier point is matched to a register point by `location` and `moment`
- * and by nothing else, so a carrier of a kind this module has never seen is
- * picked up as soon as the check reports it.
+ * The edit-time verdict accounts for every recorded agent. Other carrier
+ * points match by location and moment.
  * @module controls/reconcile-points
  */
-import type { CarrierResult } from "./carrier-types.js";
+import {
+  AGENT_CONFIG,
+  type CarrierPoint,
+  type CarrierResult,
+} from "./carrier-types.js";
+import { EDIT_TIME_MOMENT, type CodingAgent } from "./coding-agents.js";
 import { isWrittenByLisa } from "./pull-request-executor.js";
 import {
   carrierVerdict,
@@ -28,7 +32,11 @@ import {
 } from "./reconcile-carrier-points.js";
 import { executorVerdict } from "./reconcile-executor.js";
 import { platformVerdict, type PlatformRead } from "./reconcile-platform.js";
-import type { PointVerdict, ReconciledPoint } from "./reconcile-types.js";
+import type {
+  AgentVerdict,
+  PointVerdict,
+  ReconciledPoint,
+} from "./reconcile-types.js";
 import type {
   ControlRegister,
   ControlRegisterEntry,
@@ -36,12 +44,19 @@ import type {
   EnforcementPoint,
 } from "./register-types.js";
 
+/** The verdict for a point the current checkout cannot establish. */
+const NOT_VERIFIABLE = "not-verifiable";
+
 /** Everything the points are checked against. */
 export interface PointSources {
   /** Real path of the repository. */
   readonly root: string;
   /** The result of the carrier check of this checkout. */
   readonly carriers: CarrierResult;
+  /** Whether the carrier record lists the shared edit-time hook. */
+  readonly agentCarrier?: boolean;
+  /** Registered settings that still run Lisa's carrier for edits. */
+  readonly registrations?: ReadonlySet<CodingAgent>;
   /** What became of the read of the hosting platform. */
   readonly platform: PlatformRead;
   /** Reads a file by the path the carrier check shows it under. */
@@ -64,6 +79,85 @@ const NOBODY_ANSWERS: Readonly<
     `This command does not look at scheduled runs, so it cannot say whether anything runs the rule at ${moment}.`,
 };
 
+/** Human-readable names used when an agent's registration needs attention. */
+const AGENT_NAME: Readonly<Record<CodingAgent, string>> = {
+  agy: "Antigravity",
+  claude: "Claude Code",
+  codex: "Codex",
+  copilot: "GitHub Copilot",
+  cursor: "Cursor",
+  devin: "Devin",
+  opencode: "OpenCode",
+};
+
+/**
+ * Check the carrier and one agent's registration as it currently stands.
+ * @param carried - The point returned by the carrier check
+ * @param agent - The recorded agent
+ * @param sources - What was read in the checkout
+ * @returns The state and reason for this agent
+ */
+async function editTimeAgent(
+  carried: CarrierPoint,
+  agent: CodingAgent,
+  sources: PointSources
+): Promise<AgentVerdict> {
+  const verdict = await carrierVerdict(carried, sources.carriers, sources.read);
+  const changedRegistration =
+    verdict.state === "wired" &&
+    carried.outcome === "updated" &&
+    sources.carriers.changes.some(change => change.path === carried.path) &&
+    sources.registrations?.has(agent) !== true;
+  return changedRegistration
+    ? {
+        agent,
+        checked: carried.path,
+        state: "not-wired",
+        reason: `${AGENT_NAME[agent]} no longer has a registration in ${carried.path ?? "its hook settings"} that runs Lisa's edit-time carrier.`,
+      }
+    : { ...verdict, agent, reason: `${AGENT_NAME[agent]} — ${verdict.reason}` };
+}
+
+/**
+ * Confirm every recorded agent that can enforce this point.
+ * @param point - The point in the control register
+ * @param sources - What was read in the checkout
+ * @returns The point verdict and each individual agent verdict
+ */
+async function editTimeVerdict(
+  point: EnforcementPoint,
+  sources: PointSources
+): Promise<PointVerdict> {
+  const checks = sources.carriers.enforcement_points.flatMap(carried => {
+    const { agent } = carried;
+    return carried.wired_through === AGENT_CONFIG &&
+      carried.moment === point.moment &&
+      agent !== undefined &&
+      point.unenforceable_on?.includes(agent) !== true
+      ? [editTimeAgent(carried, agent, sources)]
+      : [];
+  });
+  if (checks.length === 0) {
+    return {
+      checked: null,
+      reason:
+        sources.agentCarrier === true
+          ? 'The installed edit-time carrier has no recorded coding agents for this point. Run "lisa controls install-carriers --agents" again to record them.'
+          : "No edit-time agent carrier is recorded as installed in this checkout.",
+      state: NOT_VERIFIABLE,
+    };
+  }
+  const agents = await Promise.all(checks);
+  const failed = agents.filter(agent => agent.state === "not-wired");
+  const reported = failed.length > 0 ? failed : agents;
+  return {
+    agent_verdicts: agents,
+    checked: reported.length === 1 ? (reported[0]?.checked ?? null) : null,
+    reason: reported.map(agent => agent.reason).join(" "),
+    state: failed.length > 0 ? "not-wired" : "wired",
+  };
+}
+
 /**
  * Say what was established about one enforcement point.
  * @param entry - The register entry
@@ -76,6 +170,9 @@ function verdictFor(
   point: EnforcementPoint,
   sources: PointSources
 ): Promise<PointVerdict> | PointVerdict {
+  if (point.location === "coding-agent" && point.moment === EDIT_TIME_MOMENT) {
+    return editTimeVerdict(point, sources);
+  }
   const carried = sources.carriers.enforcement_points.find(
     each => each.location === point.location && each.moment === point.moment
   );
@@ -86,7 +183,7 @@ function verdictFor(
     return {
       checked: null,
       reason: NOBODY_ANSWERS[point.location](point.moment),
-      state: "not-verifiable",
+      state: NOT_VERIFIABLE,
     };
   }
   return point.executor !== undefined && !isWrittenByLisa(point.executor)
@@ -117,10 +214,13 @@ export async function reconcilePoints(
     location: point.location,
     moment: point.moment,
     scope: entry.scope,
+    ...(point.unenforceable_on === undefined
+      ? {}
+      : { unenforceable_on: point.unenforceable_on }),
     ...(verdicts[index] ?? {
       checked: null,
       reason: NOBODY_ANSWERS[point.location](point.moment),
-      state: "not-verifiable",
+      state: NOT_VERIFIABLE,
     }),
   }));
 }

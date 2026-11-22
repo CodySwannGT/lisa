@@ -23,6 +23,9 @@ import {
 /** Worker statuses after which no worker receives an answer. */
 const FINISHED = new Set(["DONE", "FAILED"]);
 
+/** The stall pass observed a tracker move made outside the manager. */
+const EXTERNAL_MOVE_REASON = "left the claimed role outside the manager";
+
 /** How each answer source is named in the comment. */
 const SOURCE_NAMES = { cli: "answer", channel: "Telegram" };
 
@@ -63,41 +66,42 @@ function skipReason(status, worker, pending) {
 }
 
 /**
- * `{requeue: true}` when clearing must also move the item to the `ready`
- * role, else `{}`. A worker's `FAILED` moved the item to the `blocked` role,
- * and the blocked pass keeps an item with no dependency edges, so without
- * this move the "next attempt" that reads the recorded answer is never
- * dispatched (CodySwannGT/lisa#4643). It holds whether the answer still has
- * to be posted or is already on the item. A `DONE` worker's item and a
- * repo-routing answer (carried by its `repo:<name>` stamp) are not moved.
+ * Ask the manager to requeue a FAILED worker's item from claimed or blocked
+ * once its answer is recorded, including an answer already on the item.
+ * An observed external move explicitly keeps the item's tracker status.
  * @param {string | undefined} status - The ledger item's status
+ * @param {string | null | undefined} finishReason - Why the attempt finished
  * @param {{kind?: string, answer?: object | null} | null} pending - The
  *   pending question
- * @returns {{requeue?: true}} The flag, only when it applies
+ * @returns {{requeue?: boolean}} The flag, only when it applies
  */
-function requeueOf(status, pending) {
-  const due =
-    status === "FAILED" &&
-    Boolean(pending?.answer) &&
-    pending?.kind !== "repo-route";
-  return due ? { requeue: true } : {};
+function requeueOf(status, finishReason, pending) {
+  if (status !== "FAILED" || !pending?.answer || pending.kind === "repo-route")
+    return {};
+  return { requeue: finishReason !== EXTERNAL_MOVE_REASON };
 }
 
 /**
  * Plan recording a queued answer on the item. Throws when the answer looks
  * like it holds a credential: it would be posted on the item.
  * @param {{ref: string, status?: string, worker?: string | null,
- *   pending: object | null}} input - The item's ref, its ledger status and
- *   worker, and its pending question
- * @returns {{ref: string, record: false, reason: string, requeue?: true} |
+ *   pending: object | null, finishReason?: string | null}} input - The item's
+ *   ref, ledger status, worker, pending question, and attempt finish reason
+ * @returns {{ref: string, record: false, reason: string, requeue?: boolean} |
  *   {ref: string, record: true, source: string, answerAt: string | null,
- *   comment: string, requeue?: true}} Plan; answerAt is the queued answer's
+ *   comment: string, requeue?: boolean}} Plan; answerAt is the queued answer's
  *   `at`, which `ledger clear-question --expect-answer-at` checks before
  *   clearing; `requeue: true` means also move the item to the `ready` role
  */
-export function planAnswerRecord({ ref, status, worker, pending }) {
+export function planAnswerRecord({
+  ref,
+  status,
+  finishReason,
+  worker,
+  pending,
+}) {
   const reason = skipReason(status, worker, pending);
-  const requeue = requeueOf(status, pending);
+  const requeue = requeueOf(status, finishReason, pending);
   if (reason) return { ref, record: false, reason, ...requeue };
   const { source, text, at } = pending.answer;
   const shape = findCredentialShape(text);

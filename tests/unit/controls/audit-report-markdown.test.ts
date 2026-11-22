@@ -94,6 +94,18 @@ const WITH_LINTER = amendFinding(
 );
 
 describe("renderAuditReportMarkdown", () => {
+  it("explains the evidence still needed for an unmapped gate", () => {
+    const markdown = render(completeAuditReport());
+
+    expect(markdown).toContain(
+      "No registered gate tests that the agent being judged cannot bypass or switch off a required check. The minimum evidence rung is observed."
+    );
+    expect(markdown).toContain(
+      "No registered gate compares the local copies of the checks with the required ones."
+    );
+    expect(markdown).toContain("The minimum evidence rung is exercised.");
+  });
+
   it("has one section for the whole repository and one per folder", () => {
     const headings = render(completeAuditReport([".", "api", "web"]))
       .split("\n")

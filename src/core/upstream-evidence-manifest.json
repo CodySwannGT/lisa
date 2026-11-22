@@ -266,6 +266,10 @@
       "0a9fbd4956147c229eed2a6856064729f3102731163b2cb604e132b5b9871832",
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":
       "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
+    "all/copy-overwrite/scripts/lib/private-key-redaction.d.mts":
+      "3c5005c1c6b8432c9bc097d6c82c1c6279cb84059d4acc1b1c9170328194f8ad",
+    "all/copy-overwrite/scripts/lib/private-key-redaction.mjs":
+      "a05049ed87950e78cc8e4ebf56173e05d49644c4d1fa04fc846a5def73c4b937",
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
       "7034adad8d8348eeb669ead52cb7eaffa11b592c1f1b06bcd8474b6348360eae",
     "all/copy-overwrite/scripts/lib/push-admission.mjs":
@@ -275,7 +279,7 @@
     "all/copy-overwrite/scripts/lib/push-gate-defaults.mjs":
       "3d6c68c6a9840007f9996dd3c018a8f6d41e663b2fdbc9efa599ea55c03eef1d",
     "all/copy-overwrite/scripts/lib/push-timing.mjs":
-      "486f67d83f1dd2a78cf3d63a5253a4d9a380833e201574d845bd9bb542ff1b78",
+      "14df8a7b9ebd0d69e72ee0b02e4801ff72b9b3000e80a6a23324e556efbbcdbb",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts":
       "da1eebc33c5215bc81ab4202c649a5af6b39e3d42f71f94cb2424e3535849154",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs":
@@ -361,13 +365,13 @@
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "127455fb477f95f43ded3c259e73e3261c0c6c4c600871429cb2bb6bae383bb7",
+      "314064656e925d751b6bd6593359d581fb485c1ba8ebccb27d918b855ec807af",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "c2fc91c3a1c40e54c084063aef9e787064f43551da66c0c14ff7b105590777c8",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "0b5f39cef976b5e2f1e49b0fcad682ce639c184d9be4b13edd1d5834a77320ec",
+      "74f2341a7bf43cb54b236a273bd46bcfaa2e42a0216d90b6b1c4d12a47c35c06",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "73ac5af581d16992dd9cc273b4e2f6b55bd6a2629abe23b7658563cf433e082c",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
@@ -385,7 +389,7 @@
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "18e1d963d4416ccd247158e6a4bfcf43234f47faeb3a4654b5a6c78001ab8ef5",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
-      "9b9a8aab8de5daa8a2ccd014911be696ca0671e602b9d7e33bc8f2dd14fb1d31",
+      "4f6cf61c49ee8206d227c3e87b16886ced824cdf994b2569656d983b6310d68a",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
       "2fe0a765030bd2b47122021ba3505fbbea1f60002c4e1ed9f0fc4f5b2f786253",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
@@ -405,13 +409,13 @@
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "fe30e611c65737900492df31878bb0eb4c69474831577b110ee4be3b2579b59b",
+      "d124e35b28292948ee4cf94c99b81bb346eb5fa40f8d826877acaedcbd1ec69b",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "46fb0606ccee999a75479ee479f92ac60f4fd62bbf5808e574380ff8df606e6f",
+      "ddca51ff886326ba2bcaef21afa3f4d8fa418d52d997159579e4c0b3a8b30144",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
@@ -421,7 +425,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "8324da6a89fd2d6203866c98eaacd921d8e49472a1e914226b11a046d894dbd5",
+      "879f7cd5c7c344720337739877769009ecdc8ad9e8b558082c29e7861b867dfb",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -497,7 +501,7 @@
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "edfc36f179f79703f3cb2dc809fdbb708e270b3fc82cc6a73fdad9935bfa1561",
+      "ceae37e51dde013b8c980b84ac07bf23f76b0ce07f9b681fd8dd36ae38a16847",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order-react-violations.test.js":
@@ -705,7 +709,7 @@
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "ad6a4eab10a9870d6cfd607ea1d9bb948a933820c8637ca6394b4a77d7adb688",
+      "e88351cec4579786d10e31823aadcdc83067dedefe9b44053688d758832d3498",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -745,7 +749,7 @@
     "harper-fabric/merge/.oxlintrc.json":
       "b41ea588eed47e0f1532aab5f6226b82586269b84edd1947bdde603e0a8513fa",
     "harper-fabric/package-lisa/package.lisa.json":
-      "ddb4f16f13ef30f40f4c1cb35d46d70558b5ccb41d9709348fbe9c258bc826cd",
+      "33c0e62cba16d6c5d1b93097adf6f95ea821fba8e8b88a6fce20ae3aa7ee3d1f",
     "nestjs/copy-overwrite/eslint.config.ts":
       "300895743cd8e3041f164902e1c8e509d8ef07474848a70621ac354d73595477",
     "nestjs/copy-overwrite/eslint.nestjs.ts":
@@ -893,7 +897,7 @@
     "phaser/merge/.oxlintrc.json":
       "02c0d70e6e07bc0e981f94a1e2ccd01a2c295c4c66e8b8ea9b2f363d44fa5c06",
     "phaser/package-lisa/package.lisa.json":
-      "98a77d132897c33a3186716445a493eb9b52416f23c9553707fe5d7eea3ac935",
+      "4cc5fc93c2538a66862f33e4b89e00a1179e1bbb60f54ee7e29559d4c1c6eb61",
     "plugins/src/base/agents/architecture-specialist.md":
       "b5834a1dc5b11dc2eb65cae6727350bbb7e91d4c2c530ec271bd95f88d878002",
     "plugins/src/base/agents/bug-fixer.md":
@@ -1109,7 +1113,7 @@
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "7ec3db9a519a5ce95277d75ab347d2ee52970bc4ccb7ae554bccba8628290c19",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "6d99d01d9625dd9ac5dc92eed49f99a474714924d8ca1c04c42f291803cd765d",
+      "3c0a4a829cc9dc0b3a3c98f65ce3ecab3d56504cb8e84fc3477578c90bac7539",
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
@@ -1159,7 +1163,7 @@
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-resolved-config.mjs":
-      "86cbab69cbe0827a0512b154bfb48c5646483203ae17b71000a6fc3f69be4e68",
+      "52a5056a0e7e203f65862a31c605cc3efc51b679c8494962c78f462e10ee9451",
     "plugins/src/base/hooks/inject-resolved-config.sh":
       "bc73e118afff35f455241647c24da6e23caaf30d189eb6d3a48814e9a8309613",
     "plugins/src/base/hooks/inject-rules.sh":
@@ -1201,7 +1205,7 @@
     "plugins/src/base/hooks/withdrawn-rulings.sh":
       "5dbf429b6ec73c3c29fb96008efa1015feaa4812c1b4bb26aaa5d0b904a0ff9c",
     "plugins/src/base/hooks/worktree-binding-guard.mjs":
-      "dfcc2378137fa77994a2b74a95d49d9b78e779a7daaf08746006419335ed889a",
+      "692cf26c627438dae1abca2f05232be3dda55159f1f15385f06bd43ec98a786d",
     "plugins/src/base/hooks/worktree-binding-guard.sh":
       "9ff49d44190075b773670e6bd038cb7cac1048a5680d37570b0e7397ed20253c",
     "plugins/src/base/rules/eager/00-rule-index.md":
@@ -1257,7 +1261,7 @@
     "plugins/src/base/rules/reference/completion-authorization.md":
       "75646f8f5b1c5aedf750e37ed3b5a1f09f6fd85932037c85ac1e8930b67100b1",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "018f33d8d1c39594ad085a404984f4bf0ebef4864e0950e69300dbe6c59f87f0",
+      "3db169298b6e233b274e8662a9ab040e1605080bbce10b94349686184896053e",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1469,7 +1473,7 @@
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
       "8ea94fa2b3fbe860cee365a6dd935a0f7ef9e749a2ab59c8b8dfc1838cdb0d37",
     "plugins/src/base/skills/lisa-attest/SKILL.md":
-      "d1af8712870dfffa0959417379d0be9b18ab1ee44bb13bd25bc293ae6cbda5eb",
+      "93f52dd8fc093829138ec1414aca9c00e628b7e1162b22248cb13cc2b1029e20",
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
       "1982127aa1ba4e4a24afc95f8799f106fa7f621ffa58c464d5bbfa1bb9944cb5",
     "plugins/src/base/skills/lisa-audit/SKILL.md":
@@ -1485,7 +1489,7 @@
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
       "6485cf919af6f1fa5f5d60209906fd954a5d45456e2149c25ad29f2567fcc981",
     "plugins/src/base/skills/lisa-configure/SKILL.md":
-      "ca594eecf7bb2ef5c3d2eab822b494efff4d61031381b70e3ca6f2df79c49cb2",
+      "6ba244c74968f26233c47547139d34d9b5218f11c2c500ce5b1d9a39a3df2127",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "a33349c0129da13955fea99206d49e6e65c8be9e649e5d387afab83f52820b81",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
@@ -1513,11 +1517,11 @@
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "a8edcf8ee11673f8f100ba8ed588459a03859085419e6a94a50600df25da9e89",
     "plugins/src/base/skills/lisa-enforce/SKILL.md":
-      "1dda5441f57a3eb791d151d6356ce559646f346cde7bfe76fe54f8aa0f843d87",
+      "a34ed0e80a87b2d24211876711cb571eb0922d96b6ab08f2bd826416b977feed",
     "plugins/src/base/skills/lisa-enforce/references/missing-capability-tickets.md":
       "898d432648142a87d5927e6c6158e1d7fb5ebc7e591c69c4d5b6ad24cc3d62f9",
     "plugins/src/base/skills/lisa-enforce/references/pull-request-executor.md":
-      "72c5878bf012b88af3eb5a20c5e60c551e7b96a653d5d79adc7a67d2e0337f90",
+      "15448a58e62e54c244f441d73ef3ec87edb23f9d86b07b414d264b2100234812",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "f7b6886b1acf79f04cf9ef0bd2d4bf086d8ec1ded7c45cbfb979919e5bacb831",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -1551,7 +1555,7 @@
     "plugins/src/base/skills/lisa-github-project-v2/SKILL.md":
       "484c0cdfeb22e8862015ba0a47b04c068c900c8dad123c4abd693991d5824137",
     "plugins/src/base/skills/lisa-github-read-issue/SKILL.md":
-      "8a3308b4b509089ed684797ded3fc523ae8cdf80d3aad70a8532ef04420d258c",
+      "dc17f16d314ca3be264e42110995475f350d5cbdffac1aad65b2cd78ad8fcd79",
     "plugins/src/base/skills/lisa-github-sync/SKILL.md":
       "3ecdd4bf91f1dd409cf2a8bd82b998cb7f9220e5e592195a0fa4040f4e53f6c6",
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
@@ -1643,7 +1647,7 @@
     "plugins/src/base/skills/lisa-linear-read-issue/SKILL.md":
       "38b9d6e61fa553b51026ba56fb21a6167ef3626d7ab86b1190d4306f323928d8",
     "plugins/src/base/skills/lisa-linear-sync/SKILL.md":
-      "30ef30a6f6dbf173437b25bb2bddca6d9adf63fa3db7ec499ae24d7510fa0e90",
+      "96108cea578ca29d4a05d9d115e1b433b2f5e166a8da74878f760041d1e600cc",
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
       "af8efdcd13d0e30f729938a8c70674be58fd7113f2ad723ab5ebad7ea42ac5ce",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
@@ -1681,7 +1685,7 @@
     "plugins/src/base/skills/lisa-performance-review/SKILL.md":
       "351542c256e54940e6d672a70606b8414425c6435ae6f026841bcc02f9fce9c4",
     "plugins/src/base/skills/lisa-persist-learning/SKILL.md":
-      "db679691a7d3ddad8615f72c2b80141fe9291c89497e4b6816b81b7103d69f76",
+      "f5cdb9237b6070558aba8eb1c91c8b5ef792923b2bcc14c2628b77033a9f71dc",
     "plugins/src/base/skills/lisa-plan/SKILL.md":
       "e617884ac011239ee2423d6d9c2e922e06620221bc36a29956d5b7c7876e2a27",
     "plugins/src/base/skills/lisa-plugin-sync-explain/SKILL.md":
@@ -1777,7 +1781,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "6ab78776157345992224c5f74f1e6b82867d003961499faf2e51f1473c78dbb8",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "cb3bf56adf9ec1dd66ae6da31c606e38740cbf454c3e410ec7145f5ee97a541d",
+      "9026700a003e3d37a6674ec13a5901f0b238fda6f9a87b52e54d76243c0009fa",
     "plugins/src/base/skills/lisa-security-audit-handling/SKILL.md":
       "cc0fd59927cc13fc3cfa59eb07852b8c8373c9021b42e016229e632b8fbcc916",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
@@ -1787,15 +1791,15 @@
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "37bebba086cef4512d716b1b8d442ea22e9da2e89b0b57993b79eb4deeebab8c",
+      "dde744d8d44308d0e803a975ac6cd9613ea0734a9c5d6be02ec22bddc4106fc0",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
-      "f8a63378cdeb2acc70b53fa5b7c9e4510b2806b98eb27004d94b97817172d6db",
+      "7e59e966dca77962bb67a836a6e86f8a2ec20875de2c8ab06a649c18ffb84533",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
-      "88982207f9134f63c0949ebed21d05a2bcffe1f5c774739935237d78786b1813",
+      "e3ee6d6af45d0c7067fcb9e42111857280589ba301ce4fc29799e7bd75d652c5",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
       "ad5acc6097e375868b51eaf01b1506662505e2404b7ac1b06528679718504091",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-answer-record.mjs":
-      "cd195249f028231358071f541a0f64599b545f2c87d30118c92aebd44c0a8498",
+      "71635c8f2e2c7bc100fda62e4798e56ff9d05f1fa9ae1a8e19aac10379724690",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs":
       "fc3418fdea403b97da57708aa60cc52430c3d726d78764f591503922adb70407",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-human.mjs":
@@ -1819,7 +1823,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-stale-links.mjs":
       "ac8020656a3266a70e0b508a921fefdd6803f4f22f4b539635c389d46178e5c3",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
-      "e7f643b66a5af453ee445640a4d9b27b570f364222b349f82ff27714eefb09fa",
+      "4494482691f6fca5b852ae3346e8291be04e07276c0864c698734b6d48126ef1",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
       "c64be7ba9cec34375787833d663e02751fcec56c7ed0d81846efde3f9c5b7c14",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
@@ -1827,7 +1831,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
       "6becdcf8797bfdcfa31553c90d125be4b7f643ab305a3abc19aae73d29263e29",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
-      "52d02872fce8960a39711694ae27ffd98fbaf17efd32462d5264b744097002b7",
+      "4efb5b72165f5ffa4c1ff641f01191fbf0f206bf97a671dea4bec2a386732590",
     "plugins/src/base/skills/lisa-session-manager/scripts/cyclers.mjs":
       "b2cc3c6eb940d8a880db179390de22c58df1131f5876b606a12ed694d9b6e18d",
     "plugins/src/base/skills/lisa-session-manager/scripts/escalation-overruled.mjs":
@@ -2615,11 +2619,19 @@
     "rails/copy-overwrite/config/initializers/version.rb":
       "9304268500aada31d8bd158dca4274888d10db4e30f8dadd9bf23a01d67f2480",
     "rails/copy-overwrite/lefthook.yml":
-      "2f50009b20768dc7017afa1fb2841050898c5b21aee087817d256a21c439459f",
+      "239999bd4abd06a9aec7e3309275b37a722ca2a53879f18643360cf5e909b74e",
+    "rails/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
+      "4679c1e7cc92f960bad81854b9ce68a14aa0e404f2264cca0c2d6186008a17eb",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "62add29cbcca6ac6b2346120393d41e219267f74d7ea6c66dc1482c5dbdb118a",
+    "rails/copy-overwrite/scripts/lisa-rails-ast-grep.mjs":
+      "fdc5a658590ec91ab6f38ff417bd70056097099160d5a6c4255bad7bf487a5a1",
     "rails/copy-overwrite/scripts/lisa-rails-gates.mjs":
-      "2e5c231ac779fcfd3ef3380282268d5e163544dabe41fb6ee41eb5109320c6c3",
+      "7a8f883f06e80994b77f1116dd555da50526270b1561b4fba9b9bc422b88ac34",
+    "rails/copy-overwrite/scripts/lisa-rails-registry-env.sh":
+      "830c77e9833167084688e607fd284d0d54decdf60c28004f1e4a7a062a10d2d9",
+    "rails/copy-overwrite/scripts/lisa-rails-registry-gates.sh":
+      "92f22b9d6cf19515c0ce3412bd329e9f4efbea44b70a1e833b4a1c73be059625",
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs":
       "00d504a0fee1f2a75d7328dc848cacabe6fd9360beacc5bf9632d0741388ade2",
     "rails/copy-overwrite/scripts/lisa_crystalball_recorder.rb":
@@ -2687,7 +2699,7 @@
     "scripts/check-delivery-deletion-conflicts.mjs":
       "77eed58c9ff076c4438a5fe01c343f25c1a1c8f29a8f5861d1e1081b1739d300",
     "scripts/check-derived-artifacts.mjs":
-      "49ce1f00f016bf00540f477f03f8e8c349589d25ab0bf9efc198abddc50bb7e3",
+      "285912c2460c5ce695198da15a191e091c612797680d2df3aef2962d36f3519f",
     "scripts/check-duplicate-versions.mjs":
       "26b26351dd2735dfd8d9a2436b89e876ce2ed93871d0b264f611215dd03d70ae",
     "scripts/check-eager-rule-budget.mjs":
@@ -2803,7 +2815,7 @@
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "b6709a0a2a7a0a3af3f8d753ae85aad289d187269217f826b95a1945c32f446f",
     "scripts/generate-nightly-e2e-guard-certificate.mjs":
-      "e1445ac512ef9597d91b13ac733e5bd0f17b6e8fbdc17d2973c802a50586cefc",
+      "bbd5a4f2f3b3e69dcc6466a7dcf96a024e2538bb3568c4b079e8c0d9d914e65e",
     "scripts/generate-npm-updater-helper-graph.mjs":
       "f128835f309f5a4b8d2015d57018da44fd558778efa4eed382747c6d6319260a",
     "scripts/generate-phrase-manifest.mjs":
@@ -2919,7 +2931,7 @@
     "scripts/lib/phrase-tests/record.mjs":
       "95f65b50281127905cdef2d980f8c46a5e03e4b9b5a32f7a1f1eb8bffaa364f1",
     "scripts/lib/phrase-tests/redact.mjs":
-      "e436a34f28661f85a2668d593228ec997419317d578142e382bd9e57c587c95d",
+      "496d3703232668328e976421dd024a3f5f6733d1f1ff638e10a0db97d2d5eab7",
     "scripts/lib/phrase-tests/repo.mjs":
       "5a94612c509e17e175d2c18207ff0e205079c65a8a7c74e133162894670c99ea",
     "scripts/lib/phrase-tests/runner.mjs":
@@ -3069,7 +3081,7 @@
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "acbd0b9e5094f4b4d336a11446a8369b164643f0881ac08a2d672b45488d5034",
+      "565565a081cd87d24d81387e298368a722f6a59537be7cf634597a30af0d2fc4",
     "scripts/update-node-version.ts":
       "55ba1bad88d905f84896cad814dac810ac0fa80f9d9f8402ca2a4512701123d9",
     "scripts/update-test-skill-paths.mjs":
@@ -3091,7 +3103,7 @@
     "scripts/verify-packaged-apply.mjs":
       "a01f0b503388d42010c22f2bf54c034f0f8eed027c1c9daf831e0345ce2e2e38",
     "scripts/verify-packed-learnings-contract.mjs":
-      "c1a02bd5c6b822044f4959aa969290b53967a9595184f53f9ea188cdac3dd129",
+      "13beb5d4ac515aa02a8832529ed65aebb75bc6ac38048f2233ac752fd4ba57e0",
     "scripts/verify-rails-tooling.rb":
       "5e7a52c1929c9eba873d2fc1f0baa1cc684e9913d4b27c5c42819bb1ac0539cf",
     "scripts/verify-self-pin-raise.mjs":
@@ -3139,7 +3151,7 @@
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "d2ccdac51cc0ef73d8073db7da01e099d2d770dd58fab86d8956a026a95eadc9",
+      "98817db91826388e5a5a980213ef7414301c2672884eaa20a3d6168ef6456b35",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -3188,6 +3200,8 @@
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
       "9897bb65a2bcc35d5977908aacc4317fa282fae5fa7d4b17db626e7289d07253",
+    "typescript/copy-overwrite/scripts/lisa-typecheck.mjs":
+      "53b180dfb891c2167614d60a230ce5e9f64703a64a3a38f0da831aedaf65f6b9",
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-action.mjs":
       "640b65e1caba4ba33e19e4a1ff49f869a99c15eb7d59a88498a5b2466acf438e",
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-github-jira.mjs":
@@ -3253,7 +3267,7 @@
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "dbeb4edc86f340079663b4b514838518408b7369097218b99052f2d36b9755ff"
+      "b9eb08110e6b150f450957881477b68f9bd0102ed1dabf6e1ecc96996609cb17"
   },
   "UPSTREAM_SURFACE_MANIFEST": {
     ".agents/rules/never-name-downstream-projects.md": true,
@@ -3550,6 +3564,8 @@
     "all/copy-overwrite/scripts/lib/npm-update-worker-lifecycle.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-worker-policy.mjs": true,
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs": true,
+    "all/copy-overwrite/scripts/lib/private-key-redaction.d.mts": true,
+    "all/copy-overwrite/scripts/lib/private-key-redaction.mjs": true,
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs": true,
     "all/copy-overwrite/scripts/lib/push-admission.mjs": true,
     "all/copy-overwrite/scripts/lib/push-gate-defaults.d.mts": true,
@@ -10958,8 +10974,12 @@
     "rails/copy-overwrite/ast-grep/utils/.gitkeep": true,
     "rails/copy-overwrite/config/initializers/version.rb": true,
     "rails/copy-overwrite/lefthook.yml": true,
+    "rails/copy-overwrite/scripts/check-nightly-e2e-health.mjs": true,
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs": true,
+    "rails/copy-overwrite/scripts/lisa-rails-ast-grep.mjs": true,
     "rails/copy-overwrite/scripts/lisa-rails-gates.mjs": true,
+    "rails/copy-overwrite/scripts/lisa-rails-registry-env.sh": true,
+    "rails/copy-overwrite/scripts/lisa-rails-registry-gates.sh": true,
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs": true,
     "rails/copy-overwrite/scripts/lisa_crystalball_recorder.rb": true,
     "rails/copy-overwrite/scripts/lisa_rspec_partial_coverage.rb": true,
@@ -11350,6 +11370,10 @@
     "src/cli/gate-report-upstream.ts": true,
     "src/cli/gate-report.ts": true,
     "src/cli/gh-cli.ts": true,
+    "src/cli/github-read-issue-cmd.ts": true,
+    "src/cli/github-reader-relationships.ts": true,
+    "src/cli/github-reader-target.ts": true,
+    "src/cli/github-reader-wire.ts": true,
     "src/cli/health-cmd.ts": true,
     "src/cli/hook-refresh-files.ts": true,
     "src/cli/index.ts": true,
@@ -11519,6 +11543,7 @@
     "src/controls/canary-plan.ts": true,
     "src/controls/canary-tree.ts": true,
     "src/controls/canonical-json.ts": true,
+    "src/controls/carrier-agent-checkout.ts": true,
     "src/controls/carrier-agent-files.ts": true,
     "src/controls/carrier-agent-program.ts": true,
     "src/controls/carrier-agent-result.ts": true,
@@ -11613,6 +11638,8 @@
     "src/controls/proof-check-workspace.ts": true,
     "src/controls/proof-copy-files.ts": true,
     "src/controls/proof-copy-git.ts": true,
+    "src/controls/proof-copy-preparation.ts": true,
+    "src/controls/proof-copy-prepared-state.ts": true,
     "src/controls/proof-copy-wording.ts": true,
     "src/controls/proof-copy-workspace.ts": true,
     "src/controls/proof-copy.ts": true,
@@ -11622,8 +11649,10 @@
     "src/controls/proof-patch.ts": true,
     "src/controls/proof-plan.ts": true,
     "src/controls/proof-preflight.ts": true,
+    "src/controls/proof-preparation-declaration.ts": true,
     "src/controls/proof-report.ts": true,
     "src/controls/proof-runner.ts": true,
+    "src/controls/proof-scratch.ts": true,
     "src/controls/proof-task-runners.ts": true,
     "src/controls/proof-tools.ts": true,
     "src/controls/proof-types.ts": true,
@@ -11654,6 +11683,7 @@
     "src/controls/pull-request-types.ts": true,
     "src/controls/pull-request-wording.ts": true,
     "src/controls/question-ids.ts": true,
+    "src/controls/reconcile-agent-hooks.ts": true,
     "src/controls/reconcile-audit-findings.ts": true,
     "src/controls/reconcile-carrier-points.ts": true,
     "src/controls/reconcile-declared.ts": true,
@@ -11684,10 +11714,12 @@
     "src/controls/secret-scan-json.ts": true,
     "src/controls/secret-scan.ts": true,
     "src/controls/secret-shapes.ts": true,
+    "src/controls/shipped-parts.ts": true,
     "src/controls/threshold-proposal.ts": true,
     "src/controls/tracker-config.ts": true,
     "src/controls/tracker-question.ts": true,
     "src/controls/unenforceable-agents.ts": true,
+    "src/controls/unmapped-gate-evidence.ts": true,
     "src/controls/verdict-answers.ts": true,
     "src/controls/verdict-digest.ts": true,
     "src/controls/verdict-drift.ts": true,
@@ -11968,6 +12000,7 @@
     "src/strategies/package-lisa-host-pins.ts": true,
     "src/strategies/package-lisa-manifest-guards.ts": true,
     "src/strategies/package-lisa-pin-alignment.ts": true,
+    "src/strategies/package-lisa-range-intersection.ts": true,
     "src/strategies/package-lisa-script-notes.ts": true,
     "src/strategies/package-lisa-template-apply.ts": true,
     "src/strategies/package-lisa-template-merge.ts": true,
@@ -12392,6 +12425,7 @@
     "tests/integration/continuous-gates-empty.test.ts": true,
     "tests/integration/controls-attest-disposable-copy.test.ts": true,
     "tests/integration/controls-attest-host-hooks.test.ts": true,
+    "tests/integration/controls-attest-output-redaction.test.ts": true,
     "tests/integration/controls-attest-pull-request.test.ts": true,
     "tests/integration/controls-attest-skill.test.ts": true,
     "tests/integration/controls-attest-verdict.test.ts": true,
@@ -12404,12 +12438,14 @@
     "tests/integration/controls-configure.test.ts": true,
     "tests/integration/controls-enforce.test.ts": true,
     "tests/integration/controls-gaps.test.ts": true,
+    "tests/integration/controls-github-host-workflow.test.ts": true,
     "tests/integration/controls-install-carriers-agents-record.test.ts": true,
     "tests/integration/controls-install-carriers-agents-settings.test.ts": true,
     "tests/integration/controls-install-carriers-agents.test.ts": true,
     "tests/integration/controls-install-carriers-checkouts.test.ts": true,
     "tests/integration/controls-install-carriers-existing-wiring.test.ts": true,
     "tests/integration/controls-install-carriers-heeded.test.ts": true,
+    "tests/integration/controls-install-carriers-linked-agents.test.ts": true,
     "tests/integration/controls-install-carriers-other-repository.test.ts": true,
     "tests/integration/controls-install-carriers-owners.test.ts": true,
     "tests/integration/controls-install-carriers-reachable.test.ts": true,
@@ -12423,6 +12459,7 @@
     "tests/integration/controls-proof-change-rule-letter-case.test.ts": true,
     "tests/integration/controls-proof-change-rule.test.ts": true,
     "tests/integration/controls-proof-check-attest.test.ts": true,
+    "tests/integration/controls-proof-copy-prepare.test.ts": true,
     "tests/integration/controls-protect.test.ts": true,
     "tests/integration/controls-push-carrier-refs.test.ts": true,
     "tests/integration/controls-push-carrier-update.test.ts": true,
@@ -12467,6 +12504,7 @@
     "tests/integration/environment-prepare-workflow.test.ts": true,
     "tests/integration/expo-host-run-scripts-survive-apply.test.ts": true,
     "tests/integration/expo-independent-checks.test.ts": true,
+    "tests/integration/expo-jest-unit-target.test.ts": true,
     "tests/integration/expo-provider-token.test.ts": true,
     "tests/integration/expo-provider-workflow.test.ts": true,
     "tests/integration/facade-proof-not-step.test.ts": true,
@@ -12550,6 +12588,7 @@
     "tests/integration/maestro-pre-suite-exports.test.ts": true,
     "tests/integration/maestro-pre-suite-seam.test.ts": true,
     "tests/integration/maestro-run-id.test.ts": true,
+    "tests/integration/managed-host-typecheck.test.ts": true,
     "tests/integration/mjs-suite-runner-resolution.test.ts": true,
     "tests/integration/mutation-gate-bite.test.ts": true,
     "tests/integration/mutation-gate-diff-bite.test.ts": true,
@@ -12730,6 +12769,7 @@
     "tests/integration/support/pre-tool-refusal-fixture.ts": true,
     "tests/integration/support/pre-tool-refusal-harness.ts": true,
     "tests/integration/support/protect-gh-stub.ts": true,
+    "tests/integration/support/rails-gate-cache-tools.ts": true,
     "tests/integration/support/rails-helper-fixture.ts": true,
     "tests/integration/support/rails-learnings-budget-gate.ts": true,
     "tests/integration/support/rails-partial-selector.ts": true,
@@ -12779,6 +12819,7 @@
     "tests/support/carrier-hook-owners.ts": true,
     "tests/support/carrier-hook-run.ts": true,
     "tests/support/carrier-install.ts": true,
+    "tests/support/carrier-linked-worktree.ts": true,
     "tests/support/carrier-push.ts": true,
     "tests/support/ci-runtime.ts": true,
     "tests/support/codex-compatibility-candidate.mjs": true,
@@ -12788,6 +12829,7 @@
     "tests/support/evidence-prune-fake-gh.ts": true,
     "tests/support/evidence-prune-harness.ts": true,
     "tests/support/git-executable.ts": true,
+    "tests/support/github-reader-fixture.ts": true,
     "tests/support/host-name-guard-fixture.ts": true,
     "tests/support/letter-case.ts": true,
     "tests/support/no-manifest-run.ts": true,
@@ -13293,6 +13335,7 @@
     "tests/unit/controls/enforce-entry-outcome.test.ts": true,
     "tests/unit/controls/enforce-head-run.test.ts": true,
     "tests/unit/controls/enforce-points.test.ts": true,
+    "tests/unit/controls/enforce-project-scopes.test.ts": true,
     "tests/unit/controls/enforce-report-carriers.test.ts": true,
     "tests/unit/controls/enforce-report-refusals.test.ts": true,
     "tests/unit/controls/enforce-report.test.ts": true,
@@ -13351,6 +13394,7 @@
     "tests/unit/controls/paved-road-resolution.snapshot.json": true,
     "tests/unit/controls/paved-road-snapshot.ts": true,
     "tests/unit/controls/prd-backlink-github-comment-url-room.test.ts": true,
+    "tests/unit/controls/private-key-redaction-runtime.test.ts": true,
     "tests/unit/controls/proof-change-finding.test.ts": true,
     "tests/unit/controls/proof-change-letter-case.test.ts": true,
     "tests/unit/controls/proof-change-rule.test.ts": true,
@@ -13371,6 +13415,7 @@
     "tests/unit/controls/proof-patch.test.ts": true,
     "tests/unit/controls/proof-runner-edges.test.ts": true,
     "tests/unit/controls/proof-runner.test.ts": true,
+    "tests/unit/controls/proof-scratch.test.ts": true,
     "tests/unit/controls/proof-task-runners.test.ts": true,
     "tests/unit/controls/proof-workspace-folder.test.ts": true,
     "tests/unit/controls/protect-apply.test.ts": true,
@@ -13401,6 +13446,7 @@
     "tests/unit/controls/question-ids.test.ts": true,
     "tests/unit/controls/reconcile-carrier-points.test.ts": true,
     "tests/unit/controls/reconcile-declared.test.ts": true,
+    "tests/unit/controls/reconcile-edit-time.test.ts": true,
     "tests/unit/controls/reconcile-hook-bounds.test.ts": true,
     "tests/unit/controls/reconcile-hook-lines.test.ts": true,
     "tests/unit/controls/reconcile-manager-commands.test.ts": true,
@@ -13439,6 +13485,7 @@
     "tests/unit/controls/secret-scan.test.ts": true,
     "tests/unit/controls/secret-shapes-parity.test.ts": true,
     "tests/unit/controls/seed-manifest.test.ts": true,
+    "tests/unit/controls/seed-parts.test.ts": true,
     "tests/unit/controls/seed.test.ts": true,
     "tests/unit/controls/skill-statements.test.ts": true,
     "tests/unit/controls/support/attest-pull-request-run.ts": true,
@@ -13723,6 +13770,7 @@
     "tests/unit/hooks/block-direct-issue-create-mcp-substrate.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-missing-interpreter.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-noexec.test.ts": true,
+    "tests/unit/hooks/block-direct-issue-create-non-shell-prose.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-prd-writer.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-reader-fence.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-refusal-inverse.test.ts": true,
@@ -13863,6 +13911,7 @@
     "tests/unit/hooks/worktree-binding-guard-script-reach.test.ts": true,
     "tests/unit/hooks/worktree-binding-guard-wrapper.test.ts": true,
     "tests/unit/hooks/worktree-binding-guard.test.ts": true,
+    "tests/unit/hooks/worktree-binding-inert-source-data.test.ts": true,
     "tests/unit/hooks/worktree-binding-legacy-ownership.test.ts": true,
     "tests/unit/hooks/worktree-binding-live-identity.test.ts": true,
     "tests/unit/hooks/worktree-binding-owner-boundaries.test.ts": true,
@@ -14123,6 +14172,7 @@
     "tests/unit/scripts/lisa-gates-evidence.test.ts": true,
     "tests/unit/scripts/lisa-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-gates-hardcoded-invocations.test.ts": true,
+    "tests/unit/scripts/lisa-gates-host-workflow.test.ts": true,
     "tests/unit/scripts/lisa-gates-identity.test.ts": true,
     "tests/unit/scripts/lisa-gates-migration-provenance.test.ts": true,
     "tests/unit/scripts/lisa-gates-moment-executors.test.ts": true,
@@ -14174,6 +14224,7 @@
     "tests/unit/scripts/lisa-run-gates-evidence.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-run-gates-floor.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-host-workflow.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-interrupted.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-invalid-config.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-kill-context.test.ts": true,
@@ -14346,6 +14397,7 @@
     "tests/unit/scripts/push-admission.test.ts": true,
     "tests/unit/scripts/push-gate-defaults.test.ts": true,
     "tests/unit/scripts/push-timing.test.ts": true,
+    "tests/unit/scripts/rails-ast-grep-hook.test.ts": true,
     "tests/unit/scripts/raise-self-dependency-pin.test.ts": true,
     "tests/unit/scripts/ready-queue-order-backlog.test.ts": true,
     "tests/unit/scripts/ready-queue-order-human-gate-policy.test.ts": true,
@@ -14469,6 +14521,7 @@
     "tests/unit/scripts/work-item-push-promote-exemption.test.ts": true,
     "tests/unit/scripts/work-item-push-refs-file.test.ts": true,
     "tests/unit/scripts/work-item-push-success-attribution.test.ts": true,
+    "tests/unit/scripts/work-item-report-sweep-proof.test.ts": true,
     "tests/unit/scripts/work-item-run-and-gh-version.test.ts": true,
     "tests/unit/scripts/work-item-session-url.test.ts": true,
     "tests/unit/scripts/work-item-stacked-push.test.ts": true,
@@ -14589,6 +14642,7 @@
     "tests/unit/session-manager/cli-liveness.test.ts": true,
     "tests/unit/session-manager/cli-manager.test.ts": true,
     "tests/unit/session-manager/cli-messages.test.ts": true,
+    "tests/unit/session-manager/cli-notification-level.test.ts": true,
     "tests/unit/session-manager/cli-notify-none.test.ts": true,
     "tests/unit/session-manager/cli-operator-id-kinds.test.ts": true,
     "tests/unit/session-manager/cli-orphans-stale-hours.test.ts": true,
@@ -14665,6 +14719,7 @@
     "tests/unit/session-manager/workers-name-roundtrip.test.ts": true,
     "tests/unit/session-manager/workers-setup-gap.test.ts": true,
     "tests/unit/session-manager/workers.test.ts": true,
+    "tests/unit/skills/github-reader-projects-optional.test.ts": true,
     "tests/unit/skills/lisa-track-estimate-contract.test.ts": true,
     "tests/unit/skills/pushing-skills-run-lisa-check.test.ts": true,
     "tests/unit/skills/secrets-provider-timeout-message.test.ts": true,
@@ -14819,6 +14874,7 @@
     "tests/unit/strategies/monitor-threshold-compatibility.test.ts": true,
     "tests/unit/strategies/package-lisa-audit-script-governance.test.ts": true,
     "tests/unit/strategies/package-lisa-cdk-oidc.test.ts": true,
+    "tests/unit/strategies/package-lisa-crossed-floors.test.ts": true,
     "tests/unit/strategies/package-lisa-dependency-adopt-loaders.test.ts": true,
     "tests/unit/strategies/package-lisa-dependency-adopt.test.ts": true,
     "tests/unit/strategies/package-lisa-dev-engines.test.ts": true,
@@ -14933,6 +14989,7 @@
     "tests/unit/strategies/template-consent-routing.test.ts": true,
     "tests/unit/strategies/tracked-work-contract.test.ts": true,
     "tests/unit/strategies/tracker-neutral-stack-journey.test.ts": true,
+    "tests/unit/strategies/tracker-sync-plan-created.test.ts": true,
     "tests/unit/strategies/upstream-attribution-filing-contract.test.ts": true,
     "tests/unit/strategies/usage-accounting-contract.test.ts": true,
     "tests/unit/strategies/usage-accounting-skill.test.ts": true,
@@ -15058,6 +15115,7 @@
     "typescript/copy-overwrite/scripts/lib/bounded-spawn.mjs": true,
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs": true,
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs": true,
+    "typescript/copy-overwrite/scripts/lisa-typecheck.mjs": true,
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-action.mjs": true,
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-github-jira.mjs": true,
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-linear-sentry.mjs": true,
@@ -15118,6 +15176,7 @@
     "wiki/decisions/2026-09-04-absence-shaped-like-a-verdict.md": true,
     "wiki/decisions/2026-09-04-state-change-without-inverse.md": true,
     "wiki/decisions/2026-09-05-find-age-predicates.md": true,
+    "wiki/decisions/2026-11-21-level-1-proof-reachability.md": true,
     "wiki/documentation/assets/lisa-architecture.svg": true,
     "wiki/documentation/claude/overinstructions.md": true,
     "wiki/documentation/claude/review.md": true,
@@ -15381,6 +15440,7 @@
     "006f124818ebd29cb1487b02aff8d44af1e21443": true,
     "007086db47e5ba900434eee5492d222dd395eb0b": true,
     "00756e8250c8082ff6affca398de2cf73ec02592": true,
+    "0078cf21045fa8a5e3cb5bb11df14735aafa7c14": true,
     "007da066a9bf7116af5891d5408cd5b73c77a90b": true,
     "0083e54ae7f3002ca8b712866fad2ea4ce00e546": true,
     "00876c83b4a7f9b33a8ea90ef7fd83f91184177c": true,
@@ -15393,6 +15453,7 @@
     "009e8c88af0453c613740105d27c6c5f9691b5e6": true,
     "00a250d8827ddf7f6b354008b64b687822b91e7e": true,
     "00a633b97c69696c207d1be72ddb00af287bfc41": true,
+    "00a81e04daa2e60ff25d7e756257dc4b7ecd5090": true,
     "00b41544bab8ef052550f94becac99518ccecb32": true,
     "00b6ece6a2d2ea12362773cd71c25923c8f00c9c": true,
     "00ba362a8acf66e0a567a027b1c01dbd94ff7cbf": true,
@@ -15599,6 +15660,7 @@
     "03dfdc27f601b0fcc32ff61cd9319774d86cb601": true,
     "03ea76d43b70c64922918faf506b4f04704fe2a8": true,
     "03ef3116f688bc87192619701a17e036357dab6c": true,
+    "03f216d6a97eb7cd1fb18929c54472c30008ee17": true,
     "03f2ad5558030652a816cfa1a1980c105df0312a": true,
     "03f62c03eabef7e1cbddd9eadea21986c01e8990": true,
     "03f78867541b61bcdff5b5e098d2f2c596389378": true,
@@ -15748,6 +15810,7 @@
     "05f2c6b51de274fe6ec3ec5ccefc951bacfcd54a": true,
     "05fdfe8b17491a7bea317ab77be15a8890268c68": true,
     "0603e32fb1db43dc3d5d9a871f10b669dbbafd49": true,
+    "060d7894069087d60407c81ea7f5ee16fbb1d6cf": true,
     "060e1a5013f12c0b89d7ff235d064976e2940a88": true,
     "0611875b37e16c8c9ddabf3ae23174169707bf33": true,
     "0613aa946243804a2837946018b4a7efefa1e79c": true,
@@ -15905,6 +15968,7 @@
     "0827ad9a5550d6fa0f5251c7f8655b3eba85ff81": true,
     "082af09559e005994129e9f7dedba40232b0ac38": true,
     "082ffeab4828a7b2c606aab917127b140887b6d0": true,
+    "0834e9bf41d15116790abe536cb9390168cb1858": true,
     "083c4a12af727b68464acf6a325c042903ee9ae6": true,
     "084558560ecc0fcbdeb5611c42a5eea7f6c5ecc3": true,
     "084a532b8fc1ec63a7af2dd423d0b8391ba10d0b": true,
@@ -16455,6 +16519,7 @@
     "107965078334e19dbb9183a6a04ef71280fa9db3": true,
     "107ac666c5c0ea24bfc443b69e67aa03813ced5d": true,
     "107bcae506ecd74d76d301cb58c1d929b9b31a26": true,
+    "107d7808646886f82cf421f5fddab6d611a13efe": true,
     "1080b003719d5471d3e5089295c021c02356537e": true,
     "1087dfe143479ac1f41db5bada68bd29d7e698e2": true,
     "1089861923c709e966cf9480162cabac1e72418d": true,
@@ -16547,8 +16612,10 @@
     "121f14e6bd67eab591175962935fa4a1d0709a4e": true,
     "1220e73eb31ee7bdb106165cd91b78227ce48d96": true,
     "12215f861f4354a18738e4dbb82775da17742353": true,
+    "1222def6da559e5953a4cab78ff08028d974f72a": true,
     "122a98389af41a0e7ba7bbc2f944b95bf489a977": true,
     "1237100165af3836c974a46a8bddae8167255132": true,
+    "123cbb45a174a51af07ead084e17e2e2dda93b45": true,
     "123cc55cca8ec06b34d19ed5f54b5a1ea13a14db": true,
     "123dce2778b8971ba7474b3083c1af6596206bd6": true,
     "123e5112263b3c1aafe6ad5d96b37cc9f2d64120": true,
@@ -16953,6 +17020,7 @@
     "17d44ddf05660fde96f9c865f57e3933785929c5": true,
     "17d4b081e3a8c1550640bb0b60b3fc616a9230d2": true,
     "17d7b042fb4c0b8cb4f923f2be66dc304678b1cc": true,
+    "17d8bc14b4d6437ddafe75d4cedd922d733192ba": true,
     "17d9cd28d0d4475802eabc719820e412c5e4c76e": true,
     "17db75aa3e4182c503d2c9c7005372ebb87b2643": true,
     "17e3309bfd63cc2edb7cbe9e904a39ddb2298dd1": true,
@@ -17139,6 +17207,7 @@
     "1a3e162a641ec85ec828536259db4d1000890ae4": true,
     "1a400a71a562776140dc277c59e8be05bb64ca8c": true,
     "1a441d2b47127e1416fc8552c871133824d7b412": true,
+    "1a4554a25349fa84bffce5d87d8366b966a0a6ed": true,
     "1a531581839bd4675ba70f3b089894d5a6e8f486": true,
     "1a53436a0c92c714d10deabefbe014b9b0f3e79d": true,
     "1a5644234152d497c780e9390ef53d3fd4032368": true,
@@ -17183,6 +17252,7 @@
     "1b03add6aa347e146c33966ee6bb9ffc84454caa": true,
     "1b0698ef3a38cfcc561ce0d5619bd100dfa3c92e": true,
     "1b0922df83516ca1a888ea1bba847f756b75aa0b": true,
+    "1b0fe37ddf22232ae3ec0d058638484a7ca5f66b": true,
     "1b1258b2dd1cbe7bdfa883a2e8260667fba8fbaa": true,
     "1b23dca20701a8f004dfd3ba6b601bd315f5c920": true,
     "1b256952e0218fab56f229b2d976171d32721827": true,
@@ -17314,6 +17384,7 @@
     "1d28008cbb9026bd8fb60e4f0f598989162e55ca": true,
     "1d315aa6da3ceb6da325c518c62f53cdfab7a2d7": true,
     "1d372a92f2f3ff23f6ecce9d09f14548b89ba609": true,
+    "1d3d3b94facc719a6ff3f155739bcb6603dff2d9": true,
     "1d3dd2c379fe57b1ac7a3b81d1be87f2fa5e9d5f": true,
     "1d403045fc680d030421b1b848308a69ebdb2edd": true,
     "1d44f30f877d1362c032f08a7d4e513469b8d40c": true,
@@ -17344,6 +17415,7 @@
     "1d935a154d1a31f62096c4f609b716435d1af5c3": true,
     "1d945ca9fa83cf3bda51623528eba1739eb58ec3": true,
     "1d9463ca1588dea9dd0b55846de8972983c9372c": true,
+    "1d94e03d999a114edd95f91cc444a14fafd1f65a": true,
     "1d9c9363b38e1a7818a016fa61d2f9c8d9af05cb": true,
     "1d9d5ebf67bd49f2eab490a5ce9588d882bfbdb9": true,
     "1d9fec50ca5f982ffd4831a0adfb83d01739673a": true,
@@ -17511,6 +17583,7 @@
     "20545346a090a73c62933d679355cfbb58127b26": true,
     "20555088fe11330b2788eee56acd3bf419228b58": true,
     "205ecb4511031e29509a74c9ba488983df4ee330": true,
+    "20629f3f6b81bb59aef1bedaebe84887bc155aaa": true,
     "2062e37e7260d599139e59f6216de3e7791c1736": true,
     "206325f6d29b2e8c12e85bfbf87f925bee5734e9": true,
     "2065fabeaa84350aaf5512aff85da3b3eb4e456b": true,
@@ -17981,6 +18054,7 @@
     "2756d34a59fc0d8a2256e13b729fd6f35583aecc": true,
     "2771e8473723805ce1bbc4db5dd76b0540747231": true,
     "277590ac39ba93ff83fd23f1892c8545a9224ba5": true,
+    "2779e11ea4d5cbd71ee38028e95827a3a8555541": true,
     "2785c21a489f62f639ffd6f151d2fcda827efa51": true,
     "278d2f22cf9023e91f6d410ebf108a8a51810439": true,
     "278eb2bf32dd68cc7ca817b7369455aa1c905358": true,
@@ -18149,6 +18223,7 @@
     "2a2cca8729ffb321122d4ec502ab9a555278bee9": true,
     "2a3018bc3c632ee2a68d3e9d8959a28f286aec10": true,
     "2a34ed11a27954359f873051c56a265ab9a54751": true,
+    "2a360d2d367766120643533ed6c915ea4f7eaba5": true,
     "2a3e057a5f747b5a34c899f95a39cb28af3d158c": true,
     "2a409ecac8fec1cb07b790919b44137b60db2cb9": true,
     "2a45f65232c98711d49560f048927d24a905a983": true,
@@ -18282,6 +18357,7 @@
     "2c2f2792e6cfac6902d216e3cf736608c24afab5": true,
     "2c30160ebaa1dad0ff802b9aa487eceb1a2a9a5e": true,
     "2c37f2b9c0a916bd3955b29fc52c208bdba6ec02": true,
+    "2c3ce4a4fa2d0b98c7a3ec8f93fa70594313ece1": true,
     "2c3f8ca8a19dd8618ab9ca281b4c7adc3def294f": true,
     "2c44a6e10365decd4f7e13a7bf0e53ab5ee27b8a": true,
     "2c44de944f16cc99a2e78b81ad725a3d7ea3e948": true,
@@ -18474,6 +18550,8 @@
     "2fa71b12077449b9d064185c39caffe63145877c": true,
     "2fab8a985a26339a09ad60b6d0997c02a0fe2f7f": true,
     "2fae56aa02f14534961bb5807d88b85f75d59276": true,
+    "2fae8a2c5ccff9c01bf20ebf5921f04e3ea32794": true,
+    "2fb0381104634e4c7a7a944b3e876951135a4a85": true,
     "2fb90c8761fc542812e3e4d5f08849847980e625": true,
     "2fbb24b40ba1cee7f1ffa01f901078c6411c94da": true,
     "2fc4cb06719a3294ebfdca750cc851522c1a583c": true,
@@ -18573,6 +18651,7 @@
     "315a52624c27533709f26660a4de358b121bae9a": true,
     "3160f78f60f8543e91e19b271bcbfb2fe2a242b4": true,
     "31624538f2446845e1f99d54425bfb00eb8176dd": true,
+    "316a0ddb3fe54076713f8634bc180ea5480659e8": true,
     "316c81f4e8aca9dc58732cfbaf7d81ef0f900248": true,
     "317892e47829d907379f3536485a010755c7d0bb": true,
     "318142a256f9f0bbe49ce0883202b3ca6b5175fc": true,
@@ -18730,6 +18809,7 @@
     "33cbfbf63d86e850af75347e15aa5deb80a0bfac": true,
     "33d10e3a37e86c3fb3183fda75a30e4df4eaf7c3": true,
     "33d3bb22365b517440fa55e4bbd8e1d14bbbb07e": true,
+    "33d7af219c76ba09f545154a465196f66b77dc7e": true,
     "33da6b663f232fba59caed80856bee07dbf0dfab": true,
     "33daf77d078c48d2528ee6177aad18fe346b463a": true,
     "33dd1c4a5366d65815ead0b03220bce75a5dfeed": true,
@@ -18811,6 +18891,7 @@
     "34f9019ae8f64f4ccac9804cc0bb9aebef4bb487": true,
     "34fd96e06f6459dc4260f003dadfd09c252cac7c": true,
     "34ff7e74e911b6800a55a77e7336d1d4b74536cd": true,
+    "35000a0822e84bc57db2a0065d61bb4274ee6f8b": true,
     "3501788253ae6d2482e32ab45d952e5101e7a6ef": true,
     "35051d46a827ea5fb62ec7cec811fbde2deb0f37": true,
     "351d278af5ff12bbb77b64a8a91ca5c437a75420": true,
@@ -19346,6 +19427,7 @@
     "3ce63e67bc31bbd126987fc7005e2b5e317c94a4": true,
     "3ce83c064cb35d6749e30195d9f2aa33c152375b": true,
     "3ceb6500a2b1f248694f3c6e7be749a99ba38362": true,
+    "3ced0b4e2c6225d2339e048c4bc914b653c8835e": true,
     "3d03f0d0c220ec2e1941f54bf4bc09b02ddfdf3e": true,
     "3d06195ca72b3d761775bdd5b80b140b30184a35": true,
     "3d102a6c9b756584cee8e40d48d05805185a899e": true,
@@ -19384,6 +19466,7 @@
     "3d5f89a8100541d68ed6a4d2af8dd4ea38ada1cf": true,
     "3d62a9e9e2d43235653a662f7dde50ee621e5414": true,
     "3d66b2bb3d39d9c370e41d676ca9a72ccedddd1c": true,
+    "3d6aa529ce97ecc6249cf788423781dbcaa0464c": true,
     "3d70be0067e070c874411dae585e837ed79bec81": true,
     "3d759e3b60352c9a195e364b0106067ee5abeef7": true,
     "3d76f4aee5fa08f4c1d9b8c9233f9a507aafc366": true,
@@ -19830,6 +19913,7 @@
     "4475d983045f06d1825e0c32974663cb9a70129f": true,
     "4478b2e0334585538a5ce8c2eb5919ff5fb6aaeb": true,
     "4485da38ecf7bb1762484de6b912f1a7ef14560d": true,
+    "4487169b048fb2408027137b0e6d80dbf0599da7": true,
     "448f2d400bfbe6a083da6b777f7b74dab691adc1": true,
     "44954ae49c7db07680e7baaf43ca98662a9e5f91": true,
     "4499c7a5b6c59e7065008a8faa39d6fde2f426bd": true,
@@ -20084,6 +20168,7 @@
     "483ed4b35bb474833f27cf105c4e4c172435e87e": true,
     "48547387e1ad0df94097642c5cadb5ff1b5daa45": true,
     "48565dc3b9cefe589bbc524709faa8b47320c4d8": true,
+    "485a03775132e83446a1009df8fc4c4b7c44a159": true,
     "485c42b27f1fb9de303f1a2230253c36692e1564": true,
     "48645129d756bbde93d57cb9798b4e8c621faee5": true,
     "486708db0470afa2e8340f3cc0817204694aa526": true,
@@ -20299,6 +20384,7 @@
     "4b8f1136bb27413b7534e645ae8a639a6d958175": true,
     "4b9142112edffa4aceaa70cc5c44efa00367a64e": true,
     "4b93dc23a07bbd2fc84c5a3eb61b9a067037b1a6": true,
+    "4b9a0bbdb0d0f9227740fa7411da4470c6004864": true,
     "4b9c67e649de551bd2e2dc3ae1ca8cdeec6770e2": true,
     "4b9e0020bba226b73cd67d3fe97bdb3f74bf0048": true,
     "4ba107a963b2baae29f5212c674bb4598a0c512f": true,
@@ -20390,8 +20476,10 @@
     "4ce697fa6db40f5f9c9b229a4bb0dc82b2bab0ad": true,
     "4ce872ebcc05afb00b828eb3f2dfa4322b5d75d8": true,
     "4ce8fd4db1e057d5a0cff77acf9496ab9020c5e4": true,
+    "4cec70d2f0fd7dbe73be4fa55f94e22c6b577acd": true,
     "4cfcba502cbc5530e04b5cb11ebe4fe440ad05ec": true,
     "4cfe629288f491bcd84c3a6356e07ca1e231b2e6": true,
+    "4d04ef18e15e8cbeafd021a4d0f13c849e0ca154": true,
     "4d07597380066ed2e8943c251f91b7cebf424e66": true,
     "4d0cadae18ca95bde1670036570b7091bc5e28de": true,
     "4d0f3d05a512f14b077b4825a4fe84160be9b3b3": true,
@@ -20508,6 +20596,7 @@
     "4eeca3f76b1cb648e600931944eae11e89f696f3": true,
     "4eed828d735d2eeed097aba7d5bf164582a660b4": true,
     "4eeef8fe14c499b4aa72465e83c3975b6c08ce5a": true,
+    "4ef1660c502d98fddc27ec3ca9b0920fff4a8980": true,
     "4ef3166f50d2140c753f07eb6432d888a7a0955d": true,
     "4ef3cda0cb033500c05e71a928557e3073fced07": true,
     "4efc53b668d2e206346b63a31cacd2682e8eb083": true,
@@ -21082,6 +21171,7 @@
     "5793a1b9bca26b6d7ebcd6c936414a18f90724c0": true,
     "57950dee832e57234f06f146c7327f85ed109102": true,
     "5796c7fd2fcb7cdadd2a1af1a33a142f6fdabd25": true,
+    "579d810830151980d522267f089382f184959b4e": true,
     "57ad5eba54e0e9a6bcf9022f182521deb74e4ced": true,
     "57ae413f13ada33482ff7824e3597b84a701e83c": true,
     "57b7a6fdcc535f100ac84c61c340fb87fed36ec2": true,
@@ -21793,6 +21883,7 @@
     "627300b310fb5161dd1bfd8e838ef816b1b62100": true,
     "6278d2d8256280cf74681ce8c93fbe0eb81b60de": true,
     "627cc9116056d6a4ca60e8e3768b8b6b6710b73d": true,
+    "627fd66af2b04f16215716269198f7bac2da8b60": true,
     "628a57a68971416c6a785080c9444a03bd5684d7": true,
     "628b99a2f764933e1c079ce0e6f07c58567787e0": true,
     "62948de21c8be03b31ccd55572a47141ba5dd5ee": true,
@@ -21984,6 +22075,7 @@
     "654d222059b1d3345f832e09197292d21ef25211": true,
     "654d537b9e80d9f72ac9455b0e0386330be3e25f": true,
     "6550b0f89c34666562c7ca6f3274943ef7eaa8ff": true,
+    "6551b959ec347552b5a8fba23f9cbb207a86dfa2": true,
     "6552efdfa182c43a38854167862b67532cd261d4": true,
     "6553c72fefc2701f41b231fa097ec74b8691c702": true,
     "655566a100dd2959550f1c33bc2fd448cd231da1": true,
@@ -22142,6 +22234,7 @@
     "6763fa3ffeb00b060d8511aa03a287c4665d6cf6": true,
     "67660698d70fbc502da5cc1625575353e7f53eef": true,
     "6766a0be2be30d132ebb079166ce4170e9449084": true,
+    "676907d2f73e3f41b7e2d8f8d585f7bff058d02e": true,
     "676a300dae157ab2ffc5a616c6c83eeab49207f1": true,
     "676b02be6759e393a3957d5e8e4bb27a0d6d2ddf": true,
     "676dd50ff5839291a6b0e6380b47c5e32e2bf45d": true,
@@ -22381,6 +22474,7 @@
     "6b2d63e98929cd2098713fe641831faacb120729": true,
     "6b2e6f5ece3c0a6013d95334f0bd2b8a5b70f865": true,
     "6b371f6c4e5170e341e7871e5697882d07a4dfd9": true,
+    "6b3ef2ff5921ba78454514753833458c8fb249b5": true,
     "6b49847fbac28cb318e024bcc310b1b7d64d8ff3": true,
     "6b4af7bd792b9b40ebd9c39a628fc72d588b4c70": true,
     "6b4b2436599939d96d5a682c581c693d65c74271": true,
@@ -22591,6 +22685,7 @@
     "6e3f93b077578ffae82b20cb6c58a243de508cf1": true,
     "6e40b4c3a4040158dbbefc681956b7de1b9ddc72": true,
     "6e4666f985e134fe11d755455c0b372d9cb6a556": true,
+    "6e4adce81ee7b4ad6e27ade9a1052d07adc13cee": true,
     "6e4b533e2b064ce2eadce67b3b479e06a653f482": true,
     "6e4cfda8ca389e823dab3278f04302c1450be836": true,
     "6e52ee96772ece05eba3e3d522e41942ae817478": true,
@@ -22646,6 +22741,7 @@
     "6f100cdb99c3d076748e59afbac6a961cb79a575": true,
     "6f152e0e6e8086ea760671e873be7d5c56acad92": true,
     "6f158154582181f7c6dfbdc920fb39a200a6d17e": true,
+    "6f15ac9f6d540cae8478e63e40e6c9ac9a87ec07": true,
     "6f1a5c9d9b15c56484719a23916954e1eb97920d": true,
     "6f1d4cbe827f12be9fc248a0ae225c1e07762d9e": true,
     "6f1e1c933b2bd8891e2153751bf95231656dce49": true,
@@ -23114,6 +23210,8 @@
     "756248b82fd7ee407fdbf3bcb0e21765afc3ac2f": true,
     "7567e1a63155468fc5f28679b101e3dab295ab34": true,
     "756a01cb990889569814d47c5f250926622abdce": true,
+    "756f3329f9217f9beb2c67af53f96e9303d4735d": true,
+    "756f3837fcf7ee72841a13a69812980c88067f43": true,
     "7570db302af58e9bd2bfa898d838beff1a64d298": true,
     "757186897ddd012da56d04bc78ab337d8ce7f71f": true,
     "75718dd6cdc51fa9c1b8cd79f0acc6a29592d8cf": true,
@@ -23273,6 +23371,7 @@
     "77f31b7f3b5701b52d158ae63015212acf8be6e4": true,
     "77fd442ed3748bb9e4f527815f1008ee1d7ae21b": true,
     "77fd81134c0320e086374ae46125de53257be379": true,
+    "77fe73cc499a7ca599351660a314f5289fbb8a58": true,
     "78025379e3e155a7ff3b4e348fcc8fe43fbb58e1": true,
     "7803ab05a43475428f35d00e3370edb8bb876dc0": true,
     "780a22bf86b8c5192dc0e8b2c45d9afce8f20f39": true,
@@ -23666,6 +23765,7 @@
     "7e21fdf2759f6fa3d803439649cc234361182948": true,
     "7e240005036a69efe5f83ed317ffd095cf7d3411": true,
     "7e292159e000d0697b0b1aa8e39643454453c895": true,
+    "7e29d04f51519ae6abb02d561b7706f1d5a37269": true,
     "7e2e03a7adb35aeb0cf9d3a21b03cadc81a5e906": true,
     "7e33c3deacd446896dce2416359262982a3eed76": true,
     "7e43483b481c0891b750aae3dd29cb656cd9a176": true,
@@ -23840,6 +23940,7 @@
     "80e4f8f04e9c600db724bd177d28250dcb2bf4e4": true,
     "80e88559dc99d65ae989818d36a0af1b4b31a07b": true,
     "80e8bc2250c300dc0a9147fbae9f9e5753f7ba6a": true,
+    "80e95703de02ce156543de44dd213b1f3d6e5bb8": true,
     "80e9f11775b2ea49dacf2c573ad591c5166e4ede": true,
     "80eb14ea3e28eaba1768af56e21ef6b85fe3bc68": true,
     "80eb890e970932b2324642b061191294235de39e": true,
@@ -23892,6 +23993,7 @@
     "817361dc50a5ed3df97674c064a670a05680d5de": true,
     "8173f05c9218057000dfb957db7b7043a1144c58": true,
     "817818d23a69fe9e658527a5fecfdd6736812292": true,
+    "817ccae6ca0be3462377f8d544feb48c3b8062a0": true,
     "817d96b8cd50213c839865782c2e844d466cba0e": true,
     "8183627315995c1554904f6f85dbe9b8be57d088": true,
     "8184aed265ffd4fa68fe71880a160cc8a817c6cc": true,
@@ -24424,6 +24526,7 @@
     "89c307bf9a05a59a4997205435f1466be87bd714": true,
     "89cbe05e5e27e972dee0a6fac21472378b500105": true,
     "89cdce0dc739430c1bdeb63e625116f00e7fca58": true,
+    "89ce15b23c9d07fcc53e99dca068ccef65d4636d": true,
     "89d592bbcd9e5cd5746a7a1fe65168fbf9dde810": true,
     "89d7982498432c3e02f39b1faaed1f88255e74e0": true,
     "89dfada517072576836dd759bea756fd30aabc73": true,
@@ -24846,6 +24949,7 @@
     "90547d212eaa05f430009dc0b0f0770495584cc0": true,
     "90549e6dae19aa5e53b86908d5050d303b724f55": true,
     "9057a1365d32c630eacc35506542d7a2ba77f4ef": true,
+    "905bb3f7320c949a8866a658c322794a96e00c88": true,
     "906597966c415029c22a40f58a8094d1b2d7f7ce": true,
     "90662d52433dbb691a081d367275a352370cd8f1": true,
     "9066b4232495d013ab7f7eacc09fe366e3d4b8fb": true,
@@ -25112,6 +25216,7 @@
     "94d0cb3beea358fdc164849853e37748647806a8": true,
     "94d322a95e865f33c3c170381494528d7f52c60b": true,
     "94d99c3e0408562a45b2334e4b86bdbce9e5b13d": true,
+    "94db7f9b2345d0ffb3ec27080b142382f9b85e6a": true,
     "94e1b3a4c90cb68c909ec15a18cddc14cc1f36d9": true,
     "94ee50b1a9285f6677189810db3b7c404c7701c1": true,
     "94ef9b73967f6e82a4d058763c6a5155ec83dcd5": true,
@@ -25585,6 +25690,7 @@
     "9bd0eb8933623ba31b9746651761882bb97d0cc3": true,
     "9bd12e75892ee0b58b8ad7d8c4cae8d58f559218": true,
     "9bd5ad0f539c5147b76c63cbedddd2eec6010127": true,
+    "9bd681e0072b9491451edc70b4d383085341eb58": true,
     "9bdcac625c587d7fab7c82827f2a834c2bad31c1": true,
     "9bebc93d3c832e6898c7cf9948bed86e78a62640": true,
     "9bf1df144e2f72f68d318d8fd872c87cfe9b158f": true,
@@ -25802,6 +25908,7 @@
     "9f7913421b86d896f3a5408505c013339b7c02b4": true,
     "9f7f836d6f4cb4a13fb96da3a7cac29a0c2202d0": true,
     "9f80e7f274b95e9693644f9e739930bf5c6f0047": true,
+    "9f837572174fc79aef0ecd656cb9bdc2a936690e": true,
     "9f83e247ea776b333e619ad395e43e4fdee25423": true,
     "9f87d7bab2a4c9e1ad524502014c3de37d6f034c": true,
     "9f8b9b351fdfc79eb67a5feccea75d361f7472e9": true,
@@ -25996,6 +26103,7 @@
     "a24742519fb6831bd6572d34ce25d1fcc5a08391": true,
     "a2487db25e690de0b6220e88c01d999899fe52e8": true,
     "a24afd9e80ea9f18f1c1c1f8b6bd9b0fa4133a48": true,
+    "a24c8cf800280a4a201d50b270d088f4e7197ca6": true,
     "a24f43912bbcdb5e43e9160785c862aa5835b5ee": true,
     "a24f99a96c0e1d8c004795103371d66ee1fcf1c2": true,
     "a251de3a7cb8913d1b169b11f1639deaae121610": true,
@@ -26379,6 +26487,7 @@
     "a775e892baf7df1d8b402a0dc5b08ec883dd245e": true,
     "a77a0dd6ecf76c7560c15ccb6a1be7cb8d29be22": true,
     "a77cb11f727816a0d4b01e740d4144c6af21225f": true,
+    "a77e32f73f7c54a6eb0070566b39834d0643439b": true,
     "a77f395b648dbf2919f842bc17762341162be967": true,
     "a78192653eee95bf9b999a9dc8a4b0e5caad1d65": true,
     "a787c73c5b53195539612b14b10e87f4766800a7": true,
@@ -26462,6 +26571,7 @@
     "a86bd3ed6af0e987037af086f0fa3d79fed06817": true,
     "a8707f4906b4e0ec333adf191c3485443ac42f1c": true,
     "a873fdc42d1bbbe41001434cb14b7f4ff6bc630c": true,
+    "a877520aacb6e8766ffe30cb000031d7a8284a6d": true,
     "a878ae690b11d7fe29830b68eac555931ed60625": true,
     "a878cd3bac6994992da30aa36558790a66bbc9db": true,
     "a878d7d61ae622d2e519da5501b8f15afad98cdc": true,
@@ -27004,6 +27114,7 @@
     "b09437b142b2cd6488a250f5cf9b327ff265fccc": true,
     "b0947a3f7427ae5ac4d3ee597d550ba11ff5393b": true,
     "b099605b2713e512028d3d2771377e158c22e167": true,
+    "b09afc71176e20468db8200ff12a6e83ebebcec6": true,
     "b0a5d0781ed1e9df6f67ec99c5c488d0830c083c": true,
     "b0a751f1d05ab8f90513898cb1750e174eb23ab7": true,
     "b0af2e8f641f9d9e162dafb2a1bc0bb600f141b0": true,
@@ -27065,6 +27176,7 @@
     "b16b7d7e8e413f5f8fa04524010352dfeba54a22": true,
     "b16d366e5235f47fd1cc4f5e1252851c88a3a6d2": true,
     "b16e540389bfc99005d2e3cc80cdb61e29570df6": true,
+    "b1706ea79724d457ac48e6b79e258a114f020206": true,
     "b1740d528786a7c3819db998a3d876bfc7efe502": true,
     "b179601c419aeba1a3189216fa1aaeae7ea19406": true,
     "b179d2d758913ea730ed335cad30b786b9e91856": true,
@@ -27229,6 +27341,7 @@
     "b3ea0d9bc2fb365ffadd535e78ddb34ad15bf84f": true,
     "b3edf46bbc43968ccd7be18d6909eeeda291f272": true,
     "b3f4eba454200e01ad7b9c65e7280b1d76eda97b": true,
+    "b3f5e050a63bc950d2fb17e402730293144ce0af": true,
     "b3f5e5cc1232a0e78b6fc1b9f83b0e4daf332d15": true,
     "b3f7a624a14fd7044e5f0405dfea24a70fdc5eaa": true,
     "b3fe7becb5f86ac9da1d65d7bf2c7ebd9aeae756": true,
@@ -27391,6 +27504,7 @@
     "b61890c400df911e83f0faf57fb39c1f6df64eb1": true,
     "b61a8160dd9cf79038120b91416767b544f4a9db": true,
     "b61b95ed0b822cb5f4a368f698b1a99f85e18082": true,
+    "b61c00dbc97fb1442c2066665c3fe756703cb6bf": true,
     "b6220ba91223563d29589d38b1772ee932b99186": true,
     "b62408d8d043281b18b6230bc8493659459b1e78": true,
     "b628ce8106c7dd793f9235bb2c64bfc6e53548cd": true,
@@ -28171,6 +28285,7 @@
     "c2121ad926657555508c60f5292d5766d1737654": true,
     "c21231c9f358a499b5f129a5b155b1c40a2603a4": true,
     "c212a00cb49d283e91e50f22a11353a35e3d5c39": true,
+    "c21326d6f8a75dbcb1480fdb4109f93c108767ad": true,
     "c21ab8caf1d08df4c16aab27e209d3af749fc4a6": true,
     "c21e79fbf1535c729207edebb824b8a530c7e8a0": true,
     "c21e9b644311804ed7a659c01165825c536e6ed5": true,
@@ -28188,6 +28303,7 @@
     "c24571c742901c17f83324f065ac43061bd678c2": true,
     "c246bf80319912eb6fad5ec9c7c52e52043f88c9": true,
     "c2487f7453deb327ea7582d05bbe1d8dc1db8bcd": true,
+    "c24e6cda428c299673c38173b54c8b795199be05": true,
     "c24fccc7743561d78fa8140d9722ae5a057d7547": true,
     "c256c939b3a08faab086fa14dd76d5b194514253": true,
     "c25e3316975ef1057eccfec926bea319ce3b683e": true,
@@ -28483,6 +28599,7 @@
     "c6a8e1afd069bd3ce313581eefcd1a8e0af24ecf": true,
     "c6abc22b6348b9ff7584ef0faf2ee40f094cd041": true,
     "c6b28a5e06c26b5c9ac8e42a1860608ffccd3238": true,
+    "c6b396b606cc276576ecf07f1082c40f91a63249": true,
     "c6b478fcfafb7de97d470c46108be20aea06d174": true,
     "c6b6e2c74bbb394d25f6a9ba48be66a32b2724fb": true,
     "c6b77e8808013d0e65a3ad0b0d0e09ccb572b12d": true,
@@ -28663,6 +28780,7 @@
     "c937bbb86bf87502650bece00982b3446a48eb45": true,
     "c93d7969c1c067d98a070c36428933eafa125580": true,
     "c93ef4245461a0941fa8882959d860bfee318e33": true,
+    "c93f60e7e98696a19c7dc164bd1b46a10ed013c1": true,
     "c9403f82ee7713ff4e0cc873508e48232fc9c9e1": true,
     "c940f18adeeec4c6ff9b4babf91bdcec32c587c7": true,
     "c941ea240352205b83135636e6a44b4249e978e9": true,
@@ -28797,6 +28915,7 @@
     "cb2077bc518e607540696ac5cc35ae5213d8dc93": true,
     "cb23030adca6ad7670277c0db805c83be2904fdc": true,
     "cb272f8fee151fe5607a02007454b5fbadfc0b11": true,
+    "cb27f40b7bcfce21bf65cc958c5e06324e42d8df": true,
     "cb29d58170d56d7ad98e100b1afdc2cbf8611145": true,
     "cb29d72101a6b81dca6568c98100c7567188a627": true,
     "cb2d6192726ade46405e93b616b3ae92238546fc": true,
@@ -29223,6 +29342,7 @@
     "d10cf4a2c171a49b47d142e152ac49808f76226b": true,
     "d10f5e993ea7a54d2c35e063ea4e1559ddf9e972": true,
     "d111c0c5007659ce5c80464f4d098f5b33b4f6c3": true,
+    "d1146fb39764a3a399f92a09f79be11942b7c36b": true,
     "d119bc71eb82ef106289bac4472ae6ffc249e37e": true,
     "d11c729c2e3a6cb6cac73cbb09e6354b0b9b4823": true,
     "d11df32c039a4dc0cc4d8ee9d78a972a77fe5bd4": true,
@@ -29247,6 +29367,7 @@
     "d14fa9c04aeee0181a6aeb281580ca35ae6e1e74": true,
     "d15942fd6127609f70e16b13287e38f70e3a6a8f": true,
     "d1626d5090e9ed0c92bda33bb6ee7bcbda81c06e": true,
+    "d167c508346a1be632e4939321cfa1b01a635a7e": true,
     "d171e7d5f82294d6e95ec28563fefeab1dfec3bc": true,
     "d174b774d2cda0b00c250c9032feb34b10e83794": true,
     "d174d3053989f75391a098068e95d92c9cde6fce": true,
@@ -29284,6 +29405,7 @@
     "d1fe5f82af3d74db688809632e4c8b36765214a9": true,
     "d205ad0455da6af78ff73ab9ded8ed3421c8575a": true,
     "d205ccf48a7d2b327e3b694e8063080d521ada2b": true,
+    "d206a9281b5c37fe802afb5e54ddd38f68502168": true,
     "d20c3616dcd11ffc31356a365a4ed330be34a9d2": true,
     "d20dd6a4ec32e807e50ddaea18e59050a0b52d42": true,
     "d20fbe65ac04ceb68f58176b43575c9c6c8977a4": true,
@@ -29295,6 +29417,7 @@
     "d2266340ed26bcabdf748f6685871c497456cf7a": true,
     "d23251902c788fb1052d90bbb25c829307017e78": true,
     "d232673dc00fd899e3f848a118db817edeb6e961": true,
+    "d2362b16a651aefda727fa451136834a636e3b42": true,
     "d2389d115df0f2b1cbf2d402fb82d5ecb94b44cd": true,
     "d2399d21b8c87b65ec2ba5a0124ed865aeecf37e": true,
     "d23b9a2d17aeea89c21409350a8889c241dd64d0": true,
@@ -29304,6 +29427,7 @@
     "d2504b4a5b8083c9a2ee330ead22f75a54fed0a1": true,
     "d250ba362a741a587d2a0b3f0999c7e7d264fb42": true,
     "d250e2a0d0afefcec7c5133c0c5ebbbc29a0dd5c": true,
+    "d250edee297f236e90a5630a47c398b14ef1a9d1": true,
     "d2527d0778921f9140a4ef9f6d78eaa2684bab54": true,
     "d259dbc7401b09fdff11f23632e5991c63a2a79c": true,
     "d259de48a316935d7efd1409cc05943fabacb1d5": true,
@@ -29401,6 +29525,7 @@
     "d3ad2adb081ac424aab7773490bd487a4105c9de": true,
     "d3b0077e852afcf11d5943d3e4a1cfbb67f5315f": true,
     "d3b53e730cbe5c62edac62e4efaa9afe62b57fc7": true,
+    "d3b5474c778c487002b4f1b2009440686526c53c": true,
     "d3bc2434525395e590beedeb227a07d77f51ac2b": true,
     "d3be9eb9b9d97ee3ef1444e05824ba6de21d4e6d": true,
     "d3c23a341766b663999bcd5a66575aa2af5cd23c": true,
@@ -29484,6 +29609,7 @@
     "d50fe4d2899b7a16f5c130e281f0a9c10d55085a": true,
     "d514c0ef6f89496fa15dbebeb9a1994247b578e5": true,
     "d5203d14d6719fee845d639f9984f3f9a19b8a2f": true,
+    "d52133fc5639a1b4fd1c36f6e31e7933d8d309b4": true,
     "d5304b446020295a6f317b8efa558cfeacde27bb": true,
     "d5334261c167438c40b3305990a0c3ae263d2c72": true,
     "d53e77d3e4f5d3d98a44ccef1d5d8028c7c2e310": true,
@@ -29538,6 +29664,7 @@
     "d5f7ae6812ecb5a2760ba6e96784f7cb37bea30f": true,
     "d5f8fe401307cd9ebd230eb3fc93cc529f8c1eb4": true,
     "d5f9393f7f9b79482aaf121a7082214c21859e25": true,
+    "d5fdc0bd6a02b4bac3fe5269d3d537d86aaad5c4": true,
     "d600e1d6ab16c873e360745436a4314f418cd51c": true,
     "d600e3696d701ea656cfaf1c2d5f442f8a9e155e": true,
     "d607549fb33cd1c6ea98324a8619f2d6cb3b75cd": true,
@@ -29591,6 +29718,7 @@
     "d6e02a1736d84ac53f70580bdf5ee58d107d5cd9": true,
     "d6e74606b5ca7d8931e4fc02ed00215cffffc363": true,
     "d6ea889bfd0e2abbbfc395b409664af0b325a127": true,
+    "d6ebfc09e1205c83d0236dcf8d1eeec9913c3352": true,
     "d6ee72ba6fdae9e16aa83232e429f3edf86a0469": true,
     "d6fccc9f81580efa05fc5354afa3440ec44d85f5": true,
     "d6fea0e49037cf4d12d6b88039bde1de43a16157": true,
@@ -29958,6 +30086,7 @@
     "dbf50c595a720d73763c1b8fc50e99a00fa9290b": true,
     "dbfca81c9bf70defd163ea6638b7aea07f2f2d65": true,
     "dc00ae6e7628a21d5641e60a1d4bf4b18eb3be79": true,
+    "dc01b2bc4b925969f75e2135c758be5c26fef57b": true,
     "dc0f295637842dca0409f8f4c6061bb7a6af81cc": true,
     "dc101ebba0ca8e981ff35b8e7aa5690b975c8644": true,
     "dc1152fc83dc7a57ec959b0db86777b7dbeaf4f3": true,
@@ -30240,6 +30369,7 @@
     "e072d55fa8459c86d048f9f5245dbb4b7a2cea63": true,
     "e07d738d145903353065a7a897960c5215bd4a2b": true,
     "e07f87918d5076bc0babad4c91aa19b71fd8ce1a": true,
+    "e0810a785b9024731ec309ebfda906cadc0a5dde": true,
     "e0856edddc5fbac7d1f09aa44feaea2325a5c057": true,
     "e08699c4eefb87f93eee8887b9c69cbf9f7183dc": true,
     "e0987b8c7ca97c192304793cf700122f2901e6e8": true,
@@ -30285,6 +30415,7 @@
     "e15ca33d6f2827f7c36146a48b2f0aac43ee4bb2": true,
     "e15e4a0beceae8680ab595e924d5379133e49f9e": true,
     "e16152c61480b2cf13ab73e71e970897e9312e9a": true,
+    "e161677f8c7201e013af68ab6b47c9bbd656402a": true,
     "e162bbae80fea869c618e85a30dc2571d32538b5": true,
     "e1773efc316489fbb509fd0e51d602d92913aa98": true,
     "e179f2a582be658385941a84c3a45d2db6c3ad87": true,
@@ -30312,6 +30443,7 @@
     "e1c9ec2794d21c5ba0c5dcebc68225604b31ce72": true,
     "e1d0f7579d205d16ef4e69d5f86247c5824c5df5": true,
     "e1d1177b6535d39c18a480cf14fd980aa9112fcb": true,
+    "e1d3eadd4a83b557aebf7a5a76ebcb36b39101e4": true,
     "e1d487e043cf7ca27b8735aa281942fcf771a1d3": true,
     "e1d62b062ef0ea37c3c44e068ec494a1c26cccd6": true,
     "e1da715eef72cda0ab14596514b112a65da20fba": true,
@@ -30784,6 +30916,7 @@
     "e8c8825c3407ed39c73ba7ca24c575aab94d12d4": true,
     "e8c9eb60fbbddd74a573fe43ac39f4e120f10421": true,
     "e8d11262162cfd192e766edf087ebf36e2fdb8ae": true,
+    "e8d7876c132375916874d8ca84fe26b0a5b50ce9": true,
     "e8d949ca210f6f01235c9564f290cccc6a9069dc": true,
     "e8db0fe30527ccef4bb9e2310156243de9ad4198": true,
     "e8e23c74dca5eceb3bdac418220a0194b0bfcaa0": true,
@@ -31417,6 +31550,7 @@
     "f2cee20ee091377d873d29e8ea23a304517887a5": true,
     "f2d42d6fe71314f94e8329d37db57e7ecb50d828": true,
     "f2d79bad9fd8aa113d6bab0e97317ceb50543d59": true,
+    "f2d8867589a23f1b5890ab59335bd541977ab147": true,
     "f2db1d03b42025044cca5828abf8d016ccfe4f11": true,
     "f2e31b1a5823f691d4a373d5637825b76a89cbf5": true,
     "f2e854964c32290890bd76b091cbef755f650ced": true,
@@ -31522,6 +31656,7 @@
     "f4840afcdd8bf7e0865c29dc234cd38bb42dc6b3": true,
     "f487ae19d2ef3ec9c2b02fef2125fc8ee03cb1bd": true,
     "f489fc4f73373dfe2f29d96082f7cb95da218393": true,
+    "f48aedb4c5a205a20da6548b0a4c4f6875156253": true,
     "f49546c07d44a9d78c4f2a55a5caff7f4b54a5d2": true,
     "f497cc44a69c07ddb746328eb53e102f0d7da580": true,
     "f4a0f6124dbacf53fb05d9ec3fbb2e7fdbf88630": true,
@@ -31570,6 +31705,7 @@
     "f543e1ca6cf12b61d30e6543dc4542d4199a9ce9": true,
     "f546601134968ab5c55db5d43e52317d32e3cba6": true,
     "f546f467b13b663312ae57615ff09d763637fe6c": true,
+    "f5477e627678aae4d95d89c1dce491a8cc73173b": true,
     "f54a6d45329a927aef0a7a3e416dd8059cd7cbf3": true,
     "f54d43c5564b70f2e5d40abb60ce15ec1a2923c6": true,
     "f54d59eaf317ba6c209962de7108560c81d35bce": true,
@@ -31709,6 +31845,7 @@
     "f71b0d7984de03fe2c5bd31e07d552d5cf36c3bf": true,
     "f71d23f752e0a89b53867f985acec801fcbb9ac0": true,
     "f720bfb5ffd45e144506f576c2554026711bab15": true,
+    "f725a48fd62bd3d955936c34b27487da19b6defb": true,
     "f72640d2f75e1d2d7dbef2a3a6e63f6e6caf3f7f": true,
     "f7295d3537a99599a57cb86d4cb04de7ab8bb77e": true,
     "f72c1ad14c77811e9ee9865980e153dd94e1bb57": true,
@@ -31824,6 +31961,7 @@
     "f88020dfd3b8956a69ecced161222438f439aa65": true,
     "f886101a6189bbfc6c268bc128b9c6fd4bb7730f": true,
     "f887b24badac33d584d359e8df73da95370a12b2": true,
+    "f887b9aba65f6be0bc4b670657b0e8a4cfeba812": true,
     "f88c7d632066f5e4ca292a9ef16cdb07a04d9a70": true,
     "f88e86fdd2b664f0eaf0679245519651a5498215": true,
     "f8968cb4139d6521ffad0c8121765d5b9bb30623": true,
@@ -32189,6 +32327,7 @@
     "fd66e8e182faa68b59699dceb1545a7019aff1a6": true,
     "fd686907397264703989a637c51e7e848004c342": true,
     "fd6e27e37e45816144c081fed04220707ce928ac": true,
+    "fd71c20974b619768d4897d3dc99a2ad991f7761": true,
     "fd7662de6c4413797d6a4257522d22b58e48907a": true,
     "fd76bb22978f91627c69ab4be4631de1982eeaf2": true,
     "fd794f40802e49c53511fd2a7bbf9460dc144cfa": true,

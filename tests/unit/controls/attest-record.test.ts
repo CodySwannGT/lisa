@@ -134,7 +134,8 @@ describe("what an attest run writes down", () => {
 
     const recorded = await record(where);
 
-    expect(recorded.problems === null ? recorded.lines : []).toEqual([
+    const lines = recorded.problems === null ? recorded.lines : [];
+    expect(lines.slice(0, 4)).toEqual([
       `Recorded 2 evidence records in ${EVIDENCE_PATH}: 2 about controls, 0 from the audit report.`,
       expect.stringMatching(
         /^No audit report is at \.lisa\/audit\/report\.json, /u
@@ -144,6 +145,16 @@ describe("what an attest run writes down", () => {
         /^Level 1 result: non-conforming\. Conforming or not applicable: 1 of 77 requirements\. Preventing a conforming result: 76 \(0 non-conforming, 76 unknown\): AC1\.1, /u
       ),
     ]);
+    expect(lines.slice(4)).toContainEqual(
+      expect.stringMatching(
+        /^AC5\.1 needs evidence\. .*The minimum evidence rung is observed\.$/u
+      )
+    );
+    expect(lines.slice(4)).toContainEqual(
+      expect.stringMatching(
+        /^AC5\.2 needs evidence\. .*The minimum evidence rung is exercised\.$/u
+      )
+    );
   });
 
   it("is the same bytes when the same run is written down twice", async () => {

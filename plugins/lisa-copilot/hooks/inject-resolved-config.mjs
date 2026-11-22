@@ -919,6 +919,26 @@ function renderDefaults(config) {
 }
 
 /**
+ * Project only the allowlisted notification level from the manager block.
+ * The manager's identities and Telegram settings stay outside startup context.
+ * @param {unknown} manager The resolved `sessionManager` block.
+ * @returns {string|null} A line for configured managers.
+ */
+function renderNotificationLevel(manager) {
+  if (!isObject(manager)) return null;
+  const notify = manager.notify;
+  const field = "sessionManager.notify.level";
+  if (notify !== undefined && !isObject(notify)) {
+    return `${field}: INVALID — sessionManager.notify must be an object.`;
+  }
+  const level = notify?.level;
+  if (level === undefined) return `${field}: all   [Lisa built-in default]`;
+  return level === "all" || level === "asks-only"
+    ? `${field}: ${level}`
+    : `${field}: INVALID — use "all" or "asks-only".`;
+}
+
+/**
  * Render the whole value body, honouring {@link CONTEXT_BUDGET}.
  * @param {object} config Resolved config.
  * @returns {string} The rendered body.
@@ -934,6 +954,8 @@ function renderBody(config) {
   // so it is the line that must survive.
   /** @type {string[]} */
   const lines = renderDefaults(config);
+  const notification = renderNotificationLevel(config.sessionManager);
+  if (notification !== null) lines.push(notification);
   const gapLines = lines.length;
   // The gates block is the one this module promises never elides, so the lines
   // it produced are named here rather than inferred from their shape later.
@@ -943,7 +965,7 @@ function renderBody(config) {
   // needs reading in full.
   /** @type {Set<string>} */
   const unelidable = new Set();
-  const seen = new Set();
+  const seen = new Set(notification === null ? [] : ["sessionManager"]);
   for (const key of SUBTREE_ORDER) {
     if (!(key in config)) continue;
     seen.add(key);

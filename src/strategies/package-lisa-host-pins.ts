@@ -1,8 +1,7 @@
 /**
  * @file package-lisa-host-pins.ts
  * @description Phase 1 floor guard of the package-lisa apply: restore host
- * dependency pins that provably sit above Lisa's forced floor, and refuse when
- * neither range can be proven ahead.
+ * dependency floors above Lisa's forced floor and retain shared constraints.
  * @module strategies
  */
 import semver from "semver";
@@ -13,6 +12,7 @@ import {
   OVERRIDE_SECTIONS,
 } from "../core/override-floors.js";
 import { JsonMergeError } from "../errors/index.js";
+import { intersectDependencyRanges } from "./package-lisa-range-intersection.js";
 import type { PackageJsonPlan } from "./package-lisa-types.js";
 
 /**
@@ -32,25 +32,26 @@ const FLOOR_SECTIONS = [
 ] as const;
 
 /** What Phase 1's value and the host's value mean for one dependency. */
-type PinVerdict = "template" | "host" | "incomparable";
+type PinVerdict = "template" | "host" | "check-overlap";
 
 /** A host pin kept over Lisa's, with both ranges for the operator note. */
-interface PreservedPin {
+interface PinRanges {
   readonly section: string;
   readonly name: string;
   readonly hostRange: string;
   readonly forcedRange: string;
 }
 
+/** The dependency range to write after reconciling both pins. */
+type PreservedPin = PinRanges & { readonly selectedRange: string };
+
 /**
  * Restore host dependency pins that sit ABOVE Lisa's template.
  * @remarks
- * Every `force` pin exists to push a project PAST a CVE, so it is a security
- * FLOOR — not an assignment. Phase 1 applies it with `deepMerge`, where Lisa's
- * value wins unconditionally, and that is only correct while the template is the
- * higher of the two. The moment a host raises a pin beyond the template (or the
- * template simply lags a fresh advisory), the same "security write" silently
- * walks the host BACKWARDS into the vulnerable range it had already escaped.
+ * A forced dependency range can set a security floor and a compatibility cap.
+ * Phase 1 applies it with `deepMerge`, where Lisa's value wins unconditionally.
+ * A host that has raised its floor can therefore be sent back into a vulnerable
+ * range it had already escaped without this additional comparison.
  *
  * This is not hypothetical: a caller repo in the portfolio pinned at
  * `dependencies.tar >=7.5.21` was reverted to `>=7.5.19` on every `bun install`,
@@ -67,10 +68,8 @@ interface PreservedPin {
  * - Host floor above Lisa's AND the host range is a subset of Lisa's: the host
  *   admits only versions Lisa allows, so it is provably the stricter of the
  *   two. Keep the host.
- * - Host floor above Lisa's and neither range contains the other: both sides
- *   carry a constraint the other drops. Lisa cannot decide it, so it REFUSES
- *   and names both rather than picking one — silently picking one is how a
- *   lowered floor shipped in the first place.
+ * - Host floor above Lisa's with crossing ranges: use the versions admitted
+ *   by both ranges. Refuse when the ranges share no versions.
  *
  * A value that cannot be parsed — npm's `"$name"` self-references, git URLs,
  * `workspace:*` — is left as Phase 1 produced it, so this can only ever RAISE
@@ -78,8 +77,7 @@ interface PreservedPin {
  * @param projectJson - The host package.json as it was before Phase 1.
  * @param afterForce - The result of Phase 1's force merge.
  * @param fileName - Basename used in error messages.
- * @throws {JsonMergeError} when a host pin is higher but the two ranges are
- *   incomparable.
+ * @throws {JsonMergeError} when a higher host pin and Lisa's pin have no overlap.
  * @returns `afterForce` with host-side higher pins restored, plus notes.
  */
 export function preserveHigherHostPins(
@@ -105,7 +103,7 @@ export function preserveHigherHostPins(
           [section]: {
             ...forcedSection,
             ...Object.fromEntries(
-              preserved.map(pin => [pin.name, pin.hostRange])
+              preserved.map(pin => [pin.name, pin.selectedRange])
             ),
           },
         },
@@ -122,7 +120,7 @@ export function preserveHigherHostPins(
  * @param hostSection - The host's entries for this section, pre-merge
  * @param forcedSection - The entries Phase 1 produced for this section
  * @param fileName - Basename used in error messages
- * @throws {JsonMergeError} on the first incomparable pin
+ * @throws {JsonMergeError} on the first disjoint pair of pins
  * @returns Pins whose host value must be restored
  */
 function collectPreservedPins(
@@ -137,16 +135,20 @@ function collectPreservedPins(
     if (verdict === "template") {
       return [];
     }
-    const pin: PreservedPin = {
+    const pin: PinRanges = {
       section,
       name,
       hostRange: hostValue as string,
       forcedRange: forcedValue as string,
     };
-    if (verdict === "incomparable") {
-      throw new JsonMergeError(fileName, formatIncomparablePinMessage(pin));
+    const selectedRange =
+      verdict === "host"
+        ? pin.hostRange
+        : intersectDependencyRanges(pin.hostRange, pin.forcedRange);
+    if (selectedRange === null) {
+      throw new JsonMergeError(fileName, formatDisjointPinMessage(pin));
     }
-    return [pin];
+    return [{ ...pin, selectedRange }];
   });
 }
 
@@ -154,7 +156,7 @@ function collectPreservedPins(
  * Decide what to do with one dependency where host and template disagree.
  * @param hostValue - The host's range for this dependency.
  * @param forcedValue - The range Phase 1 wrote for the same dependency.
- * @returns Which side wins, or `incomparable` when neither can be proven ahead.
+ * @returns Which side wins, or `check-overlap` to keep both constraints.
  */
 function classifyHostPin(hostValue: unknown, forcedValue: unknown): PinVerdict {
   if (typeof hostValue !== "string" || typeof forcedValue !== "string") {
@@ -169,7 +171,7 @@ function classifyHostPin(hostValue: unknown, forcedValue: unknown): PinVerdict {
   ) {
     return "template";
   }
-  return rangeContains(forcedValue, hostValue) ? "host" : "incomparable";
+  return rangeContains(forcedValue, hostValue) ? "host" : "check-overlap";
 }
 
 /**
@@ -272,6 +274,12 @@ function rangeContains(outer: string, inner: string): boolean {
  * @returns Human-readable note for apply output
  */
 function formatPreservedPinNote(pin: PreservedPin): string {
+  if (pin.selectedRange !== pin.hostRange) {
+    return (
+      `Set ${pin.section}.${pin.name} to ${JSON.stringify(pin.selectedRange)}, ` +
+      `the overlap between the host's ${JSON.stringify(pin.hostRange)} and Lisa's ${JSON.stringify(pin.forcedRange)}.`
+    );
+  }
   return (
     `Kept host ${pin.section}.${pin.name} ${JSON.stringify(pin.hostRange)}: ` +
     `it admits only versions Lisa's ${JSON.stringify(pin.forcedRange)} allows ` +
@@ -280,20 +288,17 @@ function formatPreservedPinNote(pin: PreservedPin): string {
 }
 
 /**
- * Format the refusal for a host pin Lisa cannot prove itself ahead of.
- * @param pin - The pin that could not be decided, with both ranges
+ * Format the refusal for disjoint dependency ranges.
+ * @param pin - Both ranges of the dependency.
  * @returns Human-readable error message naming both ranges
  */
-function formatIncomparablePinMessage(pin: PreservedPin): string {
+function formatDisjointPinMessage(pin: PinRanges): string {
   return (
     `${pin.section}.${pin.name} cannot be merged: the host range ` +
     `${JSON.stringify(pin.hostRange)} starts above Lisa's ` +
-    `${JSON.stringify(pin.forcedRange)}, but neither range contains the other, ` +
-    `so each admits versions the other forbids and Lisa cannot prove which is ` +
-    `correct. Overwriting the host here is how a hardened floor gets silently ` +
-    `lowered, so this apply stops instead. Reconcile the two by hand: pick one ` +
-    `range in the host package.json that satisfies both constraints, or raise ` +
-    `Lisa's template pin to cover the host's.`
+    `${JSON.stringify(pin.forcedRange)}, and the two ranges share no versions. ` +
+    `Review the dependency constraints and update the host pin or Lisa's template ` +
+    `to agree on which versions can be installed.`
   );
 }
 

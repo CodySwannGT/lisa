@@ -58,6 +58,9 @@ export const SESSION_MANAGER_DEFAULTS = Object.freeze({
 /** The `notify` choices `buildDefaultBlock` (and `init-config --notify`) take. */
 export const NOTIFY_CHOICES = Object.freeze(["none", "telegram"]);
 
+/** Notification level used when a project declares none. */
+export const DEFAULT_NOTIFY_LEVEL = "all";
+
 /**
  * The notification provider a resolved (or raw) block runs with.
  * @param {{ notify?: { provider?: unknown } } | null | undefined} config
@@ -76,7 +79,7 @@ export function notifyProvider(config) {
  *   cpuFraction: number, maxLoadPerCore: number }} CapacityBlock
  * @typedef {{ noOutputMinutes: number, maxAttempts: number,
  *   requestionHours: number, orphanHours: number }} StallBlock
- * @typedef {{ provider: string, stateDir?: string }} NotifyBlock
+ * @typedef {{ provider: string, level?: "all" | "asks-only", stateDir?: string }} NotifyBlock
  * @typedef {{
  *   name: string,
  *   interval: string,

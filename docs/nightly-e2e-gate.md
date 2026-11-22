@@ -3,6 +3,8 @@
 > **Status:** normative. This document is the specification the reusable
 > workflow `.github/workflows/nightly-e2e-health.yml` and the shipped guard
 > `typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs` implement.
+> `lisa apply` installs the same certified guard for Rails projects, together
+> with the shared `scripts/lib/invoked-as-script.mjs` it imports.
 > Every row of §2 is proven by a named case in Lisa's
 > `tests/unit/scripts/nightly-e2e-health.test.ts` (rows 1-16),
 > `…-api.test.ts` (rows 17-20), `…-bypass.test.ts` (rows 21-25),

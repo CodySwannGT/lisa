@@ -32,7 +32,10 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
+  issues: read
+  pull-requests: read
 
 jobs:
   sweep:
@@ -69,7 +72,14 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Fail when drift exists
+        if: always()
+        env:
+          SWEEP_OUTCOME: ${{ steps.sweep.outcome }}
         run: |
+          if [ "$SWEEP_OUTCOME" != "success" ]; then
+            echo "::error::The lifecycle sweep could not verify every covered item. See the published report."
+            exit 1
+          fi
           # `grep -c` exits non-zero on zero matches, which would read as
           # "drift found" here — the inverse of the truth. Count without
           # letting the exit status decide.

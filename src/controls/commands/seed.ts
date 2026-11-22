@@ -2,15 +2,15 @@
  * `lisa controls seed [path]`: say which road the configure step takes for a
  * repository and, on the paved road, declare the checks Lisa ships for it.
  *
- * Where the whole repository is one piece of software on a supported project
- * type, nothing has to be discovered: the checks are the ones that type
- * ships. This command declares them in the `gates` block of
+ * When the whole repository or every audited folder has a supported project
+ * type, the checks come from the shipped gate registry. This command declares
+ * them in the `gates` block of
  * `.lisa.config.json` with the same seeding `lisa apply` uses (`seedGates` in
  * the shipped gate registry), which declares a check only when the task that
  * runs it is a script the repository actually has, and never changes a
  * declaration that is already there. A supported repository that has none of
- * those tasks yet gets nothing declared: `lisa apply` is what supplies them. So a second run declares nothing new and
- * the register generated afterwards is the same bytes.
+ * those tasks yet gets nothing declared. Folder checks use each part's own
+ * task runner and scope. A second run declares nothing new.
  *
  * Anywhere else it writes nothing and says so: the checks are then declared
  * from what the audit found, by the configure step, one decision at a time.
@@ -32,7 +32,6 @@ import path from "node:path";
 import type { Command } from "commander";
 
 import { importGateRegistry } from "../../cli/gate-registry-source.js";
-import { createDetectorRegistry } from "../../detection/index.js";
 import { detectRunner } from "../../migrations/ensure-seeded-gates.js";
 import { isJsonObject, type JsonObject } from "../../sync/json-path.js";
 import { writeJson } from "../../utils/json-utils.js";
@@ -46,27 +45,25 @@ import { decideConfigureRoad, type ConfigureRoad } from "../configure-road.js";
 import {
   GATES_DECLARATION_PATH,
   readGatesDeclaration,
-  type GatesModule,
 } from "../gates-declaration.js";
-import { parseProblemWithoutExcerpt } from "../secret-scan-json.js";
+import { WHOLE_REPOSITORY_SCOPE } from "../register-types.js";
+import {
+  detectSupportedTypes,
+  MANIFEST_PATH,
+  planShippedPartGates,
+  readProjectScripts,
+  readShippedFolder,
+  type ProjectRead,
+  type SeededGate,
+  type SeedingGatesModule,
+  type ShippedFolder,
+} from "../shipped-parts.js";
 
 /** The subcommand's name under `lisa controls`. */
 export const SEED_COMMAND = "seed";
 
-/** The file a repository's tasks are read from. */
-const MANIFEST_PATH = "package.json";
-
 /** The version of {@link SeedOutput}. A changed shape gets a new one. */
 export const SEED_SCHEMA_VERSION = 1;
-
-/** One check the seeding declared. */
-interface SeededGate {
-  readonly gate: string;
-  /** The moment it was declared at. */
-  readonly moment: string;
-  /** The task it runs, or `null` for the one the gate registry names. */
-  readonly run: string | null;
-}
 
 /** What `lisa controls seed` prints on stdout. */
 export interface SeedOutput {
@@ -91,18 +88,6 @@ export interface SeedOutput {
   readonly declared_gates: number;
 }
 
-/** The slice of the shipped gate registry seeding calls. */
-interface SeedingGatesModule extends GatesModule {
-  readonly seedGates: (options: {
-    readonly gates?: Record<string, unknown>;
-    readonly scripts?: Record<string, string>;
-    readonly runner?: string;
-  }) => {
-    readonly gates: Record<string, unknown>;
-    readonly seeded: readonly SeededGate[];
-  };
-}
-
 /** What the command needs from outside, each replaceable in a test. */
 export interface SeedDependencies {
   /** The directory the path argument is resolved from. */
@@ -117,21 +102,6 @@ export interface SeedDependencies {
   readonly detectProjectTypes?: (root: string) => Promise<readonly string[]>;
 }
 
-/** Something read, or the lines saying why it could not be. */
-type Read<Value> =
-  | { readonly problems: null; readonly value: Value }
-  | { readonly problems: readonly string[] };
-
-/**
- * Detect the supported project types at a folder, parents included.
- * @param root - Real path of the repository
- * @returns The types, in Lisa's own order; empty when it is none of them
- */
-async function detectSupportedTypes(root: string): Promise<readonly string[]> {
-  const registry = createDetectorRegistry();
-  return registry.expandAndOrderTypes(await registry.detectAll(root));
-}
-
 /**
  * Read the parts the audit report names.
  * @param root - Real path of the repository
@@ -142,7 +112,7 @@ async function detectSupportedTypes(root: string): Promise<readonly string[]> {
 async function readParts(
   root: string,
   now: Date
-): Promise<Read<readonly string[] | null>> {
+): Promise<ProjectRead<readonly string[] | null>> {
   const kind = await pathKind(path.join(root, AUDIT_REPORT_JSON_PATH));
   if (kind === "missing") return { problems: null, value: null };
   const loaded = await loadAuditReport(root, now);
@@ -156,7 +126,7 @@ async function readParts(
  * @param root - Real path of the repository
  * @returns The parsed file, or why it cannot be used
  */
-async function readConfig(root: string): Promise<Read<JsonObject>> {
+async function readConfig(root: string): Promise<ProjectRead<JsonObject>> {
   const file = path.join(root, GATES_DECLARATION_PATH);
   const kind = await pathKind(file);
   if (kind === "missing") return { problems: null, value: {} };
@@ -186,43 +156,6 @@ async function readConfig(root: string): Promise<Read<JsonObject>> {
   }
 }
 
-/**
- * Read the scripts of the repository's `package.json`.
- *
- * A manifest that is not there has no scripts, and neither has one with no
- * `scripts` entry. One that is there and cannot be read is a different
- * thing: what tasks the repository has is then not known, and saying "none"
- * would be a guess.
- * @param root - Real path of the repository
- * @returns The scripts, none when there is no manifest or it has none, or
- *   why a manifest that exists cannot be used
- */
-async function readScripts(
-  root: string
-): Promise<Read<Record<string, string>>> {
-  const file = path.join(root, MANIFEST_PATH);
-  if ((await pathKind(file)) === "missing") {
-    return { problems: null, value: {} };
-  }
-  const refused = (why: string): Read<Record<string, string>> => ({
-    problems: [
-      `${MANIFEST_PATH} ${why}, so the tasks this repository has cannot be read from it.`,
-    ],
-  });
-  try {
-    const manifest = JSON.parse(await readFile(file, "utf8")) as unknown;
-    if (!isJsonObject(manifest)) return refused("does not hold a JSON object");
-    if (manifest.scripts === undefined) return { problems: null, value: {} };
-    return isJsonObject(manifest.scripts)
-      ? { problems: null, value: manifest.scripts as Record<string, string> }
-      : refused(`has a "scripts" entry that is not an object`);
-  } catch (error) {
-    return refused(
-      `cannot be read as JSON (${parseProblemWithoutExcerpt(error)})`
-    );
-  }
-}
-
 /** What seeding did to the declaration. */
 interface Seeding {
   readonly wrote: boolean;
@@ -237,25 +170,30 @@ interface Seeding {
  * @param root - Real path of the repository
  * @param registry - The shipped gate registry
  * @param scripts - The scripts of the repository's `package.json`
+ * @param folders - The per-folder projects, when the audit named folders
  * @returns What was declared, or why nothing could be
  */
 async function seedDeclaration(
   root: string,
   registry: SeedingGatesModule,
-  scripts: Record<string, string>
-): Promise<Read<Seeding>> {
+  scripts: Record<string, string>,
+  folders: readonly ShippedFolder[]
+): Promise<ProjectRead<Seeding>> {
   const config = await readConfig(root);
   if (config.problems !== null) return config;
 
   const gates = isJsonObject(config.value.gates) ? config.value.gates : {};
-  const result = registry.seedGates({
-    gates,
-    scripts,
-    runner:
-      typeof gates.runner === "string"
-        ? gates.runner
-        : await detectRunner(root),
-  });
+  const result =
+    folders.length > 0
+      ? seedFolderDeclarations(gates, folders, registry)
+      : registry.seedGates({
+          gates,
+          scripts,
+          runner:
+            typeof gates.runner === "string"
+              ? gates.runner
+              : await detectRunner(root),
+        });
   const seeded = result.seeded.map(({ gate, moment, run }) => ({
     gate,
     moment,
@@ -271,10 +209,65 @@ async function seedDeclaration(
   return { problems: null, value: { wrote: true, seeded } };
 }
 
+/**
+ * Add scoped defaults for new gates while preserving existing declarations.
+ * @param gates - The existing declaration
+ * @param folders - Projects identified by the audit
+ * @param registry - The shipped gate registry
+ * @returns The merged declaration and newly seeded moments
+ */
+function seedFolderDeclarations(
+  gates: JsonObject,
+  folders: readonly ShippedFolder[],
+  registry: SeedingGatesModule
+): { gates: Record<string, unknown>; seeded: SeededGate[] } {
+  const planned = [...planShippedPartGates(folders, registry)].filter(
+    ([gate]) => !Object.hasOwn(gates, gate)
+  );
+  return {
+    gates: {
+      ...gates,
+      ...Object.fromEntries(
+        planned.map(([gate, row]) => [gate, row.declaration])
+      ),
+    },
+    seeded: planned.flatMap(([, row]) => row.seeded),
+  };
+}
+
 /** Why nothing was decided: the problems, and the one line that sums up. */
 interface SeedRefusal {
   readonly problems: readonly string[];
   readonly summary: string;
+}
+
+/**
+ * Read the audited folder projects before writing any declaration.
+ * @param root - Real path of the repository
+ * @param parts - The audit's scoped folders and repository root
+ * @param detect - The supported project type detector
+ * @returns The folder projects or their read errors
+ */
+async function readFolderProjects(
+  root: string,
+  parts: readonly string[] | null,
+  detect: typeof detectSupportedTypes
+): Promise<ProjectRead<ShippedFolder[]>> {
+  const scopes = (parts ?? []).filter(
+    scope => scope !== WHOLE_REPOSITORY_SCOPE
+  );
+  const reads = await Promise.all(
+    scopes.map(scope => readShippedFolder(root, scope, detect))
+  );
+  const problems = reads.flatMap(read => read.problems ?? []);
+  return problems.length > 0
+    ? { problems }
+    : {
+        problems: null,
+        value: reads.flatMap(read =>
+          read.problems === null ? [read.value] : []
+        ),
+      };
 }
 
 /**
@@ -313,20 +306,36 @@ async function decideAndSeed(
   }
   // Read before the road is decided: the project type is detected from the
   // same file, so nothing is decided from one that cannot be read.
-  const scripts = await readScripts(root);
+  const scripts = await readProjectScripts(root);
   if (scripts.problems !== null) {
     return {
       problems: scripts.problems,
       summary: `${MANIFEST_PATH} cannot be relied on, so nothing was decided or declared. Correct it, then run this again`,
     };
   }
-  const projectTypes = await (
-    dependencies.detectProjectTypes ?? detectSupportedTypes
-  )(root);
-  const decision = decideConfigureRoad({ projectTypes, parts: parts.value });
-  const seeding: Read<Seeding> =
+  const detect = dependencies.detectProjectTypes ?? detectSupportedTypes;
+  const [projectTypes, folderProjects] = await Promise.all([
+    detect(root),
+    readFolderProjects(root, parts.value, detect),
+  ]);
+  if (folderProjects.problems !== null) {
+    return {
+      problems: folderProjects.problems,
+      summary:
+        "The audited folders could not be read, so nothing was declared. Fix the problems above, then run this again",
+    };
+  }
+  const folders = folderProjects.value;
+  const decision = decideConfigureRoad({
+    projectTypes,
+    parts: parts.value,
+    partTypes: Object.fromEntries(
+      folders.map(({ scope, types }) => [scope, types])
+    ),
+  });
+  const seeding: ProjectRead<Seeding> =
     decision.road === "paved"
-      ? await seedDeclaration(root, registry, scripts.value)
+      ? await seedDeclaration(root, registry, scripts.value, folders)
       : { problems: null, value: { wrote: false, seeded: [] } };
   if (seeding.problems !== null) {
     return {

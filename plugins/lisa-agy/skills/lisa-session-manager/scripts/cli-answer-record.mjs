@@ -49,7 +49,8 @@ export async function channelAnswer(ctx) {
  * @param {object} ctx - CLI context
  * @returns {Promise<{ json: object }>} `{ref,record:false,reason}` or
  *   `{ref,record:true,source,comment}`, either with `requeue: true` when a
- *   FAILED worker's item must also move to the `ready` role
+ *   FAILED worker's item must also move to the `ready` role, or false when
+ *   the ledger records an external tracker move
  */
 export async function answerPlan(ctx) {
   const ref = requirePositional(ctx, "ref");
@@ -64,6 +65,7 @@ export async function answerPlan(ctx) {
     planAnswerRecord({
       ref,
       status: entry?.status,
+      finishReason: entry?.reason,
       worker: entry?.worker ?? null,
       pending,
     })

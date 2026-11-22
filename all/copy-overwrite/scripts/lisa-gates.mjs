@@ -1518,6 +1518,7 @@ function isNonRunnerProverMode(mode) {
  * @param {string} options.moment The moment to resolve.
  * @param {string} [options.runner] The task runner.
  * @param {object|null} [options.scripts] The project's package scripts.
+ * @param {string|null} [options.hostWorkflow] A standalone GitHub workflow's declared path.
  * @returns {object[]} One leg per context this moment must post.
  */
 export function momentLegs({
@@ -1525,7 +1526,19 @@ export function momentLegs({
   moment,
   runner = DEFAULT_RUNNER,
   scripts = null,
+  hostWorkflow = null,
 }) {
+  if (hostWorkflow !== null) {
+    if (
+      moment !== PULL_REQUEST ||
+      !/^\.github\/workflows\/[\w.-]+\.ya?ml$/u.test(hostWorkflow)
+    ) {
+      throw new Error(
+        "Use --host-workflow=.github/workflows/<file>.yml with --moment=pull-request."
+      );
+    }
+    return hostWorkflowLegs({ gates, moment, runner, scripts, hostWorkflow });
+  }
   const spokenFor = new Set(jobBackedGates());
   const legs = [];
   for (const gate of resolvedForLegs({ gates, moment, runner, scripts })) {
@@ -1585,6 +1598,60 @@ export function momentLegs({
     });
   }
   return legs;
+}
+
+/**
+ * Plan one GitHub job per gate the host's workflow owns. Scoped parts share
+ * that job and the gate runner judges them together.
+ * @param {object} options Resolution inputs.
+ * @param {object} options.gates The project gates block.
+ * @param {string} options.moment The pull-request moment.
+ * @param {string} options.runner The task runner.
+ * @param {object|null} options.scripts The project's package scripts.
+ * @param {string} options.hostWorkflow The project-owned workflow's path.
+ * @returns {object[]} One leg per declared gate for this workflow.
+ */
+function hostWorkflowLegs({ gates, moment, runner, scripts, hostWorkflow }) {
+  const seen = new Set();
+  const prefix = DEFAULT_CALLER_CHAIN.join(CONTEXT_SEPARATOR);
+  return resolveMoment({
+    gates,
+    moment,
+    runner,
+    scripts,
+    includeOff: true,
+  }).flatMap(gate => {
+    const executor = gates?.[gate.id]?.[moment]?.[EXECUTOR_FIELD];
+    if (
+      executor?.platform !== LISA_EXECUTOR_PLATFORM ||
+      executor.path !== hostWorkflow ||
+      seen.has(gate.id) ||
+      isNonRunnerProverMode(gate.mode)
+    )
+      return [];
+    seen.add(gate.id);
+    const action =
+      gate.level === "off"
+        ? "report"
+        : gate.scope !== undefined || gate.task
+          ? "run"
+          : "unproved";
+    return [
+      {
+        gate: gate.id,
+        label: gate.label,
+        context: runContext(gate, prefix),
+        level: gate.level,
+        action,
+        runner: action === "run" ? "node" : "",
+        task:
+          action === "run"
+            ? `scripts/lisa-run-gates.mjs --moment=${PULL_REQUEST} --builtins=none --parts=all --gate=${gate.id}`
+            : "",
+        timeout: gate.costly ? COSTLY_LEG_TIMEOUT_MINUTES : LEG_TIMEOUT_MINUTES,
+      },
+    ];
+  });
 }
 
 /**
@@ -3448,6 +3515,7 @@ export const KNOWN_CONFIG_KEYS = Object.freeze([
   "deploy",
   "quality",
   "gates",
+  "controls",
   "policy",
   "intake",
   "monitor",
@@ -6563,6 +6631,20 @@ function declaredCallerChain(value) {
 }
 
 /**
+ * Use the same spelling for a job's emitted name and its required context.
+ * @param {{callerChain: string[]|string|null, label: string}} gate The resolved gate.
+ * @param {string} prefix The workflow's default caller chain.
+ * @returns The check run's name.
+ */
+function runContext(gate, prefix) {
+  const chain =
+    gate.callerChain === null
+      ? prefix
+      : declaredCallerChain(gate.callerChain).join(CONTEXT_SEPARATOR);
+  return `${chain}${CONTEXT_SEPARATOR}${gate.label}`;
+}
+
+/**
  * The prefix one declaration's derived context carries, from its own chain.
  *
  * Exported for the SECOND derivation of the same string. `contextsFor` is not
@@ -6663,11 +6745,7 @@ export function contextsFor(gates, options = {}) {
       // so the caller-wide chain describes a route to it that does not exist.
       // Everything below this line is identical either way, which is what
       // keeps an override from becoming a second way to spell a context.
-      const chain =
-        gate.callerChain === null
-          ? prefix
-          : declaredCallerChain(gate.callerChain).join(CONTEXT_SEPARATOR);
-      return `${chain}${CONTEXT_SEPARATOR}${gate.label}`;
+      return runContext(gate, prefix);
     });
 
   // Explicitly requested overlap remains additive. This option answers a
@@ -7528,8 +7606,13 @@ function main() {
   if (command === "legs") {
     const moment = flag("moment");
     if (!moment)
-      throw new Error("usage: lisa-gates.mjs legs --moment=<moment> [--json]");
-    const legs = momentLegs({ gates, moment, runner, scripts });
+      throw new Error(
+        "usage: lisa-gates.mjs legs --moment=<moment> [--json] [--host-workflow=<path>]"
+      );
+    const hostWorkflow = rest.includes("--host-workflow")
+      ? ""
+      : flag("host-workflow");
+    const legs = momentLegs({ gates, moment, runner, scripts, hostWorkflow });
     if (rest.includes("--json")) {
       // ONE LINE, deliberately. This is read by `fromJSON()` in a workflow
       // through a job output, and a job output is a single line — a

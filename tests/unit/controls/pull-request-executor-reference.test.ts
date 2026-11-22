@@ -182,10 +182,10 @@ describe("the pull-request executor contract", () => {
     expect(PROSE).toContain("They are **examples only**.");
   });
 
-  it("leaves GitHub alone", () => {
-    expect(PROSE).toContain("**GitHub:** stop. Nothing here applies.");
+  it("keeps the shipped GitHub workflow and documents a host-authored workflow", () => {
+    expect(PROSE).toContain("If it does, leave it in place.");
     expect(PROSE).toContain(
-      "never adds, edits or removes a file under `.github/workflows/`"
+      "use an existing host-owned workflow or add `.github/workflows/lisa-declared-controls.yml`"
     );
   });
 });
@@ -206,7 +206,7 @@ describe("what the contract says about the declaration and the register", () => 
       ...EXECUTOR_FIELDS,
     ]);
     expect(PROSE).toContain(
-      `\`${LISA_EXECUTOR_PLATFORM}\` is the one platform Lisa ships the file for.`
+      `record \`platform: "${LISA_EXECUTOR_PLATFORM}"\` on the declarations.`
     );
   });
 

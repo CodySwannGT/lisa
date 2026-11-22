@@ -14,17 +14,12 @@
  * @module scripts/lib/phrase-tests/redact
  */
 
+import { redactPrivateKeyBlocks } from "../../../all/copy-overwrite/scripts/lib/private-key-redaction.mjs";
+
 /** @typedef {{ kind: string, re: RegExp, replace?: string }} SecretShape */
 
 /** @type {readonly SecretShape[]} */
 export const SECRET_SHAPES = Object.freeze([
-  {
-    kind: "PRIVATE_KEY",
-    // The body stops at its own last line or at the first line of another
-    // block, whichever comes first, so no first line is read from to the
-    // end of the text and the time stays in proportion to the length.
-    re: /-----BEGIN [A-Z ]*PRIVATE KEY-----(?:(?:(?!-----BEGIN )[\s\S])+?(?:-----END [A-Z ]*PRIVATE KEY-----|(?=-----BEGIN )))?/gu,
-  },
   {
     kind: "URL_CREDENTIALS",
     // The scheme is bounded: with `*`, a long run of letters, dots and signs
@@ -67,7 +62,7 @@ export function redactText(text) {
   return SECRET_SHAPES.reduce(
     (current, shape) =>
       current.replace(shape.re, shape.replace ?? `[REDACTED:${shape.kind}]`),
-    text
+    redactPrivateKeyBlocks(text)
   );
 }
 

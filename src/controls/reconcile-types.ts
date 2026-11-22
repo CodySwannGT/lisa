@@ -21,6 +21,7 @@
  */
 import type { AuditFinding } from "./audit-report-types.js";
 import type { HookOwner } from "./carrier-types.js";
+import type { CodingAgent } from "./coding-agents.js";
 import type {
   EnforcementLevel,
   EnforcementLocation,
@@ -52,6 +53,13 @@ export interface PointVerdict {
   readonly reason: string;
   /** The file, setting or check that was looked at; `null` when none was. */
   readonly checked: string | null;
+  /** Individual results for an edit-time point with a recorded roster. */
+  readonly agent_verdicts?: readonly AgentVerdict[];
+}
+
+/** What reconcile established for a single agent's registration. */
+export interface AgentVerdict extends Omit<PointVerdict, "agent_verdicts"> {
+  readonly agent: CodingAgent;
 }
 
 /** One enforcement point the register claims, and what was found there. */
@@ -63,13 +71,15 @@ export interface ReconciledPoint extends PointVerdict {
   readonly moment: string;
   readonly location: EnforcementLocation;
   readonly level: EnforcementLevel;
+  /** Agents the register already says cannot enforce this point. */
+  readonly unenforceable_on?: readonly CodingAgent[];
 }
 
 /** One command a hook runs. */
 export interface HookCommand {
-  /** The moment the hook runs at: `commit` or `push`. */
+  /** The moment the hook runs at: `commit`, `push` or `post-tool`. */
   readonly moment: string;
-  /** The git hook: `pre-commit` or `pre-push`. */
+  /** The Git or coding-agent event that runs the command. */
   readonly hook: string;
   /** The file that holds the command, from the repository root when inside. */
   readonly path: string;
@@ -77,8 +87,8 @@ export interface HookCommand {
   readonly line: number;
   /** The command, as it is written there. */
   readonly command: string;
-  /** Who runs the file: a hook manager, a hooks folder, or Lisa. */
-  readonly through: HookOwner;
+  /** Who runs the file: a Git hook owner or a coding agent. */
+  readonly through: HookOwner | "coding-agent";
   /**
    * The register entries whose measuring mechanism at this moment is this
    * command. Empty when no entry declares it.
@@ -114,6 +124,8 @@ export interface PointFinding {
   readonly entry_id: string;
   readonly gate: string;
   readonly scope: string;
+  /** The affected agent, when an edit-time registration is missing. */
+  readonly agent?: CodingAgent;
   /** The requirements the entry serves. */
   readonly criteria: readonly string[];
   readonly moment: string;
@@ -182,7 +194,7 @@ export interface ReconcileResult {
   readonly surfaces: readonly SurfaceRead[];
   /** Every enforcement point the register claims, in register order. */
   readonly enforcement_points: readonly ReconciledPoint[];
-  /** Every command the commit and push hooks run, commit first. */
+  /** The commands read from commit, push and edit-time hooks, in that order. */
   readonly hook_commands: readonly HookCommand[];
   /** Every distance found, missing points first. */
   readonly findings: readonly ReconcileFinding[];
@@ -200,6 +212,7 @@ export interface ReconcileResult {
 /** What this command does not read, said with every result. */
 export const RECONCILE_LIMITS: readonly string[] = [
   "Only the hooks git runs before a commit and before a push are read. Other git hooks, such as the one that checks a commit message, are not.",
+  "Edit-time hooks are read from the carrier and the recorded agents' registration files in this checkout. For OpenCode, the installed JavaScript registration is compared with Lisa's copy without evaluating its commands.",
   "A hook is read as text, one line at a time, and nothing in it is ever run. A hook that calls a script is reported as that call: the script itself is not opened.",
   "A command counts as declared only when a register entry's check at the same moment is that command, word for word. The folder it runs in is not compared.",
   "A pull-request pipeline file is checked for the gate runner's pull-request command as text. That cannot show that the hosting platform runs the pipeline or requires it before a merge.",

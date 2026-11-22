@@ -2,17 +2,17 @@
  * The register refuses a part that says nothing about what supports it.
  *
  * A register entry is a statement that a rule governs a folder. It may be
- * written only where something supports it: a place the audit found the check,
- * or a question a person answered. A part of a gate records that in its
+ * written only where something supports it: a shipped check for the folder's
+ * project type, a place the audit found the check, or a question a person
+ * answered. A discovery part records that in its
  * `evidence`, and this rule is what makes leaving it off a refusal instead of
  * an entry nobody can trace.
  *
  * ## Exactly which entries it applies to
  *
- * Every entry of every gate's `parts`, and nothing else. A gate with no
- * `parts` is not looked at: its one entry for the whole repository comes from
- * the declarations Lisa ships for a supported project type, it has no part to
- * carry evidence, and it must go on generating exactly as it does today.
+ * Every part except those reproduced exactly from the shipped gate registry
+ * and that folder's tasks. A gate with no `parts` keeps its whole-repository
+ * entry.
  *
  * ## What it does not check
  *
@@ -53,13 +53,15 @@ export function unevidencedPartProblem(gate: string, scope: string): string {
  * @param context - What a register rule is given
  * @param context.declaration - The declaration, already valid as far as the
  *   gate registry can tell
+ * @param context.shippedPartGates - Scoped gates supported by the registry
  * @returns One line per part that carries no `evidence`
  */
 export function partsAreEvidenced(context: {
   readonly declaration: GatesDeclaration;
+  readonly shippedPartGates?: ReadonlySet<string>;
 }): readonly string[] {
   return Object.entries(context.declaration.gates).flatMap(([gate, declared]) =>
-    (Array.isArray(declared.parts)
+    (Array.isArray(declared.parts) && !context.shippedPartGates?.has(gate)
       ? (declared.parts as readonly Readonly<Record<string, unknown>>[])
       : []
     )

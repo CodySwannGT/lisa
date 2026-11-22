@@ -1,11 +1,17 @@
 # This file is managed by Lisa and IS replaced on each `lisa` run.
 # Do not edit directly — durable changes belong upstream in Lisa.
 
+rc: ./scripts/lisa-rails-registry-env.sh
+
 pre-commit:
-  parallel: true
   commands:
+    lisa-gates:
+      priority: 1
+      run: sh scripts/lisa-rails-registry-gates.sh --coverage="${LISA_RAILS_GATE_COVERAGE:-}" -- node scripts/lisa-run-gates.mjs --moment=commit
     rubocop:
       glob: '*.rb'
+      skip:
+        - run: 'test -r "${LISA_RAILS_GATE_COVERAGE:-}" && grep -Fqx code-style "$LISA_RAILS_GATE_COVERAGE"'
       run: bundle exec rubocop --force-exclusion {staged_files}
     threshold-ratchet:
       # Quality thresholds (simplecov minimums, rubocop Metrics maximums, …)
@@ -34,10 +40,16 @@ commit-msg:
 pre-push:
   commands:
     rails-prepush:
+      priority: 1
       run: >-
         node --input-type=module -e 'try { const { main } = await import("./scripts/lisa-rails-prepush.mjs"); const rc = await main(process.argv.slice(1)); if (rc !== 0) console.error(`Rails pre-push refused (exit ${rc}). Retry the same git push command and inspect rails-prepush output for scanner and work-item details.`); process.exitCode = rc; } catch { console.error("Managed Rails push tooling is unavailable or damaged. Run full Lisa apply and retry; raw bootstrap errors are withheld."); process.exitCode = 1; }' {1}
       use_stdin: true
+    lisa-gates:
+      priority: 2
+      run: sh scripts/lisa-rails-registry-gates.sh --coverage="${LISA_RAILS_GATE_COVERAGE:-}" -- node scripts/lisa-run-gates.mjs --moment=push
     rspec:
+      skip:
+        - run: 'test -r "${LISA_RAILS_GATE_COVERAGE:-}" && grep -Fqx test-correctness "$LISA_RAILS_GATE_COVERAGE" && grep -Fqx coverage-adequacy "$LISA_RAILS_GATE_COVERAGE"'
       # One start-of-run sweep (stale Lisa temp entries, orphaned test
       # processes of dead runs) replaces the retired scratch supervisor
       # (CodySwannGT/lisa#4603). It never fails the push. The payload then runs
@@ -64,6 +76,9 @@ pre-push:
       run: sh scripts/lisa-clean-git-env.sh sh -c 'if command -v node >/dev/null 2>&1 && [ -f scripts/lisa-rails-gates.mjs ]; then exec node scripts/lisa-rails-gates.mjs flog; fi; exec bundle exec flog --all --group app/ lib/'
     flay:
       run: sh scripts/lisa-clean-git-env.sh sh -c 'if command -v node >/dev/null 2>&1 && [ -f scripts/lisa-rails-gates.mjs ]; then exec node scripts/lisa-rails-gates.mjs flay; fi; exec bundle exec flay app/ lib/'
+    ast-grep:
+      # Scan the whole checkout, like CI. npm caches the pinned scanner.
+      run: sh scripts/lisa-clean-git-env.sh node scripts/lisa-rails-gates.mjs ast-grep
     mutation:
       # Opt-in, diff-only mutation gate. Self-skips instantly when disabled
       # (mutation.gate.yml: enabled: false), so it adds no cost until opted in.

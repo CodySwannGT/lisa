@@ -119,6 +119,11 @@ export interface GateMomentCell {
   readonly task: string | null;
   /** The task with the project's runner in front of it. */
   readonly command: string | null;
+  /** Every declared part at this moment, in declaration order. */
+  readonly parts?: readonly {
+    readonly scope: string;
+    readonly argv: readonly string[] | null;
+  }[];
   /** Which of the four sources supplied the task. */
   readonly provenance: TaskProvenance;
   /** Whether `package.json` scripts actually define that task. */

@@ -25,13 +25,14 @@
  * The check reports a point by `location` and `moment`, the same two words
  * the control register uses. Nothing here assumes the point is a git hook,
  * so a carrier of another kind is read the same way once the check reports
- * one. Only the last look at a rewritten file's text is specific to git
- * hooks, because only their invocation is known here.
+ * one. Rewritten Git hooks and the edit-time carrier's shell entry are also
+ * checked for their runner invocation.
  * @module controls/reconcile-carrier-points
  */
 import {
   AGENT_CARRIER_PATH,
   AGENT_CARRIER_PROGRAM_PATH,
+  AGENT_CARRIER_START,
 } from "./carrier-agent-script.js";
 import { HOOKS_PATH_SETTING } from "./carrier-git.js";
 import {
@@ -117,12 +118,20 @@ async function silenced(
   rewritten: readonly string[],
   read: ShownFileReader
 ): Promise<readonly string[]> {
-  if (point.location !== GIT_HOOK_LOCATION) return [];
-  const calling = callingFiles(point).filter(file => rewritten.includes(file));
+  const sources =
+    point.location === GIT_HOOK_LOCATION
+      ? callingFiles(point)
+      : point.wired_through === AGENT_CONFIG
+        ? [AGENT_CARRIER_PATH]
+        : [];
+  const calling = sources.filter(file => rewritten.includes(file));
   const texts = await Promise.all(calling.map(file => read(file)));
-  return calling.filter((_, index) => {
+  return calling.filter((file, index) => {
     const text = texts[index];
-    return text === null || text === undefined || !startsRunner(text, point);
+    if (text === null || text === undefined) return true;
+    return file === AGENT_CARRIER_PATH
+      ? !text.split("\n").some(line => line.trim() === AGENT_CARRIER_START)
+      : !startsRunner(text, point);
   });
 }
 
