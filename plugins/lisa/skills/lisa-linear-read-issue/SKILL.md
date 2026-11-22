@@ -18,6 +18,15 @@ Reads `linear.workspace`, `linear.teamKey` from `.lisa.config.json` (with `.loca
 
 Every read below goes through `lisa-linear-access`. On the token tier, `lisa-linear-access` runs its bundled `scripts/linear-graphql.sh` by absolute path. Never capture `LINEAR_API_KEY` and curl Linear in one inline command: Claude Code stops that shape at an approval prompt even with permissions skipped, and a background worker stalls on it until a human attaches.
 
+When preparing the first task context for a configured Linear issue, use the scoped intake command from the installed `lisa-secrets-access` skill. Use the literal absolute path to its script and the configured team's issue key.
+
+```bash
+node /absolute/lisa-secrets-access/scripts/preflight-secrets.mjs --tracker-intake-read --ref ENG-123 --read issue
+node /absolute/lisa-secrets-access/scripts/preflight-secrets.mjs --tracker-intake-read --ref ENG-123 --read comments
+```
+
+The issue response includes the primary body, team, and related graph fields. The comments command returns the entire paginated comment list or fails. Fetch related issues in the configured team with the same command and their issue keys. If a graph field reports another page, record the context as incomplete until those related records can be read through the access owner.
+
 ## Phase 1 — Resolve Context
 
 1. If `$ARGUMENTS` matches `<TEAM>-<n>` → Issue mode.

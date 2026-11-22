@@ -43,6 +43,7 @@ import { runTaskAction } from "./task-action.mjs";
 import { AccessFailure } from "./config-layers.mjs";
 import { prepareRequirements } from "./task-requirements.mjs";
 import { runIntakeRead } from "./task-intake-read.mjs";
+import { runTrackerIntakeRead } from "./task-tracker-intake.mjs";
 export { taskReadiness, credentialAvailability } from "./task-readiness.mjs";
 import {
   routingFloorReasons,
@@ -355,6 +356,10 @@ function safely(thunk) {
 }
 
 function main() {
+  if (process.argv.includes("--tracker-intake-read")) {
+    runTrackerIntakeRead();
+    return;
+  }
   if (process.argv.includes("--intake-read")) {
     runIntakeRead();
     return;

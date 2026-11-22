@@ -1,6 +1,7 @@
 /** Scoped GitHub probe. Selected credentials exist only in the child environment. */
 import { execFileSync } from "node:child_process";
 import { AccessFailure } from "./config-layers.mjs";
+import { configuredIssueRepository } from "../../lisa-github-read-issue/read-contract.mjs";
 /** Fixed HTTPS host and selected credential only in child memory. */
 export function githubEnvironment(credential) {
   const env = { ...process.env, GH_HOST: "github.com" };
@@ -14,16 +15,24 @@ export function githubEnvironment(credential) {
 }
 
 /** Observe authenticated user separately from repository ownership. */
-export function githubAccess(cfg, requirement, credential) {
+export function githubAccess(
+  cfg,
+  requirement,
+  credential,
+  { intake = false } = {}
+) {
   const github = cfg.effective?.github;
-  const resource = github && `${github.org}/${github.repo}`;
+  const resource = intake
+    ? configuredIssueRepository(github)
+    : github && `${github.org}/${github.repo}`;
   if (
-    !github ||
+    !resource ||
     !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(resource) ||
     requirement.resource !== resource ||
     requirement.operation !== "repository-read"
   )
     throw new AccessFailure("requirements-stale");
+  const [owner] = resource.split("/");
   const env = githubEnvironment(credential);
   const api = endpoint =>
     JSON.parse(
@@ -59,7 +68,7 @@ export function githubAccess(cfg, requirement, credential) {
         typeof user.login !== "string" ||
         !/^[A-Za-z0-9-]+$/.test(user.login))) ||
     repo.full_name !== resource ||
-    repo.owner?.login !== github.org ||
+    repo.owner?.login !== owner ||
     repo.permissions?.pull !== true
   )
     return {

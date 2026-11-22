@@ -195,17 +195,92 @@ const cases = [
     },
   },
 ];
+/** Responses for the separate queue, including different data at the same issue number.
+ * @param queue - The configured issue repository.
+ * @returns Exact commands and outputs which differ from the code repository.
+ */
+function queuedReads(queue: string) {
+  const [owner, name] = queue.split("/");
+  return queue === REPO
+    ? []
+    : [
+        {
+          argv: ["api", `repos/${queue}`],
+          output: {
+            full_name: queue,
+            owner: { login: owner },
+            permissions: { pull: true },
+          },
+        },
+        {
+          argv: ["issue", "view", "1", "--repo", queue, "--json", issueFields],
+          output: { ...intakeRaw.primary, title: `Issue in ${queue}` },
+        },
+        {
+          argv: ["api", `repos/${queue}/issues/1`, "--jq", ".comments"],
+          output: 3,
+        },
+        ...queries.map(query => ({
+          argv: [
+            "api",
+            "graphql",
+            PAGINATE,
+            "--slurp",
+            "-f",
+            `query=${query}`,
+            "-F",
+            `org=${owner}`,
+            "-F",
+            `repo=${name}`,
+            "-F",
+            "number=1",
+          ],
+          output: [
+            {
+              data: {
+                repository: { issue: { id: `Issue graph in ${queue}` } },
+              },
+            },
+          ],
+        })),
+        {
+          argv: [
+            "api",
+            "graphql",
+            PAGINATE,
+            "--slurp",
+            "-f",
+            `query=${reviewThreadsQuery}`,
+            "-F",
+            `org=${owner}`,
+            "-F",
+            `repo=${name}`,
+            "-F",
+            "number=3",
+          ],
+          output: [
+            {
+              data: { repository: { pullRequest: { id: `PR in ${queue}` } } },
+            },
+          ],
+        },
+      ];
+}
+
 /** Dispatch actual argv strictly; paginated/slurped raw pages remain unedited.
  * @param f - Owned installed fixture.
  * @param authenticated - Require matching synthetic native or child-environment access.
+ * @param queue - Optional separate issue repository with distinct issue and graph data.
  */
 export function installIntakeGh(
   f: ReturnType<typeof taskFixture>,
-  authenticated = false
+  authenticated = false,
+  queue = REPO
 ) {
+  const queueCases = queuedReads(queue);
   writeFileSync(
     path.join(f.env.PATH, "gh"),
-    `#!${process.execPath}\nconst fs=require('node:fs'),cases=${JSON.stringify(cases)},a=process.argv.slice(2),r=cases.find(c=>JSON.stringify(c.argv)===JSON.stringify(a));if(!r)process.exitCode=64;else {const selected=process.env.GH_TOKEN===process.env.FIXTURE_SELECTED_GH&&!process.env.GITHUB_TOKEN,ok=!${authenticated}||selected||process.env.FIXTURE_NATIVE_AVAILABLE==='1';fs.appendFileSync(${JSON.stringify(path.join(f.root, "calls.jsonl"))},JSON.stringify({tool:'gh',label:'gh:'+a.slice(0,2).join(':'),argv:a,accepted:ok,selected_source:selected})+'\\n');if(!ok){process.stderr.write('synthetic authentication unavailable');process.exitCode=1;}else if(a[0]==='issue'&&process.env.FIXTURE_READ_FAILURE){process.stderr.write(process.env.FIXTURE_SELECTED_GH);process.exitCode=1;}else if(a[0]==='api'&&a[1]==='user'&&process.env.FIXTURE_INSTALLATION_TOKEN){process.stderr.write('synthetic installation token has no user endpoint');process.exitCode=1;}else {let output=r.output;if(a[0]==='api'&&a[1]==='user'&&process.env.FIXTURE_ACTOR_INVALID)output={id:0,login:'wrong'};if(a[0]==='api'&&a[1]==='repos/fixture/project'&&process.env.FIXTURE_GH_WRONG)output={...output,full_name:'other/project'};console.log(JSON.stringify(output));}}\n`,
+    `#!${process.execPath}\nconst fs=require('node:fs'),cases=${JSON.stringify([...cases, ...queueCases])},a=process.argv.slice(2),r=cases.find(c=>JSON.stringify(c.argv)===JSON.stringify(a));if(!r)process.exitCode=64;else {const selected=process.env.GH_TOKEN===process.env.FIXTURE_SELECTED_GH&&!process.env.GITHUB_TOKEN,ok=!${authenticated}||selected||process.env.FIXTURE_NATIVE_AVAILABLE==='1';fs.appendFileSync(${JSON.stringify(path.join(f.root, "calls.jsonl"))},JSON.stringify({tool:'gh',label:'gh:'+a.slice(0,2).join(':'),argv:a,accepted:ok,selected_source:selected})+'\\n');if(!ok){process.stderr.write('synthetic authentication unavailable');process.exitCode=1;}else if(a[0]==='issue'&&process.env.FIXTURE_READ_FAILURE){process.stderr.write(process.env.FIXTURE_SELECTED_GH);process.exitCode=1;}else if(a[0]==='api'&&a[1]==='user'&&process.env.FIXTURE_INSTALLATION_TOKEN){process.stderr.write('synthetic installation token has no user endpoint');process.exitCode=1;}else {let output=r.output;if(a[0]==='api'&&a[1]==='user'&&process.env.FIXTURE_ACTOR_INVALID)output={id:0,login:'wrong'};if(a[0]==='api'&&a[1]==='repos/fixture/project'&&process.env.FIXTURE_GH_WRONG)output={...output,full_name:'other/project'};console.log(JSON.stringify(output));}}\n`,
     { mode: 0o755 }
   );
 }

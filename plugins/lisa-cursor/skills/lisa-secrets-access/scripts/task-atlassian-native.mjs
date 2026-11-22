@@ -6,6 +6,40 @@ const fail = code => {
 };
 const unsupported = () => fail("native-response-unrepresented");
 const mismatch = () => fail("identity-mismatch");
+
+/** Read a Jira issue through the configured native tenant before context exists. */
+export function atlassianIssueRead(event, cfg) {
+  const c = cfg.effective;
+  const args = event.tool_input;
+  if (
+    c?.tracker !== "jira" ||
+    event.mcp_server?.name !== "plugin:atlassian:atlassian" ||
+    event.mcp_server?.source !== "plugin" ||
+    Object.keys(event.mcp_server).sort().join() !== "name,source" ||
+    !plainObject(args) ||
+    !c.atlassian?.cloudId ||
+    args.cloudId !== c.atlassian.cloudId ||
+    !c.jira?.project ||
+    typeof args.issueIdOrKey !== "string" ||
+    /^([A-Z][A-Z0-9]*)-[1-9]\d*$/u.exec(args.issueIdOrKey)?.[1] !==
+      c.jira.project
+  )
+    return false;
+  if (event.tool_name === prefix + "getJiraIssueRemoteIssueLinks")
+    return Object.keys(args).sort().join() === "cloudId,issueIdOrKey";
+  return (
+    event.tool_name === prefix + "getJiraIssue" &&
+    Object.keys(args).every(key =>
+      ["cloudId", "issueIdOrKey", "fields"].includes(key)
+    ) &&
+    (args.fields === undefined ||
+      (Array.isArray(args.fields) &&
+        args.fields.length <= 100 &&
+        args.fields.every(
+          name => typeof name === "string" && /^\*?[A-Za-z0-9_]+$/u.test(name)
+        )))
+  );
+}
 function host(value) {
   try {
     const url = new URL(value.includes("://") ? value : `https://${value}`);

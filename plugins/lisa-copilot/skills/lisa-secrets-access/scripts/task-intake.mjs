@@ -11,6 +11,8 @@ import {
 } from "../../lisa-github-read-issue/read-contract.mjs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { trackerIntakeRequest } from "./task-tracker-intake.mjs";
+import { atlassianIssueRead } from "./task-atlassian-native.mjs";
 const owner = join(
   dirname(fileURLToPath(import.meta.url)),
   "preflight-secrets.mjs"
@@ -27,10 +29,9 @@ function intakeOwner(input, cfg) {
   for (const runtime of ["node", process.execPath, quote(process.execPath)])
     for (const script of [owner, quote(owner)]) {
       const prefix = `${runtime} ${script} `;
-      if (
-        command.startsWith(prefix) &&
-        intakeRequest(command.slice(prefix.length).split(" "), cfg)
-      )
+      if (!command.startsWith(prefix)) continue;
+      const args = command.slice(prefix.length).split(" ");
+      if (intakeRequest(args, cfg) || trackerIntakeRequest(args, cfg))
         return true;
     }
   return false;
@@ -152,6 +153,7 @@ export function intakeRead(input, cfg) {
   return (
     (input.tool_name === "Skill" && loadOwner(input, cfg)) ||
     (input.tool_name === "Agent" && delegate(input, cfg)) ||
+    atlassianIssueRead(input, cfg) ||
     trackerRead(input, cfg) ||
     intakeOwner(input, cfg)
   );

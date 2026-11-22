@@ -44,14 +44,63 @@ afterEach(() =>
 );
 /** Own isolated fixture and keep every operation pre-header.
  * @param source - Source under qualification.
+ * @param queue - Configured issue repository in the strict fixture.
  * @returns Installed strict fixture.
  */
-function fixture(source: string) {
-  const f = preheaderGithub(source);
+function fixture(source: string, queue?: string) {
+  const f = preheaderGithub(source, queue);
   roots.push(f.root);
   return f;
 }
 describe("pre-header GitHub supported source bootstrap", () => {
+  it.each([
+    ["intake", "fixture/intake", "native"],
+    ["another-org/intake", "another-org/intake", "provider"],
+  ])(
+    "proves and reads the configured queue %s with %s (%s source)",
+    (queueRepo, repo, source) => {
+      const f = fixture("provider", repo);
+      if (source === "native") f.env.FIXTURE_NATIVE_AVAILABLE = "1";
+      const config = path.join(f.root, ".lisa.config.json");
+      const original = JSON.parse(readFileSync(config, "utf8"));
+      writeFileSync(
+        config,
+        JSON.stringify({
+          ...original,
+          github: { ...original.github, queueRepo },
+        })
+      );
+      const read = (operation: string, number = "1") => {
+        const { guard, tool } = nativeBash(
+          f,
+          intakeOwnerCommand(f, operation, number, repo)
+        );
+        expect(guard.status).toBe(0);
+        expect(tool?.status, String(tool?.stderr)).toBe(0);
+        return JSON.parse(String(tool?.stdout));
+      };
+      expect(read("issue").title).toBe(`Issue in ${repo}`);
+      expect(read("comment-count")).toBe(3);
+      for (const operation of ["graph", "history", "closing-prs"]) {
+        expect(read(operation)[0].data.repository.issue.id).toBe(
+          `Issue graph in ${repo}`
+        );
+      }
+      expect(
+        read("review-threads", "3")[0].data.repository.pullRequest.id
+      ).toBe(`PR in ${repo}`);
+      const journal = preheaderJournal(f);
+      expect(
+        journal.some(row => row.argv[1] === `repos/${repo}` && row.accepted)
+      ).toBe(true);
+      expect(journal.some(row => row.argv[1] === "repos/fixture/project")).toBe(
+        false
+      );
+      expect(journal.some(row => row.selected_source === true)).toBe(
+        source === "provider"
+      );
+    }
+  );
   it.each(["native", "provider"])(
     "reads with established %s installation scope without inventing an actor",
     source => {

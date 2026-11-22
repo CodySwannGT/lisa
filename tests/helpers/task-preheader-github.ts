@@ -6,12 +6,13 @@ import { installIntakeGh } from "./task-intake-gh.js";
 const CALLS = "calls.jsonl";
 /** Install exact provider dispatch and remove all header/ambient auth prerequisites.
  * @param source - Supported source under qualification.
+ * @param queue - Configured issue repository in the strict fixture.
  * @returns Owned fixture with accurate safe command journals.
  */
-export function preheaderGithub(source: string) {
+export function preheaderGithub(source: string, queue?: string) {
   const f = githubFixture(source, false);
   rmSync(path.join(f.root, ".lisa/work-item-context.md"));
-  installIntakeGh(f, true);
+  installIntakeGh(f, true, queue);
   writeFileSync(path.join(f.root, CALLS), "");
   writeFileSync(
     path.join(f.env.PATH, "bws"),

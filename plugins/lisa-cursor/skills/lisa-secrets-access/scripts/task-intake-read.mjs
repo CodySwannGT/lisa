@@ -17,7 +17,7 @@ import {
 } from "../../lisa-github-read-issue/read-contract.mjs";
 
 /** Construct only the existing documented read argv; all remote values remain data. */
-function readArguments(request, cfg) {
+function readArguments(request) {
   const { operation: o, value: n, repo } = request,
     issue = `repos/${repo}/issues/${n}`;
   if (o === "issue" || o === "pr")
@@ -47,17 +47,11 @@ function readArguments(request, cfg) {
     "review-threads": reviewThreadsQuery,
     "thread-comments": threadCommentsQuery,
   }[o];
+  const [owner, name] = repo.split("/");
   const params =
     o === "thread-comments"
       ? ["-F", `id=${n}`]
-      : [
-          "-F",
-          `org=${cfg.effective.github.org}`,
-          "-F",
-          `repo=${cfg.effective.github.repo}`,
-          "-F",
-          `number=${n}`,
-        ];
+      : ["-F", `org=${owner}`, "-F", `repo=${name}`, "-F", `number=${n}`];
   return [
     "api",
     "graphql",
@@ -71,7 +65,7 @@ function readArguments(request, cfg) {
 /** Probe native first; only genuine unavailability may select the supported fallback. */
 function selectedAccess(cfg, repo) {
   const requirement = { operation: "repository-read", resource: repo };
-  const native = githubAccess(cfg, requirement);
+  const native = githubAccess(cfg, requirement, undefined, { intake: true });
   if (native.code === "identity-mismatch" || native.code === "tool-missing")
     throw new AccessFailure(native.code);
   if (native.established) return null;
@@ -87,7 +81,9 @@ function selectedAccess(cfg, repo) {
       { sourceFailure: true }
     );
   }
-  const supported = githubAccess(cfg, requirement, credential);
+  const supported = githubAccess(cfg, requirement, credential, {
+    intake: true,
+  });
   if (!supported.established) throw new AccessFailure(supported.code);
   return credential;
 }
@@ -109,7 +105,7 @@ export function runIntakeRead(args = process.argv.slice(2)) {
       env = githubEnvironment(credential);
     let raw;
     try {
-      raw = execFileSync("gh", readArguments(request, cfg), {
+      raw = execFileSync("gh", readArguments(request), {
         env,
         encoding: "utf8",
         stdio: ["ignore", "pipe", "pipe"],
