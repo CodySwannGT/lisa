@@ -2,7 +2,7 @@
 # Lisa will not overwrite it. (copy-overwrite assets ARE replaced each run.)
 
 name: Review policy
-run-name: Lisa review policy PR ${{ github.event.pull_request.number || inputs.pr }}
+run-name: Lisa review policy PR ${{ github.event.pull_request.number || inputs.pr || github.event.workflow_run.pull_requests[0].number || 'activity' }}
 
 on:
   pull_request_target:
@@ -16,6 +16,9 @@ on:
         ready_for_review,
         converted_to_draft,
       ]
+  workflow_run:
+    workflows: [Review policy activity]
+    types: [requested]
   workflow_dispatch:
     inputs:
       pr:
@@ -34,7 +37,7 @@ permissions:
   statuses: read
 
 concurrency:
-  group: lisa-review-policy-${{ github.event.pull_request.number || inputs.pr }}
+  group: lisa-review-policy-${{ github.event.pull_request.number || inputs.pr || github.event.workflow_run.pull_requests[0].number || format('source-{0}-{1}', github.event.workflow_run.head_repository.id, github.event.workflow_run.head_branch) }}
   cancel-in-progress: true
 
 jobs:

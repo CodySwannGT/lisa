@@ -1,0 +1,17 @@
+# Seeded by Lisa on first setup. The default-branch review policy consumes
+# the native event signal only and never runs source from the pull request.
+name: Review policy activity
+
+on:
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+
+permissions: {}
+
+jobs:
+  signal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Signal review activity
+        run: echo 'Review activity recorded.'

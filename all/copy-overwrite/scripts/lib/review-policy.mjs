@@ -167,6 +167,18 @@ export function latestReviews(reviews) {
   return [...latest.values()];
 }
 
+/** Return the review holds carried by the current pull request metadata. */
+export function reviewHoldReasons(policy, pull) {
+  return [
+    ...(pull.draft === true ? ["draft-pull-request"] : []),
+    ...((pull.labels ?? []).some(label =>
+      policy.holdLabels.includes(label.name)
+    )
+      ? ["explicit-review-hold"]
+      : []),
+  ];
+}
+
 /** Evaluate a single authenticated head snapshot; count unique actors, never markers. */
 export function evaluateReviewPolicy({
   policy,
@@ -204,7 +216,7 @@ export function evaluateReviewPolicy({
     activity.headRefOid !== head
   )
     reasons.push("head-changed-or-unproven");
-  if (pull.draft === true) reasons.push("draft-pull-request");
+  reasons.push(...reviewHoldReasons(policy, pull));
   if (pull.state !== "open") reasons.push("pull-request-not-open");
   if (
     activity.reviewDecision === "CHANGES_REQUESTED" ||
@@ -214,8 +226,6 @@ export function evaluateReviewPolicy({
     reasons.push("standing-review-objection");
   if (activity.threads.some(thread => thread.isResolved !== true))
     reasons.push("unresolved-review-thread");
-  if ((pull.labels ?? []).some(label => policy.holdLabels.includes(label.name)))
-    reasons.push("explicit-review-hold");
   const readings = policy.providers.map(provider =>
     providerReading(
       provider,

@@ -1,6 +1,6 @@
 // This file is managed by Lisa and IS replaced on each `lisa` run.
 // Do not edit directly — durable changes belong upstream in Lisa.
-// Managed by Lisa. Read authenticated GitHub evidence once, without provider wait loops.
+// Managed by Lisa. Read authenticated GitHub evidence without provider wait loops.
 import { boundedExecFileSync } from "./bounded-spawn.mjs";
 import {
   nativeNumber,
@@ -79,6 +79,16 @@ export function reviewHeadPulls(repo, head, api = reviewApi) {
         Number.isSafeInteger(pull.number)
     )
     .map(pull => pull.number);
+}
+
+/** Read open pull requests for the GitHub-reported source owner and branch. */
+export function reviewBranchPulls(repo, owner, sourceBranch, api = reviewApi) {
+  const query = new URLSearchParams({
+    state: "open",
+    head: `${owner}:${sourceBranch}`,
+    per_page: "100",
+  });
+  return pages(api, `repos/${repo}/pulls?${query}`);
 }
 
 const THREAD_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){
@@ -176,7 +186,8 @@ export function readPolicyReview({
       throw new Error(
         "Pull-request identity, draft state or holds were incomplete"
       );
-    const reviews = pages(api, `${endpoint}/reviews?per_page=100`);
+    const reviewsEndpoint = `${endpoint}/reviews?per_page=100`;
+    const reviews = pages(api, reviewsEndpoint);
     const activity = activityAtHead(api, repo, pr);
     const permissions = new Map();
     const canWrite = login => {
@@ -232,6 +243,20 @@ export function readPolicyReview({
           externalRead: true,
         })
       : local;
+    if (verdict.outcome === "reviewed") {
+      const recentReviews = pages(api, reviewsEndpoint);
+      const recentActivity = activityAtHead(api, repo, pr);
+      if (
+        JSON.stringify(recentReviews) !== JSON.stringify(reviews) ||
+        JSON.stringify(recentActivity) !== JSON.stringify(activity)
+      ) {
+        return {
+          ...verdict,
+          outcome: "not-reviewed",
+          reasons: ["review-evidence-changed-after-read"],
+        };
+      }
+    }
     const final = api([endpoint]);
     const holds = value =>
       JSON.stringify((value.labels ?? []).map(label => label.name).sort());
@@ -279,6 +304,8 @@ export function policyReviewReport(verdict) {
         "unresolved-review-thread": "review comments still need resolution",
         "explicit-review-hold": "a hold label is present",
         "draft-pull-request": "the pull request is still a draft",
+        "review-evidence-changed-after-read":
+          "the review changed during evaluation. Check it again",
         "malformed-native-review":
           "a submitted review record is incomplete or invalid",
       }[reason] ?? reason

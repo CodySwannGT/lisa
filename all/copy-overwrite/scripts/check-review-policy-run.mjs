@@ -60,6 +60,9 @@ export function verifyReviewPolicyRun(
   const run = api([`${root}/actions/runs/${runId}`]);
   const attempt = nativeNumber(run.run_attempt);
   const title = `Lisa review policy PR ${pr}`;
+  const activityRun =
+    run.event === "workflow_run" &&
+    run.display_title === "Lisa review policy PR activity";
   if (
     nativeNumber(repository.id) === null ||
     repository.full_name?.toLowerCase() !== repo.toLowerCase() ||
@@ -71,7 +74,7 @@ export function verifyReviewPolicyRun(
     run.id !== runId ||
     run.workflow_id !== workflow.id ||
     run.head_branch !== branch ||
-    run.display_title !== title ||
+    (run.display_title !== title && !activityRun) ||
     run.repository?.id !== repository.id ||
     run.head_repository?.id !== repository.id ||
     ![
@@ -79,7 +82,9 @@ export function verifyReviewPolicyRun(
       `${workflowPath}@${branch}`,
       `${workflowPath}@refs/heads/${branch}`,
     ].includes(run.path) ||
-    !["workflow_dispatch", "pull_request_target"].includes(run.event) ||
+    !["workflow_dispatch", "pull_request_target", "workflow_run"].includes(
+      run.event
+    ) ||
     !REVIEW_HEAD.test(run.head_sha ?? "") ||
     attempt === null ||
     !successful(run) ||
@@ -137,12 +142,30 @@ export function verifyReviewPolicyRun(
       "The review check does not match the native policy job receipt"
     );
 
+  const latestChecks = rows(
+    api,
+    `${root}/commits/${head}/check-runs?check_name=${encodeURIComponent(REVIEW_POLICY_CONTEXT)}&filter=latest&per_page=100`,
+    "check_runs"
+  ).filter(
+    item =>
+      item.name === REVIEW_POLICY_CONTEXT && item.app?.id === REVIEW_POLICY_APP
+  );
+  if (
+    !latestChecks.some(item => item.id === checkId) ||
+    latestChecks.some(
+      item => nativeNumber(item.id) === null || item.id > checkId
+    )
+  )
+    throw new Error("The head has a newer or unreadable policy verdict");
+
   const branchRuns = rows(
     api,
     `${root}/actions/workflows/${workflow.id}/runs?branch=${encodeURIComponent(branch)}&created=${encodeURIComponent(`>=${run.created_at}`)}&per_page=100`,
     "workflow_runs"
   );
-  const recent = branchRuns.filter(row => row.display_title === title);
+  const recent = branchRuns.filter(
+    row => row.display_title === title || row.id === runId
+  );
   if (
     !recent.some(row => row.id === runId && row.run_attempt === attempt) ||
     recent.some(row => nativeNumber(row.id) === null || row.id > runId)

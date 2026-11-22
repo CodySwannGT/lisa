@@ -16,9 +16,13 @@ import {
   policyReviewReport,
   readPolicyReview,
   reviewApi,
+  reviewBranchPulls,
   reviewHeadPulls,
 } from "./lib/review-policy-reader.mjs";
-import { resolveReviewPolicy } from "./lib/review-policy.mjs";
+import {
+  resolveReviewPolicy,
+  reviewHoldReasons,
+} from "./lib/review-policy.mjs";
 
 /** Resolve the immutable pull request head supplied by this event. */
 function target(eventName, event) {
@@ -32,6 +36,48 @@ function target(eventName, event) {
   return { pr, head };
 }
 
+/** Resolve an activity signal through the live GitHub source branch, even for forks. */
+function activityTarget(event, repository, api) {
+  const run = event.workflow_run;
+  const sourceBranch = run?.head_branch;
+  const owner = run?.head_repository?.owner?.login;
+  const sourceRepo = nativeNumber(run?.head_repository?.id);
+  if (
+    event.action !== "requested" ||
+    run?.event !== "pull_request_review" ||
+    run.repository?.id !== repository.id ||
+    run.path?.split("@")[0] !==
+      ".github/workflows/review-policy-activity.yml" ||
+    typeof sourceBranch !== "string" ||
+    !sourceBranch ||
+    !/^[a-z\d-]+$/iu.test(owner ?? "") ||
+    sourceRepo === null
+  )
+    throw new Error(
+      "The review activity did not identify a native source branch"
+    );
+
+  const matches = reviewBranchPulls(
+    repository.full_name,
+    owner,
+    sourceBranch,
+    api
+  ).filter(
+    pull =>
+      pull.state === "open" &&
+      pull.base?.ref === repository.default_branch &&
+      pull.base.repo?.id === repository.id &&
+      pull.head?.ref === sourceBranch &&
+      pull.head.repo?.id === sourceRepo &&
+      REVIEW_HEAD.test(pull.head.sha ?? "") &&
+      nativeNumber(pull.number) !== null
+  );
+  if (matches.length > 1)
+    throw new Error("The review activity matched multiple open pull requests");
+  const [pull] = matches;
+  return pull ? { pr: pull.number, head: pull.head.sha } : null;
+}
+
 /** Evaluate and publish only from the governing default-branch commit. */
 export function runReviewPolicyEvent({ env, event, root, api = reviewApi }) {
   const repo = env.GITHUB_REPOSITORY;
@@ -43,7 +89,7 @@ export function runReviewPolicyEvent({ env, event, root, api = reviewApi }) {
     !REVIEW_HEAD.test(source ?? "") ||
     run === null ||
     attempt === null ||
-    !["workflow_dispatch", "pull_request_target"].includes(
+    !["workflow_dispatch", "pull_request_target", "workflow_run"].includes(
       env.GITHUB_EVENT_NAME
     )
   )
@@ -54,7 +100,7 @@ export function runReviewPolicyEvent({ env, event, root, api = reviewApi }) {
   if (config.review === undefined)
     return { reason: "Review policy is not configured", checks: [] };
   const declaration = loadReviewDeclaration(root);
-  resolveReviewPolicy(config, declaration);
+  const policy = resolveReviewPolicy(config, declaration);
   const repository = api([`repos/${repo}`]);
   const branch = repository.default_branch;
   const branchTip = () =>
@@ -69,7 +115,13 @@ export function runReviewPolicyEvent({ env, event, root, api = reviewApi }) {
     throw new Error(
       "The governing default branch moved or this workflow did not run from it"
     );
-  const { pr, head } = target(env.GITHUB_EVENT_NAME, event);
+  const identified =
+    env.GITHUB_EVENT_NAME === "workflow_run"
+      ? activityTarget(event, repository, api)
+      : target(env.GITHUB_EVENT_NAME, event);
+  if (!identified)
+    return { reason: "Review activity has no open pull request", checks: [] };
+  const { pr, head } = identified;
   const endpoint = `repos/${repo}/pulls/${pr}`;
   const relevant = pull =>
     pull.state === "open" &&
@@ -81,7 +133,7 @@ export function runReviewPolicyEvent({ env, event, root, api = reviewApi }) {
     checks: [],
   };
   if (!relevant(api([endpoint]))) return stale;
-  const verdict = readPolicyReview({
+  const observed = readPolicyReview({
     config,
     declaration,
     repo,
@@ -89,9 +141,23 @@ export function runReviewPolicyEvent({ env, event, root, api = reviewApi }) {
     head,
     api,
   });
-  if (!relevant(api([endpoint]))) return stale;
   const pullRequests = reviewHeadPulls(repo, head, api);
   if (pullRequests.length !== 1 || pullRequests[0] !== pr) return stale;
+  const final = api([endpoint]);
+  if (!relevant(final)) return stale;
+  const holds =
+    typeof final.draft !== "boolean" ||
+    !Array.isArray(final.labels) ||
+    final.labels.some(label => typeof label?.name !== "string")
+      ? ["pull-request-holds-unreadable"]
+      : reviewHoldReasons(policy, final);
+  const verdict = holds.length
+    ? {
+        ...observed,
+        outcome: "not-reviewed",
+        reasons: [...new Set([...observed.reasons, ...holds])],
+      }
+    : observed;
   if (branchTip() !== source)
     throw new Error(
       "Governing review policy changed during evidence collection"

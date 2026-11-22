@@ -37,15 +37,17 @@ Run the last two commands from the trusted default-branch checkout. The first ch
 
 ## Adopt in an existing repository
 
-1. Commit the installed `review-policy.yml` workflow and the review declaration to the default branch through the repository’s current protected path.
+1. Commit the installed `review-policy.yml` and `review-policy-activity.yml` workflows and the review declaration to the default branch through the repository’s current protected path.
 2. Run the workflow on a disposable pull request. Verify both a red result without acceptable review and `REVIEWED` with an acceptable review. Use `check-review-policy-run.mjs` to verify the successful result belongs to the actual policy workflow. GitHub's check name and app pin alone identify the app, which can back more than one workflow.
 3. Promote `🕵️ Review policy verdict` as an exact required context from GitHub Actions (app ID `15368`) using the repository’s ordinary ruleset update. Lisa can declare this as the `code-review` gate’s `pull-request.await`, with `level: "required"` and `posted_by: 15368`. Retire vendor-specific requirements only after the new context is visible and the ruleset update is approved. Preserve other required checks, approval counts, and conversation resolution.
 
 ## Provider details
 
-- The agent adapter verifies a submitted, exact-head review by a repository writer whose native identity differs from the pull request author.
+- The agent adapter verifies a submitted review of the exact head from a separate review session. A repository writer can post that review through the same GitHub account used to author the pull request.
 - CodeRabbit uses its native check run first and falls back to its authenticated commit status where applicable. Projects can require it through `requiredProviders: ["coderabbit"]`. `review.adapters.coderabbit` can declare an alternate `context`, an explicit `appId` or `actorId`, and accepted `proof` and `no_work` phrases.
-- Greptile uses the exact-head GitHub review from the native bot ID set in `review.adapters.greptile.actorId`. A native approval qualifies. A commented review must match an exact `proof` phrase from that adapter’s settings.
+- Greptile uses the exact-head GitHub review from the native bot ID set in `review.adapters.greptile.actorId`. A native approval qualifies. A commented review must match a configured `proof` phrase after trimming the leading and trailing whitespace on both sides.
+
+The activity workflow signals submitted, edited, and dismissed reviews. The default-branch workflow resolves the signal to the live pull request and evaluates its current head. If GitHub holds the activity run for fork approval, a repository writer can dispatch the default-branch workflow directly.
 
 ## Issue labels
 

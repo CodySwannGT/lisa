@@ -23,7 +23,9 @@ export function reviewEvidence({ reviews, head, settings = {} }) {
             !/\b(?:review skipped|rate limited|review queued|review in progress|not reviewed)\b/iu.test(
               review.body
             ) &&
-            (settings.proof ?? []).includes(review.body.trim()))) &&
+            (settings.proof ?? []).some(
+              proof => proof.trim() === review.body.trim()
+            ))) &&
         submittedReview(review)
     )
     .map(review => ({

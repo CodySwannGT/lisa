@@ -239,6 +239,99 @@ describe("provider-neutral hosted review policy", () => {
     );
   });
 
+  it("refuses a review set that changes while reading the verdict", () => {
+    const fixture = hostedFixture({ providers: ["agent"] });
+    const original = fixture.api.getMockImplementation()!;
+    const reviews = vi
+      .fn(() => [[REVIEW, PRIOR_OBJECTION]])
+      .mockReturnValueOnce([[REVIEW]]);
+    fixture.api.mockImplementation((args, payload) =>
+      args[0] === REVIEW_PAGE ? reviews() : original(args, payload)
+    );
+    const result = runReviewPolicyEvent({
+      ...fixture,
+      env: EVENT_ENV,
+      event: EVENT,
+    });
+    expect(result.checks[0]?.conclusion).toBe("failure");
+    expect(reviews).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([{ draft: true }, { labels: [{ name: "lisa:hold" }] }])(
+    "honors a late hold in the final pull request read (%j)",
+    change => {
+      const fixture = hostedFixture({ providers: ["agent"] });
+      const original = fixture.api.getMockImplementation()!;
+      const pulls = vi.fn(() => ({ ...PULL, ...change }));
+      for (const _ of [1, 2, 3]) pulls.mockReturnValueOnce(PULL);
+      fixture.api.mockImplementation((args, payload) =>
+        args[0] === PULL_ROUTE ? pulls() : original(args, payload)
+      );
+      const result = runReviewPolicyEvent({
+        ...fixture,
+        env: EVENT_ENV,
+        event: EVENT,
+      });
+      expect(result.checks[0]?.conclusion).toBe("failure");
+    }
+  );
+
+  it("matches a Greptile phrase with surrounding spaces in the policy", () => {
+    const fixture = hostedFixture(
+      {
+        providers: ["greptile"],
+        adapters: { greptile: { actorId: 81, proof: [" Review complete "] } },
+      },
+      [
+        {
+          ...REVIEW,
+          user: { id: 81, login: "greptile[bot]", type: "Bot" },
+          body: "Review complete\n",
+        },
+      ]
+    );
+    const result = runReviewPolicyEvent({
+      ...fixture,
+      env: EVENT_ENV,
+      event: EVENT,
+    });
+    expect(result.checks[0]).toMatchObject({
+      conclusion: "success",
+      providers: ["greptile"],
+    });
+  });
+
+  it("rereads a fork's current head after a native review activity signal", () => {
+    const fork = { id: 901, owner: { login: "review-fork" } };
+    const pull = { ...PULL, head: { sha: HEAD, ref: "fix/topic", repo: fork } };
+    const fixture = hostedFixture({ providers: ["agent"] }, [REVIEW], pull);
+    const original = fixture.api.getMockImplementation()!;
+    const source = `${ROOT}/pulls?state=open&head=review-fork%3Afix%2Ftopic&per_page=100`;
+    fixture.api.mockImplementation((args, payload) =>
+      args[0] === source ? [[pull]] : original(args, payload)
+    );
+    const result = runReviewPolicyEvent({
+      ...fixture,
+      env: { ...EVENT_ENV, GITHUB_EVENT_NAME: "workflow_run" },
+      event: {
+        action: "requested",
+        workflow_run: {
+          event: "pull_request_review",
+          repository: { id: 500 },
+          path: ".github/workflows/review-policy-activity.yml",
+          head_repository: fork,
+          head_branch: "fix/topic",
+          head_sha: SOURCE,
+          pull_requests: [],
+        },
+      },
+    });
+    expect(result.checks[0]).toMatchObject({
+      head: HEAD,
+      conclusion: "success",
+    });
+  });
+
   it("publishes nothing from a branch other than the governing default branch", () => {
     const fixture = hostedFixture({ providers: ["agent"] });
 
@@ -371,6 +464,7 @@ describe("proof of native workflow authorization", () => {
   const runPath = `${ROOT}/actions/runs/1001`;
   const jobPath = `${runPath}/attempts/2/jobs?per_page=100`;
   const checkPath = `${RUN_ENDPOINT}/640`;
+  const latestPath = `${ROOT}/commits/${HEAD}/check-runs?check_name=${encodeURIComponent(check.name)}&filter=latest&per_page=100`;
   const runsPath = `${ROOT}/actions/workflows/51/runs?branch=main&created=${encodeURIComponent(`>=${TIME}`)}&per_page=100`;
   const verify = { repo: REPO, pr: 19, head: HEAD, runId: run.id };
 
@@ -389,6 +483,7 @@ describe("proof of native workflow authorization", () => {
       [runPath]: run,
       [jobPath]: [{ total_count: 1, jobs: [{ ...job, id: 710 }] }],
       [checkPath]: check,
+      [latestPath]: [{ total_count: 1, check_runs: [check] }],
       [runsPath]: [{ total_count: 1, workflow_runs: [run] }],
       [PULL_ROUTE]: PULL,
       [HEAD_PULLS]: [[PULL]],
@@ -441,6 +536,20 @@ describe("proof of native workflow authorization", () => {
 
     expect(() => verifyReviewPolicyRun(verify, api)).toThrow(
       "default branch advanced"
+    );
+  });
+
+  it("refuses an older green receipt after a review change posts red", () => {
+    const api = nativeFixture({
+      [latestPath]: [
+        {
+          total_count: 1,
+          check_runs: [{ ...check, id: 641, conclusion: "failure" }],
+        },
+      ],
+    });
+    expect(() => verifyReviewPolicyRun(verify, api)).toThrow(
+      "newer or unreadable policy verdict"
     );
   });
 });
