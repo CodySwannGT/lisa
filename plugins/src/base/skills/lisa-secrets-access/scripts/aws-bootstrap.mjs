@@ -152,8 +152,8 @@ export function readProfiles(bundle) {
  * detectable, and it is the same scheme the remote-agent writer emits.
  * @param {object | null | undefined} bundle Parsed bootstrap bundle.
  * @param {string} owner Tenant these profiles belong to.
- * @returns {{credentials: string, config: string, profiles: string[], sourceProfile: string}|null}
- *   Rendered file contents, the profile names and the source profile; or null
+ * @returns {{credentials: string, config: string, profiles: string[], roles: Map<string,string>, sourceProfile: string}|null}
+ *   Rendered file contents, the profiles and roles, and the source profile; or null
  *   when the bundle is unusable.
  */
 export function renderAwsProfiles(bundle, owner) {
@@ -180,6 +180,7 @@ export function renderAwsProfiles(bundle, owner) {
 
   const sections = [];
   const names = [];
+  const roles = new Map();
   const keyFor = new Map();
   for (const [key, entry] of Object.entries(profiles)) {
     const roleArn = entry?.roleArn ?? entry?.role_arn;
@@ -224,12 +225,14 @@ export function renderAwsProfiles(bundle, owner) {
     // re-parsing the rendered text made the header format load-bearing: a
     // change to it would silently corrupt every returned name.
     names.push(name);
+    roles.set(name, String(roleArn));
   }
 
   return {
     credentials,
     config: sections.join("\n"),
     profiles: names,
+    roles,
     sourceProfile,
   };
 }

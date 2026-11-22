@@ -635,7 +635,7 @@ export function installAwsProfiles(bundle, options = {}) {
         exists(file)
           ? adoptRemoteAgentSections(String(read(file, "utf8")), name, {
               owner: scope,
-              names: rendered.profiles,
+              roles: rendered.roles,
             })
           : null,
       ];
@@ -743,7 +743,7 @@ export function installAwsProfiles(bundle, options = {}) {
  *
  *   - config: `[profile <name>]` whose `source_profile` is exactly
  *     `<owner>-agent-bootstrap`, where `<name>` is a profile THIS run writes or
- *     the retired doubled spelling of one (`<owner>-agent-agent-<stage>`);
+ *     the retired doubled spelling of one with the same role ARN;
  *   - credentials: `[<owner>-agent-bootstrap]`.
  *
  * Scoped to this run's names, so a stage the remote writer wrote that this
@@ -753,27 +753,25 @@ export function installAwsProfiles(bundle, options = {}) {
  * neither is ever touched. `[default]` is never adopted — it is one shared slot.
  * @param {string} text File contents.
  * @param {"config"|"credentials"} kind Which file this is.
- * @param {{owner: string, names: string[]}} scope Validated owner and the
- *   profile names this run writes.
+ * @param {{owner: string, roles: Map<string,string>}} scope Validated owner and
+ *   the profile roles this run writes.
  * @returns {string} The contents with the adopted sections removed.
  */
-function adoptRemoteAgentSections(text, kind, { owner, names }) {
+function adoptRemoteAgentSections(text, kind, { owner, roles }) {
   const source = emitSourceProfileFor(owner);
   const doubled = `${owner}-agent-agent-`;
-  const undouble = name =>
-    name.startsWith(doubled)
-      ? `${owner}-agent-${name.slice(doubled.length)}`
-      : name;
   const adopt = (header, body) => {
     if (kind === "credentials") return header === source;
     const found = /^profile\s+(\S+)$/.exec(header);
-    return (
-      found !== null &&
-      // The name itself first: a bundle key `agent-agent-x` canonically
-      // renders `<owner>-agent-agent-x`, which is not a retired doubling.
-      (names.includes(found[1]) || names.includes(undouble(found[1]))) &&
-      settingIn(body, "source_profile") === source
-    );
+    if (found === null || settingIn(body, "source_profile") !== source)
+      return false;
+    const name = found[1];
+    // The name itself first: `agent-agent-x` can be a canonical stage.
+    if (roles.has(name)) return true;
+    if (!name.startsWith(doubled)) return false;
+    const replacement = `${owner}-agent-${name.slice(doubled.length)}`;
+    const role = roles.get(replacement);
+    return role !== undefined && settingIn(body, "role_arn") === role;
   };
 
   // Managed blocks are kept verbatim; only the text between them is filtered.

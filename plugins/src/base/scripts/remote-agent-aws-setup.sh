@@ -270,7 +270,8 @@ legacy_profile_sections() {
 # tenant's (a different source profile) and not an operator's (who would not
 # name this project's bootstrap profile). Names this run is about to write are
 # excluded, so a bundle that genuinely names a stage `agent-x` keeps it.
-# A previous doubled stage is eligible only when this run writes its replacement.
+# Retire one only when this run wrote a replacement with the same role. A
+# genuine inactive stage can have the same spelling and use this bootstrap.
 doubled_profile_sections() {
   local file
   file="$1"
@@ -293,15 +294,26 @@ doubled_profile_sections() {
       sub(/^\[[[:space:]]*/, "", current)
       sub(/[[:space:]]*\][[:space:]]*$/, "", current)
       section = current
+      sections[++section_count] = section
+      seen[section]++
       next
     }
-    $0 ~ "^[[:space:]]*source_profile[[:space:]]*=" {
+    section != "" && /^[[:space:]]*(source_profile|role_arn)[[:space:]]*=/ {
       value = $0
       sub(/^[^=]*=[[:space:]]*/, "", value)
       sub(/[[:space:]]*$/, "", value)
-      replacement = canonical substr(section, length(doubled) + 1)
-      if (value == bootstrap && index(section, doubled) == 1 &&
-          !(section in wanted) && (replacement in wanted)) print section
+      if ($0 ~ /^[[:space:]]*source_profile/) sources[section] = value
+      else roles[section] = value
+    }
+    END {
+      for (i = 1; i <= section_count; i++) {
+        section = sections[i]
+        replacement = canonical substr(section, length(doubled) + 1)
+        if (index(section, doubled) == 1 && !(section in wanted) &&
+            (replacement in wanted) && seen[section] == 1 && seen[replacement] == 1 &&
+            sources[section] == bootstrap && roles[section] != "" &&
+            roles[section] == roles[replacement]) print section
+      }
     }
   ' "$file"
 }
@@ -723,7 +735,7 @@ done < <(printf '%s' "$profiles_json" | jq -r 'to_entries[] | [.key, .value.role
 
 # Retire doubled names for the stages this run just wrote. Writing the
 # replacements first keeps a usable profile if a write fails. A doubled name
-# for a stage outside this bundle remains available for a later migration.
+# for a stage outside this bundle or for another role remains available.
 doubled_sections="$(doubled_profile_sections "$config_file")"
 if [ -n "$doubled_sections" ]; then
   printf '%s\n' "$doubled_sections" | while IFS= read -r section; do

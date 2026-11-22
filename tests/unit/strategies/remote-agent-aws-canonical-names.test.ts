@@ -30,6 +30,9 @@ import {
 
 const ACME = "acme";
 const ACME_DEV_SECTION = "profile acme-agent-dev";
+const ACME_ROLE = "role_arn = arn:aws:iam::111111111111:role/RemoteAgent";
+const OTHER_STAGE_ROLE =
+  "role_arn = arn:aws:iam::333333333333:role/RemoteAgent";
 const AGENT_KEYS = ["agent-dev", "agent-production"] as const;
 const CONFIG = path.join(".aws", "config");
 const CREDENTIALS = path.join(".aws", "credentials");
@@ -148,10 +151,8 @@ describe("the remote-agent writer", () => {
   });
 
   it("keeps a doubled stage until it writes that stage's replacement", () => {
-    const dormant =
-      "[profile acme-agent-agent-staging]\nsource_profile = acme-agent-bootstrap\n";
-    const retired =
-      "[profile acme-agent-agent-dev]\nsource_profile = acme-agent-bootstrap\n";
+    const dormant = `[profile acme-agent-agent-staging]\n${ACME_ROLE}\nsource_profile = acme-agent-bootstrap\n`;
+    const retired = `[profile acme-agent-agent-dev]\n${ACME_ROLE}\nsource_profile = acme-agent-bootstrap\n`;
     const { home, result } = remote(["dev"], dormant + retired);
     const config = readFileSync(path.join(home, CONFIG), "utf8");
 
@@ -162,8 +163,7 @@ describe("the remote-agent writer", () => {
   });
 
   it("preserves the complete adjacent managed block while removing an unmanaged section", () => {
-    const retired =
-      "[profile acme-agent-agent-dev]\nsource_profile = acme-agent-bootstrap\n";
+    const retired = `[profile acme-agent-agent-dev]\n${ACME_ROLE}\nsource_profile = acme-agent-bootstrap\n`;
     const foreign = [
       "# >>> managed by lisa-secrets-access (profiles v2 owner=globex) >>>",
       "[profile acme-agent-agent-dev]",
@@ -182,7 +182,7 @@ describe("the remote-agent writer", () => {
   it("removes its own doubled names and keeps other tenants' sections", () => {
     const seed = [
       "[profile acme-agent-agent-dev]",
-      "role_arn = arn:aws:iam::111111111111:role/RemoteAgent",
+      ACME_ROLE,
       "source_profile = acme-agent-bootstrap",
       "",
       "[profile globex-agent-agent-staging]",
@@ -194,7 +194,7 @@ describe("the remote-agent writer", () => {
       "",
       "# >>> managed by lisa-secrets-access v3 owner=acme >>>",
       "[profile acme-agent-agent-kept]",
-      "role_arn = arn:aws:iam::111111111111:role/RemoteAgent",
+      ACME_ROLE,
       "source_profile = acme-agent-bootstrap",
       "# <<< managed by lisa-secrets-access v3 owner=acme <<<",
       "",
@@ -219,6 +219,26 @@ describe("the remote-agent writer", () => {
 });
 
 describe("both writers", () => {
+  it("keeps an inactive doubled-looking stage with a distinct role", () => {
+    const distinct = `[profile acme-agent-agent-dev]\n${OTHER_STAGE_ROLE}\nsource_profile = acme-agent-bootstrap\n`;
+    const { home: remoteHome, result } = remote(["dev"], distinct);
+    const secretsHome = mkdtempSync(
+      path.join(tmpdir(), "lisa-canonical-names-")
+    );
+    homes.push(secretsHome);
+    mkdirSync(path.join(secretsHome, ".aws"));
+    writeFileSync(path.join(secretsHome, CONFIG), distinct);
+    installAwsProfiles(bundle(["dev"]), { home: secretsHome, owner: ACME });
+
+    expect(result.status).toBe(0);
+    for (const home of [remoteHome, secretsHome]) {
+      const config = readFileSync(path.join(home, CONFIG), "utf8");
+      expect(config).toContain(distinct);
+      const replacement = config.split(`[${ACME_DEV_SECTION}]\n`)[1];
+      expect(replacement?.split(/^\[/m)[0]).toContain(ACME_ROLE);
+    }
+  });
+
   it.each([
     [["agent-dev", "agent-staging", "agent-production"]],
     [["dev", "staging", "production"]],
