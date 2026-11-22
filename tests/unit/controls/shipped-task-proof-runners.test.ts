@@ -1,5 +1,5 @@
 /** Applicability of test fixtures when project types share task aliases. */
-import { cpSync } from "node:fs";
+import { cpSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -17,12 +17,13 @@ const TEST_GATES = [
 
 describe("runner-specific proof patches", () => {
   it.each([
-    ["typescript", TEST_GATES],
-    ["nestjs", TEST_GATES],
-    ["expo", []],
+    ["typescript", false, TEST_GATES],
+    ["nestjs", false, TEST_GATES],
+    ["expo", true, TEST_GATES],
+    ["expo", false, ["test-correctness", "test-integration"]],
   ] as const)(
-    "binds only the compatible test pairs for %s",
-    async (stack, expected) => {
+    "binds only the compatible test pairs for %s with src/app=%s",
+    async (stack, expoSourceRoot, expected) => {
       const host = temporaryDirectory("lisa-shipped-proof-runner-");
       const manifest = await new PackageLisaStrategy().planPackageJson(
         { name: "proof-runner-fixture", version: "0.0.0" },
@@ -36,6 +37,15 @@ describe("runner-specific proof patches", () => {
         { recursive: true }
       );
 
+      if (stack === "expo") {
+        cpSync(path.join("expo/create-only", PROOFS), path.join(host, PROOFS), {
+          recursive: true,
+        });
+      }
+
+      if (expoSourceRoot)
+        mkdirSync(path.join(host, "src", "app"), { recursive: true });
+
       const pairs = await installedShippedTaskProofs(
         host,
         ["typescript", stack],
@@ -45,9 +55,12 @@ describe("runner-specific proof patches", () => {
       expect(scripts["test:cov:unit"]).toBe(
         "$npm_execpath run test:cov:unit:lisa"
       );
+      const testPairs = pairs.filter(pair => TEST_GATES.includes(pair.gate));
+      expect(testPairs.map(pair => pair.gate)).toEqual(expected);
+      const prefix = stack === "expo" ? "lisa-expo-" : "lisa-typescript-";
       expect(
-        pairs.map(pair => pair.gate).filter(gate => TEST_GATES.includes(gate))
-      ).toEqual(expected);
+        testPairs.map(({ proof }) => path.basename(proof.violation))
+      ).toEqual(expected.map(gate => `${prefix}${gate}.violation.patch`));
     }
   );
 });
