@@ -15,7 +15,12 @@ export { destinationSnapshot } from "./npm-update-publication.mjs";
 import { persistCheckpoint, recoveryRecord } from "./npm-update-recovery.mjs";
 export { recoveryRecord } from "./npm-update-recovery.mjs";
 import { verifyCurrentProvider } from "./github-attestation-verifier.mjs";
-import { verifyHistoricalProvider } from "./github-attestation-provider.mjs";
+import {
+  verifyHistoricalProvider,
+  verifyHistoricalRun,
+  verifyCurrentRun,
+} from "./github-attestation-provider.mjs";
+import { verifySignedWorkItem } from "./npm-update-tracker.mjs";
 import {
   verifyHistoricalDescriptor,
   predictedCommit,
@@ -42,7 +47,8 @@ async function restoredOrigin(
   proposal,
   allocation,
   policy,
-  config
+  config,
+  api
 ) {
   const origin = allocation.origin;
   const preview = origin.payload.preview;
@@ -74,10 +80,16 @@ async function restoredOrigin(
     mode: 0o600,
     flag: "wx",
   });
-  const historical = verifyHistoricalProvider(
-    config.automationProvenance,
-    preview.descriptor
-  );
+  // A Jira/Linear claim and its time are proved by the adapter (#4873).
+  const historical = api.tracker
+    ? {
+        run: verifyHistoricalRun(
+          config.automationProvenance,
+          preview.descriptor
+        ),
+        claim: await api.tracker.proveClaim(preview.descriptor),
+      }
+    : verifyHistoricalProvider(config.automationProvenance, preview.descriptor);
   verifyHistoricalDescriptor(
     config.automationProvenance,
     preview.descriptor,
@@ -107,20 +119,26 @@ async function recoveryPreview({
     proposal,
     allocation,
     policy,
-    config
+    config,
+    api
   );
   if (!allocation.origin.complete) {
-    verifyCurrentProvider(api.policy, {
+    const current = {
       ...preview.descriptor,
       runId: process.env.GITHUB_RUN_ID,
       runAttempt: process.env.GITHUB_RUN_ATTEMPT,
-    });
+    };
+    if (api.tracker) {
+      verifyCurrentRun(api.policy, current);
+      await api.tracker.proveClaim(preview.descriptor);
+    } else verifyCurrentProvider(api.policy, current);
     await persistCheckpoint(
       api,
       original.number,
       allocation.origin.payload,
       allocation.origin.digest,
-      () => authorizeAllocation(api, proposal, original, policy, config)
+      () => authorizeAllocation(api, proposal, original, policy, config),
+      config
     );
   }
   const commit = predictedCommit(
@@ -158,7 +176,8 @@ async function originPreview({
     original.number,
     { version: 1, proposal, allocation: original, preview: null, bundle: "" },
     proposal.key,
-    () => authorizeAllocation(api, proposal, original, policy, config)
+    () => authorizeAllocation(api, proposal, original, policy, config),
+    config
   );
   const preview = await descriptorFor({
     cwd,
@@ -225,6 +244,8 @@ export async function prepareAuthorization({
   const preview = allocation.origin
     ? await recoveryPreview(inputs)
     : await originPreview(inputs);
+  if (config.tracker !== "github")
+    verifySignedWorkItem(config, original, preview);
   writeJson(join(output, "preview.json"), preview);
   writeJson(join(output, "allocation.json"), original);
   const mode = allocation.origin ? "recovery" : "origin";

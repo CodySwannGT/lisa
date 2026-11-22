@@ -37,7 +37,11 @@ Return exactly one of:
 
 ## Learning-loop exclusion (no learning about learning)
 
-An artifact this flow produced is **never** a rejection-reflection trigger, no matter how it moves. Before classifying as `rejection-reclaim`, exclude items carrying any learning marker — `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` — or the `learning:needs-triage` label. Such items short-circuit to `forward-only` (treated as normal work) so the detector never fires on the flow's own learning PRs/issues.
+An artifact this flow produced is **never** a rejection-reflection trigger, no matter how it moves. Before classifying as `rejection-reclaim`, exclude items carrying any learning marker — `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` — or the `learning:needs-triage` or `learning:low-confidence` label. Such items short-circuit to `forward-only` (treated as normal work) so the detector never fires on the flow's own learning PRs/issues.
+
+## CI-rework exemption (a failed required check is not a rejection)
+
+When the newest Lisa marker comment on the item (claim comments and session-manager notes (`[lisa-tracker-claim]`, `[claude-build-intake]`, `[lisa-session-manager]`) never count as Lisa markers for this purpose, failure markers count only from `github-actions[bot]`, and any other later Lisa marker counts only from a trusted author — `github-actions[bot]`, the item's author, or a configured `sessionManager.trustedAuthorIds` entry; only entries committed in `.lisa.config.json` count, never `.lisa.config.local.json`, because the producer runs in CI on a fresh checkout, and the account Lisa posts as counts as trusted only when it is the item's author or is listed in `sessionManager.trustedAuthorIds`) is an uncleared `<!-- [lisa-ci-failed] pr=<n> sha=<head> -->` (no `[lisa-ci-cleared]` on that comment) **authored by `github-actions[bot]`**, naming a PR that is open, same-repository, and bound to this item, its return to `$READY` is **CI rework**: an automation moved it because a required check failed on its PR, not because a reviewer rejected it. Short-circuit to `forward-only` — no rejection learning, no candidate — and route the claim to the existing PR, as the build-intake arm specifies. The second dispatch path — `lisa-implement` resolving the item through `lisa-track` (how the session manager dispatches) — routes it the same way, to `lisa-drive-pr-to-merge` on that PR; both paths decide through the shared `scripts/lisa-ci-rework-route.mjs` helper. Read the markers before the claim posts its own comment. A marker from any other author, or one whose PR fails those checks, is no marker; a marker whose PR has merged or closed counts as cleared.
 
 ## Reflect on a `rejection-reclaim`
 
@@ -120,9 +124,17 @@ resolved per the `config-resolution` rule with the `src/sync/registry.ts` `BUILD
 
 This flow persists learnings via PRs and files upstream issues, so its own artifacts are themselves rejectable. If a learning PR or an auto-filed upstream issue is ever moved backward, a naive detector would fire `rejection-reclaim` on it and reflect on the flow's own output — a learning about learning, recursively.
 
-The trigger is therefore **suppressed at the source**. Before an item is classified `rejection-reclaim`, exclude it if it carries any of the learning producer markers — `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` (embedded in the artifact body/PR the same way other Lisa markers are) — or the `learning:needs-triage` label. An excluded item is treated as `forward-only` (normal work); the rejection-reflection path never fires on it, no matter how the artifact moved. (These markers ship with the learning-persistence flow; reference them by name — do not assume their files are present in this branch.)
+The trigger is therefore **suppressed at the source**. Before an item is classified `rejection-reclaim`, exclude it if it carries any of the learning producer markers — `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` (embedded in the artifact body/PR the same way other Lisa markers are) — or the `learning:needs-triage` or `learning:low-confidence` label. An excluded item is treated as `forward-only` (normal work); the rejection-reflection path never fires on it, no matter how the artifact moved. (These markers ship with the learning-persistence flow; reference them by name — do not assume their files are present in this branch.)
 
 This is the **trigger-side** half of the no-learning-loops guard. The claim-time archaeology path carries the symmetric **scan-side** exclusion ("a learning PR is never treated as an ancestor").
+
+## CI-rework exemption
+
+A backward move is only a teaching signal when a person judged the work. The Lisa repository's `lisa-ci-failure-redispatch` workflow also moves items backward — `$CLAIMED` to `$READY` — when a required check fails on the item's PR, and posts `<!-- [lisa-ci-failed] pr=<n> sha=<head> -->` as it does. That move is **CI rework**: the defect is a red check the agent has not fixed yet, not an approach a reviewer named as wrong, and reflecting on it would file a learning about a failure the agent is about to fix on the same branch.
+
+So before classifying as `rejection-reclaim`, read the item's comments: when the newest comment carrying a Lisa marker (claim comments and session-manager notes (`[lisa-tracker-claim]`, `[claude-build-intake]`, `[lisa-session-manager]`) never count as Lisa markers for this purpose, failure markers count only from `github-actions[bot]`, and any other later Lisa marker counts only from a trusted author — `github-actions[bot]`, the item's author, or a configured `sessionManager.trustedAuthorIds` entry; only entries committed in `.lisa.config.json` count, never `.lisa.config.local.json`, because the producer runs in CI on a fresh checkout, and the account Lisa posts as counts as trusted only when it is the item's author or is listed in `sessionManager.trustedAuthorIds`) is an uncleared `[lisa-ci-failed]` marker (its comment carries no `<!-- [lisa-ci-cleared] run=<id> -->`) **authored by `github-actions[bot]`** — the workflow's identity; anyone can type the marker, so no other author counts — and the PR it names is open, not cross-repository, and binds this item through its `Work-Item:` line, treat the item as `forward-only`. No rejection learning is assembled and no `[lisa-rejection-candidate]` is recorded. Read the markers **before** the claim writes its own comment, which is itself a newer Lisa marker. The build-intake arm routes such an item to `lisa-drive-pr-to-merge` on the PR the marker names rather than to `lisa-implement`. The second dispatch path does the same: when the session manager (or anyone) runs `lisa-implement` on the item, `lisa-track` decides the route before its claim comment and `lisa-implement` drives the existing PR instead of building again, filing no rejection learning. Both paths decide through one helper, `scripts/lisa-ci-rework-route.mjs`, so they cannot disagree. Agent work is not complete while the named PR's required checks are failing, and a marker whose PR has merged or closed counts as cleared.
+
+Today only the GitHub arm has a producer (the workflow is Lisa-repository-only and is not shipped to hosts), so the Jira and Linear arms never see the marker; the exemption is stated vendor-neutrally so a future producer on those trackers inherits it.
 
 ## Reflection at re-claim (`rejection-reclaim` only)
 
@@ -139,7 +151,7 @@ When detection returns `rejection-reclaim`, the build-intake claim phase reflect
    | `evidence_links` | The comment / review-thread / failure-output URLs. |
    | `scope_hint` | Where the learning applies (repo / stack / global). |
    | `triggering_issue` | The re-claimed item's ref. |
-   | `fingerprint` | `sll4-` + `sha1(<normalized-rule> + "\n" + <triggering_issue>)` truncated to 12 chars (the learning-persistence flow's formula). |
+   | `fingerprint` | Omit it. `lisa-persist-learning` ignores a supplied value and computes the `sll4-` key itself, after its judge. |
 
 3. **Route the candidate into the judgment gate** via the `lisa-persist-learning` skill (the learning-persistence flow — cite it by name; it ships with that flow, so do not assume its file is present in this branch). Pass the candidate with the rejection as provenance.
 
@@ -286,7 +298,7 @@ The lanes compared ALWAYS come from `.lisa.config.json` — `github.labels.build
 
 ### Learning-loop exclusion
 
-The same learning-loop exclusion applies, for the same reason and by the same markers: an item carrying `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` or the `learning:needs-triage` label is never classified `automation-reversal`, no matter how it moved. The flow must not remember being corrected about its own learning artifacts.
+The same learning-loop exclusion applies, for the same reason and by the same markers: an item carrying `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` or the `learning:needs-triage` or `learning:low-confidence` label is never classified `automation-reversal`, no matter how it moved. The flow must not remember being corrected about its own learning artifacts.
 
 ### The rule — a reversal raises the bar, it never resets the clock
 

@@ -24,9 +24,10 @@ const CLAUDE_PLUGIN_DIR = ".claude-plugin";
 const HOOKS_JSON = "hooks.json";
 const BLOCK_NO_VERIFY = "block-no-verify.sh";
 const BLOCK_NO_VERIFY_AGY = "block-no-verify.agy.sh";
-const PARITY_SAFETY_NET = "parity-safety-net.sh";
-const PARITY_SAFETY_NET_AGY = "parity-safety-net.agy.sh";
-const PARITY_HEREDOC = "parity-safety-net-heredoc.py";
+const INSTRUCTION_GUARD = "block-instruction-file-edits.sh";
+const INSTRUCTION_GUARD_AGY = "block-instruction-file-edits.agy.sh";
+/** The shared classifier the instruction-file guard resolves beside itself. */
+const HEREDOC_CLASSIFIER = "parity-safety-net-heredoc.py";
 
 /** The dedupe library every dual-channel guard sources beside itself. */
 const GUARD_DEDUPE = "guard-dedupe.bash";
@@ -43,7 +44,7 @@ const scriptEntry = (...scripts: readonly string[]) => ({
 const BASE_HOOK_BLOCK = {
   PreToolUse: [
     {
-      ...scriptEntry(BLOCK_NO_VERIFY, PARITY_SAFETY_NET),
+      ...scriptEntry(BLOCK_NO_VERIFY, INSTRUCTION_GUARD),
       matcher: "Bash",
     },
   ],
@@ -78,9 +79,9 @@ async function scaffoldSource(
     "utf8"
   );
   for (const script of [
-    PARITY_SAFETY_NET_AGY,
-    PARITY_SAFETY_NET,
-    PARITY_HEREDOC,
+    INSTRUCTION_GUARD_AGY,
+    INSTRUCTION_GUARD,
+    HEREDOC_CLASSIFIER,
     GUARD_DEDUPE,
   ]) {
     await fs.writeFile(
@@ -126,19 +127,19 @@ describe("generate-agy-plugin-artifacts (plugin-bundled root hooks.json)", () =>
       const cfg = fs.readJsonSync(path.join(outDir, HOOKS_JSON));
       expect(Object.keys(cfg)).toEqual([
         "lisa-block-no-verify",
-        "lisa-parity-safety-net",
+        "lisa-block-instruction-file-edits",
       ]);
       const group = cfg["lisa-block-no-verify"].PreToolUse[0];
       expect(group.matcher).toBe("run_command");
       expect(group.hooks[0].type).toBe("command");
     });
 
-    it("maps parity-safety-net through its agy adapter", () => {
+    it("maps block-instruction-file-edits through its agy adapter", () => {
       const cfg = fs.readJsonSync(path.join(outDir, HOOKS_JSON));
-      const group = cfg["lisa-parity-safety-net"].PreToolUse[0];
+      const group = cfg["lisa-block-instruction-file-edits"].PreToolUse[0];
       expect(group.matcher).toBe("run_command");
       expect(group.hooks[0].command).toBe(
-        `bash "$HOME/.gemini/config/plugins/lisa-test/hooks/${PARITY_SAFETY_NET_AGY}"`
+        `bash "$HOME/.gemini/config/plugins/lisa-test/hooks/${INSTRUCTION_GUARD_AGY}"`
       );
     });
 
@@ -168,9 +169,9 @@ describe("generate-agy-plugin-artifacts (plugin-bundled root hooks.json)", () =>
       expect(fs.existsSync(scriptPath)).toBe(true);
       expect(fs.statSync(scriptPath).mode & 0o100).toBe(0o100);
       for (const script of [
-        PARITY_SAFETY_NET_AGY,
-        PARITY_SAFETY_NET,
-        PARITY_HEREDOC,
+        INSTRUCTION_GUARD_AGY,
+        INSTRUCTION_GUARD,
+        HEREDOC_CLASSIFIER,
       ]) {
         const supportPath = path.join(outDir, "hooks", script);
         expect(fs.existsSync(supportPath)).toBe(true);

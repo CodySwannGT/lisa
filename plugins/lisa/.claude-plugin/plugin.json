@@ -1,6 +1,6 @@
 {
   "name": "lisa",
-  "version": "4.84.9",
+  "version": "8.6.1",
   "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
   "author": {
     "name": "Cody Swann"
@@ -13,15 +13,6 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh --reset-native"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh"
           }
         ]
       },
@@ -82,15 +73,6 @@
         ]
       },
       {
-        "matcher": "TeamCreate|Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh"
-          }
-        ]
-      },
-      {
         "matcher": "Bash|Edit|Write|Read|Task|Grep|Glob",
         "hooks": [
           {
@@ -137,11 +119,11 @@
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/parity-safety-net.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-shell-json-parsing.sh"
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-shell-json-parsing.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-masked-exit-status.sh"
           },
           {
             "type": "command",
@@ -187,15 +169,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
           }
         ]
@@ -228,6 +201,11 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/install-pkgs.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/install-rails-hooks.sh",
+            "timeout": 45
           }
         ]
       },
@@ -365,15 +343,6 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-flow-context.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh"
           }
         ]
       },

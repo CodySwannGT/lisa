@@ -1,5 +1,6 @@
 ---
-description: "Generate the setup/build script and environment-variable template to paste into a Claude Code remote routine environment so this repo runs in the cloud. Runs /lisa:analyze-claude-remote, then writes an idempotent, detect-before-install bash script that installs the required package manager and CLIs for Lisa and the host project, plus a commented env-var template (names only) and a domain allowlist. Cloud-proxy aware and fits the environment-cache time budget."
+disable-model-invocation: true
+description: "Generate the setup script and environment-variable template for running this repo as a Claude Code remote routine: idempotent installs, variable names only, and domains to allowlist."
 argument-hint: "[--out=<path>] [--include-optional] [--print]"
 ---
 

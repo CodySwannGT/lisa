@@ -1,9 +1,9 @@
 ---
 name: lisa-remote-dispatch
-description: "Route one unit of work to a…"
+description: "Send one unit of work to a…"
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
-Route one unit of work to a remote execution surface. Reads the executionEnv parameter (local by default, codex-cloud or claude-web today), verifies the environment is provisioned and bound to this repository, submits a thin skill invocation, records the task identifier to .lisa/remote-dispatch.json, and exits without polling. Routing only — the remote runs the identical skill from the identical repository. Composable and inline: other skills invoke it via the Skill tool rather than users calling it directly.
+Send one unit of work to a remote execution surface (Codex Cloud or Claude web) after checking the environment is ready, record the task id, and return without waiting. Called by other skills.
 
 
 # Remote Dispatch: $ARGUMENTS

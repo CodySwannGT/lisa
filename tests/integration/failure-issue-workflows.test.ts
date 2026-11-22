@@ -92,6 +92,7 @@ describe("config-driven issue dispatcher", () => {
   it("reads the declared tracker from .lisa.config.json", () => {
     const dispatch = dispatcher.jobs.dispatch;
     expect(dispatch).toBeDefined();
+    if (!dispatch) throw new Error("the dispatcher has no dispatch job");
     const checkout = (dispatch.steps ?? []).find(step =>
       (step.uses ?? "").startsWith("actions/checkout")
     );
@@ -122,7 +123,7 @@ describe("config-driven issue dispatcher", () => {
   });
 
   it("reports misconfiguration loudly through the GitHub leg instead of silently falling back", () => {
-    const check = (dispatcher.jobs.dispatch.steps ?? []).find(
+    const check = (dispatcher.jobs.dispatch?.steps ?? []).find(
       step => step.id === "check"
     );
     expect(check?.run).toContain('MODE="misconfiguration"');
@@ -135,7 +136,7 @@ describe("config-driven issue dispatcher", () => {
   });
 
   it("names both possible causes for a missing secret (unset vs not passed through)", () => {
-    const check = (dispatcher.jobs.dispatch.steps ?? []).find(
+    const check = (dispatcher.jobs.dispatch?.steps ?? []).find(
       step => step.id === "check"
     );
     expect(check?.run).toContain(

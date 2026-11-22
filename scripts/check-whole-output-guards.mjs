@@ -443,10 +443,20 @@ export function byPosition(left, right) {
 }
 
 /**
+ * One scope whose whole-output guard leaves transform steps unaccounted for.
+ * @typedef {object} GuardFinding
+ * @property {string} file Repository-relative path.
+ * @property {string} scope The scope's name, or `<module>` / `<anonymous>`.
+ * @property {number} steps Transform steps counted, an iterated step as two.
+ * @property {Array<{line: number, test: string, operands: string[]}>} guards Whole-output guards in the scope.
+ * @property {Array<{line: number, anchor: string}>} unaccounted Steps no anchor assertion accounts for, in source order.
+ */
+
+/**
  * Turn one scope's evidence into a finding, or `null`.
  * @param {object} evidence - Collected evidence for the scope.
  * @param {string} file - Repository-relative path, for reporting.
- * @returns {object | null} A finding, or `null` when the scope is sound.
+ * @returns {GuardFinding | null} A finding, or `null` when the scope is sound.
  */
 export function judgeScope(evidence, file) {
   const stepCount = evidence.steps.reduce(
@@ -513,7 +523,7 @@ export function collectFiles(root, repoRoot) {
  * Run the sweep over a tree.
  * @param {string} repoRoot - Absolute path of the tree to inspect.
  * @param {readonly string[]} [roots] - Sub-directories to scan.
- * @returns {{ inspected: number, files: number, findings: object[] }} Report.
+ * @returns {{ inspected: number, files: number, findings: GuardFinding[] }} Report.
  */
 export function sweep(repoRoot, roots = SCANNED_ROOTS) {
   const report = { inspected: 0, files: 0, findings: [] };

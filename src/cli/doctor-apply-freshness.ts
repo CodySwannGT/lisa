@@ -310,8 +310,8 @@ export async function checkApplyFreshness(
  * any js-yaml shape and reports the incompatibility in plain language here.
  *
  * `fail`, not `warn`: nothing that parses YAML works in this state — Codex and
- * OpenCode artifact generation, CI workflow readiness, and the console's deploy
- * pipeline all stop — and the remedy is a one-line manifest edit.
+ * OpenCode artifact generation and CI workflow readiness both stop — and the
+ * remedy is a one-line manifest edit.
  * @returns Doctor check result
  */
 export function checkYamlRuntime(): FreshnessCheck {

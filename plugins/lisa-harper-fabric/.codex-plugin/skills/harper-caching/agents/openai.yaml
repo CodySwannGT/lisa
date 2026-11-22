@@ -1,4 +1,4 @@
 display_name: "Harper Caching"
-short_description: "implementing Harper…"
+short_description: "Implement Harper…"
 default_prompt:
-  - "Use $harper-caching: implementing Harper…."
+  - "Use $harper-caching: Implement Harper…."

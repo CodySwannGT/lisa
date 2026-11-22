@@ -28,7 +28,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { evaluateIf } from "../helpers/workflow-job-graph";
+import { evaluateIf } from "../helpers/workflow-job-graph.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WORKFLOW = path.resolve(
@@ -54,6 +54,20 @@ const doc = yaml.load(readFileSync(WORKFLOW, "utf8")) as {
   jobs: Record<string, { needs?: string[]; if?: string; steps: Step[] }>;
 };
 
+/** One job of the reusable workflow, as these cases read it. */
+type Job = (typeof doc.jobs)[string];
+
+/**
+ * A named job of the workflow, failing loudly when the workflow lacks it.
+ * @param job The job key in the workflow.
+ * @returns The job.
+ */
+function jobNamed(job: string): Job {
+  const found = doc.jobs[job];
+  if (!found) throw new Error(`no job "${job}" in the workflow`);
+  return found;
+}
+
 /**
  * The guard on a named step of a named job.
  * @param job The job key in the workflow.
@@ -61,7 +75,7 @@ const doc = yaml.load(readFileSync(WORKFLOW, "utf8")) as {
  * @returns The step's `if:` expression, or undefined when it has none.
  */
 function guardFor(job: string, fragment: string): string | undefined {
-  const step = doc.jobs[job].steps.find(candidate =>
+  const step = jobNamed(job).steps.find(candidate =>
     candidate.name.includes(fragment)
   );
   if (!step) throw new Error(`no step matching "${fragment}" in ${job}`);
@@ -106,7 +120,7 @@ function context(
 
 describe("preparing before the run", () => {
   it("prepares before the project's own pre-suite command", () => {
-    const names = doc.jobs.pre_suite.steps.map(step => step.name);
+    const names = jobNamed("pre_suite").steps.map(step => step.name);
     const prepareAt = names.findIndex(name =>
       name.includes("Prepare the environment")
     );
@@ -210,7 +224,7 @@ describe("preparing between the legs — when it must happen", () => {
 
 describe("the Android leg is gated on the preparation", () => {
   it("depends on the preparation job", () => {
-    expect(doc.jobs.android.needs).toContain("inter_leg_prepare");
+    expect(jobNamed("android").needs).toContain("inter_leg_prepare");
   });
 
   it("starts only on an allowlisted preparation result", () => {
@@ -219,7 +233,7 @@ describe("the Android leg is gated on the preparation", () => {
     // deliberately does not cover this — that is what lets a job run despite a
     // failed dependency, which is right for a build artifact and wrong for
     // established state.
-    const guard = doc.jobs.android.if ?? "";
+    const guard = jobNamed("android").if ?? "";
 
     expect(guard).toContain("needs.inter_leg_prepare.result");
     expect(

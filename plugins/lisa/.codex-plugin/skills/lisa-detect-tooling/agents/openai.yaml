@@ -1,4 +1,4 @@
 display_name: "Detect Tooling"
-short_description: "Find the command-line tools a…"
+short_description: "Find command-line tools the…"
 default_prompt:
-  - "Use $lisa-detect-tooling: Find the command-line tools a…."
+  - "Use $lisa-detect-tooling: Find command-line tools the…."

@@ -11,6 +11,26 @@ Break work into ordered, well-scoped tasks that can be independently implemented
 
 ## Decomposition Process
 
+### 0. Load the learned planning checks and project gotchas
+
+Every time a dispatched worker had to stop for a human, or file a new ticket mid-build, because planning let a gap through, `learning-judge` may have persisted the check planning should have run as a `planning-miss` learning (CodySwannGT/lisa#4569). Those checks only help if planning reads them back. Before decomposing, load them through the learnings contract's **bounded projection** — never by reading the ledger file wholesale:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/learnings-projection.mjs" --match '^Planning \((prd|decomposition|ready-gate|filing)\):'
+node "${CLAUDE_PLUGIN_ROOT}/scripts/learnings-projection.mjs" --match '^(?!Planning \()'
+```
+
+Run both from the project root. The first prints the planning checks; the second prints the project's other learned gotchas (implementation pitfalls, tooling quirks), which planning applies to every unit they concern so the worker is not left to rediscover them. Each prints `{ entries, omitted }`. No output means there is no ledger yet (`ENOENT`): carry on. A ledger that exists but cannot be read, or is malformed, prints one warning naming the error and yields nothing: carry on without it. Say in the plan that the checks were not loaded. The projection is taken over the planning checks alone, so other learnings never crowd them out; `omitted` lists, by id, any planning check the budget still left out — name those in the plan as not applied. Never let this step block planning.
+
+Each check names the stage that owns it, and binds there:
+
+- **`Planning (prd): …`** — a requirement the PRD must settle. In PRD intake (`*-to-tracker` Phase 1.45) a register entry that fails one is a `product-clarity` item, like any other requirement-quality failure.
+- **`Planning (decomposition): …`** — binds in this skill: apply each as an extra obligation on every work unit it concerns, alongside steps 1–6 below. A unit that cannot meet it is split, re-scoped or given its missing dependency now, not left for the worker to discover.
+- **`Planning (ready-gate): …`** — binds in the validator's S18 stateless-pickup dry-run (`lisa-jira-validate-ticket`, `lisa-github-validate-issue`, `lisa-linear-validate-issue`): each becomes a question the dry-run must be able to answer from the item and the links it can resolve.
+- **`Planning (filing): …`** — binds on any agent about to file a work unit with `human_gate:` (the `ready-role-filing` rule), here included. Each is a check a hold reason must pass; a hold it rules out is a decision to make now, and the unit is filed build-ready. These come from escalations a human labeled wrong (`learning-judge` Step 2.6).
+
+A check is a learned heuristic, not a new gate number: cite its `id` where it changed a decision, so `last_confirmed` can be advanced at claim time (`project-learnings`). When a check plainly does not apply to this work, skip it silently.
+
 ### 1. Identify Units of Work
 
 - Break the work into the smallest units that are independently valuable
@@ -79,6 +99,24 @@ Each task must have a verification method. Choose the most appropriate:
 - Order tasks so that each builds on a stable foundation
 - Prefer independent tasks that can run in parallel where possible
 - Flag external dependencies (other teams, services, permissions, data) that may block progress
+- Run the **shipped-prerequisite check** on every leaf. Ticket text is often written ahead of delivery, so a prerequisite it calls already shipped, existing, or delivered (a symbol, resolver, mutation, file, migration…; for a route, check its handler symbol or file) is a claim, not a fact (`empirical-inquiry`). Verify each one on the remote default branch, never the working tree. Run the whole block as one script (`bash -c`) with exactly one of `SYMBOL` or `FILE` set:
+
+  ```bash
+  # shipped-prerequisite check: exit 0 = present, 1 = absent, anything else = the check failed
+  default=$(git symbolic-ref --short -q refs/remotes/origin/HEAD | sed 's|^origin/||')
+  default=${default:-$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name)}
+  git fetch --quiet origin "+refs/heads/$default:refs/remotes/origin/$default" || exit 2
+  git rev-parse --verify -q "origin/$default" >/dev/null || exit 2
+  if [ -n "${SYMBOL-}" ]; then
+    git grep -F -n -w "$SYMBOL" "origin/$default" -- ':/' ':(top,exclude,glob)**/docs/**' ':(top,exclude,glob)**/wiki/**' ':(top,exclude,glob)**/plans/**' ':(top,exclude,glob)**/tests/**' ':(top,exclude,glob)**/__tests__/**' ':(top,exclude,glob)**/*.test.*' ':(top,exclude,glob)**/*.spec.*' ':(top,exclude,glob)**/*.md'
+  elif [ -n "${FILE-}" ]; then
+    git cat-file -e "origin/$default:$FILE" 2>/dev/null || exit 1
+  else
+    exit 2
+  fi
+  ```
+
+  Exit 0 means present and 1 means absent; anything else means the check failed (neither variable set, default branch unresolved, fetch refused, bad ref) — stop and report it, never read it as absent. The search is repository-wide whatever the working directory (`':/'`). `FILE` passes for a file or directory at that path. `-F` matches the name literally, so a dotted name such as `Query.createUser` cannot match `QueryXcreateUser`. A hit only in documentation or tests is not shipped: the pathspec excludes, at any depth, `docs/`, `wiki/`, `plans/`, `tests/`, and `__tests__/` directories, `*.test.*` and `*.spec.*` files, and every Markdown file. Exit 0 still only proves the name appears somewhere else: one hit inside a comment, a TODO, a fixture, or a stub is not proof it shipped, so read the `-n` output lines before treating it as present, and drop an exclude when this repository ships source under one of those paths. For each absent prerequisite, find the item that owns delivering it and link this leaf `is blocked by` that item before the leaf is marked ready. If no item owns it, file one (build-ready) and link it; otherwise the leaf fails the ready gate (S13). This is the mirror of `stale-state-claims`: that rule distrusts a stale *not-yet* note, this check distrusts a premature *done* one.
 
 ### 4.5. Classify Any New Material Dependency
 
@@ -97,8 +135,11 @@ unit proposes adding one, the work unit must, before it is buildable:
 2. **State the class's required evidence** — the detection evidence that class
    demands, and whether product/human ratification is required before the work
    starts. Runtime-critical service clients and expiry extensions on temporary
-   dependencies always require ratification; a work unit that needs it and does
-   not say so is not ready.
+   dependencies always require ratification — unless `.lisa.config.json` sets
+   `dependencies.humanSignOff` to `"none"`, in which case no class requires
+   ratification and the work unit says so instead (the class and its evidence
+   are still required). A work unit that needs ratification and does not say so
+   is not ready.
 3. **Include updating `.lisa/DEPENDENCY_DECISIONS.md`** in its acceptance
    criteria, so the record entry lands in the same change as the dependency.
 
@@ -189,7 +230,7 @@ Map each task to the skills needed to complete it. This enables delegation to sp
 - Every task must have at least one acceptance criterion that can be empirically verified
 - Do not create tasks that cannot be verified -- if you cannot define how to prove it is done, the task is not well-scoped
 - Every Task / Bug / Sub-task / Improvement is scoped to exactly one repo -- if the work spans repos, split into per-repo work units under a shared parent Story (see step 1.5)
-- Any task proposing a new material dependency names its trust class, states that class's required evidence and whether human ratification is needed, and updates `.lisa/DEPENDENCY_DECISIONS.md` in the same change (see step 4.5) -- a proposed material dependency with no named class is not ready to build
+- Any task proposing a new material dependency names its trust class, states that class's required evidence and whether human ratification is needed (never, when `dependencies.humanSignOff` is `"none"`), and updates `.lisa/DEPENDENCY_DECISIONS.md` in the same change (see step 4.5) -- a proposed material dependency with no named class is not ready to build
 - Any task removing, replacing, or internalizing a material dependency carries all seven confidence-rebuild kit criteria -- corpus, conformance, negative fixtures, coverage-as-gap-detector, provenance/license, migration/update plan, and rollback criteria (see step 4.6) -- unless it explicitly justifies why the dependency is non-material; a within-trust-class version bump does not carry the kit
 - Keep tasks ordered so that no task references work that has not been completed by a prior task
 - Flag any task that requires access, permissions, or external input not yet available

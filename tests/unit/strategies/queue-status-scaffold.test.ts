@@ -7,15 +7,10 @@
  * readers, output rendering, smoke coverage, and operator docs land in follow-up
  * tickets.
  *
- * This suite proves the scaffold shipped in both plugin roots and documents the
- * intended contract clearly enough for the later implementation work:
- *   (1) the command delegates to `/lisa:queue-status`;
- *   (2) the skill is read-only and repo-scoped;
- *   (3) the skill reuses intake and repair-intake contract semantics rather than
- *       inventing a second source of truth;
- *   (4) the skill names the expected queue verdicts and vendor families;
- *   (5) the skill defines a grouped PRD/build output shape with an overall
- *       verdict and concise remediation guidance.
+ * This suite proves the scaffold shipped in both plugin roots: the command
+ * and skill exist, the command passes `$ARGUMENTS` through, and the skill
+ * frontmatter declares its name and allowed tools. The skill's guidance prose
+ * is not pinned (#4867).
  *
  * Both plugin roots are asserted so a missed `bun run build:plugins` fails the
  * suite.
@@ -43,16 +38,15 @@ describe("queue-status scaffold (#820)", () => {
       expect(existsSync(skillPath)).toBe(true);
     });
 
-    it("uses a pass-through command that delegates to /lisa:queue-status", () => {
+    it("has command frontmatter and passes $ARGUMENTS through", () => {
       const command = read(root, COMMAND_REL);
 
       expect(command).toMatch(/^---/);
       expect(command).toMatch(/description:/);
-      expect(command).toMatch(/Use the \/lisa-queue-status skill/);
       expect(command).toContain("$ARGUMENTS");
     });
 
-    it("documents a read-only, repo-scoped queue inspection surface", () => {
+    it("declares name and allowed-tools in skill frontmatter", () => {
       const skill = read(root, SKILL_REL);
 
       expect(skill).toMatch(/^---/);
@@ -61,71 +55,6 @@ describe("queue-status scaffold (#820)", () => {
       expect(skill).toContain("Skill");
       expect(skill).toContain("Bash");
       expect(skill).toContain("Read");
-      expect(skill).toMatch(/read-only/i);
-      expect(skill).toMatch(/current repo|current project/i);
-      expect(skill).toMatch(
-        /do \*\*not\*\* ask for confirmation|do not ask for confirmation/i
-      );
-    });
-
-    it("reuses intake and repair-intake contract semantics", () => {
-      const skill = read(root, SKILL_REL);
-
-      expect(skill).toMatch(/intake/);
-      expect(skill).toMatch(/repair-intake/);
-      expect(skill).toMatch(/same contract/i);
-      expect(skill).toMatch(
-        /do \*\*not\*\* invent a second source of truth|do not invent a second source of truth/i
-      );
-      expect(skill).toMatch(/queue source/i);
-      expect(skill).toMatch(/build tracker/i);
-    });
-
-    it("names the expected queue verdicts and supported vendor families", () => {
-      const skill = read(root, SKILL_REL);
-
-      expect(skill).toMatch(/IDLE/);
-      expect(skill).toMatch(/HEALTHY/);
-      expect(skill).toMatch(/ATTENTION_NEEDED/);
-      expect(skill).toMatch(/MISCONFIGURED/);
-      expect(skill).toMatch(/GitHub/);
-      expect(skill).toMatch(/Linear/);
-      expect(skill).toMatch(/JIRA/);
-      expect(skill).toMatch(/Notion/);
-      expect(skill).toMatch(/Confluence/);
-    });
-
-    it("documents the queue selector and actionable-highlight expectations", () => {
-      const skill = read(root, SKILL_REL);
-
-      expect(skill).toMatch(/queue=prd/);
-      expect(skill).toMatch(/queue=build/);
-      expect(skill).toMatch(/blocked/i);
-      expect(skill).toMatch(/in-review|in review/i);
-      expect(skill).toMatch(/claimed/i);
-      expect(skill).toMatch(/shipped/i);
-      expect(skill).toMatch(/remediation/i);
-    });
-
-    it("defines grouped queue sections and overall-verdict mapping", () => {
-      const skill = read(root, SKILL_REL);
-
-      expect(skill).toMatch(/grouped sections/i);
-      expect(skill).toMatch(/overall queue-health summary|overall verdict/i);
-      expect(skill).toMatch(/PRD queue section|PRD queue heading/i);
-      expect(skill).toMatch(/Build queue section|Build queue heading/i);
-      expect(skill).toMatch(/Do not interleave PRD and build facts/i);
-      expect(skill).toMatch(
-        /derive the \*\*overall verdict\*\*|derive the overall verdict/i
-      );
-      expect(skill).toMatch(
-        /`MISCONFIGURED` if any inspected queue is misconfigured/i
-      );
-      expect(skill).toMatch(
-        /`ATTENTION_NEEDED` if any inspected queue needs operator follow-up/i
-      );
-      expect(skill).toMatch(/Otherwise `HEALTHY`|Otherwise HEALTHY/i);
-      expect(skill).toMatch(/Otherwise `IDLE`|Otherwise IDLE/i);
     });
   });
 });

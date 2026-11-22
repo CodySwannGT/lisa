@@ -33,12 +33,14 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { needsOf, runPreflight } from "./support/maestro-leg-order-harness";
+import { needsOf, runPreflight } from "./support/maestro-leg-order-harness.js";
 import {
   evaluateIf,
   simulateRun,
+  type SimulatedJob,
+  type SimulatedStep,
   type SimulatedWorkflow,
-} from "../helpers/workflow-job-graph";
+} from "../helpers/workflow-job-graph.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -64,17 +66,33 @@ const PRE_SUITE = "pre_suite";
 const PREFLIGHT = "preflight";
 const SERIALIZE = "serialize_platform_legs";
 
+/** The reusable workflow, plus the job display names this suite pins. */
+interface ReusableWorkflow extends SimulatedWorkflow {
+  jobs: Record<string, SimulatedJob & { name?: string }>;
+}
+
+/**
+ * Narrow a possibly-absent value, failing the test loudly when it is absent.
+ * @param value - Value read from an index or optional lookup
+ * @param label - Name used in the failure message
+ * @returns The value, narrowed to exclude undefined
+ */
+function requireDefined<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw new Error(`expected ${label} to be defined`);
+  }
+  return value;
+}
+
 describe("maestro-native-e2e leg ordering — job graph", () => {
-  let workflow: SimulatedWorkflow;
+  let workflow: ReusableWorkflow;
   let raw: Record<string, unknown>;
   let caller: Record<string, unknown>;
 
   beforeAll(async () => {
-    raw = yaml.load(await fs.readFile(REUSABLE_YML, "utf-8")) as Record<
-      string,
-      unknown
-    >;
-    workflow = raw as unknown as SimulatedWorkflow;
+    const parsed: unknown = yaml.load(await fs.readFile(REUSABLE_YML, "utf-8"));
+    raw = parsed as Record<string, unknown>;
+    workflow = parsed as ReusableWorkflow;
     caller = yaml.load(await fs.readFile(CALLER_YML, "utf-8")) as Record<
       string,
       unknown
@@ -93,11 +111,21 @@ describe("maestro-native-e2e leg ordering — job graph", () => {
       }
     ).inputs;
 
+  /**
+   * The leg_order job's single wait step.
+   * @returns The step.
+   */
+  const waitStep = (): SimulatedStep =>
+    requireDefined(
+      requireDefined(workflow.jobs[LEG_ORDER], LEG_ORDER).steps?.[0],
+      "leg_order wait step"
+    );
+
   describe("the input", () => {
     it("is opt-in: a boolean defaulting to false", () => {
       // The concurrency_group precedent — an unset input must leave every
       // existing consumer on exactly the behavior it has today.
-      const input = inputsOf()[SERIALIZE];
+      const input = requireDefined(inputsOf()[SERIALIZE], SERIALIZE);
       expect(input).toBeDefined();
       expect(input.required).toBe(false);
       expect(input.default).toBe(false);
@@ -111,11 +139,24 @@ describe("maestro-native-e2e leg ordering — job graph", () => {
       // starts timing out on an iOS suite that is merely slow.
       const declared = inputsOf();
       const serializeTimeout = Number(
-        declared.serialize_timeout_minutes.default
+        requireDefined(
+          declared.serialize_timeout_minutes,
+          "serialize_timeout_minutes"
+        ).default
       );
       const spanned =
-        Number(declared.pre_suite_timeout_minutes.default) +
-        Number(declared.suite_timeout_minutes.default);
+        Number(
+          requireDefined(
+            declared.pre_suite_timeout_minutes,
+            "pre_suite_timeout_minutes"
+          ).default
+        ) +
+        Number(
+          requireDefined(
+            declared.suite_timeout_minutes,
+            "suite_timeout_minutes"
+          ).default
+        );
       expect(serializeTimeout).toBeGreaterThan(spanned);
     });
 
@@ -132,7 +173,7 @@ describe("maestro-native-e2e leg ordering — job graph", () => {
     });
 
     it("requires proven ordering exactly when a between-leg reset is requested", () => {
-      const step = (workflow.jobs[LEG_ORDER].steps ?? [])[0];
+      const step = waitStep();
       const guard = (step.env as Record<string, string>).PREPARE_BETWEEN_LEGS;
       expect(guard).toBeDefined();
       for (const [environment, between, expected] of [
@@ -158,7 +199,9 @@ describe("maestro-native-e2e leg ordering — job graph", () => {
         }
       ).secrets;
       expect(secrets.LEG_ORDER_TOKEN).toBeDefined();
-      expect(secrets.LEG_ORDER_TOKEN.required).toBe(false);
+      expect(
+        requireDefined(secrets.LEG_ORDER_TOKEN, "LEG_ORDER_TOKEN").required
+      ).toBe(false);
     });
   });
 
@@ -229,9 +272,9 @@ describe("maestro-native-e2e leg ordering — job graph", () => {
       // something that does not exist. The absent-case test in the sibling file
       // turns that into an error rather than a pass; this pin is what stops it
       // happening at all.
-      const step = (workflow.jobs[LEG_ORDER].steps ?? [])[0];
+      const step = waitStep();
       const pinned = (step.env as Record<string, string>).IOS_JOB_NAME;
-      expect(pinned).toBe(workflow.jobs[IOS].name);
+      expect(pinned).toBe(requireDefined(workflow.jobs[IOS], IOS).name);
     });
   });
 
@@ -240,7 +283,7 @@ describe("maestro-native-e2e leg ordering — job graph", () => {
       // The wait step's own guard, evaluated against an otherwise fully wired
       // run. False here means the step never executes, so leg_order concludes
       // as fast as a runner can start it.
-      const step = (workflow.jobs[LEG_ORDER].steps ?? [])[0];
+      const step = waitStep();
       const wired = {
         needs: {
           preflight: { outputs: { run_ios: "true", run_android: "true" } },
@@ -291,10 +334,12 @@ describe("maestro-native-e2e leg ordering — job graph", () => {
         seed: { name: PREFLIGHT, outputs },
         inputs: { platform: "all" },
       });
-      expect(run.jobs[LEG_ORDER].ran).toBe(true);
-      expect(run.jobs[LEG_ORDER].result).toBe("success");
-      expect(run.jobs[ANDROID].ran).toBe(true);
-      expect(run.jobs[IOS].ran).toBe(true);
+      expect(requireDefined(run.jobs[LEG_ORDER], LEG_ORDER).ran).toBe(true);
+      expect(requireDefined(run.jobs[LEG_ORDER], LEG_ORDER).result).toBe(
+        "success"
+      );
+      expect(requireDefined(run.jobs[ANDROID], ANDROID).ran).toBe(true);
+      expect(requireDefined(run.jobs[IOS], IOS).ran).toBe(true);
     });
   });
 
@@ -310,8 +355,10 @@ describe("maestro-native-e2e leg ordering — job graph", () => {
         inputs: { platform: "all", [SERIALIZE]: true },
         forcedResults: { [LEG_ORDER]: "failure" },
       });
-      expect(run.jobs[LEG_ORDER].result).toBe("failure");
-      expect(run.jobs[ANDROID].ran).toBe(true);
+      expect(requireDefined(run.jobs[LEG_ORDER], LEG_ORDER).result).toBe(
+        "failure"
+      );
+      expect(requireDefined(run.jobs[ANDROID], ANDROID).ran).toBe(true);
     });
 
     it("still fails Android closed on a failed pre_suite", () => {
@@ -325,7 +372,7 @@ describe("maestro-native-e2e leg ordering — job graph", () => {
         inputs: { platform: "all", [SERIALIZE]: true },
         forcedResults: { [PRE_SUITE]: "failure" },
       });
-      expect(run.jobs[ANDROID].ran).toBe(false);
+      expect(requireDefined(run.jobs[ANDROID], ANDROID).ran).toBe(false);
     });
   });
 
@@ -341,10 +388,12 @@ describe("maestro-native-e2e leg ordering — job graph", () => {
           seed: { name: PREFLIGHT, outputs },
           inputs: { platform, [SERIALIZE]: true },
         });
-        expect(run.jobs[ANDROID].ran).toBe(android);
-        expect(run.jobs[IOS].ran).toBe(ios);
+        expect(requireDefined(run.jobs[ANDROID], ANDROID).ran).toBe(android);
+        expect(requireDefined(run.jobs[IOS], IOS).ran).toBe(ios);
         // Never skipped — see the row 26 note above.
-        expect(run.jobs[LEG_ORDER].result).toBe("success");
+        expect(requireDefined(run.jobs[LEG_ORDER], LEG_ORDER).result).toBe(
+          "success"
+        );
       }
     );
 
@@ -354,7 +403,7 @@ describe("maestro-native-e2e leg ordering — job graph", () => {
         // With one leg absent there is no contention to order. Waiting anyway
         // would block on a job that never enters the run and burn the whole
         // discovery window before failing.
-        const step = (workflow.jobs[LEG_ORDER].steps ?? [])[0];
+        const step = waitStep();
         const outputs = runPreflight(workflow, platform);
         expect(
           evaluateIf(step.if, {

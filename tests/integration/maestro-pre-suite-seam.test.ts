@@ -29,7 +29,6 @@
 
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
-import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -37,9 +36,16 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 import {
   simulateRun,
+  type JobOutcome,
   type JobResult,
   type SimulatedWorkflow,
-} from "../helpers/workflow-job-graph";
+  type SimulatedJob,
+  type SimulationResult,
+} from "../helpers/workflow-job-graph.js";
+import { useOwnedTempDirs } from "../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -61,6 +67,32 @@ const PRE_SUITE_INPUT = "pre_suite_command";
 const SETUP_INPUT = "setup_command";
 const RESULT_ALLOWLIST = `contains(fromJSON('["success", "skipped"]'), needs.pre_suite.result)`;
 
+/**
+ * Reads one job from the parsed workflow, failing loudly when it is absent.
+ *
+ * @param wf The parsed workflow.
+ * @param name The job id.
+ * @returns The job.
+ */
+const workflowJob = (wf: SimulatedWorkflow, name: string): SimulatedJob => {
+  const job = wf.jobs[name];
+  if (!job) throw new Error(`workflow has no job "${name}"`);
+  return job;
+};
+
+/**
+ * Reads one job's simulated outcome, failing loudly when it is absent.
+ *
+ * @param result The simulation result.
+ * @param name The job id.
+ * @returns The job outcome.
+ */
+const outcomeOf = (result: SimulationResult, name: string): JobOutcome => {
+  const outcome = result.jobs[name];
+  if (!outcome) throw new Error(`simulation has no job "${name}"`);
+  return outcome;
+};
+
 /** Stand-in commands; their text is irrelevant, only that they are non-empty. */
 const A_RESET = "node scripts/reset.mjs";
 const A_READ = "node scripts/read-seed.mjs";
@@ -81,10 +113,10 @@ const runPreflight = (
   platform: string,
   expoToken = "token"
 ): Record<string, string> => {
-  const step = (workflow.jobs.preflight.steps ?? []).find(
+  const step = (workflowJob(workflow, "preflight").steps ?? []).find(
     candidate => candidate.id === "check"
   );
-  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "maestro-preflight-"));
+  const scratch = ownedDir("maestro-preflight-");
   const flowsDir = path.join(scratch, "flows");
   const outputFile = path.join(scratch, "github-output");
   if (!step?.run) throw new Error("preflight check step not found");
@@ -161,8 +193,8 @@ describe("maestro-native-e2e pre-suite seam", () => {
       [PRE_SUITE_INPUT]: A_RESET,
       [SETUP_INPUT]: A_READ,
     });
-    expect(result.jobs[ANDROID].ran).toBe(true);
-    expect(result.jobs[IOS].ran).toBe(true);
+    expect(outcomeOf(result, ANDROID).ran).toBe(true);
+    expect(outcomeOf(result, IOS).ran).toBe(true);
     expect(result.commandExecutions[PRE_SUITE_INPUT]).toBe(1);
     // The defect, quantified: the per-leg seam runs on both runners at once.
     expect(result.commandExecutions[SETUP_INPUT]).toBe(2);
@@ -181,12 +213,12 @@ describe("maestro-native-e2e pre-suite seam", () => {
     // An unwired project skips every job in the workflow, this one included —
     // there is nothing to establish state for.
     const result = run("all", { [PRE_SUITE_INPUT]: A_RESET }, {}, "");
-    expect(result.jobs[PRE_SUITE].ran).toBe(false);
+    expect(outcomeOf(result, PRE_SUITE).ran).toBe(false);
     expect(result.commandExecutions[PRE_SUITE_INPUT] ?? 0).toBe(0);
   });
 
   it("is one job with no matrix fan-out and no platform-dependent guard", () => {
-    const job = workflow.jobs[PRE_SUITE];
+    const job = workflowJob(workflow, PRE_SUITE);
     const guard = String(job.if);
     expect(job.strategy).toBeUndefined();
     // Referencing a per-platform output here is exactly how a "once per run"
@@ -208,13 +240,13 @@ describe("maestro-native-e2e pre-suite seam", () => {
   });
 
   it.each(PLATFORM_JOBS)("%s genuinely depends on the pre-suite job", leg => {
-    expect(workflow.jobs[leg].needs).toContain(PRE_SUITE);
+    expect(workflowJob(workflow, leg).needs).toContain(PRE_SUITE);
   });
 
   it.each(PLATFORM_JOBS)(
     "%s gates on an ALLOWLIST of pre-suite results, not a denylist",
     leg => {
-      const guard = String(workflow.jobs[leg].if);
+      const guard = String(workflowJob(workflow, leg).if);
       expect(guard).toContain(RESULT_ALLOWLIST);
       // A denylist enumerates what is forbidden and admits anything new.
       expect(guard).not.toContain("!= 'failure'");
@@ -227,9 +259,9 @@ describe("maestro-native-e2e pre-suite seam", () => {
       { [PRE_SUITE_INPUT]: A_RESET, [SETUP_INPUT]: A_READ },
       { [PRE_SUITE]: "failure" }
     );
-    expect(result.jobs[PRE_SUITE].result).toBe("failure");
-    expect(result.jobs[ANDROID].ran).toBe(false);
-    expect(result.jobs[IOS].ran).toBe(false);
+    expect(outcomeOf(result, PRE_SUITE).result).toBe("failure");
+    expect(outcomeOf(result, ANDROID).ran).toBe(false);
+    expect(outcomeOf(result, IOS).ran).toBe(false);
     expect(result.commandExecutions[SETUP_INPUT] ?? 0).toBe(0);
   });
 
@@ -240,7 +272,9 @@ describe("maestro-native-e2e pre-suite seam", () => {
     // wrong for established state. Delete the guard and this test goes red.
     const weakened = JSON.parse(JSON.stringify(workflow)) as SimulatedWorkflow;
     for (const leg of PLATFORM_JOBS) {
-      weakened.jobs[leg].if = String(weakened.jobs[leg].if).replace(
+      workflowJob(weakened, leg).if = String(
+        workflowJob(weakened, leg).if
+      ).replace(
         / && contains\(fromJSON\('\[.*?\]'\), needs\.pre_suite\.result\)/,
         ""
       );
@@ -250,8 +284,8 @@ describe("maestro-native-e2e pre-suite seam", () => {
       inputs: { [PRE_SUITE_INPUT]: A_RESET, [SETUP_INPUT]: A_READ },
       forcedResults: { [PRE_SUITE]: "failure" },
     });
-    expect(result.jobs[ANDROID].ran).toBe(true);
-    expect(result.jobs[IOS].ran).toBe(true);
+    expect(outcomeOf(result, ANDROID).ran).toBe(true);
+    expect(outcomeOf(result, IOS).ran).toBe(true);
   });
 
   it("still establishes state once when one platform's EAS build failed", () => {
@@ -273,15 +307,16 @@ describe("maestro-native-e2e pre-suite seam", () => {
         };
       }
     ).on.workflow_call.inputs[SETUP_INPUT];
-    expect(declared.default).toBe("");
+    expect(declared).toBeDefined();
+    expect(declared?.default).toBe("");
   });
 
   it("changes nothing for an adopter who never sets pre_suite_command", () => {
     const result = run("all", { [SETUP_INPUT]: A_READ });
     // The JOB runs (see the row-26 test below); its WORK does not.
     expect(result.commandExecutions[PRE_SUITE_INPUT] ?? 0).toBe(0);
-    expect(result.jobs[ANDROID].ran).toBe(true);
-    expect(result.jobs[IOS].ran).toBe(true);
+    expect(outcomeOf(result, ANDROID).ran).toBe(true);
+    expect(outcomeOf(result, IOS).ran).toBe(true);
     expect(result.commandExecutions[SETUP_INPUT]).toBe(2);
   });
 
@@ -299,7 +334,7 @@ describe("maestro-native-e2e pre-suite seam", () => {
     for (const [name, outcome] of Object.entries(result.jobs)) {
       expect(`${name}:${outcome.ran}`).toBe(`${name}:true`);
     }
-    expect(String(workflow.jobs[PRE_SUITE].if)).not.toContain(
+    expect(String(workflowJob(workflow, PRE_SUITE).if)).not.toContain(
       `inputs.${PRE_SUITE_INPUT} != ''`
     );
   });

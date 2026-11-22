@@ -8,10 +8,12 @@
  * @remarks
  * ## The measurement this exists for
  *
- * A third-party review app posts a **commit status** on the pull request head.
- * When it is throttled, or declines to review at all, it still reports
- * `state: success` — it never blocks. Only the status `description`
- * distinguishes a review that ran from one that never started.
+ * A third-party review app reports on the pull request head through a **commit
+ * status** or a **check run**. When it is throttled, or declines to review at
+ * all, it never blocks — a status still reports `state: success`, and a check
+ * run concludes `neutral`, which GitHub counts as passing a required check. Only
+ * the reviewer's own words distinguish a review that ran from one that never
+ * started.
  *
  * Re-measured over the last 30 merged pull requests in this repository, reading
  * the reviewer's status on each pull request's head SHA:
@@ -50,6 +52,75 @@
  * Hollow green is invisible there. The evidence read MUST come from
  * `repos/{owner}/{repo}/commits/{sha}/status` and use `.statuses[].description`.
  *
+ * ## Two representations, one question (#4553)
+ *
+ * The same reviewer can move from statuses to check runs without notice.
+ * Measured on this repository's last 30 merged pull requests: the 18 up to
+ * 2026-10-26 carry a `CodeRabbit` commit status and no check run, and the 12
+ * from 2026-10-27 carry a `CodeRabbit` check run and no status. A reader of
+ * statuses alone reported `absent` at every one of those 12 heads — including
+ * one the reviewer had approved — so every pull request needed a hand-written
+ * substitute review.
+ *
+ * Both are read now, and for an unpinned gate statuses read exactly as before.
+ * A check run is the reviewer's evidence only when it carries the declared
+ * context as its name, was reported for this exact head, and — when the gate
+ * pins `posted_by` — was posted by that app; an unpinned gate accepts any app,
+ * which is GitHub's own meaning of an unpinned required check. When such a run
+ * exists it is authoritative over a status of the same name, and the newest
+ * run wins.
+ *
+ * ## A pinned gate is proven only by its app (#4652)
+ *
+ * `posted_by` is the GitHub App id allowed to post the reviewer's context, and
+ * Lisa writes it into the branch ruleset as that context's `integration_id`. A
+ * commit status cannot honour it: the combined-status endpoint read here
+ * carries no poster, and any collaborator with push access, or any integration
+ * or workflow token with commit-status write access, can post a
+ * `Review completed` status under the reviewer's name. So when the gate pins
+ * `posted_by` — any declared value, a malformed `null` included — NO commit
+ * status is evidence; only an eligible check run from that app is. Each status
+ * refused that way is listed in the reading's `ignoredStatuses` with its
+ * reason, as a refused run is listed in `ignoredCheckRuns`, so the report
+ * explains a `Review completed` it shows but did not count. The refusal cuts
+ * both ways: a pinned gate's failing, `Changes requested` or pending status no
+ * longer holds arming either, because the pinned app's objections arrive
+ * through its own check run. Option (b) of the
+ * issue — reading the per-status `creator` from
+ * `repos/{repo}/commits/{sha}/statuses` — was not taken, because the reviewer
+ * Lisa pins now reports only through check runs.
+ *
+ * Those two rules and the decoding below are the ones
+ * `check-skipped-required-checks.mjs` applies (#4547). Four differences are
+ * deliberate. The first three only keep a reviewer's real evidence from being
+ * hidden; the fourth follows from the two provers reading different
+ * declarations:
+ *
+ *  - a run from an app other than the pinned `posted_by` is set aside BEFORE
+ *    the newest run is chosen, so another app's later run under the
+ *    reviewer's name cannot shadow the reviewer's own (that prover reads no
+ *    app at all);
+ *  - when the check-run read fails, an UNPINNED reviewer's own status still
+ *    counts, so a host whose token cannot read check runs keeps reading
+ *    statuses exactly as before (that prover refuses the whole read); a
+ *    pinned reviewer reads `unreadable` instead, since no status could
+ *    prove it;
+ *  - a phrase is compared under this prover's existing normalisation — whole
+ *    string, case-insensitive, whitespace-collapsed — as statuses always were;
+ *  - the words that are denied first are Lisa's shipped no-work phrases, while
+ *    that prover also denies phrases its own declaration configures
+ *    (`no_work`, `waive`). A phrase only configured there is never one
+ *    this prover's allowlist declares as proof unless a project declares the
+ *    same words as both, which no shipped configuration does.
+ *
+ * A check run's title is often generic (`Finished`), so its result is read from
+ * the FIRST line of its summary, exactly as #4547 reads it. Only
+ * `Result: Success - Review completed`, on a run that completed with `success`,
+ * stands for the proof phrase `Review completed`; every other result-shaped
+ * first line stays authoritative, so a negative result can never fall back to a
+ * positive title. Later lines, a generic title, and `success` alone grant
+ * nothing — and a run that did not succeed grants nothing whatever it says.
+ *
  * ## A review OBJECT is not a status CONTEXT
  *
  * An empty-bodied `APPROVED` review is an ordinary human approval, not hollow.
@@ -57,6 +128,15 @@
  * review objects — `classifyReviewObject` exists to keep the two apart. A
  * `CHANGES_REQUESTED` is a blocking objection whatever its body, because its
  * content commonly lives entirely in inline threads.
+ *
+ * ## Only a writer can stand in for a reviewer (#4628)
+ *
+ * The substitute marker is plain text, and anyone who can comment can type
+ * it. A substitute counts only when the marker is the comment's first line and
+ * its author holds write, maintain or admin permission — the merge-path gate's
+ * rule, so the two arms never publish opposite verdicts for one head. A
+ * permission that cannot be read fails closed. Every marker that is not
+ * counted is printed with its author and the reason, never dropped silently.
  *
  * ## Never re-request a review to refresh it
  *
@@ -70,26 +150,75 @@
  * list is a no-op that SAYS it is a no-op. A silent pass is the exact defect
  * this module exists to end, so it is not reproduced here.
  *
+ * ## Every read is complete, or it says it is not (#4630)
+ *
+ * Statuses, check runs and comments each page. Statuses and check runs are
+ * read a full page at a time, and a response that admits to more rows than it
+ * returned is reported as unreadable — the reviewer's row could be on the page
+ * that was not read. Comments are read across every page, as the merge-path
+ * gate reads them, and a page that fails reports the comments as unreadable:
+ * no substitute is counted from them, and the report says so.
+ *
+ * ## The verdict is published on the head it judged (#4630)
+ *
+ * The evidence workflow wakes on `status` and `check_run` events, which GitHub
+ * runs from the default branch, so the job's own check run lands on the
+ * default branch's latest commit — never on the pull request head it judged.
+ * `--publish` reads the verdict a `--json` run saved, and the exit code it
+ * ended with, and creates a check run on that head: `success` for
+ * `satisfied` and `substituted`, `failure` for `unsatisfied` and for
+ * `pull-requests-unreadable`. A run with no head to show it on, or that cannot
+ * change the answer, publishes nothing and says why. A missing or unparseable
+ * verdict, an exit code other than the verdict's own, or a refused write fails
+ * the mode, so broken machinery still shows on the job.
+ *
+ * ## The verdict is published under every declared reviewer's name (#4738)
+ *
+ * The check run is named `🕵️ Third-party review evidence (<context>)`. The
+ * verdict covers every declared reviewer, so one is created for `--context`
+ * AND for each reviewer the checkout's config or the saved readings declare,
+ * each name once. Otherwise a red `(A)` stays red after B's later review makes
+ * the head acceptable, because B's run would update only `(B)`. An empty
+ * `--context` — a manual run that names no reviewer — adds the bare name; a
+ * manual run that names one overwrites that reviewer's stale check run, which
+ * is how a red check is cleared after a writer's substitute, since a comment
+ * wakes no run. Each refused write is reported and fails the mode; the other
+ * names are still written.
+ *
  * CLI:
  *   node scripts/check-third-party-review-evidence.mjs --sha <sha> [--json]
  *     [--context <context>] [--root <dir>] [--repo <owner/repo>]
+ *     [--arm [--vacuity-report <path>]]
+ *   node scripts/check-third-party-review-evidence.mjs --sha <sha>
+ *     --publish <saved-verdict.json> --prover-exit <code>
+ *     [--context <context>] [--root <dir>] [--repo <owner/repo>]
  *
- * `--context` names the status context that woke the run. When it is given and
- * belongs to no declared reviewer, the run is an explicit no-op: a status from
- * some other app cannot change this answer, and evaluating on one would report
- * a reviewer as absent merely because it had not posted yet.
+ * `--arm` answers the merge driver's arm gate instead (#4653): whether
+ * auto-merge may be turned on for this head, and if not, what to do next.
+ * `--vacuity-report` is the saved `check-skipped-required-checks.mjs --vacuity
+ * --json` output on hosts that ship that classifier; without it the decision
+ * rests on the config-declared reviewer alone, which is every stack's case.
+ * Exit 0 means arm; read `arm` and `action`, not the exit code, to know why.
+ *
+ * `--context` names the status context or check-run name that woke the run.
+ * When it is given and belongs to no declared reviewer, the run is an explicit
+ * no-op: a status or check run from some other app cannot change this answer,
+ * and evaluating on one would report a reviewer as absent merely because it had
+ * not posted yet.
  *
  * @module scripts/check-third-party-review-evidence
  */
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
+
 import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { EVIDENCE_DEFAULTS, PULL_REQUEST, readGates } from "./lisa-gates.mjs";
 
-/** How a reviewer's status at one commit reads. */
+/** How a reviewer's evidence at one commit reads. */
 export const EVIDENCE_READINGS = Object.freeze({
   /** The description matched a declared reviewed-when phrase. */
   reviewed: "reviewed",
-  /** No status for this context on the commit at all. */
+  /** No status and no check run for this context on the commit at all. */
   absent: "absent",
   /** A status with no description, or only whitespace. */
   empty: "empty",
@@ -99,6 +228,20 @@ export const EVIDENCE_READINGS = Object.freeze({
   unrecognised: "unrecognised",
   /** The reviewer has started and has not answered yet. Not an answer either way. */
   pending: "pending",
+  /** The reviewer's check run finished with a conclusion other than success. */
+  unsuccessful: "unsuccessful",
+  /** A read this answer depends on failed, so nothing could be seen. */
+  unreadable: "unreadable",
+});
+
+/** Which representation a reading's evidence came from. */
+export const EVIDENCE_SOURCES = Object.freeze({
+  /** `repos/{repo}/commits/{sha}/status`. */
+  status: "status",
+  /** `repos/{repo}/commits/{sha}/check-runs`. */
+  checkRun: "check-run",
+  /** `repos/{repo}/pulls/{n}/reviews`, from the gate's `evidence.review_by` account (#4909). */
+  review: "review",
 });
 
 /** What the whole evaluation concluded. */
@@ -107,6 +250,8 @@ export const EVIDENCE_OUTCOMES = Object.freeze({
   noReviewerConfigured: "no-reviewer-configured",
   /** The commit is nobody's pull request head. Nothing to review here. */
   notAPullRequestHead: "not-a-pull-request-head",
+  /** The pull requests could not be read. Nothing establishes head membership. */
+  pullRequestsUnreadable: "pull-requests-unreadable",
   /** The triggering status belongs to no declared reviewer. An explicit no-op. */
   notAConfiguredReviewer: "not-a-configured-reviewer",
   /** A declared reviewer is still working. Not an answer, so not a verdict. */
@@ -146,7 +291,7 @@ export const READING_SENTENCES = Object.freeze({
   [EVIDENCE_READINGS.reviewed]:
     "the reviewer reported a description this project declares as proof it read the code",
   [EVIDENCE_READINGS.absent]:
-    "no third-party status was present at this head at all — nothing from that reviewer, of any state",
+    "no third-party status was present at this head at all — nothing from that reviewer, of any state, as a commit status or as a check run",
   [EVIDENCE_READINGS.empty]:
     "the reviewer posted a status carrying no description, so nothing says whether it read anything",
   [EVIDENCE_READINGS.noWork]:
@@ -155,6 +300,10 @@ export const READING_SENTENCES = Object.freeze({
     "the reviewer reported a description this project does not declare as proof, and which nothing here recognises",
   [EVIDENCE_READINGS.pending]:
     "the reviewer has started and has not answered yet",
+  [EVIDENCE_READINGS.unsuccessful]:
+    "the reviewer's check run finished without success, so nothing it reported counts as proof it read the code",
+  [EVIDENCE_READINGS.unreadable]:
+    "the reviewer's statuses or check runs at this head could not be read, so nothing here can say whether it reviewed",
 });
 
 /**
@@ -193,10 +342,17 @@ export function normalizeDescription(description) {
  * The reviewed-when allowlist is the gate's merged `evidence.proof`: Lisa's
  * shipped phrases plus whatever the project adds. Extension, never replacement,
  * for the reason `mergeEvidence` records.
+ *
+ * `postedBy` is the gate's `posted_by` — the app a check run must come from to
+ * speak for this reviewer, and under which no commit status counts (#4652) —
+ * exactly as declared, and absent when the gate omits it, which is unpinned.
+ * Any declared value is carried as written, so a
+ * malformed pin such as `null` or a string id matches no app rather than
+ * widening to every app; `validateGates` refuses it separately.
  * @param {object} options - Resolution inputs.
  * @param {object} options.gates - The `gates` block of `.lisa.config.json`.
  * @param {string} [options.moment] - Which moment to read. Defaults to the pull-request moment.
- * @returns {Array<{gateId: string, context: string, proof: string[]}>} Declared reviewers.
+ * @returns {Array<{gateId: string, context: string, proof: string[], noWork: string[], postedBy?: unknown, reviewBy?: string}>} Declared reviewers.
  */
 export function configuredReviewers({ gates, moment = PULL_REQUEST }) {
   const reviewers = [];
@@ -212,6 +368,14 @@ export function configuredReviewers({ gates, moment = PULL_REQUEST }) {
       proof: [...EVIDENCE_DEFAULTS.proof, ...(entry.evidence.proof ?? [])].map(
         normalizeDescription
       ),
+      noWork: [...EVIDENCE_DEFAULTS.no_work, ...(entry.evidence.no_work ?? [])],
+      ...(entry.posted_by === undefined ? {} : { postedBy: entry.posted_by }),
+      // A gate pinned by posted_by never takes the review route (#4916).
+      ...(entry.posted_by === undefined &&
+      typeof entry.evidence.review_by === "string" &&
+      entry.evidence.review_by.trim() !== ""
+        ? { reviewBy: entry.evidence.review_by.trim() }
+        : {}),
     });
   }
   return reviewers.sort((left, right) =>
@@ -222,19 +386,112 @@ export function configuredReviewers({ gates, moment = PULL_REQUEST }) {
 /**
  * Whether a description reads as the vendor saying it did no work.
  *
- * REPORTING ONLY. This never grants nor denies credit — the verdict is settled
- * by the allowlist above, and this only chooses between two ways of saying
- * "not reviewed" so an operator can tell a known vendor state from a string
- * nobody has seen. Wiring it into the verdict would turn the allowlist back
- * into a denylist, which is the fail-open shape this module refuses.
+ * It NEVER GRANTS credit — the verdict is settled by the allowlist above. For
+ * a status it only chooses between two ways of saying "not reviewed", so an
+ * operator can tell a known vendor state from a string nobody has seen. For a
+ * check run it also decides which of the run's words are read, denial first,
+ * exactly as #4547 decodes a run: a no-work title or first line is read in
+ * place of the structured result. That can only withhold credit. Wiring it in
+ * anywhere it could grant credit would turn the allowlist back into a
+ * denylist, which is the fail-open shape this module refuses.
  * @param {string} normalised - An already-normalised description.
  * @returns {boolean} Whether a shipped no-work phrase appears in it.
  */
-function readsAsNoWork(normalised) {
-  return EVIDENCE_DEFAULTS.no_work.some(phrase =>
+function readsAsNoWork(normalised, noWork = EVIDENCE_DEFAULTS.no_work) {
+  return noWork.some(phrase =>
     normalised.includes(normalizeDescription(phrase))
   );
 }
+
+/**
+ * The words a reviewer is judged by when no gate declared any: Lisa's shipped
+ * phrases alone.
+ */
+const SHIPPED_REVIEWER_WORDS = Object.freeze({
+  proof: Object.freeze(EVIDENCE_DEFAULTS.proof.map(normalizeDescription)),
+  noWork: EVIDENCE_DEFAULTS.no_work,
+});
+
+/**
+ * @typedef {object} ReviewerShape
+ * @property {string} context - The status context or check-run name it reports under.
+ * @property {string[]} proof - The normalised reviewed-when allowlist.
+ * @property {unknown} [postedBy] - The app id a check run must come from, exactly as declared; absent for any app. When declared, no commit status counts.
+ * @property {ReadonlyArray<string>} [noWork] - Phrases that say the reviewer did no work: Lisa's shipped ones plus the gate's `evidence.no_work` (#4909). Absent means the shipped ones alone.
+ * @property {string} [reviewBy] - The account whose pull-request review at the head counts as this reviewer's evidence, from `evidence.review_by` (#4909).
+ */
+
+/**
+ * One row of `.check_runs` from `repos/{repo}/commits/{sha}/check-runs`, as the
+ * API returns it. Every field is untrusted until read here.
+ * @typedef {object} RawCheckRun
+ * @property {unknown} [id] - The run id, which GitHub assigns in creation order.
+ * @property {unknown} [name] - The check-run name; a reviewer's is its declared context.
+ * @property {unknown} [head_sha] - The commit the run reports on.
+ * @property {unknown} [status] - `queued`, `in_progress`, `completed`, ...
+ * @property {unknown} [conclusion] - Set once completed: `success`, `neutral`, ...
+ * @property {unknown} [created_at] - Absent from the API object; honoured if a source supplies it.
+ * @property {{id?: unknown}|null} [app] - The app that posted the run.
+ * @property {{title?: unknown, summary?: unknown}|null} [output] - What the run reported.
+ */
+
+/**
+ * @typedef {object} EvidenceReading
+ * @property {string} context - The reviewer's context.
+ * @property {boolean} reviewed - Whether this is evidence the reviewer read the code.
+ * @property {string} reading - One of {@link EVIDENCE_READINGS}.
+ * @property {string|null} observed - The words that decided, verbatim.
+ * @property {string|null} state - A status's state, or a check run's conclusion or lifecycle.
+ * @property {string|null} source - One of {@link EVIDENCE_SOURCES}, or null when nothing was found.
+ * @property {unknown} [checkRunId] - The run that decided, for a check-run reading.
+ * @property {Array<{id: unknown, reason: string}>} ignoredCheckRuns - Runs under the reviewer's name that could not speak for it, and why.
+ * @property {Array<{context: string, state: string|null, description: string|null, reason: string}>} ignoredStatuses - Statuses under a pinned reviewer's name, refused because a status cannot show its poster (#4652); empty for an unpinned gate.
+ */
+
+/**
+ * CodeRabbit's structured first line for a review that completed (#4547).
+ *
+ * Kept as a named example, not as a rule: it is credited because it has the
+ * generic `Result: Success - <phrase>` shape (see {@link structuredSuccessPhrase}) and its phrase, `Review completed`,
+ * is a shipped proof phrase. A different reviewer is credited the same way
+ * through the phrases its gate declares in `evidence.proof` (#4909).
+ */
+export const COMPLETED_REVIEW_RESULT = "Result: Success - Review completed";
+
+/**
+ * The phrase a structured success line names, or null.
+ *
+ * Reads `Result: Success - <phrase>` (CodeRabbit's {@link COMPLETED_REVIEW_RESULT}
+ * is one instance) with any spacing around the words, by
+ * plain string steps rather than a regular expression, so no input can make it
+ * backtrack. The same steps are in `check-skipped-required-checks.mjs`;
+ * duplicated rather than imported because the two scripts ship from different
+ * template trees, and the parity tests hold the two provers to the same
+ * answers.
+ * @param {string} line - A first summary line.
+ * @returns {string|null} The trimmed phrase, or null when the line has another shape.
+ */
+function structuredSuccessPhrase(line) {
+  if (!line.startsWith("Result:")) return null;
+  const outcome = line.slice("Result:".length).trimStart();
+  if (!outcome.startsWith("Success")) return null;
+  const rest = outcome.slice("Success".length).trimStart();
+  if (!rest.startsWith("-")) return null;
+  const phrase = rest.slice(1).trim();
+  return phrase === "" ? null : phrase;
+}
+
+/** What a summary that is present but not text is reported as. */
+const MALFORMED_SUMMARY = "Malformed check-run summary";
+
+/** Check-run lifecycle values that mean the reviewer has not answered yet. */
+const UNSETTLED_RUN_STATUSES = new Set([
+  "queued",
+  "in_progress",
+  "requested",
+  "waiting",
+  "pending",
+]);
 
 /**
  * Read one reviewer's evidence off the statuses on a commit.
@@ -244,15 +501,13 @@ function readsAsNoWork(normalised) {
  * no-work phrase, or an unrecognised string — is NOT REVIEWED, and the observed
  * string is carried back verbatim so the report can say what was actually seen.
  * @param {object} options - Reading inputs.
- * @param {{context: string, proof: string[]}} options.reviewer - One declared reviewer.
+ * @param {ReviewerShape} options.reviewer - One declared reviewer.
  * @param {ReadonlyArray<{context?: string, state?: string, description?: string}>} options.statuses -
  *   `.statuses` from `repos/{owner}/{repo}/commits/{sha}/status`, newest first.
- * @returns {{context: string, reviewed: boolean, reading: string, observed: string|null, state: string|null}} The reading.
+ * @returns {Omit<EvidenceReading, "ignoredCheckRuns" | "ignoredStatuses">} The reading.
  */
-export function readReviewerEvidence({ reviewer, statuses }) {
-  const found = (statuses ?? []).find(
-    status => status?.context === reviewer.context
-  );
+function readStatusEvidence({ reviewer, statuses }) {
+  const found = statuses.find(status => status?.context === reviewer.context);
   if (found === undefined) {
     return {
       context: reviewer.context,
@@ -260,50 +515,480 @@ export function readReviewerEvidence({ reviewer, statuses }) {
       reading: EVIDENCE_READINGS.absent,
       observed: null,
       state: null,
+      source: null,
     };
   }
   const observed = found.description ?? null;
   const normalised = normalizeDescription(observed);
   const state = found.state ?? null;
+  const answer = (
+    /** @type {string} */ kind,
+    /** @type {boolean} */ reviewed = false
+  ) => ({
+    context: reviewer.context,
+    reviewed,
+    reading: kind,
+    observed,
+    state,
+    source: EVIDENCE_SOURCES.status,
+  });
   // A reviewer posts several statuses on one head before the settled one —
   // measured `Review queued` then `Review in progress` then the verdict. Judging
   // an unsettled one would report a finding on every pull request, and a guard
   // that fires every time gets deleted rather than read.
   if (String(state).toLowerCase() === "pending") {
-    return {
-      context: reviewer.context,
-      reviewed: false,
-      reading: EVIDENCE_READINGS.pending,
-      observed,
-      state,
-    };
+    return answer(EVIDENCE_READINGS.pending);
   }
-  if (normalised === "") {
-    return {
-      context: reviewer.context,
-      reviewed: false,
-      reading: EVIDENCE_READINGS.empty,
-      observed,
-      state,
-    };
+  if (normalised === "") return answer(EVIDENCE_READINGS.empty);
+  // Denial first, as the check-run reading and the TypeScript checker do.
+  if (readsAsNoWork(normalised, reviewer.noWork)) {
+    return answer(EVIDENCE_READINGS.noWork);
   }
   if (reviewer.proof.includes(normalised)) {
+    return answer(EVIDENCE_READINGS.reviewed, true);
+  }
+  return answer(EVIDENCE_READINGS.unrecognised);
+}
+
+/**
+ * Whether a line is shaped like a structured result, however it is decorated.
+ *
+ * The same two tests `check-skipped-required-checks.mjs` applies. Such a line is
+ * authoritative even when it is not the one positive form, which is what stops
+ * a negative or malformed result from falling back to a positive title.
+ * @param {string} line - A first summary line.
+ * @returns {boolean} True for anything that reads as a result line.
+ */
+function looksLikeResult(line) {
+  return /^[\s>#|]*Result\b/iu.test(line) || /\bResult\s*[:=-]/iu.test(line);
+}
+
+/**
+ * What a check run says, in the place a status carries its description.
+ *
+ * The decoding #4547 shipped for the registration prover, applied unchanged:
+ *
+ *  1. A title that reads as no-work decides first — a denial is never
+ *     overridden by later text.
+ *  2. No summary keeps the title, the representation's own description slot.
+ *  3. A summary that is not text is never read: it stands for no phrase, and
+ *     the report carries the value it actually was.
+ *  4. A first summary line that reads as no-work decides next.
+ *  5. `Result: Success - <phrase>`, as the whole first line of a run that
+ *     completed with `success`, stands for `<phrase>` when the reviewer
+ *     declares that phrase as proof. CodeRabbit's
+ *     {@link COMPLETED_REVIEW_RESULT} is one instance (#4909).
+ *  6. Any other result-shaped first line is authoritative as it stands, so a
+ *     failed or unknown result cannot inherit a positive title.
+ *  7. A plain first line that is itself a declared proof phrase, on a run
+ *     that completed with `success`, stands for that phrase, so a reviewer
+ *     that writes its verdict in the summary rather than the title is read by
+ *     its own declared words (#4909).
+ *  8. Any other plain first line keeps the title, and later lines are never
+ *     read.
+ *
+ * `text` is what decided, verbatim, for the report; `canonical` is what the
+ * allowlist compares. They differ only in rules 3 and 5.
+ * @param {RawCheckRun} run - One raw check run.
+ * @param {{proof: ReadonlyArray<string>, noWork?: ReadonlyArray<string>}} [reviewer] - The reviewer's declared words; Lisa's shipped ones when absent.
+ * @returns {{text: string, canonical: string}} The run's words.
+ */
+export function checkRunResult(run, reviewer = SHIPPED_REVIEWER_WORDS) {
+  const output = run?.output ?? {};
+  const title = typeof output.title === "string" ? output.title : "";
+  const said = (/** @type {string} */ text) => ({ text, canonical: text });
+  const noWork = reviewer.noWork ?? EVIDENCE_DEFAULTS.no_work;
+  const declares = (/** @type {string} */ phrase) =>
+    reviewer.proof.includes(normalizeDescription(phrase));
+  if (readsAsNoWork(normalizeDescription(title), noWork)) return said(title);
+  const summary = output.summary;
+  if (summary === null || summary === undefined) return said(title);
+  if (typeof summary !== "string") {
+    return { text: JSON.stringify(summary), canonical: MALFORMED_SUMMARY };
+  }
+  const firstLine = summary.split(/\r?\n/u, 1)[0] ?? "";
+  if (readsAsNoWork(normalizeDescription(firstLine), noWork)) {
+    return said(firstLine);
+  }
+  const succeeded =
+    run?.status === "completed" && run?.conclusion === "success";
+  const structured = structuredSuccessPhrase(firstLine);
+  if (succeeded && structured !== null && declares(structured)) {
+    return { text: firstLine, canonical: structured };
+  }
+  if (looksLikeResult(firstLine)) return said(firstLine);
+  if (succeeded && declares(firstLine)) return said(firstLine);
+  return said(title);
+}
+
+/**
+ * Order two runs by creation, newest last.
+ *
+ * Creation time first and id second, as `newestCheckRuns` in
+ * `check-skipped-required-checks.mjs` orders them. The API object carries no
+ * `created_at` — measured — so in practice the id decides, and GitHub assigns
+ * ids in creation order.
+ * @param {RawCheckRun} run - One run.
+ * @returns {[number, number]} Its creation time and id, zero when unknown.
+ */
+function runRank(run) {
+  const created =
+    typeof run.created_at === "string" ? Date.parse(run.created_at) : NaN;
+  return [Number.isFinite(created) ? created : 0, Number(run.id) || 0];
+}
+
+/**
+ * Why a run under the reviewer's name cannot speak for it, or null if it can.
+ * @param {object} options - The run and what it must match.
+ * @param {ReviewerShape} options.reviewer - One declared reviewer.
+ * @param {RawCheckRun} options.run - A run carrying the reviewer's name.
+ * @param {string|undefined} options.sha - The head commit.
+ * @returns {string|null} The reason, or null when the run is the reviewer's.
+ */
+function whyNotTheReviewers({ reviewer, run, sha }) {
+  if (typeof sha !== "string" || run.head_sha !== sha) {
+    return `reported for head ${JSON.stringify(run.head_sha ?? null)}, not ${JSON.stringify(sha ?? null)}`;
+  }
+  // Absent means unpinned. Anything declared — a malformed `null` included —
+  // must match exactly, so a broken pin narrows to no app instead of widening
+  // to every app.
+  const pin = reviewer.postedBy;
+  if (pin !== undefined && run.app?.id !== pin) {
+    return `posted by app ${JSON.stringify(run.app?.id ?? null)}, not the declared ${JSON.stringify(pin)}`;
+  }
+  return null;
+}
+
+/**
+ * The check run that speaks for one reviewer at one head, if any.
+ *
+ * A run counts only when it carries the reviewer's context as its name, was
+ * reported for this exact head, and — when the gate pins `posted_by` — came
+ * from that app. Anything else under the reviewer's name is set aside WITH its
+ * reason rather than dropped in silence: a run another app posted under the
+ * reviewer's name is the case an operator most needs explained. Of the runs
+ * that count, the newest decides.
+ * @param {object} options - Selection inputs.
+ * @param {ReviewerShape} options.reviewer - One declared reviewer.
+ * @param {ReadonlyArray<RawCheckRun>|null|undefined} options.runs - Runs read for its name; null when the read failed.
+ * @param {string|undefined} options.sha - The head commit.
+ * @returns {{run: RawCheckRun|null, ignored: Array<{id: unknown, reason: string}>}} The run, and those set aside.
+ */
+export function selectReviewerCheckRun({ reviewer, runs, sha }) {
+  /** @type {Array<{id: unknown, reason: string}>} */
+  const ignored = [];
+  /** @type {RawCheckRun|null} */
+  let selected = null;
+  for (const run of Array.isArray(runs) ? runs : []) {
+    if (run?.name !== reviewer.context) continue;
+    const reason = whyNotTheReviewers({ reviewer, run, sha });
+    if (reason !== null) {
+      ignored.push({ id: run.id ?? null, reason });
+      continue;
+    }
+    if (selected === null) {
+      selected = run;
+      continue;
+    }
+    const [time, id] = runRank(run);
+    const [selectedTime, selectedId] = runRank(selected);
+    if (time > selectedTime || (time === selectedTime && id > selectedId)) {
+      selected = run;
+    }
+  }
+  return { run: selected, ignored };
+}
+
+/**
+ * Read one reviewer's evidence off the check run that speaks for it.
+ *
+ * Credit needs all three: the run completed, it concluded `success`, and what
+ * it said is a declared reviewed-when phrase. A run that has not finished is
+ * pending — not an answer either way — and one that finished any other way
+ * grants nothing, whatever its words.
+ *
+ * The lifecycle and conclusion are compared exactly as GitHub sends them,
+ * lowercase, the way the registration prover compares them. A value in any
+ * other spelling is not one GitHub defines, so it is read as unknown rather
+ * than folded into one that grants credit.
+ * @param {object} options - Reading inputs.
+ * @param {ReviewerShape} options.reviewer - One declared reviewer.
+ * @param {RawCheckRun} options.run - The run selected for it.
+ * @returns {Omit<EvidenceReading, "ignoredCheckRuns" | "ignoredStatuses">} The reading.
+ */
+function readCheckRunEvidence({ reviewer, run }) {
+  const status = typeof run.status === "string" ? run.status : "";
+  const conclusion = typeof run.conclusion === "string" ? run.conclusion : null;
+  const { text, canonical } = checkRunResult(run, reviewer);
+  const settled = status === "completed";
+  const normalised = normalizeDescription(text);
+  let reading = EVIDENCE_READINGS.unrecognised;
+  if (UNSETTLED_RUN_STATUSES.has(status)) {
+    reading = EVIDENCE_READINGS.pending;
+  } else if (!settled) {
+    reading = EVIDENCE_READINGS.unrecognised;
+  } else if (readsAsNoWork(normalised, reviewer.noWork)) {
+    // Denial first, as the TypeScript checker reads a description: a
+    // project's no-work phrase that overlaps a proof phrase then withholds
+    // credit instead of granting it.
+    reading = EVIDENCE_READINGS.noWork;
+  } else if (
+    conclusion === "success" &&
+    reviewer.proof.includes(normalizeDescription(canonical))
+  ) {
+    reading = EVIDENCE_READINGS.reviewed;
+  } else if (conclusion !== "success") {
+    reading = EVIDENCE_READINGS.unsuccessful;
+  } else if (normalised === "") {
+    reading = EVIDENCE_READINGS.empty;
+  }
+  return {
+    context: reviewer.context,
+    reviewed: reading === EVIDENCE_READINGS.reviewed,
+    reading,
+    observed: text,
+    // The phrase that decided the run, which the objection check compares:
+    // `Result: Success - Changes requested` objects like a bare line does.
+    objection: normalizeDescription(canonical),
+    state: settled ? (conclusion ?? status) : status || null,
+    source: EVIDENCE_SOURCES.checkRun,
+    checkRunId: run.id ?? null,
+  };
+}
+
+/**
+ * The statuses under a pinned reviewer's name, each refused with its reason.
+ *
+ * A gate that pins `posted_by` is proven only by evidence from that app
+ * (#4652). A commit status cannot show that: the combined-status endpoint this
+ * prover reads carries no poster at all, and any collaborator or integration
+ * with commit-status write access can post one under the reviewer's name. So
+ * under a pin every such status is refused — never silently, so the report can
+ * say why a "Review completed" it shows did not count. An unpinned gate refuses
+ * none; absent means unpinned, and a declared pin of any value — a malformed
+ * `null` included — pins, exactly as {@link whyNotTheReviewers} reads it.
+ * @param {object} options - Refusal inputs.
+ * @param {ReviewerShape} options.reviewer - One declared reviewer.
+ * @param {ReadonlyArray<{context?: string, state?: string, description?: string}>|null|undefined} options.statuses - The statuses read; null when the read failed.
+ * @returns {Array<{context: string, state: string|null, description: string|null, reason: string}>} The refused statuses, with what each said, empty for an unpinned gate.
+ */
+function refusePinnedStatuses({ reviewer, statuses }) {
+  if (reviewer.postedBy === undefined) return [];
+  const reason =
+    `not counted: the gate is pinned to app ` +
+    `${JSON.stringify(reviewer.postedBy)}, and a commit status cannot show which app posted it`;
+  return (statuses ?? [])
+    .filter(status => status?.context === reviewer.context)
+    .map(status => ({
+      context: reviewer.context,
+      state: status.state ?? null,
+      description: status.description ?? null,
+      reason,
+    }));
+}
+
+/**
+ * A pinned reviewer's reading when no run from its app stands.
+ *
+ * Nothing stands, so it is `absent` — or `unreadable` when the check-run read,
+ * the only read that could have found its evidence, failed. A failed status
+ * read changes nothing here, because no status could have counted.
+ * @param {ReviewerShape} reviewer - One pinned reviewer.
+ * @param {ReadonlyArray<RawCheckRun>|null|undefined} checkRuns - Runs read for its name; null when the read failed.
+ * @returns {Omit<EvidenceReading, "ignoredCheckRuns" | "ignoredStatuses">} The reading.
+ */
+function pinnedWithoutRun(reviewer, checkRuns) {
+  return {
+    context: reviewer.context,
+    reviewed: false,
+    reading:
+      checkRuns === null
+        ? EVIDENCE_READINGS.unreadable
+        : EVIDENCE_READINGS.absent,
+    observed: null,
+    state: null,
+    source: null,
+  };
+}
+
+/** Review states that mean the reviewer submitted a review it wrote. */
+const SUBMITTED_REVIEW_STATES = new Set([
+  "APPROVED",
+  "COMMENTED",
+  "CHANGES_REQUESTED",
+]);
+
+/**
+ * Whether the reviewer said nothing at the head: no status or run at all, or
+ * an empty one that passed. Only silence may be replaced by the reviewer's own
+ * review; an empty status that failed or errored is a denial.
+ * @param {{reading: string, state?: string|null}} reading - The status or run reading.
+ * @returns {boolean} Whether a review may stand in.
+ */
+function saidNothing(reading) {
+  if (reading.reading === EVIDENCE_READINGS.absent) return true;
+  return (
+    reading.reading === EVIDENCE_READINGS.empty &&
+    String(reading.state ?? "").toLowerCase() === "success"
+  );
+}
+
+/**
+ * The reviewer's own submitted pull-request review at this head, if its gate
+ * names the account that writes it (`evidence.review_by`, #4909).
+ *
+ * Some reviewers post no status and no check run: they only submit a review.
+ * Without this they read `absent` on every pull request, and every merge then
+ * needs a substitute. The review must be on the exact head commit — a review
+ * of an earlier commit read different code — and must come from the named
+ * account, compared case-insensitively as GitHub compares logins. A
+ * `CHANGES_REQUESTED` review proves the reviewer read the code; whether it
+ * still blocks the merge is the separate objection check's question.
+ * @param {object} options - Reading inputs.
+ * @param {ReviewerShape} options.reviewer - One declared reviewer.
+ * @param {ReadonlyArray<{commit_id?: string, state?: string, submitted_at?: string, id?: unknown, user?: {login?: string}}>|null|undefined} options.reviews - Review objects on the head's pull requests; null when the read failed.
+ * @param {string|undefined} options.sha - The head commit.
+ * @returns {Omit<EvidenceReading, "ignoredCheckRuns" | "ignoredStatuses">|null} A reviewed reading, or null when no such review stands.
+ */
+function readReviewEvidence({ reviewer, reviews, sha }) {
+  if (reviewer.reviewBy === undefined || typeof sha !== "string") return null;
+  const login = reviewer.reviewBy.toLowerCase();
+  const mine = reviewsAtHead(reviews ?? [], sha)
+    .filter(
+      review =>
+        String(review?.user?.login ?? "").toLowerCase() === login &&
+        review?.user?.type === "Bot" &&
+        SUBMITTED_REVIEW_STATES.has(String(review?.state ?? "").toUpperCase())
+    )
+    .sort((left, right) =>
+      String(left?.submitted_at ?? "").localeCompare(
+        String(right?.submitted_at ?? "")
+      )
+    );
+  const latest = mine.at(-1);
+  if (latest === undefined) return null;
+  const state = String(latest.state).toUpperCase();
+  const body = typeof latest.body === "string" ? latest.body : "";
+  const firstLine = body.trim().split(/\r?\n/u, 1)[0] ?? "";
+  if (readsAsNoWork(normalizeDescription(firstLine), reviewer.noWork)) {
+    // The review itself says the reviewer skipped the code.
     return {
       context: reviewer.context,
-      reviewed: true,
-      reading: EVIDENCE_READINGS.reviewed,
-      observed,
+      reviewed: false,
+      reading: EVIDENCE_READINGS.noWork,
+      observed: firstLine,
       state,
+      source: EVIDENCE_SOURCES.review,
     };
   }
   return {
     context: reviewer.context,
-    reviewed: false,
-    reading: readsAsNoWork(normalised)
-      ? EVIDENCE_READINGS.noWork
-      : EVIDENCE_READINGS.unrecognised,
-    observed,
+    reviewed: true,
+    reading: EVIDENCE_READINGS.reviewed,
+    observed: `${state} review by ${reviewer.reviewBy}`,
     state,
+    source: EVIDENCE_SOURCES.review,
+  };
+}
+
+/**
+ * Read one reviewer's evidence at one commit, from both representations.
+ *
+ * A check run that speaks for the reviewer is authoritative. Otherwise an
+ * unpinned reviewer's status is read exactly as before, while a pinned
+ * reviewer's statuses are all refused and listed in `ignoredStatuses` (#4652):
+ * only its app's own check run can prove a pinned gate. A read that failed is
+ * never reported as an absence: when nothing stands and a read this answer
+ * depended on failed, the reading is `unreadable`, because "nothing was there"
+ * and "nothing could be seen" call for different operator actions. For an
+ * unpinned reviewer a failed check-run read never takes away a status's
+ * credit — reviewers that still post statuses keep reading exactly as they did.
+ * @param {object} options - Reading inputs.
+ * @param {ReviewerShape} options.reviewer - One declared reviewer.
+ * @param {ReadonlyArray<{context?: string, state?: string, description?: string}>|null} [options.statuses] -
+ *   `.statuses` from `repos/{owner}/{repo}/commits/{sha}/status`, newest first; null when the read failed.
+ * @param {ReadonlyArray<RawCheckRun>|null} [options.checkRuns] - Runs read for the reviewer's name; null when the read failed, absent when none were read.
+ * @param {string} [options.sha] - The head commit, which every check run must report on.
+ * @param {ReadonlyArray<object>|null} [options.reviews] - Review objects on the head's pull requests, read only for a reviewer whose gate names `evidence.review_by`; null when the read failed.
+ * @returns {EvidenceReading} The reading.
+ */
+export function readReviewerEvidence({
+  reviewer,
+  statuses,
+  checkRuns,
+  sha,
+  reviews,
+}) {
+  const reading = readStatusOrRunEvidence({
+    reviewer,
+    statuses,
+    checkRuns,
+    sha,
+  });
+  if (reading.reviewed || reviewer.reviewBy === undefined) return reading;
+  // A review stands in only where the reviewer said nothing at the head. A
+  // status or run that said "no work", failed, or said anything else is a
+  // denial, and a review from the same account never overrides a denial.
+  if (!saidNothing(reading)) return reading;
+  // An empty passed run can hide a denial in the same reviewer's status, and
+  // an unread run or status list can hide one too. Only silence on both
+  // surfaces, both read, may be replaced by a review.
+  if (checkRuns === null || statuses === null) return reading;
+  if (
+    !saidNothing(readStatusEvidence({ reviewer, statuses: statuses ?? [] }))
+  ) {
+    return reading;
+  }
+  // posted_by accepts only that app's check run; a review carries no app id,
+  // so a pinned gate never takes the review route (validateGates also
+  // refuses the pair, but the config is not validated at run time).
+  if (reviewer.postedBy !== undefined) return reading;
+  const fromReview = readReviewEvidence({ reviewer, reviews, sha });
+  if (fromReview !== null) {
+    return {
+      ...fromReview,
+      ignoredCheckRuns: reading.ignoredCheckRuns,
+      ignoredStatuses: reading.ignoredStatuses,
+    };
+  }
+  // A review read that failed could have held the evidence, so an absence
+  // is not proven; say the read failed instead.
+  return reviews === null && reading.reading === EVIDENCE_READINGS.absent
+    ? { ...reading, reading: EVIDENCE_READINGS.unreadable }
+    : reading;
+}
+
+/**
+ * Read one reviewer's evidence from its statuses and check runs alone.
+ * @param {object} options - Reading inputs, as {@link readReviewerEvidence} takes them.
+ * @param {ReviewerShape} options.reviewer - One declared reviewer.
+ * @param {ReadonlyArray<{context?: string, state?: string, description?: string}>|null} [options.statuses] - Statuses on the commit; null when the read failed.
+ * @param {ReadonlyArray<RawCheckRun>|null} [options.checkRuns] - Runs read for the reviewer's name; null when the read failed.
+ * @param {string} [options.sha] - The head commit.
+ * @returns {EvidenceReading} The reading.
+ */
+function readStatusOrRunEvidence({ reviewer, statuses, checkRuns, sha }) {
+  const { run, ignored } = selectReviewerCheckRun({
+    reviewer,
+    runs: checkRuns,
+    sha,
+  });
+  const ignoredStatuses = refusePinnedStatuses({ reviewer, statuses });
+  const setAside = { ignoredCheckRuns: ignored, ignoredStatuses };
+  if (run !== null) {
+    return { ...readCheckRunEvidence({ reviewer, run }), ...setAside };
+  }
+  if (reviewer.postedBy !== undefined) {
+    return { ...pinnedWithoutRun(reviewer, checkRuns), ...setAside };
+  }
+  const fromStatus = readStatusEvidence({ reviewer, statuses: statuses ?? [] });
+  const unreadable =
+    fromStatus.reading === EVIDENCE_READINGS.absent &&
+    (checkRuns === null || statuses === null);
+  return {
+    ...fromStatus,
+    ...(unreadable ? { reading: EVIDENCE_READINGS.unreadable } : {}),
+    ...setAside,
   };
 }
 
@@ -319,22 +1004,147 @@ export function substituteMarker({ context, sha }) {
 }
 
 /**
- * Whether a substitute review was posted for this reviewer at this commit.
+ * Why a comment carrying this reviewer's marker at this head was not counted.
  *
- * Both halves must match. A substitute posted for a different reviewer says
- * nothing about this one, and one posted against an earlier head reviewed code
- * that is no longer what would merge — review evidence decays on every push.
+ * Each one is printed beside the comment's author, so a refused marker is
+ * never silent: an operator who posted one learns why it did not stand, and a
+ * stranger's marker is visible as exactly that (#4628).
+ */
+export const SUBSTITUTE_REFUSALS = Object.freeze({
+  /** The marker appears in the comment, but not as its whole first line. */
+  notFirstLine: "not the first line",
+  /** The author's permission was read, and it is not write, maintain or admin. */
+  noWriteAccess: "no write access",
+  /** The author's permission could not be read, so it fails closed. */
+  permissionUnreadable: "permission unreadable",
+});
+
+/**
+ * One permission answer per login for the life of the reader.
+ *
+ * The reader answers `true` for a writer, `false` for anyone else, and `null`
+ * — or throws — when the permission could not be read. Anything that is not a
+ * boolean is unreadable, which can only leave a substitute uncounted.
+ * @param {(login: string) => boolean|null} canWrite - The permission reader.
+ * @returns {(login: string) => boolean|null} The same answers, each read once.
+ */
+function rememberPermissions(canWrite) {
+  const seen = new Map();
+  return login => {
+    if (!seen.has(login)) seen.set(login, askPermission(canWrite, login));
+    return seen.get(login);
+  };
+}
+
+/**
+ * Ask a permission reader once, failing closed.
+ *
+ * A bot login (`…[bot]`) is answered `false` without asking: a bot is never a
+ * repository collaborator, so the answer is known, and reading it would only
+ * turn a certain "no write access" into a noisy "permission unreadable". The
+ * merge-path gate refuses the same author.
+ * @param {(login: string) => boolean|null} canWrite - The permission reader.
+ * @param {string} login - The comment author.
+ * @returns {boolean|null} The answer, or null when it could not be read.
+ */
+function askPermission(canWrite, login) {
+  if (login.endsWith("[bot]")) return false;
+  // probe-direction: fail-closed — a reader that throws or answers anything but a boolean is unreadable.
+  try {
+    const answer = canWrite(login);
+    return typeof answer === "boolean" ? answer : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A permission reader that can read nothing: every marker stays uncounted. */
+const UNREAD_PERMISSIONS = () => null;
+
+/**
+ * Why one comment carrying the marker does not count, or null when it does.
+ * @param {string} body - The comment body, which contains the marker.
+ * @param {string} marker - The marker for this reviewer at this head.
+ * @param {() => boolean|null} isWriter - The author's permission, read on demand.
+ * @returns {string|null} One of {@link SUBSTITUTE_REFUSALS}, or null.
+ */
+function substituteRefusal(body, marker, isWriter) {
+  if (body.split("\n")[0].replace(/\r$/u, "") !== marker) {
+    return SUBSTITUTE_REFUSALS.notFirstLine;
+  }
+  const writer = isWriter();
+  if (writer === null) return SUBSTITUTE_REFUSALS.permissionUnreadable;
+  return writer ? null : SUBSTITUTE_REFUSALS.noWriteAccess;
+}
+
+/**
+ * Judge every comment that carries this reviewer's marker at this commit.
+ *
+ * The merge-path gate's rule (`check-skipped-required-checks.mjs`
+ * `substitutesAtHead`), applied here so the two arms stop publishing opposite
+ * verdicts for one head (#4528, #4628). The repository is public, so anyone
+ * can type the marker:
+ *
+ *  - the marker must be the comment's FIRST LINE, ignoring a trailing `\r` —
+ *    a comment that quotes it, such as instructions or a pasted log, is not a
+ *    review;
+ *  - the author must hold write, maintain or admin permission — only someone
+ *    who could have merged anyway can vouch for a review. A login the
+ *    permission reader rejects, and a bot, which is no collaborator, never
+ *    count;
+ *  - a permission that cannot be read fails closed.
+ *
+ * Both halves of the marker must match as well. A substitute posted for a
+ * different reviewer says nothing about this one, and one posted against an
+ * earlier head reviewed code that is no longer what would merge — review
+ * evidence decays on every push. A comment that carries neither this
+ * reviewer's nor this head's marker is not a candidate, so it is not refused.
+ *
+ * The rule is duplicated rather than imported, as the gate's marker is: the
+ * two scripts ship from different template trees. A parity test feeds both the
+ * same comments and expects the same decisions.
  * @param {object} options - Search inputs.
- * @param {ReadonlyArray<{body?: string}>} options.comments - Issue comments on the pull request.
+ * @param {ReadonlyArray<{body?: string, user?: {login?: string}}>} options.comments - Issue comments on the pull request.
  * @param {string} options.context - The reviewer's status context.
  * @param {string} options.sha - The head commit.
- * @returns {boolean} Whether a matching substitute exists.
+ * @param {(login: string) => boolean|null} [options.canWrite] - Whether a login holds write access; null when unreadable. Absent reads nothing, so nothing counts.
+ * @returns {{counted: boolean, refused: Array<{author: string, reason: string}>}} Whether a writer's substitute stands, and every marker that does not.
  */
-export function substitutePosted({ comments, context, sha }) {
+export function judgeSubstitutes({
+  comments,
+  context,
+  sha,
+  canWrite = UNREAD_PERMISSIONS,
+}) {
   const marker = substituteMarker({ context, sha });
-  return (comments ?? []).some(comment =>
-    String(comment?.body ?? "").includes(marker)
-  );
+  const permission = rememberPermissions(canWrite);
+  const judged = (comments ?? [])
+    .map(comment => ({
+      body: String(comment?.body ?? ""),
+      author: String(comment?.user?.login ?? ""),
+    }))
+    .filter(({ body }) => body.includes(marker))
+    .map(({ body, author }) => ({
+      author,
+      reason: substituteRefusal(body, marker, () => permission(author)),
+    }));
+  return {
+    counted: judged.some(entry => entry.reason === null),
+    refused: judged.filter(entry => entry.reason !== null),
+  };
+}
+
+/**
+ * Whether a writer posted a substitute review for this reviewer at this commit.
+ * @param {object} options - Search inputs, as {@link judgeSubstitutes} takes them.
+ * @param {ReadonlyArray<{body?: string, user?: {login?: string}}>} options.comments - Issue comments on the pull request.
+ * @param {string} options.context - The reviewer's status context.
+ * @param {string} options.sha - The head commit.
+ * @param {(login: string) => boolean|null} [options.canWrite] - Whether a login holds write access.
+ * @returns {boolean} Whether a writer's first-line substitute exists.
+ */
+export function substitutePosted(options) {
+  return judgeSubstitutes(options).counted;
 }
 
 /**
@@ -412,27 +1222,45 @@ export function reviewStanding({ reviews, sha }) {
 /**
  * Decide the whole question for one commit.
  *
- * Four outcomes, and the first is not a pass. `no-reviewer-configured` means
+ * A no-op is not a pass. `no-reviewer-configured` means
  * this project declared no third-party reviewer, which is a legitimate state
  * that must be SAID rather than passed through in silence.
  * @param {object} options - Decision inputs.
- * @param {Array<{gateId: string, context: string, proof: string[]}>} options.reviewers - Declared reviewers.
- * @param {ReadonlyArray<object>} options.statuses - Statuses on the head commit.
- * @param {ReadonlyArray<{body?: string}>} options.comments - Issue comments on the pull request.
+ * @param {Array<{gateId: string, context: string, proof: string[], postedBy?: unknown, reviewBy?: string}>} options.reviewers - Declared reviewers.
+ * @param {ReadonlyArray<object>|null} options.statuses - Statuses on the head commit; null when the read failed.
+ * @param {Record<string, ReadonlyArray<RawCheckRun>|null>} [options.checkRuns] -
+ *   Check runs read for each reviewer's context, keyed by that context; a null
+ *   entry is a read that failed, and a missing key is a reviewer whose runs
+ *   were not read.
+ * @param {ReadonlyArray<{body?: string, user?: {login?: string}}>|null} options.comments - Issue comments on the pull request; null when they could not all be read, which counts no substitute.
+ * @param {ReadonlyArray<object>|null} [options.reviews] - Review objects on the pull request, for reviewers whose gate names `evidence.review_by`; null when the read failed.
  * @param {string} options.sha - The head commit.
- * @param {boolean} [options.isPullRequestHead] - Whether an open pull request has this commit as its head.
- * @returns {{outcome: string, sha: string, readings: Array<object>}} The verdict.
+ * @param {boolean|null} [options.isPullRequestHead] - Whether an open pull request has this commit as its head; null when the read failed.
+ * @param {(login: string) => boolean|null} [options.canWrite] -
+ *   Whether a comment author holds write access; null when unreadable. Absent
+ *   reads nothing, so no substitute counts — see {@link judgeSubstitutes}.
+ * @returns {{outcome: string, sha: string, readings: Array<EvidenceReading & {gateId: string, substituted: boolean, substituteRefusals?: Array<{author: string, reason: string}>}>}} The verdict.
  */
 export function reviewEvidenceVerdict({
   reviewers,
   statuses,
+  checkRuns,
   comments,
+  reviews = [],
   sha,
   isPullRequestHead = true,
+  canWrite = UNREAD_PERMISSIONS,
 }) {
   if ((reviewers ?? []).length === 0) {
     return {
       outcome: EVIDENCE_OUTCOMES.noReviewerConfigured,
+      sha,
+      readings: [],
+    };
+  }
+  if (isPullRequestHead === null) {
+    return {
+      outcome: EVIDENCE_OUTCOMES.pullRequestsUnreadable,
       sha,
       readings: [],
     };
@@ -444,14 +1272,35 @@ export function reviewEvidenceVerdict({
       readings: [],
     };
   }
+  const permission = rememberPermissions(canWrite);
   const readings = reviewers.map(reviewer => {
-    const reading = readReviewerEvidence({ reviewer, statuses });
+    const reading = readReviewerEvidence({
+      reviewer,
+      statuses,
+      checkRuns:
+        checkRuns && Object.hasOwn(checkRuns, reviewer.context)
+          ? checkRuns[reviewer.context]
+          : undefined,
+      sha,
+      reviews,
+    });
+    if (reading.reviewed) {
+      return { ...reading, gateId: reviewer.gateId, substituted: false };
+    }
+    const judged = judgeSubstitutes({
+      comments: comments ?? [],
+      context: reviewer.context,
+      sha,
+      canWrite: permission,
+    });
     return {
       ...reading,
       gateId: reviewer.gateId,
-      substituted:
-        !reading.reviewed &&
-        substitutePosted({ comments, context: reviewer.context, sha }),
+      substituted: judged.counted,
+      substituteRefusals: judged.refused,
+      // Comments that could not all be read count no substitute, and the
+      // report says why rather than claiming nothing stands in.
+      ...(comments === null ? { commentsUnreadable: true } : {}),
     };
   });
   if (readings.every(reading => reading.reviewed)) {
@@ -475,8 +1324,421 @@ export function reviewEvidenceVerdict({
 }
 
 /**
+ * What the merge driver does after the arm decision (#4653).
+ *
+ * Only `arm` turns auto-merge on. Every other action leaves it off, and names
+ * the next step so the caller never has to re-derive it from a verdict.
+ */
+export const ARM_ACTIONS = Object.freeze({
+  /** Every engaged signal proved work. Turn auto-merge on. */
+  arm: "arm",
+  /** Nothing read this head. Post the local adversarial review, then decide again. */
+  substitute: "substitute",
+  /** Not an answer yet. Do not arm; keep driving. */
+  watch: "watch",
+  /** A review ran and objected. A real blocker. */
+  blocker: "blocker",
+  /** A read the decision depends on failed. Stop under the access gate. */
+  stop: "stop",
+});
+
+/**
+ * Classifier violation kinds that say the review context did no work, which a
+ * writer's substitute for this head may stand in for.
+ */
+const SUBSTITUTABLE_KINDS = new Set([
+  "review_evidence_waived",
+  "review_evidence_carried_unreviewed",
+  "vacuous_required_check",
+  "unproven_required_check",
+  "absent_required_check",
+]);
+
+/** The classifier's refusal that means it has nothing declared to read. */
+const VACUITY_NONE_DECLARED = "vacuity_none_declared";
+
+/** The proof phrase that proves work was done AND that the work objected. */
+const OBJECTING_PROOF = normalizeDescription("Changes requested");
+
+/** Which non-arm action wins when signals disagree; earlier wins. */
+const ACTION_PRIORITY = [
+  ARM_ACTIONS.stop,
+  ARM_ACTIONS.blocker,
+  ARM_ACTIONS.watch,
+  ARM_ACTIONS.substitute,
+];
+
+/**
+ * One signal's answer.
+ * @param {string} action - One of {@link ARM_ACTIONS}.
+ * @param {string} reason - Why, in an operator's words.
+ * @returns {{engaged: boolean, action: string, reason: string, viaSubstitute?: boolean}} The signal.
+ */
+const engagedSignal = (action, reason) => ({ engaged: true, action, reason });
+
+/** A signal that has nothing declared to read. */
+const NOT_ENGAGED = Object.freeze({
+  engaged: false,
+  action: ARM_ACTIONS.arm,
+  reason: "",
+});
+
+/**
+ * Whether every given context has a writer's first-line substitute at this head.
+ * @param {ReadonlyArray<string>} contexts - Contexts that showed no review.
+ * @param {ReadonlySet<string>} substitutes - Contexts a writer substituted for.
+ * @returns {boolean} True only when there is something to cover and all of it is.
+ */
+const allSubstituted = (contexts, substitutes) =>
+  contexts.length > 0 && contexts.every(context => substitutes.has(context));
+
+/**
+ * What the config-declared reviewer says about arming.
+ *
+ * A substitute counts here only as the first line of a comment by someone with
+ * write access — the classifier's rule, for the same reason: arming turns a
+ * blocking verdict into a merge. The response arm's own `substituted` outcome
+ * applies the same rule, over every page of comments, since #4628; the arm
+ * still reads the substitutes itself because it answers for every context at
+ * once. A `Changes requested` proof proves the reviewer worked, not that the
+ * head may merge.
+ * @param {{outcome: string, readings?: ReadonlyArray<{context: string, reviewed: boolean, observed?: string|null}>}} evidence - This prover's verdict.
+ * @param {ReadonlySet<string>} substitutes - Contexts a writer substituted for at this head.
+ * @returns {{engaged: boolean, action: string, reason: string, viaSubstitute?: boolean}} The signal.
+ */
+function evidenceSignal(evidence, substitutes) {
+  const readings = evidence.readings ?? [];
+  const unreviewed = readings
+    .filter(reading => !reading.reviewed)
+    .map(reading => reading.context);
+  if (evidence.outcome === EVIDENCE_OUTCOMES.noReviewerConfigured) {
+    return NOT_ENGAGED;
+  }
+  if (evidence.outcome === EVIDENCE_OUTCOMES.pullRequestsUnreadable) {
+    return engagedSignal(
+      ARM_ACTIONS.stop,
+      "the pull requests could not be read, so the review is unknown"
+    );
+  }
+  // Under EVERY outcome, not only `satisfied`: one reviewer's objection is
+  // not cancelled by another reviewer's substitute.
+  if (
+    readings.some(
+      reading =>
+        (reading.objection ?? normalizeDescription(reading.observed)) ===
+        OBJECTING_PROOF
+    )
+  ) {
+    return engagedSignal(
+      ARM_ACTIONS.blocker,
+      "a configured reviewer requested changes"
+    );
+  }
+  // A substitute never stands in for a review still in flight: armed now, the
+  // latch would merge on whatever that review concludes, objection included.
+  if (readings.some(reading => reading.reading === EVIDENCE_READINGS.pending)) {
+    return engagedSignal(
+      ARM_ACTIONS.watch,
+      "a configured reviewer is still running"
+    );
+  }
+  switch (evidence.outcome) {
+    case EVIDENCE_OUTCOMES.satisfied:
+      return engagedSignal(
+        ARM_ACTIONS.arm,
+        "every configured reviewer showed its reviewed-when evidence"
+      );
+    case EVIDENCE_OUTCOMES.substituted:
+    case EVIDENCE_OUTCOMES.unsatisfied:
+      return allSubstituted(unreviewed, substitutes)
+        ? {
+            ...engagedSignal(
+              ARM_ACTIONS.arm,
+              "a writer's first-line substitute review is posted for this head"
+            ),
+            viaSubstitute: true,
+          }
+        : engagedSignal(
+            ARM_ACTIONS.substitute,
+            "a configured reviewer showed no evidence it read this head, and no writer's first-line substitute stands in for it"
+          );
+    default:
+      return engagedSignal(
+        ARM_ACTIONS.watch,
+        `the reviewer evidence is not an answer yet (${evidence.outcome})`
+      );
+  }
+}
+
+/**
+ * The action one classifier violation calls for, or null when it says nothing
+ * about the review context.
+ * @param {{kind?: string, condition?: string, contexts?: string[]}} violation - One violation.
+ * @param {ReadonlySet<string>} substitutes - Contexts a writer substituted for at this head.
+ * @param {ReadonlySet<string>|null} reviewContexts - The classifier's review contexts; null when unknown.
+ * @returns {string|null} One of {@link ARM_ACTIONS}, or null.
+ */
+function violationAction(violation, substitutes, reviewContexts) {
+  const kind = String(violation?.kind ?? "");
+  const named = violationContexts(violation);
+  // vacuous / unproven / absent name ANY required check, a CI job included.
+  // Only a review context's absence is a review signal; a CI job that has not
+  // reported yet is GitHub's to wait for, and the latch already does.
+  if (
+    !kind.startsWith("review_evidence_") &&
+    reviewContexts !== null &&
+    !named.some(name => reviewContexts.has(name))
+  ) {
+    return null;
+  }
+  const condition = String(violation?.condition ?? "");
+  if (kind === "review_evidence_objected") return ARM_ACTIONS.blocker;
+  if (kind === "review_evidence_objection_unread") return ARM_ACTIONS.stop;
+  if (kind === "review_evidence_unsatisfied" && condition === "objected") {
+    return ARM_ACTIONS.blocker;
+  }
+  if (kind === "review_evidence_unsatisfied" && condition === "pending") {
+    return ARM_ACTIONS.watch;
+  }
+  const substitutable =
+    SUBSTITUTABLE_KINDS.has(kind) || kind === "review_evidence_unsatisfied";
+  // A review kind this file does not know — a newer classifier's — is not
+  // evidence of work. Fail closed rather than read it as silence.
+  if (!substitutable) {
+    return kind.startsWith("review_evidence_") ? ARM_ACTIONS.watch : null;
+  }
+  return allSubstituted(
+    reviewContexts === null
+      ? named
+      : named.filter(name => reviewContexts.has(name)),
+    substitutes
+  )
+    ? null
+    : ARM_ACTIONS.substitute;
+}
+
+/**
+ * The check names one classifier violation is about.
+ * @param {{contexts?: unknown, token?: unknown}} violation - One violation.
+ * @returns {string[]} Its contexts, else its token, else nothing.
+ */
+function violationContexts(violation) {
+  if (Array.isArray(violation?.contexts) && violation.contexts.length > 0) {
+    return violation.contexts.map(String);
+  }
+  return typeof violation?.token === "string" ? [violation.token] : [];
+}
+
+/**
+ * The review contexts the classifier judged, or null when it did not say.
+ *
+ * Null fails closed: every vacuous, unproven or absent check is then read as a
+ * possible review context.
+ * @param {any} report - The classifier report.
+ * @returns {Set<string>|null} The evidence-bearing check names.
+ */
+function reviewContextsOf(report) {
+  const states = report?.vacuity?.gateStates;
+  return states && typeof states === "object" && Object.keys(states).length > 0
+    ? new Set(Object.keys(states))
+    : null;
+}
+
+/**
+ * What the vacuity classifier says about arming, where a host ships one.
+ *
+ * An allowlist: it proves work only when it inspected, trusted its own
+ * declaration, read THIS head, and found nothing wrong with the review context.
+ * @param {object|null} vacuity - `check-skipped-required-checks.mjs --vacuity --json` output, or null.
+ * @param {{sha: string, substitutes: ReadonlySet<string>, classifierDeclared: boolean}} context - The head and what else is known.
+ * @returns {{engaged: boolean, action: string, reason: string, viaSubstitute?: boolean}} The signal.
+ */
+function vacuitySignal(vacuity, { sha, substitutes, classifierDeclared }) {
+  const report = /** @type {any} */ (vacuity);
+  if (report === null || report === undefined) {
+    return classifierDeclared
+      ? engagedSignal(
+          ARM_ACTIONS.watch,
+          ".github/required-checks.json declares an evidence-bearing check, but no --vacuity-report was passed"
+        )
+      : NOT_ENGAGED;
+  }
+  const refusal = report.vacuity?.refusal?.kind ?? report.refusal?.kind ?? null;
+  if (refusal === VACUITY_NONE_DECLARED) {
+    return classifierDeclared
+      ? engagedSignal(
+          ARM_ACTIONS.watch,
+          "the vacuity report says nothing is declared, but .github/required-checks.json declares an evidence-bearing check"
+        )
+      : NOT_ENGAGED;
+  }
+  if (report.inspected !== true || report.answered === false) {
+    return engagedSignal(
+      ARM_ACTIONS.watch,
+      `the vacuity classifier did not answer (${refusal ?? "uninspected"}); an empty inspection is not a pass`
+    );
+  }
+  const reportSha = report.vacuity?.headSha ?? report.headSha ?? null;
+  if (reportSha !== sha) {
+    return engagedSignal(
+      ARM_ACTIONS.watch,
+      `the vacuity report is for ${reportSha ?? "an unnamed head"}, not ${sha}`
+    );
+  }
+  const reviewContexts = reviewContextsOf(report);
+  const violations = [
+    ...(report.violations ?? []),
+    ...(report.vacuity?.violations ?? []),
+  ];
+  const actions = violations
+    .map(violation => violationAction(violation, substitutes, reviewContexts))
+    .filter(action => action !== null);
+  if (actions.length === 0) {
+    // Clean only because a substitute covered it: the arm is head-scoped.
+    const viaSubstitute = violations.some(
+      violation =>
+        violationAction(violation, new Set(), reviewContexts) ===
+        ARM_ACTIONS.substitute
+    );
+    return {
+      ...engagedSignal(
+        ARM_ACTIONS.arm,
+        viaSubstitute
+          ? "a writer's substitute covers the declared review check at this head"
+          : "the declared review check did work at this head"
+      ),
+      viaSubstitute,
+    };
+  }
+  const [first] = [...actions].sort(byPriority);
+  return engagedSignal(first, "the declared review check did not prove work");
+}
+
+/**
+ * Order actions so the most serious comes first.
+ * @param {string} left - An action.
+ * @param {string} right - An action.
+ * @returns {number} Sort order.
+ */
+const byPriority = (left, right) =>
+  ACTION_PRIORITY.indexOf(left) - ACTION_PRIORITY.indexOf(right);
+
+/**
+ * Decide whether auto-merge may be armed (#4653).
+ *
+ * The gate engages on EITHER declaration: a reviewer in `.lisa.config.json`
+ * (this prover, which ships to every stack), or an evidence-bearing check in
+ * `.github/required-checks.json` (the vacuity classifier, which ships only to
+ * TypeScript-family hosts). Keying it to the second alone left every other
+ * stack arming against a rate-limited `neutral` check run. Arming requires
+ * every engaged signal to say arm; with neither engaged there is no review
+ * context to protect, and arming is unchanged. A standing objection at the
+ * head blocks whatever the signals say.
+ * @param {object} options - Decision inputs.
+ * @param {{outcome: string, sha?: string, readings?: ReadonlyArray<object>}} options.evidence - This prover's verdict for the head.
+ * @param {object|null} [options.vacuity] - The vacuity classifier's JSON report, or null.
+ * @param {string} [options.sha] - The head commit being decided.
+ * @param {ReadonlySet<string>} [options.substitutes] - Contexts a writer posted a first-line substitute for at this head.
+ * @param {number|null} [options.objections] - `CHANGES_REQUESTED` reviews at this head; null when they could not be read.
+ * @param {boolean} [options.classifierDeclared] - Whether `required-checks.json` declares an evidence-bearing check.
+ * @param {boolean} [options.projectRoot] - Whether the root read has a `.lisa.config.json`; false means the declarations were never seen.
+ * @returns {{arm: boolean, action: string, reason: string, engaged: {reviewer: boolean, vacuity: boolean}, basis?: "review"|"substitute"|"none"}} The decision; `basis` is set only when arming.
+ */
+export function armDecision({
+  evidence,
+  vacuity = null,
+  sha = evidence.sha,
+  substitutes = new Set(),
+  objections = 0,
+  classifierDeclared = false,
+  projectRoot = true,
+}) {
+  // An empty declaration read from the wrong directory looks exactly like a
+  // project that declares nothing, which is the one case that arms.
+  if (!projectRoot) {
+    return {
+      arm: false,
+      action: ARM_ACTIONS.stop,
+      reason:
+        "no .lisa.config.json at --root, so the reviewer declarations were never read; run from the project root",
+      engaged: { reviewer: false, vacuity: false },
+    };
+  }
+  const reviewer = evidenceSignal(evidence, substitutes);
+  const classifier = vacuitySignal(vacuity, {
+    sha,
+    substitutes,
+    classifierDeclared,
+  });
+  const engaged = { reviewer: reviewer.engaged, vacuity: classifier.engaged };
+  const reviewEngaged = reviewer.engaged || classifier.engaged;
+  const standing =
+    objections === null && reviewEngaged
+      ? engagedSignal(
+          ARM_ACTIONS.stop,
+          "the reviews on this pull request could not be read, or the repository is unknown"
+        )
+      : (objections ?? 0) > 0
+        ? engagedSignal(
+            ARM_ACTIONS.blocker,
+            "a review requested changes and has not been approved or dismissed since"
+          )
+        : NOT_ENGAGED;
+  const signals = [standing, reviewer, classifier];
+  const held = signals.filter(
+    signal => signal.engaged && signal.action !== ARM_ACTIONS.arm
+  );
+  if (held.length === 0) {
+    const proving = signals.filter(signal => signal.engaged);
+    // `substitute` means the latch is authorised for THIS head only: a push
+    // makes a new head that no substitute covers, so the caller must disarm
+    // before pushing and decide again afterwards.
+    const basis = proving.some(signal => signal.viaSubstitute === true)
+      ? "substitute"
+      : proving.length === 0
+        ? "none"
+        : "review";
+    return {
+      arm: true,
+      action: ARM_ACTIONS.arm,
+      basis,
+      reason:
+        proving.length === 0
+          ? "no review context is declared anywhere; nothing to withhold the latch from"
+          : proving.map(signal => signal.reason).join("; "),
+      engaged,
+    };
+  }
+  const [first] = [...held].sort((left, right) =>
+    byPriority(left.action, right.action)
+  );
+  return {
+    arm: false,
+    action: first.action,
+    reason: held.map(signal => signal.reason).join("; "),
+    engaged,
+  };
+}
+
+/**
+ * A reading as the report prints it.
+ * @typedef {object} ReportedReading
+ * @property {string} context - The reviewer's context.
+ * @property {boolean} reviewed - Whether it is evidence of a review.
+ * @property {string} reading - One of {@link EVIDENCE_READINGS}.
+ * @property {string|null} observed - The words that decided, verbatim.
+ * @property {string|null} state - The state, conclusion or lifecycle seen.
+ * @property {string|null} [source] - One of {@link EVIDENCE_SOURCES}.
+ * @property {boolean} [substituted] - Whether a writer's substitute stands in.
+ * @property {boolean} [commentsUnreadable] - Whether the comments a substitute would be in could not all be read.
+ * @property {Array<{author: string, reason: string}>} [substituteRefusals] - Markers not counted, by whom, and why.
+ * @property {Array<{id: unknown, reason: string}>} [ignoredCheckRuns] - Runs set aside, and why.
+ * @property {Array<{context: string, state?: string|null, description?: string|null, reason: string}>} [ignoredStatuses] - Statuses refused under a pinned gate, and why.
+ */
+
+/**
  * One operator-readable line per reviewer, plus the headline.
- * @param {{outcome: string, sha: string, readings: Array<object>}} verdict - A verdict.
+ * @param {{outcome: string, sha: string, readings: ReadonlyArray<ReportedReading>}} verdict - A verdict.
  * @returns {string} The report.
  */
 export function humanReport(verdict) {
@@ -491,9 +1753,16 @@ export function humanReport(verdict) {
   }
   if (verdict.outcome === EVIDENCE_OUTCOMES.notAConfiguredReviewer) {
     return (
-      `NO-OP — the triggering status belongs to no declared reviewer.\n` +
-      `Reviewers ARE configured; this status is not one of theirs, so it ` +
+      `NO-OP — the triggering status or check run belongs to no declared reviewer.\n` +
+      `Reviewers ARE configured; this one is not one of theirs, so it ` +
       `cannot change the answer. This is a no-op, NOT a pass.`
+    );
+  }
+  if (verdict.outcome === EVIDENCE_OUTCOMES.pullRequestsUnreadable) {
+    return (
+      `UNREADABLE — the open pull requests for ${verdict.sha} could not be read, ` +
+      `so nothing here can say whether it is a pull request head. ` +
+      `This is NOT a no-op.`
     );
   }
   if (verdict.outcome === EVIDENCE_OUTCOMES.notAPullRequestHead) {
@@ -504,27 +1773,117 @@ export function humanReport(verdict) {
     );
   }
   const lines = verdict.readings.map(reading => {
-    const seen =
-      reading.observed === null
-        ? "no status posted"
-        : `${reading.state ?? "?"} — ${JSON.stringify(reading.observed)}`;
-    if (reading.reviewed) return `  reviewed     ${reading.context}: ${seen}`;
+    const seen = describeSeen(reading);
+    const ignored = setAsideLines(reading);
+    if (reading.reviewed) {
+      return [`  reviewed     ${reading.context}: ${seen}`, ...ignored].join(
+        "\n"
+      );
+    }
     const stood = reading.substituted
-      ? "a local adversarial review was posted in its place"
-      : "NOTHING stands in its place";
-    return (
-      `  NOT REVIEWED ${reading.context} (${reading.reading}): ${seen}\n` +
-      `    observed: ${READING_SENTENCES[reading.reading]}\n` +
-      `    ${stood}`
+      ? "a writer's local adversarial review was posted in its place"
+      : reading.commentsUnreadable
+        ? "the pull request's comments could not be read, so no substitute was counted"
+        : "NOTHING stands in its place";
+    const refused = (reading.substituteRefusals ?? []).map(
+      entry =>
+        `    substitute marker by @${entry.author || "(unknown author)"} not counted: ${entry.reason}`
     );
+    return [
+      `  NOT REVIEWED ${reading.context} (${reading.reading}): ${seen}`,
+      `    observed: ${observedSentence(reading)}`,
+      `    ${stood}`,
+      ...refused,
+      ...ignored,
+    ].join("\n");
   });
   return `${verdict.outcome.toUpperCase()} at ${verdict.sha}\n${lines.join("\n")}`;
 }
 
 /**
+ * One report line per run or status set aside for a reviewer, with its reason.
+ *
+ * A refused status is printed with what it said — its state and description —
+ * so an operator can see the `Review completed` (or the `Changes requested`)
+ * that did not count, not just that something was refused.
+ * @param {ReportedReading} reading - One reading.
+ * @returns {string[]} The lines, empty when nothing was set aside.
+ */
+function setAsideLines(reading) {
+  return [
+    ...(reading.ignoredCheckRuns ?? []).map(
+      entry => `    ignored check run ${String(entry.id)}: ${entry.reason}`
+    ),
+    ...(reading.ignoredStatuses ?? []).map(
+      entry =>
+        `    ignored status ${JSON.stringify(entry.context)} ` +
+        `(${entry.state ?? "?"} — ${JSON.stringify(entry.description ?? null)}): ${entry.reason}`
+    ),
+  ];
+}
+
+/**
+ * What was seen for one reviewer, in the words the report prints.
+ *
+ * A reading without a `source` — one built before check runs were read — is
+ * placed by whether it observed anything, which is how it was always printed.
+ * @param {{reading: string, observed: string|null, state: string|null, source?: string|null}} reading - One reading.
+ * @returns {string} The observation.
+ */
+function describeSeen(reading) {
+  if (reading.reading === EVIDENCE_READINGS.unreadable) {
+    return "its statuses or check runs could not be read";
+  }
+  const source =
+    reading.source ??
+    (reading.observed === null ? null : EVIDENCE_SOURCES.status);
+  const words = `${reading.state ?? "?"} — ${JSON.stringify(reading.observed)}`;
+  if (source === EVIDENCE_SOURCES.checkRun) return `check run ${words}`;
+  if (source === EVIDENCE_SOURCES.status) return words;
+  if (setAsideAny(reading)) {
+    return "evidence was posted under its name, but none of it could count";
+  }
+  return "no status or check run posted";
+}
+
+/**
+ * Whether anything under the reviewer's name was read and then set aside.
+ *
+ * An `absent` reading with something set aside is not "nothing was there":
+ * a status a pinned gate refused (#4652), or a run from another app or for
+ * another head, WAS there. Saying "nothing was posted" above the very lines
+ * that list it would contradict the report, so the wording changes — and only
+ * then, so a head where truly nothing was posted reads exactly as before.
+ * @param {{ignoredCheckRuns?: ReadonlyArray<unknown>, ignoredStatuses?: ReadonlyArray<unknown>}} reading - One reading.
+ * @returns {boolean} True when at least one status or run was set aside.
+ */
+function setAsideAny(reading) {
+  return (
+    (reading.ignoredCheckRuns ?? []).length > 0 ||
+    (reading.ignoredStatuses ?? []).length > 0
+  );
+}
+
+/**
+ * The `observed:` sentence for a reading that is not evidence of a review.
+ * @param {{reading: string, ignoredCheckRuns?: ReadonlyArray<unknown>, ignoredStatuses?: ReadonlyArray<unknown>}} reading - One reading.
+ * @returns {string} The sentence.
+ */
+function observedSentence(reading) {
+  if (reading.reading === EVIDENCE_READINGS.absent && setAsideAny(reading)) {
+    return (
+      "a status or check run was posted under this reviewer's name, but none " +
+      "of it could count as the reviewer's evidence — each one set aside is " +
+      "listed below with the reason"
+    );
+  }
+  return READING_SENTENCES[reading.reading];
+}
+
+/**
  * Parse the CLI arguments.
  * @param {string[]} argv - Arguments after the script path.
- * @returns {{sha: string|null, context: string|null, root: string, repo: string|null, json: boolean}} Options.
+ * @returns {{sha: string|null, context: string|null, root: string, repo: string|null, json: boolean, arm: boolean, "vacuity-report": string|null, publish: string|null, "prover-exit": string|null}} Options.
  */
 export function parseArgs(argv) {
   const opts = {
@@ -533,11 +1892,15 @@ export function parseArgs(argv) {
     root: process.cwd(),
     repo: null,
     json: false,
+    arm: false,
+    "vacuity-report": null,
+    publish: null,
+    "prover-exit": null,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
-    if (arg === "--json") {
-      opts.json = true;
+    if (arg === "--json" || arg === "--arm") {
+      opts[arg.slice(2)] = true;
       continue;
     }
     const [flag, inline] = arg.startsWith("--") ? splitFlag(arg) : [null, null];
@@ -570,19 +1933,38 @@ function splitFlag(arg) {
  *
  * `gh` is asked for a path rather than handed a query, and the child is bounded
  * — a guard whose child never returned would otherwise report a verdict it
- * never reached. A failed read returns `null`, which the callers turn into
- * "absent", so a broken read can only ever make this stricter.
+ * never reached. A failed read returns `null`. A failed pull-request, status
+ * or check-run read is reported as unreadable rather than as evidence of
+ * anything — except that a
+ * failed check-run read leaves the reviewer's own status standing, so a host
+ * whose token cannot read check runs keeps reading statuses as before.
  * @param {string} path - The API path.
+ * @param {GhRunner} [gh] - The `gh` runner.
  * @returns {unknown} The parsed body, or null.
  */
-function ghJson(path) {
+function ghJson(path, gh = runGh) {
   try {
-    return JSON.parse(
-      boundedExecFileSync("gh", ["api", path], { encoding: "utf8" })
-    );
+    return JSON.parse(gh(["api", path]));
   } catch {
+    // probe-direction: fail-closed — a failed read is null, which every caller reports as unreadable rather than as evidence.
     return null;
   }
+}
+
+/**
+ * Runs `gh` with these arguments and returns its stdout; throws when it fails.
+ * @callback GhRunner
+ * @param {string[]} args - Arguments after `gh`.
+ * @returns {string} Its stdout.
+ */
+
+/**
+ * The live `gh` runner: bounded, so a child that never answers is a failed
+ * read rather than a verdict.
+ * @type {GhRunner}
+ */
+function runGh(args) {
+  return boundedExecFileSync("gh", args, { encoding: "utf8" });
 }
 
 /**
@@ -591,13 +1973,54 @@ function ghJson(path) {
  * `repos/{repo}/commits/{sha}/status` and NOT `gh pr view --json
  * statusCheckRollup` — verified, the rollup returns a `StatusContext` with no
  * `description` key at all, so hollow green is invisible through it.
+ * A read that failed returns null rather than an empty list, so the reading
+ * can say the statuses could not be read instead of claiming there were none.
+ *
+ * The endpoint pages `statuses` at 30 unless asked for more, and reports how
+ * many contexts there are in `total_count` (#4630). A full page of 100 is
+ * asked for, and a response that admits to more than it returned is reported
+ * as unreadable — the rule {@link readCheckRuns} keeps — because the
+ * reviewer's status could be on the page that was not read, and reading it as
+ * absent would be a claim nothing here observed.
  * @param {string} repo - `owner/repo`.
  * @param {string} sha - The commit.
- * @returns {ReadonlyArray<object>} The statuses, newest first.
+ * @param {GhRunner} [gh] - The `gh` runner, injectable so a paged or incomplete response can be fed in.
+ * @returns {ReadonlyArray<object>|null} The statuses, newest first, or null when they could not all be read.
  */
-function readStatuses(repo, sha) {
-  const body = ghJson(`repos/${repo}/commits/${sha}/status`);
-  return Array.isArray(body?.statuses) ? body.statuses : [];
+export function readStatuses(repo, sha, gh = runGh) {
+  const body = /** @type {{total_count?: unknown, statuses?: unknown}|null} */ (
+    ghJson(`repos/${repo}/commits/${sha}/status?per_page=100`, gh)
+  );
+  if (!Array.isArray(body?.statuses)) return null;
+  const total = body?.total_count;
+  if (typeof total === "number" && total > body.statuses.length) return null;
+  return body.statuses;
+}
+
+/**
+ * The check runs on one commit that carry one reviewer's name.
+ *
+ * Filtered by name at the source: a head here carries around sixty check runs,
+ * past the endpoint's default page of thirty, so an unfiltered first page can
+ * simply not contain the reviewer's run. A response that admits to more rows
+ * than it returned is incomplete, and an incomplete read is reported as a
+ * failed one — the newest run could be on the page that was not read.
+ * @param {string} repo - `owner/repo`.
+ * @param {string} sha - The commit.
+ * @param {string} context - The reviewer's declared context, which is its run name.
+ * @returns {ReadonlyArray<RawCheckRun>|null} The runs, or null when they could not all be read.
+ */
+function readCheckRuns(repo, sha, context) {
+  const body =
+    /** @type {{total_count?: unknown, check_runs?: unknown}|null} */ (
+      ghJson(
+        `repos/${repo}/commits/${sha}/check-runs?check_name=${encodeURIComponent(context)}&per_page=100`
+      )
+    );
+  if (!Array.isArray(body?.check_runs)) return null;
+  const total = body?.total_count;
+  if (typeof total === "number" && total > body.check_runs.length) return null;
+  return body.check_runs;
 }
 
 /**
@@ -608,11 +2031,11 @@ function readStatuses(repo, sha) {
  * redden pull requests for their ancestors' statuses.
  * @param {string} repo - `owner/repo`.
  * @param {string} sha - The commit.
- * @returns {number[]} The pull request numbers.
+ * @returns {number[]|null} The pull request numbers, or null when the read failed or was not a list.
  */
 function readHeadPulls(repo, sha) {
   const pulls = ghJson(`repos/${repo}/commits/${sha}/pulls`);
-  if (!Array.isArray(pulls)) return [];
+  if (!Array.isArray(pulls)) return null;
   return pulls
     .filter(
       pull =>
@@ -624,28 +2047,686 @@ function readHeadPulls(repo, sha) {
 }
 
 /**
- * Issue comments on the given pull requests.
+ * Which check-run reader a run uses.
+ *
+ * A caller that injected the status reader supplies the evidence itself, so it
+ * gets no check runs rather than a live read mixed into its fixture.
+ * @param {{statuses?: unknown, checkRuns?: (sha: string, context: string) => ReadonlyArray<RawCheckRun>|null}} io - Injected side effects.
+ * @param {string} repo - `owner/repo`.
+ * @returns {(sha: string, context: string) => ReadonlyArray<RawCheckRun>|null} The reader.
+ */
+function checkRunReader(io, repo) {
+  if (io.checkRuns) return io.checkRuns;
+  if (io.statuses) return () => [];
+  return (sha, context) => readCheckRuns(repo, sha, context);
+}
+
+/**
+ * Which status reader a run uses — the same rule, the other way round.
+ * @param {{statuses?: (sha: string) => ReadonlyArray<object>|null, checkRuns?: unknown}} io - Injected side effects.
+ * @param {string} repo - `owner/repo`.
+ * @returns {(sha: string) => ReadonlyArray<object>|null} The reader.
+ */
+function statusReader(io, repo) {
+  if (io.statuses) return io.statuses;
+  if (io.checkRuns) return () => [];
+  return sha => readStatuses(repo, sha);
+}
+
+/**
+ * Read each declared reviewer's check runs once, keyed by its context.
+ *
+ * Two gates may await one context; that is one read, not two.
+ * @param {ReadonlyArray<{context: string}>} reviewers - Declared reviewers.
+ * @param {string} sha - The head commit.
+ * @param {(sha: string, context: string) => ReadonlyArray<RawCheckRun>|null} read - The reader.
+ * @returns {Record<string, ReadonlyArray<RawCheckRun>|null>} Runs per context; null for a failed read.
+ */
+function checkRunsByContext(reviewers, sha, read) {
+  /** @type {Record<string, ReadonlyArray<RawCheckRun>|null>} */
+  const runs = Object.create(null);
+  for (const { context } of reviewers) {
+    if (Object.hasOwn(runs, context)) continue;
+    runs[context] = read(sha, context);
+  }
+  return runs;
+}
+
+/** Repository permissions whose holder may stand in for a reviewer. */
+const SUBSTITUTE_WRITER_PERMISSIONS = new Set(["admin", "maintain", "write"]);
+
+/** A substitute marker as a comment's whole first line. */
+const FIRST_LINE_MARKER = new RegExp(
+  `^<!-- ${SUBSTITUTE_MARKER} context="([^"]+)" head="([^"]+)" -->$`,
+  "u"
+);
+
+/**
+ * Whether a login holds write access to the repository.
+ *
+ * probe-direction: fail-closed — a permission that cannot be read answers
+ * `null`, reported as "permission unreadable", and a login outside the gate's
+ * pattern answers `false`; both can only leave a substitute uncounted, never
+ * count one. The pattern is the merge-path gate's own,
+ * `^[A-Za-z0-9-]+(\[bot\])?$`, so the two arms judge the same logins. A
+ * bot author such as `github-actions[bot]` is no collaborator, so the
+ * remembering reader answers it `false` before this is ever asked.
+ * @param {string} repo - `owner/repo`.
+ * @param {string} login - The comment author.
+ * @returns {boolean|null} Whether the login may stand in for a reviewer; null when unreadable.
+ */
+function fetchWritePermission(repo, login) {
+  if (!/^[A-Za-z0-9-]+(\[bot\])?$/u.test(login)) return false;
+  const body = /** @type {{permission?: unknown}|null} */ (
+    ghJson(
+      `repos/${repo}/collaborators/${encodeURIComponent(login)}/permission`
+    )
+  );
+  const permission = body?.permission;
+  return typeof permission === "string"
+    ? SUBSTITUTE_WRITER_PERMISSIONS.has(permission)
+    : null;
+}
+
+/**
+ * The permission reader a run uses: the injected one, or a live read.
+ *
+ * Shared by the reading and the `--arm` decision, and remembered per login, so
+ * one run asks about each comment author once.
+ * @param {{canWrite?: (login: string) => boolean|null}} io - Injected side effects.
+ * @param {string} repo - `owner/repo`, possibly empty.
+ * @returns {(login: string) => boolean|null} The remembered reader.
+ */
+function permissionReader(io, repo) {
+  const validRepo = /^[^/\s]+\/[^/\s]+$/u.test(repo);
+  return rememberPermissions(
+    io.canWrite ??
+      (login => (validRepo ? fetchWritePermission(repo, login) : null))
+  );
+}
+
+/**
+ * The contexts a writer posted a first-line substitute for at this head.
+ *
+ * The same rule as {@link judgeSubstitutes}, because here a match arms a
+ * merge: the marker must be the comment's FIRST LINE (a comment that quotes
+ * it is not a review), and the author must hold write access (anyone who can
+ * comment can type the marker). It answers for every context at once, which
+ * is what the arm needs; the reading names the refusals.
+ * @param {ReadonlyArray<{body?: string, user?: {login?: string}}>} comments - Pull request comments.
+ * @param {string} sha - The head commit.
+ * @param {(login: string) => boolean|null} canWrite - Whether a login holds write access; null when unreadable.
+ * @returns {Set<string>} The substituted contexts.
+ */
+export function writerSubstitutes(comments, sha, canWrite) {
+  const found = new Set();
+  const permission = rememberPermissions(canWrite);
+  const writer = login => permission(login) === true;
+  for (const comment of comments ?? []) {
+    const firstLine = String(comment?.body ?? "")
+      .split("\n")[0]
+      .replace(/\r$/u, "");
+    const match = FIRST_LINE_MARKER.exec(firstLine);
+    if (match === null || match[2] !== sha) continue;
+    if (writer(String(comment?.user?.login ?? ""))) found.add(match[1]);
+  }
+  return found;
+}
+
+/**
+ * Standing `CHANGES_REQUESTED` reviews, latest decisive review per author.
+ *
+ * Across EVERY commit, not only the head: a change request stands until its
+ * author approves or it is dismissed, and a later push clears neither. Reading
+ * only the head would let a push arm the latch over an objection nobody
+ * addressed. A dismissed review reads as a comment, so it never counts.
+ * @param {ReadonlyArray<{commit_id?: string, state?: string, submitted_at?: string, user?: {login?: string}}>|null} reviews - Review objects; null when the read failed.
+ * @returns {number|null} The count, or null when the reviews could not be read.
+ */
+export function standingObjections(reviews) {
+  if (reviews === null) return null;
+  const latest = new Map();
+  [...reviews]
+    .sort((left, right) =>
+      String(left?.submitted_at ?? "").localeCompare(
+        String(right?.submitted_at ?? "")
+      )
+    )
+    .forEach((review, index) => {
+      const author = String(review?.user?.login ?? `#${index}`);
+      if (classifyReviewObject(review) !== REVIEW_OBJECT_VERDICTS.comment) {
+        latest.set(author, review);
+      }
+    });
+  return [...latest.values()].filter(
+    review => classifyReviewObject(review) === REVIEW_OBJECT_VERDICTS.objection
+  ).length;
+}
+
+/**
+ * Every issue comment on the given pull requests, across all pages.
+ *
+ * A writer's substitute for the current head is among the NEWEST comments, so
+ * a single page of a long pull request is exactly the one that misses it.
+ * A failed page makes the whole read unreadable rather than shorter: no
+ * substitute is counted from it, and the report says the comments could not
+ * be read instead of claiming nothing stands in (#4630).
  * @param {string} repo - `owner/repo`.
  * @param {number[]} numbers - Pull request numbers.
- * @returns {ReadonlyArray<object>} The comments.
+ * @param {GhRunner} [gh] - The `gh` runner, injectable so paged responses can be fed in.
+ * @returns {ReadonlyArray<object>|null} The comments, or null when any page failed.
  */
-function readComments(repo, numbers) {
-  return numbers.flatMap(number => {
-    const comments = ghJson(
-      `repos/${repo}/issues/${number}/comments?per_page=100`
-    );
-    return Array.isArray(comments) ? comments : [];
+export function readAllComments(repo, numbers, gh = runGh) {
+  const lists = numbers.map(number =>
+    readAllPages(`repos/${repo}/issues/${number}/comments?per_page=100`, gh)
+  );
+  return lists.every(Array.isArray) ? lists.flat() : null;
+}
+
+/**
+ * Review objects on the given pull requests; null when any read failed.
+ * @param {string} repo - `owner/repo`.
+ * @param {number[]} numbers - Pull request numbers.
+ * @returns {ReadonlyArray<object>|null} The reviews.
+ */
+function readReviews(repo, numbers) {
+  const lists = numbers.map(number => readAllReviews(repo, number));
+  return lists.every(Array.isArray) ? lists.flat() : null;
+}
+
+/**
+ * Every review on one pull request, across all pages.
+ *
+ * The reviews at the current head are the NEWEST, so a single page of a long
+ * pull request is exactly the one that leaves them out.
+ * @param {string} repo - `owner/repo`.
+ * @param {number} number - Pull request number.
+ * @returns {ReadonlyArray<object>|null} The reviews, or null when any page failed.
+ */
+function readAllReviews(repo, number) {
+  return readAllPages(`repos/${repo}/pulls/${number}/reviews?per_page=100`);
+}
+
+/**
+ * Every row of one paginated list endpoint.
+ * @param {string} path - The API path.
+ * @param {GhRunner} [gh] - The `gh` runner.
+ * @returns {ReadonlyArray<object>|null} The rows, or null when any page failed.
+ */
+function readAllPages(path, gh = runGh) {
+  // probe-direction: fail-closed — a failed read is null; reviews then stop the arm decision, and comments then count no substitute.
+  try {
+    const pages = JSON.parse(gh(["api", "--paginate", "--slurp", path]));
+    return Array.isArray(pages) && pages.every(Array.isArray)
+      ? pages.flat()
+      : null;
+  } catch {
+    // probe-direction: fail-closed — a failed page is null; reviews then stop the arm decision, and comments then count no substitute.
+    return null;
+  }
+}
+
+/**
+ * Whether `.github/required-checks.json` declares an evidence-bearing check.
+ *
+ * probe-direction: fail-closed — only a file that does not exist answers
+ * "not declared". A file that exists but cannot be read, or does not parse,
+ * counts as declared: the caller then needs the classifier's report, which
+ * holds the latch off rather than arming past it.
+ * @param {string} root - The project root.
+ * @param {(path: string) => string} read - File reader.
+ * @returns {boolean} Whether the classifier has something declared to read.
+ */
+function declaresEvidenceBearingChecks(root, read) {
+  let text;
+  try {
+    text = read(`${root}/.github/required-checks.json`);
+  } catch (error) {
+    // probe-direction: fail-closed — anything but ENOENT counts as declared.
+    return /** @type {{code?: string}} */ (error)?.code !== "ENOENT";
+  }
+  // probe-direction: fail-closed — a file that does not parse counts as declared.
+  try {
+    const checks = JSON.parse(text)?.evidence_bearing_checks;
+    if (checks === undefined || checks === null) return false;
+    return Array.isArray(checks)
+      ? checks.length > 0
+      : Object.keys(checks).length > 0;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * The vacuity classifier's saved report, when the caller passed one.
+ *
+ * A path that cannot be read or parsed is NOT "no classifier": the caller said
+ * one exists, so it is reported as an inspection that read nothing.
+ * @param {string|null} path - `--vacuity-report`, or null.
+ * @param {(path: string) => string} read - File reader.
+ * @returns {object|null} The parsed report, null when none was passed.
+ */
+function loadVacuityReport(path, read) {
+  if (path === null) return null;
+  // probe-direction: fail-closed — an unreadable report is an empty inspection, never a pass.
+  try {
+    return JSON.parse(read(path));
+  } catch {
+    return {
+      inspected: false,
+      vacuity: { refusal: { kind: "vacuity_report_unreadable" } },
+    };
+  }
+}
+
+/**
+ * Write the `--arm` decision and return its exit code: 0 to arm, 1 otherwise.
+ * @param {{outcome: string, sha: string}} verdict - This prover's verdict.
+ * @param {object} context - What the CLI already resolved.
+ * @param {{json: boolean, root: string, "vacuity-report": string|null}} context.opts - Parsed options.
+ * @param {object} context.io - Injected side effects.
+ * @param {{write: (text: string) => void}} context.out - Stdout.
+ * @param {string} context.repo - `owner/repo`, possibly empty.
+ * @param {number[]|null|undefined} context.pulls - Head pull requests already read, if any.
+ * @param {(login: string) => boolean|null} context.canWrite - The run's remembered permission reader.
+ * @returns {number} The exit code.
+ */
+function writeArmDecision(verdict, { opts, io, out, repo, pulls, canWrite }) {
+  const readFile = io.readFile ?? (path => readFileSync(path, "utf8"));
+  const validRepo = /^[^/\s]+\/[^/\s]+$/u.test(repo);
+  const numbers =
+    Array.isArray(pulls) && pulls.length > 0
+      ? pulls
+      : validRepo
+        ? (io.pulls ?? (sha => readHeadPulls(repo, sha)))(verdict.sha)
+        : [];
+  const heads = numbers ?? [];
+  const comments =
+    heads.length === 0
+      ? []
+      : (io.comments ?? (list => readAllComments(repo, list)))(heads);
+  // An unknown repository is an unread review surface, never an empty one.
+  const reviews =
+    numbers === null || !validRepo
+      ? null
+      : heads.length === 0
+        ? []
+        : (io.reviews ?? (list => readReviews(repo, list)))(heads);
+  const decision = armDecision({
+    evidence: verdict,
+    vacuity: loadVacuityReport(opts["vacuity-report"], readFile),
+    sha: verdict.sha,
+    substitutes: writerSubstitutes(comments, verdict.sha, canWrite),
+    objections: standingObjections(reviews),
+    classifierDeclared: (
+      io.requiredChecks ??
+      (() => declaresEvidenceBearingChecks(opts.root, readFile))
+    )(),
+    // Injected gates stand for a project the caller already read.
+    projectRoot:
+      io.gates !== undefined || existsSync(`${opts.root}/.lisa.config.json`),
   });
+  const report = { ...decision, evidence: verdict };
+  const held = `DO NOT ARM — ${decision.action}`;
+  const headline = decision.arm ? "ARM" : held;
+  out.write(
+    opts.json
+      ? `${JSON.stringify(report, null, 2)}\n`
+      : `${headline}: ${decision.reason}\n${humanReport(verdict)}\n`
+  );
+  return decision.arm ? 0 : 1;
+}
+
+/** The check run a verdict is published as, before a waking reviewer's name. */
+export const PUBLISHED_CHECK_NAME = "🕵️ Third-party review evidence";
+
+/**
+ * The check run name a verdict is published under for one reviewer context.
+ * @param {string} context - A reviewer context; empty for the bare name.
+ * @returns {string} The check run name.
+ */
+const publishedCheckName = context =>
+  context ? `${PUBLISHED_CHECK_NAME} (${context})` : PUBLISHED_CHECK_NAME;
+
+/**
+ * Every reviewer context one publishing run publishes its verdict under
+ * (#4738), the supplied one first and each once.
+ *
+ * The verdict covers every declared reviewer, so it is published under each
+ * one's name: otherwise a red `(A)` stays red after B's later review makes the
+ * head acceptable, because B's run updated only `(B)`. The declared reviewers
+ * are the config's, joined by every context the saved readings name, so a
+ * verdict saved with no readings — an unreadable pull-request list — still
+ * reaches them. The supplied context is kept even when nothing declares it,
+ * and an empty one (the manual path) is the bare name.
+ * @param {object} options - The run.
+ * @param {string} options.context - The context that woke the run; empty on the manual path.
+ * @param {object} options.gates - The `gates` block of `.lisa.config.json`.
+ * @param {ReadonlyArray<{context?: unknown}>} options.readings - The saved verdict's readings.
+ * @returns {string[]} The contexts, deduplicated; "" stands for the bare name.
+ */
+function publishedContexts({ context, gates, readings }) {
+  const declared = [
+    ...configuredReviewers({ gates }).map(reviewer => reviewer.context),
+    ...readings
+      .map(reading => reading?.context)
+      .filter(named => typeof named === "string" && named !== ""),
+  ];
+  return [...new Set([context, ...declared])];
+}
+
+/**
+ * The `gates` block the publish step's checkout declares.
+ *
+ * It is only consulted to widen which names a verdict is published under, so
+ * a config that cannot be read narrows the publication to the supplied name
+ * and the saved readings' — today's behaviour — rather than failing a run
+ * that already reached a verdict.
+ * @param {string} root - The checkout's root.
+ * @returns {object} The gates block, or none.
+ */
+function publishingGates(root) {
+  // probe-direction: neutral — no gate reads this; it only chooses which names an already-reached verdict is shown under.
+  try {
+    return readGates(root).gates;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * The conclusion each published outcome carries on the head it judged.
+ *
+ * `success` for a head a reviewer, or a writer's substitute, vouches for — the
+ * title says which — and `failure` for every outcome the prover exits 1 on.
+ */
+const PUBLISHED_CONCLUSIONS = Object.freeze({
+  [EVIDENCE_OUTCOMES.satisfied]: "success",
+  [EVIDENCE_OUTCOMES.substituted]: "success",
+  [EVIDENCE_OUTCOMES.unsatisfied]: "failure",
+  [EVIDENCE_OUTCOMES.pullRequestsUnreadable]: "failure",
+});
+
+/**
+ * Why each unpublished outcome publishes nothing: there is no pull request
+ * head to show it on, or the run cannot change the answer.
+ */
+const UNPUBLISHED_BECAUSE = Object.freeze({
+  [EVIDENCE_OUTCOMES.noReviewerConfigured]:
+    "no third-party reviewer is configured, so there is no verdict to show",
+  [EVIDENCE_OUTCOMES.notAConfiguredReviewer]:
+    "the status or check run that woke this run belongs to no declared reviewer, so it cannot change the answer",
+  [EVIDENCE_OUTCOMES.notAPullRequestHead]:
+    "the commit is not the head of any open pull request, so there is no pull request head to show a verdict on",
+  [EVIDENCE_OUTCOMES.pending]:
+    "the reviewer has not answered yet; its answer wakes this workflow again, and that run publishes the verdict",
+});
+
+/** The longest summary GitHub accepts on a check run. */
+const SUMMARY_LIMIT = 65535;
+
+/**
+ * The backtick fence a report is shown in, so its column layout survives
+ * Markdown. It is one backtick longer than the longest backtick run in the
+ * report (three at least), so text quoted from a third-party status can
+ * never close it early.
+ * @param {string} report - The text the fence will hold.
+ * @returns {string} The fence.
+ */
+function fenceFor(report) {
+  const longest = Array.from(report.matchAll(/`+/g)).reduce(
+    (most, match) => Math.max(most, match[0].length),
+    0
+  );
+  return "`".repeat(Math.max(3, longest + 1));
+}
+
+/**
+ * A report inside a `text` fence, cut so the fenced whole fits in `limit`.
+ * @param {string} report - The human report.
+ * @param {number} [limit] - The most characters the fenced text may hold.
+ * @returns {string} The fenced report.
+ */
+export function fencedReport(report, limit = Number.POSITIVE_INFINITY) {
+  const fence = fenceFor(report);
+  const open = `${fence}text\n`;
+  const close = `\n${fence}`;
+  const room = limit - open.length - close.length;
+  return `${open}${report.slice(0, Math.max(0, room))}${close}`;
+}
+
+/**
+ * A saved `--json` verdict about this commit, or null when it is not one.
+ * @param {string} text - The saved report.
+ * @param {string} sha - The commit the run was asked about.
+ * @returns {{outcome: string, sha: string, readings: ReadonlyArray<ReportedReading>}|null} The verdict.
+ */
+function savedVerdict(text, sha) {
+  // probe-direction: fail-closed — anything that does not parse as this commit's verdict is no verdict.
+  try {
+    const verdict = JSON.parse(text);
+    return typeof verdict?.outcome === "string" &&
+      verdict.sha === sha &&
+      Array.isArray(verdict.readings)
+      ? verdict
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * What to publish for one saved verdict: a check run, nothing (and why), or an
+ * error that fails the job.
+ *
+ * The exit code is checked against the verdict it came with. The prover exits
+ * 1 exactly when its conclusion is `failure`; any other pairing, and any exit
+ * but 0 or 1, is machinery that did not reach the verdict it claims.
+ * @param {object} options - Publication inputs.
+ * @param {string} options.text - The saved `--json` report.
+ * @param {string} options.proverExit - The exit code the prover ended with.
+ * @param {string} options.sha - The head the verdict judged.
+ * @param {string} options.context - The reviewer that woke the run; empty on the manual path.
+ * @returns {{error: string}|{report: string, why: string}|{report: string, body: object, readings: ReadonlyArray<ReportedReading>}} The publication: `body` is named for `context`.
+ */
+export function verdictPublication({ text, proverExit, sha, context }) {
+  if (proverExit !== "0" && proverExit !== "1") {
+    return {
+      error: `the prover exited ${proverExit || "without an exit code"}, so it reached no verdict to publish`,
+    };
+  }
+  const verdict = savedVerdict(text, sha);
+  if (verdict === null) {
+    return {
+      error: `the prover's saved report is not a verdict about ${sha}`,
+    };
+  }
+  const { outcome } = verdict;
+  const conclusion = PUBLISHED_CONCLUSIONS[outcome];
+  if (
+    conclusion === undefined &&
+    !Object.hasOwn(UNPUBLISHED_BECAUSE, outcome)
+  ) {
+    return {
+      error: `the prover reported an outcome nothing here knows: ${outcome}`,
+    };
+  }
+  if (proverExit !== (conclusion === "failure" ? "1" : "0")) {
+    return {
+      error: `the prover exited ${proverExit} with a verdict of ${outcome}, which it never pairs`,
+    };
+  }
+  const report = humanReport(verdict);
+  if (conclusion === undefined) {
+    return { report, why: UNPUBLISHED_BECAUSE[outcome] };
+  }
+  return {
+    report,
+    readings: verdict.readings,
+    body: {
+      name: publishedCheckName(context),
+      head_sha: sha,
+      status: "completed",
+      conclusion,
+      output: {
+        title: report.split("\n")[0],
+        summary: fencedReport(report, SUMMARY_LIMIT),
+      },
+    },
+  };
+}
+
+/**
+ * What a failed write said, on one line an annotation can carry.
+ * @param {unknown} error - What the `gh` runner threw.
+ * @returns {string} GitHub's refusal, or the error.
+ */
+function refusalOf(error) {
+  const stderr = String(
+    /** @type {{stderr?: unknown}} */ (error)?.stderr ?? ""
+  ).trim();
+  const said =
+    stderr ||
+    (error instanceof Error ? error.message : String(error ?? "unknown"));
+  return said
+    .split("\n")
+    .map(line => line.trim())
+    .filter(line => line !== "")
+    .join(" ");
+}
+
+/**
+ * Publish a saved verdict on the head it judged, and return the exit code.
+ *
+ * The verdict is published under every name `publishedContexts` returns
+ * (#4738). 0 once every check run is created, or when nothing is to be
+ * published; 1 when the verdict could not be read or trusted, or GitHub
+ * refused any one write — each refusal is reported, and the other names are
+ * still attempted. The report goes to stdout and to the step summary either way.
+ * @param {ReturnType<typeof parseArgs> & {sha: string}} opts - Parsed options.
+ * @param {object} io - Injected side effects.
+ * @param {object} [io.gates] - The gates block naming the declared reviewers, read from `--root` when absent.
+ * @param {(path: string) => string} [io.readFile] - Reader for the saved verdict.
+ * @param {(args: string[], input: string) => string} [io.gh] - Writer: `gh` with a request body on stdin.
+ * @param {(text: string) => void} [io.appendSummary] - Appends to the job's step summary.
+ * @param {{write: (text: string) => void}} out - Stdout.
+ * @param {{write: (text: string) => void}} err - Stderr.
+ * @returns {number} The exit code.
+ */
+function publishVerdict(opts, io, out, err) {
+  const readFile = io.readFile ?? (path => readFileSync(path, "utf8"));
+  const summarise =
+    io.appendSummary ??
+    (text => {
+      const file = process.env.GITHUB_STEP_SUMMARY;
+      if (file) appendFileSync(file, text);
+    });
+  let text = "";
+  // probe-direction: fail-closed — a report that cannot be read is no verdict, and fails below.
+  try {
+    text = readFile(String(opts.publish));
+  } catch {
+    text = "";
+  }
+  const plan = verdictPublication({
+    text,
+    proverExit: opts["prover-exit"] ?? "",
+    sha: opts.sha,
+    context: opts.context ?? "",
+  });
+  if ("error" in plan) {
+    err.write(
+      `::error title=Review evidence verdict not published::${plan.error}. Nothing was published on ${opts.sha}; a run that reached no verdict fails, so the broken machinery shows.\n`
+    );
+    return 1;
+  }
+  out.write(`${plan.report}\n`);
+  summarise(`### ${PUBLISHED_CHECK_NAME}\n\n${fencedReport(plan.report)}\n\n`);
+  if (!("body" in plan)) {
+    out.write(`Nothing published on ${opts.sha}: ${plan.why}.\n`);
+    summarise(`Nothing published: ${plan.why}.\n`);
+    return 0;
+  }
+  const contexts = publishedContexts({
+    context: opts.context ?? "",
+    gates: io.gates ?? publishingGates(opts.root),
+    readings: plan.readings,
+  });
+  const write = checkRunWriter(opts, io, { out, err, summarise });
+  // Every name is attempted, so one refusal leaves no other name stale; any
+  // refusal still fails the job.
+  const published = contexts.map(context =>
+    write({ ...plan.body, name: publishedCheckName(context) })
+  );
+  return published.every(Boolean) ? 0 : 1;
+}
+
+/**
+ * A writer that creates one check run on the judged head and reports it.
+ * @param {ReturnType<typeof parseArgs> & {sha: string}} opts - Parsed options.
+ * @param {{gh?: (args: string[], input: string) => string}} io - Injected side effects.
+ * @param {object} sinks - Where the outcome is reported.
+ * @param {{write: (text: string) => void}} sinks.out - Stdout.
+ * @param {{write: (text: string) => void}} sinks.err - Stderr.
+ * @param {(text: string) => void} sinks.summarise - Step-summary writer.
+ * @returns {(body: {name: string, conclusion: string}) => boolean} Creates one check run; true once GitHub accepted it.
+ */
+function checkRunWriter(opts, io, { out, err, summarise }) {
+  const repo = opts.repo ?? process.env.GITHUB_REPOSITORY ?? "";
+  const gh =
+    io.gh ??
+    ((args, input) =>
+      boundedExecFileSync("gh", args, {
+        encoding: "utf8",
+        input,
+        stdio: ["pipe", "pipe", "pipe"],
+      }));
+  return body => {
+    const { name, conclusion } = body;
+    // probe-direction: fail-closed — a write that was refused, or killed at its deadline, published nothing, so the job fails.
+    try {
+      if (!/^[^/\s]+\/[^/\s]+$/u.test(repo)) {
+        throw new Error(`repository must be owner/repo, not "${repo}"`);
+      }
+      gh(
+        ["api", `repos/${repo}/check-runs`, "--method", "POST", "--input", "-"],
+        JSON.stringify(body)
+      );
+    } catch (error) {
+      err.write(
+        `::error title=Review evidence verdict not published::The check run "${name}" was not published on ${opts.sha}: ${refusalOf(error)}. The verdict is not on the pull request head, so this job fails.\n`
+      );
+      return false;
+    }
+    out.write(`Published "${name}" on ${opts.sha}: ${conclusion}.\n`);
+    summarise(`Published \`${name}\` on \`${opts.sha}\`: **${conclusion}**.\n`);
+    return true;
+  };
 }
 
 /**
  * The CLI body.
  * @param {string[]} argv - Arguments after the script path.
  * @param {object} [io] - Injected side effects, for tests.
- * @param {object} [io.gates] - The gates block, read from disk when absent.
- * @param {(sha: string) => number[]} [io.pulls] - Head-pull-request reader.
- * @param {(sha: string) => ReadonlyArray<object>} [io.statuses] - Status reader.
- * @param {(numbers: number[]) => ReadonlyArray<object>} [io.comments] - Comment reader.
+ * @param {object} [io.gates] - The gates block, read from disk when absent; `--publish` reads it for the declared reviewers' names.
+ * @param {(sha: string) => number[]|null} [io.pulls] - Head-pull-request reader; null when the read failed.
+ * @param {(sha: string) => ReadonlyArray<object>|null} [io.statuses] - Status reader.
+ * @param {(sha: string, context: string) => ReadonlyArray<RawCheckRun>|null} [io.checkRuns] -
+ *   Check-run reader for one reviewer's name. When a caller injects either
+ *   reader and not the other, the other reads nothing: an injected reader
+ *   means the caller supplies the evidence, and mixing a live read into it
+ *   would judge a fixture against the network.
+ * @param {(numbers: number[]) => ReadonlyArray<object>|null} [io.comments] - Comment reader; null when the comments could not all be read.
+ * @param {(path: string) => string} [io.readFile] - Reader for `--vacuity-report` and `required-checks.json`.
+ * @param {(numbers: number[]) => ReadonlyArray<object>|null} [io.reviews] - Review-object reader, `--arm` only.
+ * @param {(login: string) => boolean|null} [io.canWrite] -
+ *   Write-permission reader for substitute authors: true for write, maintain
+ *   or admin, false otherwise, null (or a throw) when unreadable. Used by the
+ *   reading and by `--arm`; absent, it reads
+ *   `repos/{repo}/collaborators/{login}/permission`.
+ * @param {() => boolean} [io.requiredChecks] - Whether `required-checks.json` declares an evidence-bearing check, `--arm` only.
+ * @param {(args: string[], input: string) => string} [io.gh] - Check-run writer, `--publish` only.
+ * @param {(text: string) => void} [io.appendSummary] - Step-summary writer, `--publish` only.
  * @param {{write: (text: string) => void}} [io.out] - Stdout.
  * @param {{write: (text: string) => void}} [io.err] - Stderr.
  * @returns {number} The exit code.
@@ -658,16 +2739,26 @@ export function main(argv, io = {}) {
     err.write("error: --sha <commit> is required\n");
     return 2;
   }
+  if (opts.publish !== null) {
+    return publishVerdict({ ...opts, sha: opts.sha }, io, out, err);
+  }
   const gates = io.gates ?? readGates(opts.root).gates;
   const reviewers = configuredReviewers({ gates });
   const repo = opts.repo ?? process.env.GITHUB_REPOSITORY ?? "";
-  // A status from some other app cannot change this answer, and evaluating on
-  // one would read a reviewer as absent merely because it had not posted yet —
-  // a finding on every pull request, which is how a guard gets deleted.
+  // A status or check run from some other app cannot change this answer, and
+  // evaluating on one would read a reviewer as absent merely because it had
+  // not posted yet — a finding on every pull request, which is how a guard
+  // gets deleted.
   const woken =
     reviewers.length === 0 ||
     opts.context === null ||
     reviewers.some(reviewer => reviewer.context === opts.context);
+  if (reviewers.length > 0 && woken && !/^[^/\s]+\/[^/\s]+$/.test(repo)) {
+    err.write(
+      "error: repository must be owner/repo; pass --repo <owner>/<repo> or set GITHUB_REPOSITORY\n"
+    );
+    return 2;
+  }
   // Nothing is read at all when nothing is configured. A no-op that still
   // spends three API calls invites someone to "optimise" it by dropping the
   // report rather than the calls.
@@ -675,7 +2766,9 @@ export function main(argv, io = {}) {
     reviewers.length === 0 || !woken
       ? []
       : (io.pulls ?? (sha => readHeadPulls(repo, sha)))(opts.sha);
-  const evaluated = reviewers.length > 0 && woken && pulls.length > 0;
+  const isPullRequestHead = pulls === null ? null : pulls.length > 0;
+  const evaluated = reviewers.length > 0 && woken && isPullRequestHead === true;
+  const canWrite = permissionReader(io, repo);
   const verdict = !woken
     ? {
         outcome: EVIDENCE_OUTCOMES.notAConfiguredReviewer,
@@ -684,19 +2777,44 @@ export function main(argv, io = {}) {
       }
     : reviewEvidenceVerdict({
         reviewers,
-        statuses: evaluated
-          ? (io.statuses ?? (sha => readStatuses(repo, sha)))(opts.sha)
-          : [],
+        statuses: evaluated ? statusReader(io, repo)(opts.sha) : [],
+        checkRuns: evaluated
+          ? checkRunsByContext(reviewers, opts.sha, checkRunReader(io, repo))
+          : {},
         comments: evaluated
-          ? (io.comments ?? (numbers => readComments(repo, numbers)))(pulls)
+          ? (io.comments ?? (numbers => readAllComments(repo, numbers)))(
+              pulls ?? []
+            )
           : [],
+        // Read only when some reviewer is proven by its review, so a project
+        // whose reviewers all report through statuses spends no extra call.
+        reviews:
+          evaluated && reviewers.some(reviewer => reviewer.reviewBy)
+            ? (io.reviews ?? (numbers => readReviews(repo, numbers)))(
+                pulls ?? []
+              )
+            : [],
         sha: opts.sha,
-        isPullRequestHead: pulls.length > 0,
+        isPullRequestHead,
+        canWrite,
       });
+  if (opts.arm) {
+    return writeArmDecision(verdict, {
+      opts,
+      io,
+      out,
+      repo,
+      pulls,
+      canWrite,
+    });
+  }
   out.write(
     `${opts.json ? JSON.stringify(verdict, null, 2) : humanReport(verdict)}\n`
   );
-  return verdict.outcome === EVIDENCE_OUTCOMES.unsatisfied ? 1 : 0;
+  return verdict.outcome === EVIDENCE_OUTCOMES.unsatisfied ||
+    verdict.outcome === EVIDENCE_OUTCOMES.pullRequestsUnreadable
+    ? 1
+    : 0;
 }
 
 if (invokedAsScript(import.meta.url)) {

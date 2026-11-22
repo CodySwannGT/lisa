@@ -1,12 +1,6 @@
 ---
 name: lisa-notion-to-tracker
-description: >
-  Break down a Notion PRD into Epics, Stories, and Sub-tasks in the configured destination tracker (JIRA, GitHub Issues, or Linear per .lisa.config.json). Use this skill whenever the user
-  shares a Notion PRD URL and wants it converted into tracker tickets, or asks to "break down a PRD",
-  "create tickets from a PRD", "turn this PRD into tickets", or similar. Also trigger when the user
-  mentions creating epics/stories/tasks from a Notion document. This skill handles the full pipeline:
-  fetching the PRD, analyzing comments, researching the codebase, identifying blockers, and creating
-  all tickets with empirical verification plans.
+description: "Turn a Notion PRD into epics, stories, and sub-tasks in the project's tracker, with codebase research, blockers, and verification plans. Use when someone shares a Notion PRD and wants tickets."
 ---
 
 # Notion PRD to Tracker Breakdown
@@ -146,7 +140,7 @@ This skill is a **PRD source** (Notion); destination tracker resolution is handl
 | `E2E_BASE_URL` | Frontend base URL for Playwright tests | `https://dev.example.io/` |
 | `E2E_GRAPHQL_URL` | GraphQL API URL for curl verification | `https://gql.dev.example.io/graphql` |
 
-If env vars are not available, ask the user to provide them explicitly before proceeding. Do not retrieve credentials from repository files or local agent settings.
+If env vars are not available, resolve them through `lisa-secrets-access`. One that still does not resolve is missing access: stop and name each missing variable. Do not retrieve credentials from repository files or local agent settings.
 
 ## Workflow
 
@@ -206,6 +200,11 @@ planning proceeds. Per atom:
   requirement.
 - **Pattern shape (SHOULD)** — an EARS pattern (ubiquitous / When / While / If-then / Where) or an
   equivalent single-behavior sentence; conforming shapes decompose into Gherkin mechanically.
+- **Learned planning checks** — load the `Planning (...)` checks through the bounded projection
+  (`lisa-task-decomposition` step 0). Test the register against every `Planning (prd)` check; an
+  atom or a missing atom that fails one is a `product-clarity` item quoting the check, exactly
+  like the failures above. Carry the `Planning (decomposition)` checks into Phases 3–5. Each is
+  a gap a dispatched worker once had to stop and ask about, so catching it here is the point.
 
 Failures here are **requirement-level product clarifications**, not internal errors: report each in
 the dry-run report as a `product-clarity` item quoting the atom verbatim, naming the defect, and
@@ -334,7 +333,7 @@ Capture each returned story key — Phase 5 needs it as the parent for sub-tasks
 | Infrastructure | `ops`, `reference` |
 | Mixed / setup ("X.0") | All domains |
 
-When classification is ambiguous, err on the side of inclusion — a developer can ignore a link, but they can't inherit one that wasn't attached. Classification mistakes are caught by the preservation gate in Phase 5.5 and by the human reviewing the final report.
+When classification is ambiguous, err on the side of inclusion — a developer can ignore a link, but they can't inherit one that wasn't attached. The preservation gate in Phase 5.5 catches an artifact missing from the epic, not a wrong domain: an artifact attached under the wrong domain still passes it. So check each sub-task's domains against the source artifact before Phase 5, and treat a misroute found there as a fix to make before writing.
 
 ### Phase 5: Create Sub-tasks
 
@@ -370,7 +369,7 @@ To run the gate, this skill must:
 
 1. Pull the remote links of every epic and story created in this run via `lisa-tracker-read (vendor-neutral; dispatches to jira-read-ticket or github-read-issue)`.
 2. Apply the §8 preservation matrix and verdict rules.
-3. If the gate fails: list each dropped/misrouted artifact (domain, title, source page, why it was dropped) and either re-attach via `lisa-tracker-write` (UPDATE mode) or stop and ask the human. Never silently proceed past a gate failure.
+3. If the gate fails: list each dropped/misrouted artifact (domain, title, source page, why it was dropped) and re-attach each via `lisa-tracker-write` (UPDATE mode), choosing the destination ticket from the evidence and recording why. Stop only when re-attaching needs access you lack (for example, the source artifact or the tracker cannot be reached), and name that access. Never silently proceed past a gate failure.
 4. If the gate passes: print the matrix compactly and proceed to Phase 6.
 
 This gate is not optional. Skipping it is the failure mode the architecture exists to prevent.
@@ -400,7 +399,7 @@ Invoke `lisa-prd-backlink` with:
 - `tickets`: the full list created in Phases 3–5, each entry as `{ key, title, type, url, parent_key, requirements }` — `requirements` is the list of Phase 1.4 register ids the ticket satisfies (empty for derived work)
 - `requirement_register`: the Phase 1.4 register (`{ id, verbatim_text, section_heading }` entries), so the back-link section can render the requirement → tickets view
 
-If `lisa-prd-backlink` fails (PRD permission denied, Notion unreachable, source mutated mid-run), surface the error in the Phase 6 report rather than aborting — the tickets are already created and their value to the team is not blocked by the back-link write. Recommend the user re-run `lisa-prd-backlink` standalone once the source is reachable again.
+If `lisa-prd-backlink` fails (PRD permission denied, Notion unreachable, source mutated mid-run), surface the error in the Phase 6 report rather than aborting — the tickets are already created and their value to the team is not blocked by the back-link write. File one build-ready ticket to re-run `lisa-prd-backlink` standalone for this PRD once the source is reachable again (it is idempotent) and link it in the report; when the cause is missing access, name exactly what is unreachable.
 
 ## Handling Ambiguities and Blockers
 

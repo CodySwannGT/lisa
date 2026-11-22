@@ -29,7 +29,15 @@ import {
   completionDenial,
 } from "./lib/completion-authorization.mjs";
 import { completionContext } from "./lib/completion-proof-adapters.mjs";
-import { publishCompletionProof } from "./lib/completion-proof-publisher.mjs";
+import { describeCodePipelineDelivery } from "./lib/completion-proof-codepipeline.mjs";
+import {
+  ensureEvidenceRelease,
+  publishCompletionProof,
+} from "./lib/completion-proof-publisher.mjs";
+import {
+  githubProofTransport,
+  targetEvidenceRelease,
+} from "./lib/completion-proof-github.mjs";
 import {
   MAX_RECORD_BYTES,
   CompletionProofError,
@@ -212,6 +220,18 @@ function isIssueNumber(text) {
 
 /** Trailer key that carries the lane id in a commit message or PR body. */
 export const LANE_TRAILER = "Lane-Id";
+
+/**
+ * Subcommands for which a `pending-proof` outcome is a normal, nonterminal
+ * result (exit 0) rather than a failure. `finish` and `complete` are one
+ * operation under two names (#4683), so both must be listed — a list naming
+ * only one would make the same outcome exit differently by spelling.
+ */
+export const PENDING_PROOF_IS_SUCCESS_FOR = Object.freeze([
+  "finish",
+  "complete",
+  "sweep",
+]);
 
 /**
  * Environment variables consulted, in order, for the caller's owner id.
@@ -551,8 +571,9 @@ const CHILD_TIMEOUT_MS = Number(
  * convincingly.
  * @param {string} command - Executable to run.
  * @param {string[]} args - Arguments to pass.
- * @param {object} [options] - cwd, env, input, timeout, allowFailure, error.
- * @returns {object} The spawnSync result, with stdout and stderr always strings.
+ * @template {boolean} [B=false]
+ * @param {{cwd?: string, env?: NodeJS.ProcessEnv, input?: string | Buffer, timeout?: number, maxBuffer?: number, allowFailure?: boolean, error?: string, binary?: B}} [options] - Spawn controls; `binary: true` returns stdout as a Buffer.
+ * @returns {{status: number | null, signal: NodeJS.Signals | null, error?: Error, pid: number, stdout: B extends true ? Buffer : string, stderr: string}} The spawnSync result, with stdout and stderr never null.
  */
 export function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -2072,7 +2093,7 @@ function jiraStatusCategory(issue) {
  * @param {string} server Configured Jira server.
  * @returns {string} Canonical HTTPS origin.
  */
-function jiraServerOrigin(server) {
+export function jiraServerOrigin(server) {
   const invalid = () => {
     // Never echo the supplied value: userinfo may itself contain a credential.
     throw new TrackingError(
@@ -5272,7 +5293,7 @@ function completeGithubWorkItem(ref, contract, prUrl) {
     category: already ? ALREADY_COMPLETED : "completed",
     bases,
     merged,
-    report: `work-item ${already ? ALREADY_COMPLETED : "completed"}: ${ref} -> ${contract.lifecycle.terminalName} (merged: ${evidence}) bases: ${bases}`,
+    report: `work-item ${already ? ALREADY_COMPLETED : "completed"}: ${ref} -> ${contract.lifecycle.terminalName} (merged: ${evidence}) bases: ${bases}${describeCodePipelineDelivery(authorization.record)}`,
     terminal: contract.lifecycle.terminalName,
   };
 }
@@ -5665,6 +5686,7 @@ function completeLinearWorkItem(ref, contract, prUrl) {
       terminal: displayName,
       category: ALREADY_COMPLETED,
       applied: false,
+      delivery: describeCodePipelineDelivery(authorization.record),
     };
   }
   const update = completionNativeOperation(
@@ -5709,6 +5731,7 @@ function completeLinearWorkItem(ref, contract, prUrl) {
     terminal: displayName,
     category: "completed",
     applied: true,
+    delivery: describeCodePipelineDelivery(authorization.record),
   };
 }
 
@@ -5789,7 +5812,7 @@ function complete(args) {
   const bound = supplied ? null : boundRef();
   if (!supplied && !bound) {
     throw new TrackingError(
-      "complete requires --ref <work-item>, or a worktree binding from `lisa-work-item.mjs link`"
+      "finish requires --ref <work-item>, or a worktree binding from `lisa-work-item.mjs link`"
     );
   }
   const ref = canonicalizeRef(supplied ?? bound, contract);
@@ -5802,7 +5825,7 @@ function complete(args) {
     outcome.report ??
       `work-item ${outcome.category === ALREADY_COMPLETED ? ALREADY_COMPLETED : "completed"}: ${ref} -> ${outcome.terminal} (merged: ${outcome.merged
         .map(number => `#${number}`)
-        .join(", ")})`
+        .join(", ")})${outcome.delivery ?? ""}`
   );
   if (
     ["invalid-proof", COMPLETION_READ_ERROR, COMPLETION_WRITE_ERROR].includes(
@@ -5842,11 +5865,48 @@ function publishProof(args) {
     readFileSync(path, "utf8"),
     "Completion publication record"
   );
-  const result = publishCompletionProof(
-    proofContext(ref, contract, pullRequestUrlOption(args)),
-    input
-  );
+  const context = proofContext(ref, contract, pullRequestUrlOption(args));
+  // The same resolver `evidence-release` prints from, so the upload goes to
+  // the release a pinned LISA_EVIDENCE_RELEASE names (#4838).
+  const evidenceTarget = targetEvidenceRelease(context.policy);
+  const result = publishCompletionProof({ ...context, evidenceTarget }, input);
   console.log(JSON.stringify(result));
+}
+
+/**
+ * Print the GitHub release tag evidence is uploaded to.
+ *
+ * One resolver for every writer: the completion-proof publisher, the evidence
+ * skills' shell scripts, and the journey templates all ask here, so a project
+ * that sets `verification.completion.evidenceRelease` (for example the
+ * rotating `pr-assets-{YYYY-MM}`) moves every upload at once. A second copy of
+ * the template rules in shell is the drift that hardcoded `pr-assets` in five
+ * places and stopped every completion when that release hit GitHub's
+ * 1000-asset cap (CodySwannGT/lisa#4692).
+ *
+ * `--ensure` also creates the release when it is absent, and when it is
+ * nearly full rolls over to the next overflow release (`<release>-2`, `-3`, …)
+ * and prints that one instead (CodySwannGT/lisa#4838); without it nothing
+ * touches GitHub, so the plain form prints the period's first release.
+ *
+ * `LISA_EVIDENCE_RELEASE` pins the name for one run, so a script that resolved
+ * it once (the journey template generator, then post-evidence.sh) cannot split
+ * links and uploads across a month boundary. The pinned name is still checked
+ * against the accepted releases, and `--ensure` still capacity-checks it; a
+ * full pin is refused, never rolled over. `publish-completion-proof` resolves
+ * through the same `targetEvidenceRelease`, so both always agree.
+ */
+function evidenceRelease(args) {
+  const policy = readConfig().verification?.completion ?? {};
+  const target = targetEvidenceRelease(policy);
+  if (!args.includes("--ensure")) return console.log(target.tag);
+  const repository = currentRepository();
+  if (!repository)
+    throw new TrackingError(
+      "evidence-release --ensure needs the GitHub repository; run it inside a checkout with a GitHub remote, or set GITHUB_REPOSITORY."
+    );
+  const transport = githubProofTransport(run, repository, policy);
+  console.log(ensureEvidenceRelease(run, transport, policy, target).tag);
 }
 
 /**
@@ -6201,6 +6261,35 @@ function sweepBranches(args, contract, since) {
   );
 }
 
+/**
+ * Report one declared issue through the read-only, canonical proof decision.
+ * Only authorization calls the issue drift. A proof still being collected
+ * remains visible without misleading a reader into attempting completion.
+ * @param {string} ref Native issue reference.
+ * @param {object} contract Resolved work-item contract.
+ * @param {object} issue Issue selected by the configured lifecycle roles.
+ * @param {string[]} shas Commits that declared the issue.
+ * @returns {"drift"|"pending"|"failed"} The reported outcome.
+ */
+function reportSweptIssue(ref, contract, issue, shas) {
+  const declaration = `${ref}  declared by: ${describeDeclarations(shas)}  [${issue.roles.join(", ")}]  ${issue.title}`;
+  const decision = authorizeCompletion(proofContext(ref, contract));
+  if (decision.category === "authorized") {
+    console.log(`DRIFT  ${declaration}`);
+    return "drift";
+  }
+  if (decision.category === "pending-proof") {
+    console.log(
+      `PENDING VERIFICATION  ${declaration}  [${decision.category}]\n${decision.reason}`
+    );
+    return "pending";
+  }
+  console.log(
+    `VERIFICATION FAILED  ${declaration}  [${decision.category}]\n${decision.reason}`
+  );
+  return "failed";
+}
+
 function sweep(args) {
   const contract = trackerContract();
   if (contract.provider !== "github") {
@@ -6235,18 +6324,25 @@ function sweep(args) {
   // its reader was asking. An instrument that reports an absence has to say
   // what it looked at.
   const examined = roles.map(role => `"${role}"`).join(" and ");
-  let drifted = 0;
+  let declared = 0;
+  const report = { drift: 0, pending: 0, failed: 0 };
   for (const issue of [...subjects.values()].sort(
     (left, right) => right.number - left.number
   )) {
     const shas = declarations.get(issue.number) ?? [];
     if (shas.length === 0) continue;
-    drifted += 1;
+    declared += 1;
     const ref = `${repository}#${issue.number}`;
     if (!apply) {
-      console.log(
-        `DRIFT  ${ref}  declared by: ${describeDeclarations(shas)}  [${issue.roles.join(", ")}]  ${issue.title}`
-      );
+      try {
+        const outcome = reportSweptIssue(ref, contract, issue, shas);
+        report[outcome] += 1;
+      } catch (error) {
+        report.failed += 1;
+        console.log(
+          `VERIFICATION FAILED  ${ref}  [${COMPLETION_READ_ERROR}]\n${error instanceof Error ? error.message : String(error)}. Restore access and rerun the sweep.`
+        );
+      }
       continue;
     }
     // A sweep must not abort on an item the applying arm refuses — whether it
@@ -6261,17 +6357,20 @@ function sweep(args) {
       );
     }
   }
-  if (drifted === 0) {
-    const examinedSummary = `Examined ${subjects.size} item(s) across ${roles.length} lifecycle role(s); no role outside ${examined} was queried.`;
+  const scope =
+    describeSinceBound(since, branches) +
+    describeUnresolvedBranches(unresolved);
+  const examinedSummary = `Examined ${subjects.size} item(s) across ${roles.length} lifecycle role(s); no role outside ${examined} was queried.`;
+  if (!apply && (declared > 0 || unresolved.length > 0)) {
     console.log(
-      `No drift: every open item carrying ${examined} is genuinely in flight.\n${examinedSummary}${describeSinceBound(since, branches)}${describeUnresolvedBranches(unresolved)}`
+      `\n${examinedSummary} ${report.drift} authorized drift, ${report.pending} pending verification, ${report.failed} verification failed.${scope}`
     );
+    if (report.failed > 0 || unresolved.length > 0) process.exitCode = 1;
     return;
   }
-  if (!apply) {
-    const driftHeadline = `${drifted} open item(s) carrying ${examined} are declared by a commit on a deploy branch.`;
+  if (declared === 0) {
     console.log(
-      `\n${driftHeadline} Re-run with --apply to complete them.${describeSinceBound(since, branches)}${describeUnresolvedBranches(unresolved)}`
+      `No drift: every open item carrying ${examined} is genuinely in flight.\n${examinedSummary}${scope}`
     );
   }
 }
@@ -7091,7 +7190,17 @@ function main() {
     return console.log("work-item binding cleared");
   }
   if (command === "backlink") return backlink(args);
-  if (command === "complete") return complete(args);
+  // `finish` and `complete` are one operation under two names, for the same
+  // reason as `link` and `bind` above (#4683). `complete` is a bash builtin
+  // that defines programmable completion from a string, and Claude Code's
+  // worktree isolation refuses any command line carrying that bare token —
+  // as argv[0], as this subcommand, or as an argument to a wrapper script. It
+  // refused `node scripts/lisa-work-item.mjs complete --ref ... --pr-url ...`
+  // on every attempt, which left a merged, verified, evidenced work item with
+  // no sanctioned path to its terminal state. `finish` is the spelling the
+  // docs teach; `complete` stays forever because host projects' checked-in
+  // automation calls it and updates on its own schedule.
+  if (command === "finish" || command === "complete") return complete(args);
   if (command === "sweep") return sweep(args);
   // One place resolves the level, and everything else asks. The CI job needs
   // it to decide whether a missing tracker credential is a problem, and a
@@ -7113,11 +7222,12 @@ function main() {
   if (command === "validate-push-destination")
     return validatePushDestination(args);
   if (command === "publish-completion-proof") return publishProof(args);
+  if (command === "evidence-release") return evidenceRelease(args);
   if (command === "validate-pr") return validatePr(args);
   if (command === DISCHARGE_COMMAND) return dischargePrGates(args);
   throw new TrackingError(
-    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|publish-completion-proof|complete|sweep|lane|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr|discharge-pr-gates" +
-      "\n(`bind` is accepted as an alias for `link`, but some agent harnesses refuse the token `bind` in a command line.)"
+    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|publish-completion-proof|evidence-release [--ensure]|finish|sweep|lane|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr|discharge-pr-gates" +
+      "\n(`bind` is accepted as an alias for `link`, and `complete` is accepted as an alias for `finish`, but some agent harnesses refuse the tokens `bind` and `complete` in a command line.)"
   );
 }
 
@@ -7140,7 +7250,7 @@ export function runCli() {
       console.error(`work-item proof ${error.category}: ${detail}`);
       const pendingLifecycle =
         error.category === "pending-proof" &&
-        ["complete", "sweep"].includes(process.argv[2]);
+        PENDING_PROOF_IS_SUCCESS_FOR.includes(process.argv[2]);
       process.exitCode = pendingLifecycle ? 0 : 1;
       return;
     }

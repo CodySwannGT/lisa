@@ -1,4 +1,6 @@
-# Session Status Updates — Plain Language, and Always Say If It's Safe to Close
+# Session Status Updates — Plain Language
+
+> Detail behind the eager `communication` rule. Most Lisa sessions run unattended, so these updates are usually ticket comments and PR text, not chat.
 
 ## Why this is a rule and not a style preference
 
@@ -42,8 +44,8 @@ it.
 ### The writing rules that bind you
 
 - **One idea per sentence.** Split a compound thought into separate sentences.
-- **Sentences stay short.** 20 words at most for a descriptive sentence, 20 for a
-  procedural step. Break a longer one in two.
+- **Sentences stay short.** Break a long sentence in two. (There is no fixed word
+  limit: a hard cap produced choppy text that dropped needed context.)
 - **Active voice.** "The test failed", not "a failure was observed".
 - **Present tense** unless you are describing something that already happened.
 - **One word, one meaning.** Use a word in a single sense throughout a response.
@@ -88,24 +90,10 @@ A decision presented as a paragraph of context is a decision the human has to ex
 
 An option you consider unacceptable is still listed, with the reason it is unacceptable. Presenting one option as if it were the only one is a decision you made on their behalf without saying so.
 
-## The close line
-
-Every update ends with exactly:
-
-```
-Safe to close: yes/no — <reason>
-```
-
-`yes` means killing the session right now loses nothing: work is committed and pushed, tickets are in the state they should be in, nothing is running that will not finish on its own.
-
-`no` names the specific in-flight thing that would be lost. Real examples: a local dev server or test run still going; a ticket filed but not yet flipped to ready, so nothing will pick it up; a commit that exists only in the working tree; a PR whose checks nobody is watching; a deploy mid-flight.
-
-The line exists because the human's most common question — asked or unasked — is "can I close this?" Making them ask it costs a round trip; making them guess costs them work.
-
 ## Relationship to the other communication rules
 
 - `report-actionability` governs **completeness**: the denominator, every item accounted for, who acts on each. It is about what a report must contain.
 - `automation-runbook-contract` governs the **outcome line** a terminating flow opens with.
-- This rule governs the **voice** of a session update, its three-part shape, and the close line.
+- This rule governs the **voice** of a session update and its three-part shape.
 
-None of the three is relaxed by the others. An update can satisfy all three at once and usually should: outcome line first, denominator stated, plain language throughout, close line last.
+None of the three is relaxed by the others. An update can satisfy all three at once and usually should: outcome line first, denominator stated, plain language throughout.

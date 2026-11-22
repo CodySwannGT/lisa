@@ -1,4 +1,4 @@
 display_name: "Phaser Testing"
-short_description: "writing or designing tests for a Phaser 4 game — unit-testing pure game logic with Vitest, keeping logic Phaser-free so it tests without a…"
+short_description: "Design and write tests for a Phaser 4 game: Vitest for pure logic, headless boots, asset-manifest checks, and the CI runtime gates (smoke…"
 default_prompt:
-  - "Use $phaser-testing: writing or designing tests for a Phaser 4 game — unit-testing pure game logic with Vitest, keeping logic Phaser-free so it tests without a…."
+  - "Use $phaser-testing: Design and write tests for a Phaser 4 game: Vitest for pure logic, headless boots, asset-manifest checks, and the CI runtime gates (smoke…."

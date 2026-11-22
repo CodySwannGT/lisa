@@ -1,0 +1,36 @@
+{
+  "description": "A check run created by GitHub Actions (a CI workflow job) completed: workflow_run already covers it, so plan nothing and read nothing.",
+  "event": {
+    "action": "completed",
+    "check_run": {
+      "id": 51200000003,
+      "name": "🔍 Quality Checks / 🧪 Run Unit Tests",
+      "head_sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+      "status": "completed",
+      "conclusion": "failure",
+      "app": {
+        "slug": "github-actions"
+      },
+      "pull_requests": [
+        {
+          "number": 4673,
+          "head": {
+            "sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+            "ref": "codex/4672-example-branch"
+          },
+          "base": {
+            "ref": "main",
+            "repo": {
+              "name": "lisa"
+            }
+          }
+        }
+      ]
+    },
+    "repository": {
+      "full_name": "CodySwannGT/lisa",
+      "default_branch": "main"
+    }
+  },
+  "gh": {}
+}

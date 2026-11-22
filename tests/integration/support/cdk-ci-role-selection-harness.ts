@@ -13,7 +13,7 @@
  */
 import * as fs from "fs-extra";
 import { load as loadYaml } from "js-yaml";
-import { spawnSync } from "node:child_process";
+import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -143,7 +143,7 @@ function spawnStep(
   outputs: string,
   cwd: string,
   env: Record<string, string>
-): ReturnType<typeof spawnSync<string>> {
+): SpawnSyncReturns<string> {
   fs.writeFileSync(script, body);
   fs.writeFileSync(outputs, "");
   return spawnSync(SHELL, ["-e", script], {

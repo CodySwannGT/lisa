@@ -1,0 +1,53 @@
+## $ mark-plan example-org/demo-repo#1 --kind worker-question  (stdin: question)
+{"ref":"example-org/demo-repo#1","kind":"worker-question","marker":{"type":"label","value":"custom:needs-person"},"comment":"[lisa-session-manager-question] example-org/demo-repo#1 needs a human: the worker building it has a question.\n\nWhich payment provider should the checkout use?\n\nHow to answer:\n- Reply in a comment on this item, in plain words (do not start it with a bracketed tag). The session manager reads the first reply from an operator or trusted author on its next cycle.\n- On the machine running the session manager, run `session-manager.mjs status` and use the `answerCommand` it lists for this item.\n\nThe session manager keeps working on other items meanwhile. Once the answer is delivered it removes the `custom:needs-person` label and says so here.","answerWith":{"item":"a comment on example-org/demo-repo#1","cli":"the answerCommand that session-manager.mjs status lists for example-org/demo-repo#1 (answer on stdin)","channel":null}}
+exit=0
+## $ ledger set-question example-org/demo-repo#1 --kind worker-question
+{"repo":null,"worker":null,"sessionId":null,"status":"question","startedAt":null,"lastProgressAt":null,"logsHash":null,"pendingQuestion":{"text":"Which payment provider should the checkout use?","kind":"worker-question","askedAt":"2026-10-31T14:58:23.191Z","lastPingAt":"2026-10-31T14:58:23.191Z","telegramMessageId":null,"markerType":null,"marker":null,"markedAt":null,"managerCommentIds":[],"answer":null},"attempts":0,"history":[{"event":"question","at":"2026-10-31T14:58:23.191Z"}]}
+exit=0
+## $ ledger marked example-org/demo-repo#1 --marker-type label --marker custom:needs-person --comment-id 1
+{"repo":null,"worker":null,"sessionId":null,"status":"question","startedAt":null,"lastProgressAt":null,"logsHash":null,"pendingQuestion":{"text":"Which payment provider should the checkout use?","kind":"worker-question","askedAt":"2026-10-31T14:58:23.191Z","lastPingAt":"2026-10-31T14:58:23.191Z","telegramMessageId":null,"markerType":"label","marker":"custom:needs-person","markedAt":"2026-10-31T14:58:23.240Z","managerCommentIds":["1"],"answer":null},"attempts":0,"history":[{"event":"question","at":"2026-10-31T14:58:23.191Z"},{"event":"marked","at":"2026-10-31T14:58:23.240Z","markerType":"label","marker":"custom:needs-person"}]}
+exit=0
+## $ queue --tracker github --me me
+{"tracker":"github","me":"me","operators":["op-login"],"total":2,"pages":1,"ordered":[{"ref":"example-org/demo-repo#2","title":"Issue 2","assigneeId":null,"priorityRank":4,"createdAt":"2026-01-02T00:00:00Z","updatedAt":"","labels":["status:ready"],"body":"","authorId":"555","isContainer":false,"openBlockers":0,"repoLabels":[]}],"excluded":[{"ref":"example-org/demo-repo#1","reason":"pending-question"}],"backlogPickup":false}
+exit=0
+## $ spawn example-org/demo-repo#2
+{"ref":"example-org/demo-repo#2","name":"wk-demo-repo-2-1031-1058","sessionId":"1a2b3c4d","repo":".","cwd":"/var/folders/7f/hb4kw66s7nbc126rz71s0td80000gn/T/lisa-4555-verify/human/project"}
+exit=0
+## worker spawn (claude --bg) record: argv + TELEGRAM_* names in its env
+["--bg","-n","wk-demo-repo-2-1031-1058","--dangerously-skip-permissions","--settings","{\"crossSessionInbound\":\"accept\"}","/lisa:implement example-org/demo-repo#2 managedBy=demo-manager"]
+TELEGRAM_* names in worker env: []
+## $ status
+{"manager":{"name":"demo-manager","running":false},"notify":"none","control":{"paused":false,"maxWorkers":null,"me":null},"workers":[{"ref":"example-org/demo-repo#1","worker":null,"sessionId":null,"repo":null,"status":"question","attempts":0,"pendingQuestion":true,"live":false},{"ref":"example-org/demo-repo#2","worker":"wk-demo-repo-2-1031-1058","sessionId":"1a2b3c4d","repo":".","status":"running","attempts":1,"pendingQuestion":false,"live":true}],"untracked":[],"pendingQuestions":[{"ref":"example-org/demo-repo#1","kind":"worker-question","text":"Which payment provider should the checkout use?","askedAt":"2026-10-31T14:58:23.191Z","marked":true,"answerQueued":false,"answerCommand":"node '/Users/cody/workspace/lisa/.claude/worktrees/4555-session-manager-optional-telegram/plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs' answer 'example-org/demo-repo#1' --project-root '/var/folders/7f/hb4kw66s7nbc126rz71s0td80000gn/T/lisa-4555-verify/human/project' < answer.txt"}]}
+exit=0
+## answerCommand from status: node '/Users/cody/workspace/lisa/.claude/worktrees/4555-session-manager-optional-telegram/plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs' answer 'example-org/demo-repo#1' --project-root '/var/folders/7f/hb4kw66s7nbc126rz71s0td80000gn/T/lisa-4555-verify/human/project' < answer.txt
+## operator writes answer.txt and runs answerCommand through /bin/sh
+{"queued":true,"ref":"example-org/demo-repo#1","source":"cli"}
+exit=0
+## ledger get example-org/demo-repo#1 after CLI answer
+{"repo":null,"worker":null,"sessionId":null,"status":"question","startedAt":null,"lastProgressAt":null,"logsHash":null,"pendingQuestion":{"text":"Which payment provider should the checkout use?","kind":"worker-question","askedAt":"2026-10-31T14:58:23.191Z","lastPingAt":"2026-10-31T14:58:23.191Z","telegramMessageId":null,"markerType":"label","marker":"custom:needs-person","markedAt":"2026-10-31T14:58:23.240Z","managerCommentIds":["1"],"answer":{"source":"cli","text":"Use Stripe.","author":null,"at":"2026-10-31T14:58:23.756Z"}},"attempts":0,"history":[{"event":"question","at":"2026-10-31T14:58:23.191Z"},{"event":"marked","at":"2026-10-31T14:58:23.240Z","markerType":"label","marker":"custom:needs-person"},{"event":"answer-queued","at":"2026-10-31T14:58:23.756Z","source":"cli"}]}
+exit=0
+## clear and re-ask A to exercise item-answer from a fresh question
+{"repo":null,"worker":null,"sessionId":null,"status":"question","startedAt":null,"lastProgressAt":null,"logsHash":null,"pendingQuestion":null,"attempts":0,"history":[{"event":"question","at":"2026-10-31T14:58:23.191Z"},{"event":"marked","at":"2026-10-31T14:58:23.240Z","markerType":"label","marker":"custom:needs-person"},{"event":"answer-queued","at":"2026-10-31T14:58:23.756Z","source":"cli"},{"event":"answered","at":"2026-10-31T14:58:23.853Z"}]}
+exit=0
+{"repo":null,"worker":null,"sessionId":null,"status":"question","startedAt":null,"lastProgressAt":null,"logsHash":null,"pendingQuestion":{"text":"Second question: CSV or JSON?","kind":"decision","askedAt":"2026-10-31T14:58:23.902Z","lastPingAt":"2026-10-31T14:58:23.902Z","telegramMessageId":null,"markerType":null,"marker":null,"markedAt":null,"managerCommentIds":[],"answer":null},"attempts":0,"history":[{"event":"question","at":"2026-10-31T14:58:23.191Z"},{"event":"marked","at":"2026-10-31T14:58:23.240Z","markerType":"label","marker":"custom:needs-person"},{"event":"answer-queued","at":"2026-10-31T14:58:23.756Z","source":"cli"},{"event":"answered","at":"2026-10-31T14:58:23.853Z"},{"event":"question","at":"2026-10-31T14:58:23.902Z"}]}
+exit=0
+{"repo":null,"worker":null,"sessionId":null,"status":"question","startedAt":null,"lastProgressAt":null,"logsHash":null,"pendingQuestion":{"text":"Second question: CSV or JSON?","kind":"decision","askedAt":"2026-10-31T14:58:23.902Z","lastPingAt":"2026-10-31T14:58:23.902Z","telegramMessageId":null,"markerType":"label","marker":"custom:needs-person","markedAt":"2026-10-31T14:58:23.951Z","managerCommentIds":["1"],"answer":null},"attempts":0,"history":[{"event":"question","at":"2026-10-31T14:58:23.191Z"},{"event":"marked","at":"2026-10-31T14:58:23.240Z","markerType":"label","marker":"custom:needs-person"},{"event":"answer-queued","at":"2026-10-31T14:58:23.756Z","source":"cli"},{"event":"answered","at":"2026-10-31T14:58:23.853Z"},{"event":"question","at":"2026-10-31T14:58:23.902Z"},{"event":"marked","at":"2026-10-31T14:58:23.951Z","markerType":"label","marker":"custom:needs-person"}]}
+exit=0
+## $ item-answer example-org/demo-repo#1  (comments: question, [claude-sync] by operator)
+{"queued":false,"ref":"example-org/demo-repo#1","reason":"no-answer-yet"}
+exit=0
+## $ item-answer example-org/demo-repo#1  (comments: question, [claude-sync], clean operator reply)
+{"queued":true,"ref":"example-org/demo-repo#1","source":"item","author":"op-login"}
+exit=0
+## ledger get example-org/demo-repo#1 after item-answer
+{"repo":null,"worker":null,"sessionId":null,"status":"question","startedAt":null,"lastProgressAt":null,"logsHash":null,"pendingQuestion":{"text":"Second question: CSV or JSON?","kind":"decision","askedAt":"2026-10-31T14:58:23.902Z","lastPingAt":"2026-10-31T14:58:23.902Z","telegramMessageId":null,"markerType":"label","marker":"custom:needs-person","markedAt":"2026-10-31T14:58:23.951Z","managerCommentIds":["1"],"answer":{"source":"item","text":"Use JSON, please.","author":"op-login","at":"2026-10-31T14:58:24.074Z"}},"attempts":0,"history":[{"event":"question","at":"2026-10-31T14:58:23.191Z"},{"event":"marked","at":"2026-10-31T14:58:23.240Z","markerType":"label","marker":"custom:needs-person"},{"event":"answer-queued","at":"2026-10-31T14:58:23.756Z","source":"cli"},{"event":"answered","at":"2026-10-31T14:58:23.853Z"},{"event":"question","at":"2026-10-31T14:58:23.902Z"},{"event":"marked","at":"2026-10-31T14:58:23.951Z","markerType":"label","marker":"custom:needs-person"},{"event":"answer-queued","at":"2026-10-31T14:58:24.074Z","source":"item"}]}
+exit=0
+## bite control: TELEGRAM_* names the recorder saw per stub call (the CLI's own env carried a FAKE TELEGRAM_BOT_TOKEN + TELEGRAM_STATE_DIR)
+gh api []
+claude agents []
+vm_stat undefined ["TELEGRAM_BOT_TOKEN","TELEGRAM_STATE_DIR"]
+claude --bg []
+tmux has-session ["TELEGRAM_BOT_TOKEN","TELEGRAM_STATE_DIR"]
+claude agents []
+## fake sentinel occurrences in this sandbox tree:
+none

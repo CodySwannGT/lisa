@@ -1,9 +1,9 @@
 ---
 name: lisa-prd-source-write
-description: "Vendor-neutral wrapper for…"
+description: "Create or update a PRD in…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
-Vendor-neutral wrapper for creating (or idempotently updating) a PRD in the configured PRD source. The PRD-side sibling of lisa-tracker-write. Resolves `source` from .lisa.config.local.json first (then .lisa.config.json — local overrides global) and dispatches to lisa-notion-write-prd, lisa-confluence-write-prd, lisa-github-write-prd, or lisa-linear-write-prd. Callers (notably lisa-research) MUST invoke this skill instead of a vendor PRD writer directly — that is what makes the PRD source switchable per project. Accepts an `initial_role` of `draft` (default) or `ready` so a freshly created PRD either waits for human promotion or is immediately picked up by lisa-intake; and a stable dedupe marker so re-runs reference the existing PRD instead of creating a duplicate. The PRD lives in the source — there is no separate document artifact.
+Create or update a PRD in whichever PRD source the project uses (Notion, Confluence, GitHub, or Linear), as draft or ready, without duplicates. Callers must use it instead of a vendor-specific PRD writer.
 
 
 # PRD Source Write: $ARGUMENTS

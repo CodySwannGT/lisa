@@ -1,0 +1,11 @@
+== HEAD 1e7b76fc72 (fixed) ==
+script: /Users/codysai/workspace/lisa/.claude/worktrees/4694-sweep-json-flush/all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs
+node: v22.22.0  os: Darwin 25.2.0
+seeded: 10000 dirs; sample mtime/mode: Nov  5 00:00:00 2026 drwx------
+piped (| cat): exit=0 bytes=528977  PARSE=ok removed=10000 unique_seeded_names=10000
+direct (>):    exit=0 bytes=528977  PARSE=ok removed=10000 unique_seeded_names=10000
+cmp piped vs direct (byte-for-byte): DIFFER
+top-level keys: removed,skippedUnsafe,killed,errors,dryRun,durationMs; fields differing verbatim: durationMs; removed sets equal (order-insensitive): true
+  durationMs: piped=311 direct=303
+after --dry-run, entries still on disk: 10000
+piped head(100): {"removed":["/private/tmp/v4694-run/root-e71ER6/lisa-repro-4726","/private/tmp/v4694-run/root-e71ER6

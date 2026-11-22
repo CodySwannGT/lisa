@@ -1,10 +1,12 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { useOwnedTempDirs } from "../../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const BASH = "/bin/bash";
 const BASE_INJECT_RULES_HOOK = "plugins/src/base/hooks/inject-rules.sh";
@@ -33,7 +35,7 @@ const runHookRaw = (
     command: BASH,
     args: [path.resolve(hookPath)],
     env: { ...process.env, CLAUDE_PLUGIN_ROOT: pluginRoot },
-    input: input ? JSON.stringify(input) : undefined,
+    ...(input ? { input: JSON.stringify(input) } : {}),
   });
 
   expect(result.status).toBe(0);
@@ -51,7 +53,7 @@ const runHook = (
 const createPluginRoot = (
   rulesSubdir: typeof EAGER_TIER | typeof FLAT_ROOT
 ): string => {
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-inject-rules-"));
+  const root = ownedDir("lisa-inject-rules-");
   const rulesDir = path.join(root, rulesSubdir);
   mkdirSync(rulesDir, { recursive: true });
   writeFileSync(

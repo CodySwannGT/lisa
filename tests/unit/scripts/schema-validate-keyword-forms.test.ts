@@ -42,7 +42,7 @@ const SCHEMA_ERROR = "schema error:";
  * @param schema Schema to apply.
  * @returns The joined error text.
  */
-function errorsOf(document: unknown, schema: unknown): string {
+function errorsOf(document: unknown, schema: object): string {
   return validateAgainstSchema(document, schema).errors.join(" | ");
 }
 
@@ -189,6 +189,9 @@ describe("the schemas Lisa ships are unaffected", () => {
     const schema: unknown = JSON.parse(
       readFileSync(path.join(SCHEMA_DIR, name), "utf8")
     );
+    if (typeof schema !== "object" || schema === null) {
+      throw new Error(`${name} is not a JSON schema object`);
+    }
     const result = validateAgainstSchema({}, schema);
 
     expect(result.valid).toBe(false);

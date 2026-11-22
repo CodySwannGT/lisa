@@ -1,0 +1,27 @@
+=== lisa doctor, host: inputonly — 20a8ac97e2 seed with only the four workflow_dispatch context input lines (112-115) deleted ===
+source under test: git archive 20a8ac97e2 -> /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head (node_modules symlinked)
+$ grep -n 'workflow_dispatch|inputs|sha:|context:|EVIDENCE_CONTEXT:|group:' host workflow
+106:  workflow_dispatch:
+107:    inputs:
+108:      sha:
+129:  group: third-party-review-evidence-${{ github.event_name }}-${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}-${{ github.event.check_run.name || github.event.context || inputs.context }}
+152:      EVIDENCE_CONTEXT: ${{ github.event.check_run.name || github.event.context || inputs.context }}
+184:          if [ -n "${EVIDENCE_CONTEXT:-}" ]; then
+207:          node "$PROVER" --publish="$VERDICT" --prover-exit="$PROVER_EXIT" --sha="$EVIDENCE_SHA" --context="${EVIDENCE_CONTEXT:-}"
+sha256(host workflow) = 283a4c72ed5c184f80a464d9118c62e15f74dad9a8fbbba01a3028672934355c
+$ (cd /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head && bun run src/index.ts doctor /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-doctor/inputonly --offline)
+doctor exit=0
+--- 'Third-party review evidence wakes on check runs?' check (verbatim, through the next check line) ---
+WARN Third-party review evidence wakes on check runs?: .github/workflows/third-party-review-evidence.yml is not ready for a reviewer that reports through a check run, or for its verdict to reach the pull request: its manual run takes no `context` input, so a manual run cannot target one reviewer's check run: it republishes every declared reviewer's check and always adds a bare-name check beside them. Lisa seeded this file once and will not rewrite it; the prover it runs is already current.
+Add under `workflow_dispatch:` `inputs:`, beside `sha:`:
+      context:
+        description: 'Optional. One reviewer context (its status or check-run name, matched exactly against a declared reviewer; anything else publishes nothing) whose check run to bring up to date. Empty republishes every declared reviewer and the bare name'
+        required: false
+        type: string
+Set `EVIDENCE_CONTEXT` in the evidence job's `env:` to:
+      EVIDENCE_CONTEXT: ${{ github.event.check_run.name || github.event.context || inputs.context }}
+Make the top-level `concurrency:` block read (add it if the file has none):
+concurrency:
+  group: third-party-review-evidence-${{ github.event_name }}-${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}-${{ github.event.check_run.name || github.event.context || inputs.context }}
+  cancel-in-progress: true
+The current seed, typescript/create-only/.github/workflows/third-party-review-evidence.yml in the @codyswann/lisa package, is the full reference.

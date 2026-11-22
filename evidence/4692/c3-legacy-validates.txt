@@ -1,0 +1,71 @@
+### C3: legacy pr-assets asset validates under rotated config (real GitHub API)
+### date: 2026-11-08T18:59:04Z  HEAD: b590df4c25815538d0d3e9a6c084c7aaca00212c
+### $ gh api repos/CodySwannGT/lisa/releases/tags/pr-assets --jq '.assets[0].id'
+432068004
+### $ node c3.mjs 432068004   (script source appended below)
+policy: {"evidenceRelease":"pr-assets-{YYYY-MM}"}
+accepted set: ["pr-assets","pr-assets-{YYYY-MM}"]
+
+### real asset 432068004 from legacy pr-assets, rotated config
+ACCEPTED id=432068004 name=01-cli-build-output.txt size=417 downloaded_bytes=417
+browser_download_url=https://github.com/CodySwannGT/lisa/releases/download/pr-assets/01-cli-build-output.txt
+first line: $ bun run build
+
+### bite control: same asset, metadata tag rewritten to v4.97.5
+REFUSED CompletionProofError: The proof attachment is outside the implementation repository's accepted evidence releases (pr-assets, pr-assets-{YYYY-MM}).
+
+RESULT real_accepted=true out_of_set_refused=true
+exit=0
+
+### ---- c3.mjs ----
+// C3: the real validator transport accepts a real legacy `pr-assets` asset
+// while the configured release is rotated, and refuses a tag outside the set.
+import { run } from "/Users/codysai/workspace/lisa/.claude/worktrees/4692-evidence-release-rotation/all/copy-overwrite/scripts/lisa-work-item.mjs";
+import {
+  githubProofTransport,
+  acceptedEvidenceReleases,
+} from "/Users/codysai/workspace/lisa/.claude/worktrees/4692-evidence-release-rotation/all/copy-overwrite/scripts/lib/completion-proof-github.mjs";
+
+const repo = "CodySwannGT/lisa";
+const id = Number(process.argv[2]);
+const policy = { evidenceRelease: "pr-assets-{YYYY-MM}" };
+console.log(`policy: ${JSON.stringify(policy)}`);
+console.log(`accepted set: ${JSON.stringify(acceptedEvidenceReleases(policy))}`);
+
+function attempt(label, runner) {
+  console.log(`\n### ${label}`);
+  try {
+    const { metadata, bytes } = githubProofTransport(runner, repo, policy).asset(id);
+    console.log(`ACCEPTED id=${metadata.id} name=${metadata.name} size=${metadata.size} downloaded_bytes=${bytes.length}`);
+    console.log(`browser_download_url=${metadata.browser_download_url}`);
+    console.log(`first line: ${bytes.toString("utf8").split("\n")[0]}`);
+    return true;
+  } catch (error) {
+    console.log(`REFUSED ${error.constructor.name}: ${error.message}`);
+    return false;
+  }
+}
+
+// 1. The real path: real `gh api` calls against the real legacy asset.
+const real = attempt(`real asset ${id} from legacy pr-assets, rotated config`, run);
+
+// 2. Bite control: the same real calls, but the metadata response has its
+//    release tag rewritten to a version release (v4.97.5), which is outside the
+//    accepted set. CodySwannGT/lisa has no non-evidence release carrying assets,
+//    so a real out-of-set asset does not exist to read. Everything else is real.
+const rewriting = (command, args, options) => {
+  const result = run(command, args, options);
+  const isMetadata =
+    args[0] === "api" && args[1] === `repos/${repo}/releases/assets/${id}` && !args.includes("--header");
+  if (!isMetadata) return result;
+  const body = JSON.parse(result.stdout);
+  body.browser_download_url = body.browser_download_url.replace(
+    "/releases/download/pr-assets/",
+    "/releases/download/v4.97.5/"
+  );
+  return { ...result, stdout: JSON.stringify(body) };
+};
+const control = attempt(`bite control: same asset, metadata tag rewritten to v4.97.5`, rewriting);
+
+console.log(`\nRESULT real_accepted=${real} out_of_set_refused=${!control}`);
+process.exit(real && !control ? 0 : 1);

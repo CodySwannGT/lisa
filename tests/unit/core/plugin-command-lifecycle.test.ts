@@ -3,7 +3,10 @@ import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { runPluginCommand } from "../../../src/core/plugin-command.js";
+import {
+  PLUGIN_LIST_MAX_CAPTURE_BYTES,
+  runPluginCommand,
+} from "../../../src/core/plugin-command.js";
 import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
@@ -118,6 +121,19 @@ describe("plugin command lifecycle", () => {
       });
     }
   );
+  it("rejects output over the default 1 MiB capture limit, and accepts it under a raised per-call limit", async () => {
+    // A long-lived workstation's `claude plugin list --json` passes 2 MB (#4645).
+    const bytes = String(2 * 1_048_576);
+    await expect(
+      runPluginCommand(["large", bytes], { cwd: root, timeoutMs: 10_000 })
+    ).rejects.toThrow("capture limit");
+    const raised = await runPluginCommand(["large", bytes], {
+      cwd: root,
+      timeoutMs: 10_000,
+      maxCaptureBytes: PLUGIN_LIST_MAX_CAPTURE_BYTES,
+    });
+    expect(raised.stdout).toHaveLength(2 * 1_048_576);
+  });
   it("refuses an exhausted operation budget before starting another command", async () => {
     await expect(
       runPluginCommand(["success"], { cwd: root, timeoutMs: 0 })

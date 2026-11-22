@@ -167,7 +167,6 @@ export function selectOrphans(rows, minAgeSeconds) {
  * @returns {string} Raw `ps` output.
  */
 function readProcessTable() {
-  // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed executable and argv
   return boundedExecFileSync("ps", ["-eo", "pid,ppid,etime,command"], {
     encoding: "utf8",
     maxBuffer: 32 * 1024 * 1024,

@@ -37,7 +37,8 @@
  *      put on the machine, which is not this tree's source and on the box this
  *      was found on was two majors behind the declared pin. A suite whose
  *      verdict depends on when somebody last installed is not a suite about
- *      the shipped hook. `stageNodeModules` withholds exactly that one entry.
+ *      the shipped hook. `stageNodeModules` withholds that copy's scripts,
+ *      exposing this checkout's manifest and built exports for the audit adapter.
  *
  * Replacing the shipped gate with `process.exit(0)` moved none of it. It now
  * turns six of the nine cases red, and the third case in each group is the
@@ -73,7 +74,6 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -88,6 +88,11 @@ import {
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../support/git-executable.js";
+import { sweepAlreadyRanEnv } from "../helpers/cleanup-sweep-skip.js";
+import {
+  createSymlink,
+  isInstalledEntry,
+} from "../support/borrowed-node-modules.mjs";
 
 // The bounded children below are handed a base that only fits under a case
 // budget scaling with the same machine they do. Without this call the case
@@ -128,8 +133,11 @@ const PUSHED_SUBJECT = "feat: the change this push carries";
 /** The npm scope this package publishes under. */
 const SELF_SCOPE = "@codyswann";
 
-/** The one package inside that scope the fixture must NOT inherit. */
+/** The package whose installed guard scripts the fixture must NOT inherit. */
 const SELF_PACKAGE = "lisa";
+
+/** Manifest filename shared by the consumer and current package export. */
+const PACKAGE_MANIFEST = "package.json";
 
 /** Paths a real project keeps out of git, and this fixture must too. */
 const FIXTURE_GITIGNORE = "node_modules/\nstub-bin/\ncollected.log\n";
@@ -191,9 +199,12 @@ if (verb === "audit") {
   // LISA_COVERAGE_SCOPE=unit. They are kept in the listing so the run is the
   // same one, and skipped over when deciding this is a vitest invocation.
   // Managed templates insert the transparent lisa-test-run -- supervisor
-  // between those assignments and Vitest. The collection probe removes only
-  // that transport layer before converting run to list.
-  const VITEST = /^((?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)(?:lisa-test-run\s+--profile\s+[a-z][a-z0-9-]*\s+--adapter\s+vitest\s+--\s+)?vitest\s+run\b/;
+  // between those assignments and Vitest, and the unit scripts also pass
+  // through the push-only affected-test selector (CodySwannGT/lisa#4611),
+  // which runs the command unchanged outside the gate runner, as here. The
+  // collection probe removes only those transport layers before converting
+  // run to list.
+  const VITEST = /^((?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)(?:node\s+scripts\/lisa-affected-tests\.mjs\s+--push-only\s+--fetch\s+scripts\/fetch-test-access-map\.mjs\s+--\s+)?(?:lisa-test-run\s+--profile\s+[a-z][a-z0-9-]*\s+--adapter\s+vitest\s+--\s+)?vitest\s+run\b/;
   const match = command && VITEST.exec(command);
   if (match) {
     const listing = command.replace(VITEST, match[1] + "vitest list --filesOnly");
@@ -236,7 +247,7 @@ function stageStubPackageManager(root: string): void {
 }
 
 /**
- * The fixture's `node_modules`, with the self-dependency deliberately absent.
+ * The fixture's `node_modules`, without the installed self-dependency's guards.
  *
  * The pre-push hook resolves both `lisa-work-item.mjs` and `lisa-gates.mjs`
  * from `node_modules/@codyswann/lisa/...` FIRST, falling back to `scripts/`
@@ -247,10 +258,10 @@ function stageStubPackageManager(root: string): void {
  * `scripts/` were never reached at all (CodySwannGT/lisa#3797).
  *
  * Every other package is symlinked through unchanged, so vitest and everything
- * the hook shells out to resolve exactly as they did. Only `@codyswann/lisa` is
- * withheld, and only from the fixture — nothing on disk is modified. A consumer
- * has no self-dependency, so its `scripts/` copy is what runs; withholding this
- * one entry is what makes the fixture that consumer rather than this checkout.
+ * the hook shells out to resolve exactly as they did. The Lisa package exposes
+ * this checkout's actual manifest and built exports, which the copied audit
+ * adapter imports, but no managed script directory. The hook therefore still
+ * executes the copied guard scripts rather than an installed older version.
  * @param root - Fixture project root
  */
 function stageNodeModules(root: string): void {
@@ -258,22 +269,30 @@ function stageNodeModules(root: string): void {
   const target = path.join(root, "node_modules");
   const sourceScope = path.join(source, SELF_SCOPE);
   const targetScope = path.join(target, SELF_SCOPE);
+  const currentLisa = path.join(targetScope, SELF_PACKAGE);
   mkdirSync(targetScope, { recursive: true });
   for (const entry of readdirSync(source)) {
-    if (entry === SELF_SCOPE) continue;
-    symlinkSync(path.join(source, entry), path.join(target, entry), "dir");
+    // A tool's state (`.vitest-cache`) is never lent (CodySwannGT/lisa#5028).
+    if (entry === SELF_SCOPE || !isInstalledEntry(entry)) continue;
+    createSymlink(path.join(source, entry), path.join(target, entry), "dir");
   }
   // The scope survives; only the self-dependency inside it does not. The other
   // packages under it are ordinary workspace dependencies with no bearing on
   // which gate script the hook resolves.
   for (const entry of readdirSync(sourceScope)) {
     if (entry === SELF_PACKAGE) continue;
-    symlinkSync(
+    createSymlink(
       path.join(sourceScope, entry),
       path.join(targetScope, entry),
       "dir"
     );
   }
+  mkdirSync(currentLisa);
+  cpSync(
+    path.join(ROOT, PACKAGE_MANIFEST),
+    path.join(currentLisa, PACKAGE_MANIFEST)
+  );
+  createSymlink(path.join(ROOT, "dist"), path.join(currentLisa, "dist"), "dir");
 }
 
 /**
@@ -405,14 +424,14 @@ function stageProject(options: {
   // failure where 4.33.x fails closed. Failing closed is the correct behaviour
   // — a push gate that cannot tell what is being pushed should refuse — so the
   // bump did not break this test, it stopped a broken test from passing.
-  // `stageNodeModules` now withholds that copy outright, so the gate this
-  // fixture runs is the one this tree ships rather than the one last installed.
+  // `stageNodeModules` withholds that copy's scripts, so the gate this fixture
+  // runs is the one this tree ships rather than the one last installed.
   fixtureGit(root, "init", "--initial-branch=main");
   fixtureGit(root, "config", "user.email", "fixture@example.invalid");
   fixtureGit(root, "config", "user.name", "Fixture");
   dirs.push(root);
   writeFileSync(log, "");
-  writeFileSync(path.join(root, "package.json"), manifest);
+  writeFileSync(path.join(root, PACKAGE_MANIFEST), manifest);
   writeFileSync(path.join(root, "vitest.config.js"), FIXTURE_VITEST_CONFIG);
   mkdirSync(path.join(root, "tests/unit"), { recursive: true });
   mkdirSync(path.join(root, "tests/integration"), { recursive: true });
@@ -468,7 +487,13 @@ function runHook(
     // The hook fans out over the whole integration tree.
     baseMs: 30_000,
     cwd: root,
-    env: { ...process.env, LISA_COLLECT_LOG: log, PATH: searchPath },
+    // Never sweep the machine from inside a test (CodySwannGT/lisa#4597).
+    env: {
+      ...process.env,
+      ...sweepAlreadyRanEnv(),
+      LISA_COLLECT_LOG: log,
+      PATH: searchPath,
+    },
     // Git feeds the refs being pushed on stdin, and that is the only thing
     // that tells the traceability gate WHICH range to judge. Without it the
     // gate falls back to the pusher's local `HEAD` and says so — an answer

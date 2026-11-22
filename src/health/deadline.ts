@@ -1,5 +1,4 @@
 /** One absolute wall-clock deadline shared by every health collaborator. */
-/* eslint-disable jsdoc/require-returns -- typed deadline helpers are self-describing */
 import { performance } from "node:perf_hooks";
 
 const MAX_DEADLINE_MS = 119_000;
@@ -26,7 +25,10 @@ export class HealthDeadline {
     this.timer = setTimeout(() => this.controller.abort(), duration);
   }
 
-  /** Remaining whole milliseconds available to a bounded command. */
+  /**
+   * Remaining whole milliseconds available to a bounded command.
+   * @returns Milliseconds left before the shared deadline, never negative
+   */
   remainingMs(): number {
     return Math.max(0, Math.floor(this.expiresAt - performance.now()));
   }
@@ -50,4 +52,3 @@ export class HealthDeadline {
     clearTimeout(this.timer);
   }
 }
-/* eslint-enable jsdoc/require-returns -- restore repository documentation defaults */

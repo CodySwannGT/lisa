@@ -5,7 +5,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { required } from "./npm-update-contract.mjs";
+import { required, policyTarget } from "./npm-update-contract.mjs";
 import { withStage } from "./npm-update-invariants.mjs";
 import { writeJson } from "./npm-update-process.mjs";
 import { controllerSubject } from "./npm-update-controller-factory.mjs";
@@ -120,7 +120,7 @@ function hostedEnvironment(context, root, bin, installed) {
     GITHUB_RUN_ID: process.env.GITHUB_RUN_ID,
     GITHUB_RUN_ATTEMPT: process.env.GITHUB_RUN_ATTEMPT,
     GITHUB_SHA: context.proposal.parent,
-    GITHUB_REF: "refs/heads/main",
+    GITHUB_REF: `refs/heads/${policyTarget(context.proposal)}`,
     GITHUB_EVENT_NAME: process.env.GITHUB_EVENT_NAME,
   };
 }

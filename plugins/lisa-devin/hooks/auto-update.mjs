@@ -36,6 +36,19 @@
  *
  * FAIL SOFT, ALWAYS. Any failure is reported in the context and the session
  * starts; a half-finished update is reported, never hidden.
+ *
+ * ## The developer is told, not only the agent (CodySwannGT/lisa#4903)
+ *
+ * Hook context reaches the agent, never the person. So every outcome where a
+ * newer Lisa is known and is NOT in place — uncommitted changes, an update an
+ * earlier session left uncommitted, an update applied but not committable, a
+ * linked `node_modules`, unreadable release tags, a failure — also carries a
+ * plain-language notice. The hook emits it as `systemMessage`, which Claude
+ * Code, Codex and Devin (Claude-shaped hook output) show to the developer,
+ * and the context asks the agent to raise it in its first reply and offer to
+ * finish the update, with the command that does. A runtime that does not
+ * render `systemMessage` (Cursor) still reaches the developer through that
+ * relay. It warns rather than blocks: a session must always start.
  * @module plugins/src/base/hooks/auto-update
  */
 import { execFile } from "child_process";
@@ -461,7 +474,7 @@ async function npmLatest(projectDir, deps) {
 /**
  * Everything decided before anything is changed.
  * @param {object} ctx Context.
- * @returns {Promise<{skip: string} | {from: string, to: string, selfMode: boolean, manager: string}>} Plan.
+ * @returns {Promise<{skip: string, notice?: string, rerun?: boolean} | {from: string, to: string, selfMode: boolean, manager: string}>} Plan.
  */
 async function plan(ctx) {
   const { projectDir, run } = ctx;
@@ -476,11 +489,6 @@ async function plan(ctx) {
   if (!declares) return { skip: "" };
   const modules = path.join(projectDir, "node_modules");
   if (!existsSync(modules)) return { skip: "" };
-  if (lstatSync(modules).isSymbolicLink()) {
-    return {
-      skip: "node_modules is a link to another checkout's install, so updating here would change that checkout too. Update Lisa from that checkout instead.",
-    };
-  }
   const from = installedVersion(projectDir);
   const to = await npmLatest(projectDir, ctx);
   if (!from) return { skip: "" };
@@ -489,12 +497,22 @@ async function plan(ctx) {
       skip: "npm could not be reached to check for a newer Lisa; nothing was changed.",
     };
   if (!precedes(from, to)) return { skip: "" };
+  // Checked only once Lisa is known to be behind, so a current project that
+  // shares an install is never warned about every session.
+  if (lstatSync(modules).isSymbolicLink()) {
+    return {
+      skip: "node_modules is a link to another checkout's install, so updating here would change that checkout too. Update Lisa from that checkout instead.",
+      notice: `Lisa is out of date: this project has ${from} and ${to} is available. This checkout shares its installed packages with another checkout, so it was not updated here. Update Lisa from that other checkout.`,
+    };
+  }
   const dirty = await run(["git", "status", "--porcelain"], {
     cwd: projectDir,
   });
   if (dirty) {
     return {
-      skip: `Lisa ${to} is available (this project has ${from}), but the working tree has uncommitted changes, so nothing was changed. It updates at the start of a session that begins on a clean tree.`,
+      skip: `Lisa ${to} is available (this project has ${from}), but the working tree has uncommitted changes, so nothing was changed.`,
+      notice: `Lisa is out of date: this project has ${from} and ${to} is available. It was not updated automatically because there are uncommitted changes. Commit or stash them and start a new session, or ask your agent to update Lisa now.`,
+      rerun: true,
     };
   }
   if (selfMode) {
@@ -504,6 +522,7 @@ async function plan(ctx) {
     if (current === null) {
       return {
         skip: `Lisa ${to} is available, but the release tags needed to check it could not be read (offline?), so nothing was changed.`,
+        notice: `Lisa ${to} is available (this checkout has ${from}), but its release history could not be read, so it was not updated. Check the network and start a new session.`,
       };
     }
     if (current) return { skip: "" };
@@ -649,7 +668,8 @@ export async function workingTreeDigests(run, cwd, files) {
  * Commit the update now, or leave it pending for the first work-item binding.
  * @param {object} ctx Context.
  * @param {{from: string, to: string}} update The update.
- * @returns {Promise<string>} One sentence describing where the update is.
+ * @returns {Promise<{where: string, notice: string | null}>} Where the update
+ *   is, and the developer notice when it is not committed.
  */
 async function settle(ctx, update) {
   const { projectDir, run } = ctx;
@@ -688,7 +708,10 @@ async function settle(ctx, update) {
       const sha = await run(["git", "rev-parse", "--short", "HEAD"], {
         cwd: projectDir,
       });
-      return `It is committed on ${branch} as its own commit ${sha}, so it ships with this branch's pull request.`;
+      return {
+        where: `It is committed on ${branch} as its own commit ${sha}, so it ships with this branch's pull request.`,
+        notice: null,
+      };
     } catch (error) {
       await run(["git", "reset", "--quiet"], { cwd: projectDir }).catch(
         () => ""
@@ -708,13 +731,17 @@ async function settle(ctx, update) {
     marker,
     `${JSON.stringify({ from: update.from, to: update.to, files: changed, ...(digests ? { digests } : {}) }, null, 2)}\n`
   );
-  return `It is NOT committed yet (${decision.reason}). The ${changed.length} changed file(s) are left in the working tree and recorded as a pending update; binding a work item on a feature branch (\`lisa-work-item.mjs link\` / \`attach-branch\`, which /lisa:track runs) commits them first, as their own commit. Do not fold these files into a feature commit.`;
+  return {
+    where: `It is NOT committed yet (${decision.reason}). The ${changed.length} changed file(s) are left in the working tree and recorded as a pending update; binding a work item on a feature branch (\`lisa-work-item.mjs link\` / \`attach-branch\`, which /lisa:track runs) commits them first, as their own commit. Do not fold these files into a feature commit.`,
+    notice: `Lisa was updated from ${update.from} to ${update.to}, but the change is not committed yet (${decision.reason}). Ask your agent to commit it on its own branch so it is not lost or mixed into other work.`,
+  };
 }
 
 /**
  * Remind about a pending update, or clear a marker whose files were committed.
  * @param {object} ctx Context.
- * @returns {Promise<string | null>} A reminder, or null when nothing is pending.
+ * @returns {Promise<{text: string, notice: string} | null>} A reminder, or
+ *   null when nothing is pending.
  */
 async function pendingReminder(ctx) {
   const markerPath = path.resolve(
@@ -726,22 +753,84 @@ async function pendingReminder(ctx) {
   );
   const marker = readJson(markerPath);
   if (!marker) return null;
-  const dirty = await ctx.run(["git", "status", "--porcelain"], {
-    cwd: ctx.projectDir,
-  });
+  // Only the marker's own files decide it: an unrelated edit must not keep a
+  // committed update looking pending, and no recorded files means none is.
+  const files = marker.files ?? [];
+  const dirty = files.length
+    ? await ctx.run(["git", "status", "--porcelain", "--", ...files], {
+        cwd: ctx.projectDir,
+      })
+    : "";
   if (!dirty) {
     rmSync(markerPath, { force: true });
     return null;
   }
-  return `A Lisa update to ${marker.to} was applied in an earlier session and is still uncommitted (${(marker.files ?? []).length} file(s)). Binding a work item on a feature branch commits it first, as its own commit. Do not fold these files into a feature commit.`;
+  // An uncommitted update must not hide a release that came out since, or a
+  // project left on main with its bump uncommitted never hears of another.
+  // probe-direction: neutral — an unreachable registry only drops the clause.
+  const latest = await npmLatest(ctx.projectDir, ctx).catch(() => null);
+  const since =
+    latest && marker.to && precedes(marker.to, latest)
+      ? ` Lisa ${latest} has been released since.`
+      : "";
+  return {
+    text: `A Lisa update to ${marker.to} was applied in an earlier session and is still uncommitted (${files.length} file(s)).${since} Binding a work item on a feature branch commits it first, as its own commit. Do not fold these files into a feature commit.`,
+    notice: `A Lisa update to ${marker.to} is sitting in this project but is not committed.${since} Ask your agent to commit it on its own branch so it is not lost or mixed into other work.`,
+  };
+}
+
+/** This hook's own path, so the agent can rerun it once the tree is clean. */
+const RUNNER_PATH = fileURLToPath(import.meta.url);
+
+/**
+ * Agent context with the developer notice attached: what to tell them, and
+ * how to finish the update when they say yes.
+ * @param {string} text Context sentence(s).
+ * @param {string} notice What the developer is told.
+ * @param {string} projectDir Project root.
+ * @param {boolean} rerun Whether rerunning the hook would finish the update.
+ * @returns {string} Context for the agent.
+ */
+function withNotice(text, notice, projectDir, rerun) {
+  const how = rerun
+    ? ` If they want it now, help them commit or stash their changes first, then run \`node "${RUNNER_PATH}" --project-dir "${projectDir}"\` and report what it says.`
+    : "";
+  return `${text}\n\nThe developer may not see hook output. In your first reply, tell them this in plain words and offer to sort it out: "${notice}"${how}`;
 }
 
 /**
  * Run the whole session-start update.
  * @param {{projectDir: string, env?: NodeJS.ProcessEnv, nowMs?: number, run?: typeof runCommand, refresh?: typeof refreshNpmLatest}} input Inputs.
+ * @returns {Promise<{text: string, notice: string | null}>} The agent context
+ *   ("" when there is nothing to say) and the developer notice (null when the
+ *   developer need not be told anything).
+ */
+export async function autoUpdateResult(input) {
+  const result = await runUpdate(input);
+  const notice = result.notice ?? null;
+  return {
+    text: notice
+      ? withNotice(result.text, notice, input.projectDir, Boolean(result.rerun))
+      : result.text,
+    notice,
+  };
+}
+
+/**
+ * Run the whole session-start update, returning only the agent context.
+ * @param {Parameters<typeof autoUpdateResult>[0]} input Inputs.
  * @returns {Promise<string>} The context sentence(s), or "" when there is nothing to say.
  */
 export async function autoUpdate(input) {
+  return (await autoUpdateResult(input)).text;
+}
+
+/**
+ * The update itself.
+ * @param {Parameters<typeof autoUpdateResult>[0]} input Inputs.
+ * @returns {Promise<{text: string, notice?: string | null, rerun?: boolean}>} Outcome.
+ */
+async function runUpdate(input) {
   const ctx = {
     env: process.env,
     nowMs: Date.now(),
@@ -750,11 +839,13 @@ export async function autoUpdate(input) {
   };
   ctx.config = readLisaConfig(ctx.projectDir);
   const setting = autoUpdateSetting(ctx.config, ctx.env);
-  if (!setting.on) return "";
+  if (!setting.on) return { text: "" };
   const pending = await pendingReminder(ctx);
   if (pending) return pending;
   const update = await plan(ctx);
-  if ("skip" in update) return update.skip;
+  if ("skip" in update) {
+    return { text: update.skip, notice: update.notice, rerun: update.rerun };
+  }
   const lock = path.resolve(
     ctx.projectDir,
     await ctx.run(["git", "rev-parse", "--git-path", "lisa/auto-update.lock"], {
@@ -762,17 +853,26 @@ export async function autoUpdate(input) {
     })
   );
   if (!takeLock(lock, ctx.nowMs)) {
-    return `Lisa ${update.to} is available; another session is updating this worktree right now.`;
+    return {
+      text: `Lisa ${update.to} is available; another session is updating this worktree right now.`,
+    };
   }
   try {
     await applyUpdate(ctx, update);
-    const where = await settle(ctx, update);
+    const { where, notice } = await settle(ctx, update);
     const what = update.selfMode
       ? `Updated Lisa's own self-dependency from ${update.from} to ${update.to}.`
       : `Updated Lisa from ${update.from} to ${update.to}, including the template changes \`lisa apply\` makes for it.`;
-    return `${what} ${where} Guard and skill behaviour you observe in THIS session is still the plugin copy it started with.`;
+    return {
+      text: `${what} ${where} Guard and skill behaviour you observe in THIS session is still the plugin copy it started with.`,
+      notice,
+    };
   } catch (error) {
-    return `Lisa ${update.to} is available but the automatic update failed: ${String(error.message).split("\n")[0]}. The working tree may hold a partial update; review it with \`git status\` before other work, or set "autoUpdate": false to stop these attempts.`;
+    const reason = String(error.message).split("\n")[0];
+    return {
+      text: `Lisa ${update.to} is available but the automatic update failed: ${reason}. The working tree may hold a partial update; review it with \`git status\` before other work, or set "autoUpdate": false to stop these attempts.`,
+      notice: `Lisa could not update itself from ${update.from} to ${update.to}, and the project may hold a half-finished update. Ask your agent to check \`git status\` and finish or undo it. The error was: ${reason}`,
+    };
   } finally {
     releaseLock(lock);
   }
@@ -782,11 +882,14 @@ export async function autoUpdate(input) {
  * Wrap the context in the hook envelope.
  * @param {string} text Context sentence(s).
  * @param {string} event Hook event name.
+ * @param {string | null} [notice] What the developer must see, shown as
+ *   `systemMessage`; omitted when there is none.
  * @returns {string} JSON envelope, or "" when there is nothing to say.
  */
-export function envelope(text, event) {
+export function envelope(text, event, notice = null) {
   if (!text) return "";
   return JSON.stringify({
+    ...(notice ? { systemMessage: `⚠️ ${notice}` } : {}),
     hookSpecificOutput: {
       hookEventName: event,
       additionalContext: `<${BLOCK_TAG}>\n${text}\n</${BLOCK_TAG}>`,
@@ -813,9 +916,9 @@ function invokedDirectly(moduleUrl, argv1 = process.argv[1]) {
 if (invokedDirectly(import.meta.url)) {
   const index = process.argv.indexOf("--project-dir");
   const projectDir = index >= 0 ? process.argv[index + 1] : process.cwd();
-  autoUpdate({ projectDir })
-    .then(text => {
-      const out = envelope(text, "SessionStart");
+  autoUpdateResult({ projectDir })
+    .then(({ text, notice }) => {
+      const out = envelope(text, "SessionStart", notice);
       if (out) process.stdout.write(`${out}\n`);
     })
     .catch(() => {

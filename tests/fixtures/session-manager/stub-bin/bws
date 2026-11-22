@@ -1,0 +1,4 @@
+#!/bin/sh
+# Stub `bws` for the session-manager CLI tests. The stub itself is
+# ../support/stubs/bws.mjs, kept as a module so the dead-code gate can follow its imports.
+exec node "$(dirname "$0")/../support/stubs/bws.mjs" "$@"

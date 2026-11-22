@@ -100,11 +100,11 @@
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/parity-safety-net.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/block-shell-json-parsing.sh"
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/block-shell-json-parsing.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/block-masked-exit-status.sh"
           },
           {
             "type": "command",
@@ -178,6 +178,11 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/install-pkgs.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/install-rails-hooks.sh",
+            "timeout": 45
           }
         ]
       },

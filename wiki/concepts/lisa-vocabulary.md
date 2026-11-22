@@ -78,13 +78,9 @@ An ideation ledger is durable automation run metadata for project, PRD, or threa
 
 PRD pressure is the queue condition where project ideation should not mark new PRDs ready automatically because existing ready or in-progress build work already needs attention. Lisa's queue-status helper exposes this pressure signal so ideation can document a PRD without overloading the build queue.
 
-## Digital Staff Roster
+## Knowledge Role
 
-A digital staff roster is the wiki-owned set of role pages and runtime subagents that represent domain experts for a project. Lisa wiki setup now seeds the standard roster by default when a project has not declared a custom `config.staff[]`.
-
-## Managed Wiki Ignore Block
-
-A managed wiki ignore block is the Lisa wiki-owned section inserted into a project's `.gitignore` during setup or repair. It is merged by marker so wiki-local artifacts can be ignored without overwriting project-owned entries.
+The knowledge role is the required `knowledge` key in `.lisa.config.json` that names a project's knowledge backend. Its only value today is `llm-wiki`, the git-native wiki each repository owns at `wiki/`. Flows ask it questions and record what they learn; related repositories appear as plain pointers on `wiki/start-here.md`. It replaced the optional, possibly remote wiki, the digital-staff roster, and the wiki-owned `.gitignore` block in 2026-11.
 
 ## E2E Coverage Gap
 

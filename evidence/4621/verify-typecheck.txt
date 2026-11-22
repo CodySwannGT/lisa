@@ -1,0 +1,14 @@
+# cwd: clean detached worktree /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt
+# HEAD: 1851ff3e61f8f7f44e3795ebbd6ad10e011d15cf
+# tracked changes: 0
+# command: bun run typecheck
+# started: 2026-11-12T14:23:39Z
+$ node scripts/lib/worktree-dependencies.mjs && tsgo --noEmit && bun run typecheck:tests && bun run typecheck:engine-floor
+$ node scripts/check-typecheck-tests.mjs
+type-correctness (tests): 350 file(s) with 1527 error(s); 350 quarantined.
+✅ No type errors outside the quarantine, and no stale quarantine entries.
+$ node scripts/check-engine-floor.mjs
+type-correctness (engine floor): engines.node "24.21.0" → Node 24 → --lib es2025. 23012 diagnostic(s) at that library, of which 0 are attributable to the floor.
+Measured backlog (NOT gated): 23012 diagnostic(s) survive at --lib esnext and are unrelated to the engine floor.
+✅ Nothing in the shipped JavaScript outruns Node 24.
+EXIT=0

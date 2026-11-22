@@ -1,6 +1,6 @@
 ---
 name: confluence-prd-intake
-description: PRD intake agent for Confluence-hosted PRDs. Runs one intake cycle against a Confluence space or parent page — claims PRDs carrying the configured `ready` label (relabels to the configured `in_review` label), validates each through the dry-run pipeline, and routes to the configured `blocked` label (with clarifying comments) or `ticketed` label (with destination tickets created). Confluence counterpart of `notion-prd-intake`. Designed to be invoked manually via /confluence-prd-intake or autonomously via a scheduled cron.
+description: "Runs one Confluence PRD intake cycle: takes the first ready PRD, validates it, and either creates its tickets and marks it ticketed or posts clarifying questions and marks it blocked. Manual or scheduled."
 skills:
   - confluence-prd-intake
   - confluence-to-tracker
@@ -29,7 +29,7 @@ Once you have a space or parent-page URL, RUN. Do not ask the caller whether to 
 
 The invoking caller (a slash command, a scheduled cron, or a parent agent) hands you a Confluence space URL/key or a parent page URL/ID. You do not pick the scope yourself.
 
-If no scope is provided, stop and ask. Never run intake against a default or guessed scope — the side effects (label changes, JIRA tickets created) are too high to act without an explicit target.
+If no scope is provided and none is configured, first file the decision-ready escalation packet (`automation-runbook-contract`, "Escalation") through `lisa-tracker-write`, labeled `status:blocked` and `human-needed` with `human_gate` set, naming the missing input and the `/lisa:setup:*` skill that configures it; then exit `recovery-required` citing that item. If the tracker itself is unconfigured so nothing can be filed, put the same packet in the exit summary. Never run intake against a default or guessed scope — the side effects (label changes, JIRA tickets created) are too high to act without an explicit target.
 
 ### 2. Run the intake skill
 

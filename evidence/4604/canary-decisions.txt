@@ -1,0 +1,19 @@
+$ node scripts/lisa-update-projects-plan.mjs decide --canary-result fail
+halt
+exit=0
+$ node scripts/lisa-update-projects-plan.mjs decide --canary-result timeout
+halt
+exit=0
+$ node scripts/lisa-update-projects-plan.mjs decide --canary-result pass
+proceed
+exit=0
+$ node scripts/lisa-update-projects-plan.mjs decide --canary-result bogus
+lisa-update-projects-plan: unrecognised canary result "bogus"; expected pass, fail or timeout.
+usage: lisa-update-projects-plan.mjs [--workspaces <path>]
+       lisa-update-projects-plan.mjs decide --canary-result <pass|fail|timeout>
+exit=2
+$ node scripts/lisa-update-projects-plan.mjs decide
+lisa-update-projects-plan: unrecognised canary result undefined; expected pass, fail or timeout.
+usage: lisa-update-projects-plan.mjs [--workspaces <path>]
+       lisa-update-projects-plan.mjs decide --canary-result <pass|fail|timeout>
+exit=2

@@ -1,5 +1,6 @@
 ---
-description: "Attribute an arbitrary failure event to Lisa or the project with cited evidence. Evaluates three ordered signals — Lisa-managed surface ownership, shipped rule/skill/hook behavior, and the upstream Lisa change-history window — and returns lisa | project | ambiguous. Read-only; inconclusive cases stay local as ambiguous."
+disable-model-invocation: true
+description: "Decide with cited evidence whether a failure is Lisa's fault or the project's: returns lisa, project, or ambiguous. Read-only."
 argument-hint: "<failure event: defect description, implicated files, rule/skill/hook in play>"
 ---
 

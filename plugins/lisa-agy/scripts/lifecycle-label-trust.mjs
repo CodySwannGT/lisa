@@ -253,7 +253,7 @@ export function claimedLifecycleLabel(config) {
  * the bot fix: a reflexive bot label leaves the issue claimable exactly as if
  * it were absent.
  * @param {object} options inputs
- * @param {readonly string[]} options.trusted labels the classifier believes
+ * @param {readonly string[] | undefined} [options.trusted] labels the classifier believes
  * @param {unknown} options.config a parsed `.lisa.config.json`-shaped object
  * @returns {{claimable: boolean, reason: string|null}} the verdict
  */

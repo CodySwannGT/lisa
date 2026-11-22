@@ -3,20 +3,14 @@
  *
  * Codex consumes Lisa through project-local overlays, so source discovery must
  * never walk every built plugin. The base plugin is universal within a
- * Lisa-managed project; stack plugins follow detected project types; standalone
- * wiki/OpenClaw plugins follow explicit project configuration.
+ * Lisa-managed project; stack plugins follow detected project types; the
+ * knowledge plugin follows the required `knowledge` role.
  * @module core/lisa-plugin-selection
  */
-import * as fse from "fs-extra";
 import * as path from "node:path";
 import { readJsonOrNull } from "../utils/json-utils.js";
 import type { ProjectType } from "./config.js";
-
-/** Lisa plugins that are selected by explicit project configuration. */
-const STANDALONE_PLUGIN_CONFIG_KEYS = {
-  openclaw: "lisa-openclaw",
-  wiki: "lisa-wiki",
-} as const;
+import { knowledgePluginFor } from "./knowledge-role.js";
 
 /** Minimal `.lisa.config.json` shape used for standalone plugin selection. */
 type LisaProjectConfig = Readonly<Record<string, unknown>>;
@@ -29,8 +23,8 @@ type LisaProjectConfig = Readonly<Record<string, unknown>>;
  * is one of the `graceful-fs` passthroughs Node's ESM loader does not expose, so
  * `fse.readJson(...)` was `undefined` in the shipped `dist/` and threw a
  * `TypeError` straight into the `catch` this function used to have (#2487). Every
- * project therefore read as unconfigured, and the standalone `wiki` / `openclaw`
- * plugins keyed off this config were never once selected.
+ * project therefore read as unconfigured, and the plugins keyed off this config
+ * were never once selected.
  *
  * The old `catch` is gone rather than repaired. It could only ever mask the
  * failure of its own recovery, and it did not even cover the case it looked like
@@ -59,34 +53,24 @@ export async function selectProjectLisaPlugins(
   detectedTypes: readonly ProjectType[]
 ): Promise<ReadonlySet<string>> {
   const config = await readProjectConfig(destDir);
-  const hasLocalWiki = await fse.pathExists(
-    path.join(destDir, "wiki", "lisa-wiki.config.json")
-  );
-  return selectProjectLisaPluginsFromState(config, detectedTypes, hasLocalWiki);
+  return selectProjectLisaPluginsFromState(config, detectedTypes);
 }
 
 /**
  * Select plugins from already-safe project state without filesystem access.
  * @param config - Parsed project config
  * @param detectedTypes - Expanded, ordered project types
- * @param hasLocalWiki - Whether the local wiki contract marker exists
  * @returns Stable selected plugin set
  */
 export function selectProjectLisaPluginsFromState(
   config: LisaProjectConfig,
-  detectedTypes: readonly ProjectType[],
-  hasLocalWiki: boolean
+  detectedTypes: readonly ProjectType[]
 ): ReadonlySet<string> {
-  const configuredStandalonePlugins = Object.entries(
-    STANDALONE_PLUGIN_CONFIG_KEYS
-  )
-    .filter(([configKey]) => config[configKey] !== undefined)
-    .map(([, pluginName]) => pluginName);
+  const knowledgePlugin = knowledgePluginFor(config.knowledge);
   return new Set([
     "lisa",
     ...detectedTypes.map(type => `lisa-${type}`),
-    ...configuredStandalonePlugins,
-    ...(hasLocalWiki ? [STANDALONE_PLUGIN_CONFIG_KEYS.wiki] : []),
+    ...(knowledgePlugin === undefined ? [] : [knowledgePlugin]),
   ]);
 }
 

@@ -1,0 +1,4 @@
+display_name: "Knip Platform Files"
+short_description: "Fix knip flagging imports TypeScript resolves in an Expo app: platform files (Foo.native.tsx, Foo.web.tsx) imported as ./Foo or @/…/Foo, or…"
+default_prompt:
+  - "Use $knip-platform-files: Fix knip flagging imports TypeScript resolves in an Expo app: platform files (Foo.native.tsx, Foo.web.tsx) imported as ./Foo or @/…/Foo, or…."

@@ -1,6 +1,6 @@
 ---
 name: lisa-sonarcloud-access
-description: "Vendor-neutral access layer for SonarQube Cloud/Server. Sonar triage skills MUST delegate through this skill rather than calling the SonarQube MCP tools directly. Preferred substrate: the official SonarQube MCP server (mcp__sonarqube__*), authenticated headlessly from SONARQUBE_CLI_TOKEN (+ SONARQUBE_CLI_ORG for Cloud, SONARQUBE_CLI_SERVER for Server); the Sonar Web API, authenticated with the same token, is the sanctioned fallback when the MCP is not wired on this surface."
+description: "The one way Lisa skills reach SonarQube Cloud or Server: the official SonarQube MCP authenticated from a token, falling back to the Sonar Web API. Sonar skills must go through it."
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
 

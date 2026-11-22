@@ -40,9 +40,26 @@ import {
   scopedGuards,
   suitesByGuard,
   suitesReachingGuards,
-} from "../../../vitest.config.mutation";
+} from "../../../vitest.config.mutation.js";
 
 const ROOT = path.resolve(__dirname, "..", "..", "..");
+
+/**
+ * One of the gate's outcome markers, by name.
+ *
+ * The gate types `OUTCOMES` as an open string record, so a lookup is narrowed
+ * here: a renamed marker fails loudly instead of passing `undefined` through.
+ *
+ * @param name The marker's key in `OUTCOMES`.
+ * @returns The printed marker.
+ */
+function outcome(name: string): string {
+  const marker = gate.OUTCOMES[name];
+  if (marker === undefined) {
+    throw new Error(`lisa-mutation exports no OUTCOMES.${name}`);
+  }
+  return marker;
+}
 
 /**
  * Stryker's clear-text table, drawn around one `All files` row.
@@ -90,10 +107,9 @@ const GATE_SOURCE = path.join(
   "lisa-mutation.mjs"
 );
 
-/** Exact wrapper plus registered nested mutation scratch prefixes. */
+/** Exact wrapper for Lisa's own mutation run (no scratch prefixes since #4602). */
 const MUTATION_COMMAND =
   "node scripts/lib/worktree-dependencies.mjs && " +
-  'LISA_TEST_SCRATCH_PREFIXES=\'["lisa-mutation-","worker-"]\' ' +
   "$npm_execpath run lisa-test-run -- --adapter direct -- " +
   "node scripts/lisa-mutation.mjs";
 
@@ -166,8 +182,11 @@ describe("mutation gate wiring", () => {
   });
 
   it.each(MUTATION_STACKS)(
-    "registers nested mutation workers for the %s stack",
+    "ships a %s mutation script with no scratch-prefix registry",
     stack => {
+      // The per-test scratch policing that read LISA_TEST_SCRATCH_PREFIXES is
+      // retired; the start-of-run sweep in lisa-test-run replaces it
+      // (CodySwannGT/lisa#4603), so the shipped script carries no registry.
       const stackManifest = JSON.parse(
         fs.readFileSync(
           path.join(ROOT, stack, "package-lisa", "package.lisa.json"),
@@ -176,32 +195,11 @@ describe("mutation gate wiring", () => {
       ) as { readonly force: { readonly scripts: Record<string, string> } };
       expect(stackManifest.force.scripts["test:mutation"]).toBe(
         "node scripts/lib/worktree-dependencies.mjs && " +
-          `LISA_TEST_SCRATCH_PREFIXES='["lisa-mutation-","worker-"]' ` +
           `lisa-test-run --profile ${stack} --adapter direct -- ` +
           `node scripts/lisa-mutation.mjs`
       );
     }
   );
-
-  it("preserves the wrapper's exact nested-worker prefix registry", async () => {
-    const variable = "LISA_TEST_SCRATCH_PREFIXES";
-    const saved = process.env[variable];
-    const expected = JSON.stringify(["lisa-mutation-", "worker-"]);
-    try {
-      process.env[variable] = expected;
-      vi.resetModules();
-      const { default: localConfig } =
-        await import("../../../vitest.config.local");
-      const environment = localConfig.test?.env as
-        | Record<string, string>
-        | undefined;
-      expect(environment?.[variable]).toBe(expected);
-    } finally {
-      if (saved === undefined) delete process.env[variable];
-      else process.env[variable] = saved;
-      vi.resetModules();
-    }
-  });
 
   it("has the gate switched on, so the shipped self-skip cannot hide it", () => {
     // `mutation.gate.json` defaults to `"enabled": false` and the gate then
@@ -390,12 +388,12 @@ describe("a run that measured NOTHING must not render as a pass (#3668)", () => 
       const output = path.join(scratch, "out.txt");
 
       expect(
-        gate.finish(gate.OUTCOMES.nothingToMutate, 0, false, {
+        gate.finish(outcome("nothingToMutate"), 0, false, {
           GITHUB_OUTPUT: output,
         })
       ).toBe(0);
       expect(
-        gate.finish(gate.OUTCOMES.scoped, 1, true, {
+        gate.finish(outcome("scoped"), 1, true, {
           GITHUB_OUTPUT: output,
         })
       ).toBe(1);
@@ -415,9 +413,9 @@ describe("a run that measured NOTHING must not render as a pass (#3668)", () => 
   it("never lets a missing output destination change the exit code", () => {
     // Reporting, downstream of a verdict already reached. Losing the render
     // must not invert the code the gate worked to earn.
-    expect(gate.finish(gate.OUTCOMES.scoped, 7, false, {})).toBe(7);
+    expect(gate.finish(outcome("scoped"), 7, false, {})).toBe(7);
     expect(
-      gate.finish(gate.OUTCOMES.scoped, 7, false, { GITHUB_OUTPUT: "" })
+      gate.finish(outcome("scoped"), 7, false, { GITHUB_OUTPUT: "" })
     ).toBe(7);
   });
 
@@ -428,7 +426,7 @@ describe("a run that measured NOTHING must not render as a pass (#3668)", () => 
       const output = path.join(scratch, "out.txt");
       process.env.GITHUB_OUTPUT = output;
 
-      expect(gate.finish(gate.OUTCOMES.nothingToMutate, 0)).toBe(0);
+      expect(gate.finish(outcome("nothingToMutate"), 0)).toBe(0);
       expect(fs.readFileSync(output, "utf8")).toBe(
         `mutation_outcome=${gate.OUTCOMES.nothingToMutate}\n` +
           "mutation_measured=false\n"
@@ -563,7 +561,8 @@ describe("the renderer job, and why its ABSENCE is the signal (#3668)", () => {
     // state on any pull request that touches no mutate target, and branch
     // protection cannot see a skipped context as satisfied — requiring it
     // would block every such pull request forever.
-    expect(QUALITY_JOB_GATES[RENDERER]).toBeUndefined();
+    const jobGates: Readonly<Record<string, string>> = QUALITY_JOB_GATES;
+    expect(jobGates[RENDERER]).toBeUndefined();
     expect(requiredContexts).not.toContain(
       `🔍 Quality Checks / ${quality.jobs[RENDERER]?.name ?? ""}`
     );
@@ -630,7 +629,7 @@ describe("a run that EXECUTED no mutant must not report a measurement (#3968)", 
         code: 0,
         output: ALL_ERRORED_TABLE,
       });
-      gate.finish(gate.OUTCOMES.scoped, reported.code, reported.measured, {
+      gate.finish(outcome("scoped"), reported.code, reported.measured, {
         GITHUB_OUTPUT: out,
       });
 
@@ -648,7 +647,7 @@ describe("a run that EXECUTED no mutant must not report a measurement (#3968)", 
     // substring assertion cannot see a trailing clause appended after it.
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
     try {
-      gate.finish(gate.OUTCOMES.nothingToMutate, 0, false, {
+      gate.finish(outcome("nothingToMutate"), 0, false, {
         GITHUB_ACTIONS: "true",
       });
 
@@ -678,7 +677,7 @@ describe("a run that EXECUTED no mutant must not report a measurement (#3968)", 
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
     try {
       expect(
-        gate.finish(gate.OUTCOMES.nothingToMutate, 0, false, {
+        gate.finish(outcome("nothingToMutate"), 0, false, {
           GITHUB_ACTIONS: "true",
         })
       ).toBe(0);
@@ -692,13 +691,13 @@ describe("a run that EXECUTED no mutant must not report a measurement (#3968)", 
     // fix that collapses them cannot pass by satisfying one.
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
     try {
-      gate.finish(gate.OUTCOMES.nothingToMutate, 0, false, {});
+      gate.finish(outcome("nothingToMutate"), 0, false, {});
       expect(log, "annotated outside GitHub Actions").not.toHaveBeenCalled();
 
-      gate.finish(gate.OUTCOMES.scoped, 0, true, { GITHUB_ACTIONS: "true" });
+      gate.finish(outcome("scoped"), 0, true, { GITHUB_ACTIONS: "true" });
       expect(log, "annotated a measured run").not.toHaveBeenCalled();
 
-      gate.finish(gate.OUTCOMES.runFailed, 1, false, {
+      gate.finish(outcome("runFailed"), 1, false, {
         GITHUB_ACTIONS: "true",
       });
       expect(log, "annotated a run that is already red").not.toHaveBeenCalled();

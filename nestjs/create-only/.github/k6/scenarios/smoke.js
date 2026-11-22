@@ -24,7 +24,10 @@ export default function () {
   check(response, {
     "status is 200": r => r.status === 200,
     "response time < 300ms": r => r.timings.duration < 300,
-    "response has body": r => r.body.length > 0,
+    // A failed request (refused, DNS, timeout) has a null body. Reading
+    // `.length` on it throws, which ends the iteration before sleep(1) and
+    // spins the VU at thousands of requests per second.
+    "response has body": r => (r.body || "").length > 0,
   });
 
   sleep(1);

@@ -70,10 +70,7 @@ export const CDK_PRESET_ARTIFACTS = [
  * classified as a CDK app. Naming them is half the remedy, which is why the
  * check states them rather than saying "some dependencies".
  */
-export const CDK_PRESET_FORCED_DEPENDENCIES = [
-  "constructs",
-  "source-map-support",
-] as const;
+export const CDK_PRESET_FORCED_DEPENDENCIES = ["constructs"] as const;
 
 /**
  * Construct libraries older presets force-merged or defaulted, now host-owned.

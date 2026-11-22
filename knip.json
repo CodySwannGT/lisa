@@ -1,64 +1,33 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": [
-    "src/**/*.ts",
-    "scripts/**/*.ts",
-    "scripts/**/*.mjs"
-  ],
-  "project": [
-    "src/**/*.ts",
-    "scripts/**/*.ts",
-    "scripts/**/*.mjs"
-  ],
-  "ignore": [
-    "**/*.test.ts",
-    "**/*.spec.ts",
-    "**/__tests__/**",
-    "**/__mocks__/**",
-    "**/tests/**",
-    "**/test/**",
-    "**/dist/**",
-    "**/build/**",
-    "**/coverage/**",
-    "**/node_modules/**"
-  ],
-  "ignoreDependencies": [
-    "@ast-grep/cli",
-    "@commitlint/cli",
-    "@eslint/eslintrc",
-    "@jest/globals",
-    "@jest/test-sequencer",
-    "esbuild-register",
-    "eslint-config-prettier",
-    "eslint-plugin-react-hooks",
-    "husky",
-    "jiti",
-    "jscodeshift",
-    "lint-staged",
-    "prettier",
-    "ts-jest",
-    "ts-morph",
-    "tsx"
-  ],
-  "ignoreBinaries": [
-    "ast-grep",
-    "eslint",
-    "expo",
-    "gh",
-    "husky",
-    "knip",
-    "oxlint",
-    "playwright",
-    "prettier",
-    "printf",
-    "serve",
-    "standard-version",
-    "tsc",
-    "tsx",
-    "vitest"
-  ],
-  "ignoreExportsUsedInFile": true,
-  "rules": {
-    "devDependencies": "off"
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": [
+        "scripts/**/*.mjs",
+        "scripts/*.{ts,mts}",
+        ".lisa/evidence/*/*.mjs",
+        "evidence/*/*.{mjs,ts}",
+        "src/opencode/plugin-templates/*.ts",
+        "tests/fixtures/expo-jest-pre-setup/probe.mjs",
+        "tests/integration/support/hook-manager-stand-in.mjs",
+        "tests/fixtures/git-history-secrets/{journey,rails-prepush-hook,scanner-path}.mjs",
+        "tests/fixtures/k6-installation/finish.mjs",
+        "tests/fixtures/mutation-performance/jest/jest.config.ts",
+        "tests/fixtures/opencode/host-name-guard-callback.mjs",
+        "tests/fixtures/session-manager/support/stubs/*.mjs",
+        "tests/helpers/__fixtures__/plugin-registration-cli.mjs",
+        "tests/helpers/__fixtures__/{coverage-scratch-concurrent,margin-guard-case}.ts",
+        "tests/helpers/history-scanner-global-setup.ts",
+        "tests/support/work-item-{fake-aws,stateful-gh,stateful-linear}.mjs"
+      ],
+      "project": [
+        "src/**/*.{ts,css}",
+        "scripts/**/*.{ts,mts,mjs}",
+        "!scripts/**/*.d.mts",
+        "tests/**/*.{ts,mts,mjs}",
+        ".lisa/evidence/*/*.mjs",
+        "evidence/*/*.{mjs,ts}"
+      ]
+    }
   }
 }

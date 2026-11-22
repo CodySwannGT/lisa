@@ -32,13 +32,16 @@
  */
 
 import yaml from "js-yaml";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
+import { useOwnedTempDirs } from "../helpers/owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WORKFLOWS = path.resolve(__dirname, "..", "..", ".github", "workflows");
@@ -144,7 +147,7 @@ function stepNamed(steps: Step[], fragment: string): Step {
  * @returns The exit status and combined output.
  */
 function runValidation(role: string): { status: number; output: string } {
-  const dir = mkdtempSync(path.join(tmpdir(), "lisa-prepare-aws-"));
+  const dir = ownedDir("lisa-prepare-aws-");
   const step = stepNamed(prepareSteps(AWS_FILE), VALIDATE_STEP);
   writeFileSync(path.join(dir, "validate.sh"), String(step.run ?? ""));
   try {

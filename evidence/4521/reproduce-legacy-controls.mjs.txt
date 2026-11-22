@@ -1,0 +1,19 @@
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { auditExceptionViolations } from './dist/cli/doctor-readiness-audit-allowlist.js';
+
+// Control A: documented legacy ID-only entry -> must stay accepted (no violation).
+const documented = mkdtempSync(join(tmpdir(), 'lisa-4521-control-documented-'));
+writeFileSync(join(documented, 'audit.ignore.local.json'), JSON.stringify({
+  exclusions: [{ id: 'GHSA-mrhx-c7xc-m3w5', reason: 'Isolated controlled fixture: documented legacy entry.' }]
+}));
+// Control B: undocumented entry -> must stay reported.
+const undocumented = mkdtempSync(join(tmpdir(), 'lisa-4521-control-undocumented-'));
+writeFileSync(join(undocumented, 'audit.ignore.local.json'), JSON.stringify({
+  exclusions: [{ id: 'GHSA-mrhx-c7xc-m3w5' }]
+}));
+const a = await auditExceptionViolations(documented);
+const b = await auditExceptionViolations(undocumented);
+console.log(JSON.stringify({ documented: a, undocumented: b }));
+process.exitCode = a.length === 0 && b.some(line => /no written decision/.test(line)) ? 0 : 1;

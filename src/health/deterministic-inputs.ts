@@ -17,6 +17,7 @@ import {
   readProjectJsonObject,
   readProjectText,
 } from "./read-only-fs.js";
+import { Memo } from "../utils/memo.js";
 
 /**
  * Read config while preserving missing vs malformed state.
@@ -79,14 +80,9 @@ export function safeSyncReads(projectRoot: string): SyncReadDependencies {
  * @returns A reader that calls through at most once per repository
  */
 export function shareRulesetReader(reader: RulesetReader): RulesetReader {
-  const inFlight = new Map<string, ReturnType<RulesetReader>>();
-  return (owner, repo, projectRoot, timeoutMs, signal) => {
-    const key = `${owner}/${repo}`;
-    const existing = inFlight.get(key);
-    if (existing !== undefined) return existing;
-    const started = reader(owner, repo, projectRoot, timeoutMs, signal);
-    // eslint-disable-next-line functional/immutable-data -- the cache is the point
-    inFlight.set(key, started);
-    return started;
-  };
+  const inFlight = new Memo<string, ReturnType<RulesetReader>>();
+  return (owner, repo, projectRoot, timeoutMs, signal) =>
+    inFlight.resolve(`${owner}/${repo}`, () =>
+      reader(owner, repo, projectRoot, timeoutMs, signal)
+    );
 }

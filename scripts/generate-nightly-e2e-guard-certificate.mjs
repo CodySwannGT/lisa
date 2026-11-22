@@ -28,6 +28,8 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 const DEFAULT_REPO_ROOT = path.resolve(import.meta.dirname, "..");
 const GUARD_PATH =
   "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs";
+const RAILS_GUARD_PATH =
+  "rails/copy-overwrite/scripts/check-nightly-e2e-health.mjs";
 const HELPER_PATH =
   "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs";
 const OUTPUT_PATH = "src/core/nightly-e2e-guard-behavior-certificate.ts";
@@ -70,6 +72,12 @@ export const RETAINED_RELEASES = Object.freeze([
   // to the 50 releases from v4.22.13 through v4.26.0 (#3500), found only after
   // the fact. Adding the ref here is what stops this change repeating it.
   "v4.50.3",
+  // The guard every release from at least v4.111.2 through v5.14.2 shipped
+  // (sha256 d1b26caeaf65…). Retained in the commit that corrects a JSDoc type
+  // in the workspace guard (#4923): the edit changes the file's digest, so
+  // without this ref regeneration would revoke the certificate those installed
+  // releases rely on, the #3500 regression again.
+  "v5.14.2",
 ]);
 
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");
@@ -379,7 +387,7 @@ export async function generateNightlyGuardBehaviorCertificate(
 }
 
 /**
- * Generate or verify the checked-in artifact.
+ * Generate or verify the behavior certificate and the installed Rails copy.
  * @param {readonly string[]} argv - CLI arguments
  * @param {string} [repoRoot] - Canonical Lisa checkout
  * @returns {Promise<number>} Process exit code
@@ -387,7 +395,18 @@ export async function generateNightlyGuardBehaviorCertificate(
 export async function runCertificateCli(argv, repoRoot = DEFAULT_REPO_ROOT) {
   const generated = await generateNightlyGuardBehaviorCertificate(repoRoot);
   const output = path.join(repoRoot, OUTPUT_PATH);
+  const railsGuard = path.join(repoRoot, RAILS_GUARD_PATH);
+  // Existing consumers also read GUARD_PATH directly from tagged Lisa source.
+  // Keep that address and certify the same program for both applied stacks.
+  const guardBytes = await readFile(path.join(repoRoot, GUARD_PATH));
   if (argv.includes("--check")) {
+    const railsBytes = await readFile(railsGuard).catch(() => undefined);
+    if (!railsBytes?.equals(guardBytes)) {
+      process.stderr.write(
+        "The Rails nightly guard differs from the certified source. Run `bun run build:nightly-guard-certificate` and commit the generated copy.\n"
+      );
+      return 1;
+    }
     const current = await readFile(output, "utf8").catch(() => "");
     if (current === generated.source) {
       process.stdout.write("Nightly guard behavior certificate is current.\n");
@@ -398,6 +417,7 @@ export async function runCertificateCli(argv, repoRoot = DEFAULT_REPO_ROOT) {
     );
     return 1;
   }
+  await writeFile(railsGuard, guardBytes);
   await writeFile(output, generated.source);
   process.stdout.write(
     `Wrote ${OUTPUT_PATH} (${generated.certificates.length} certified digest(s)).\n`

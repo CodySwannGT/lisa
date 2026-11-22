@@ -34,7 +34,6 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -43,7 +42,9 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import { borrowNodeModules } from "../support/borrowed-node-modules.mjs";
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import { sweepAlreadyRanEnv } from "../helpers/cleanup-sweep-skip.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -119,7 +120,7 @@ function runConsumer(
         type: "module",
       })
     );
-    symlinkSync(NODE_MODULES, path.join(root, "node_modules"), "dir");
+    borrowNodeModules(NODE_MODULES, root);
     mkdirSync(path.join(root, "tests/integration"), { recursive: true });
     for (const [relative, contents] of Object.entries(tests)) {
       writeFileSync(path.join(root, relative), contents);
@@ -130,6 +131,8 @@ function runConsumer(
     // which the test-budget conformance guard refuses, correctly.
     return boundedSpawnSync({
       args: [SCRIPT, "--moment=push"],
+      // Never sweep the machine from inside a test (CodySwannGT/lisa#4597).
+      env: { ...process.env, ...sweepAlreadyRanEnv() },
       command: process.execPath,
       cwd: root,
       label: "lisa-run-gates.mjs --moment=push",

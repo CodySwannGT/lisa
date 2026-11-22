@@ -1,0 +1,48 @@
+// Builds the extra controlled trees for the shipped-byte follow-up:
+//   doctor-a-id-only, doctor-b-scoped, doctor-c-package-only  (doctor observations)
+//   lock-unreadable, lock-unknown-shape, lock-bad-version     (scoped entry, bad bun.lock)
+// CONTROLLED FIXTURE DATA. Lock trees are copies of the committed generator's
+// covered-only tree with only bun.lock replaced.
+import { cpSync, writeFileSync, readFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+
+const [, , treesRoot, outRoot] = process.argv;
+const GHSA = "GHSA-mrhx-c7xc-m3w5";
+const base = join(treesRoot, "covered-only");
+const doctor = {
+  "doctor-a-id-only": [{ id: GHSA, reason: "Verifier fixture: documented ID-only entry" }],
+  "doctor-b-scoped": [
+    {
+      id: GHSA,
+      package: "zod",
+      versions: ">=3.0.0 <4.0.0",
+      paths: ["lint-plugin/zod"],
+      reason: "Verifier fixture: scoped entry",
+    },
+  ],
+  "doctor-c-package-only": [
+    { id: GHSA, package: "zod", reason: "Verifier fixture: package-only entry" },
+  ],
+};
+mkdirSync(outRoot, { recursive: true });
+for (const [name, exclusions] of Object.entries(doctor)) {
+  cpSync(base, join(outRoot, name), { recursive: true, verbatimSymlinks: true });
+  writeFileSync(join(outRoot, name, "audit.ignore.local.json"), JSON.stringify({ exclusions }, null, 2));
+}
+const lock = readFileSync(join(base, "bun.lock"), "utf8");
+const locks = {
+  "lock-unreadable": lock, // made unreadable (chmod 000) by the runner
+  "lock-unknown-shape": lock.replace(
+    '  "packages": {\n',
+    '  "packages": {\n    "odd-entry": {"version": "1.0.0"},\n'
+  ),
+  "lock-bad-version": lock.replace(
+    '  "packages": {\n',
+    '  "packages": {\n    "odd-pkg": ["odd-pkg@not-a-version","",{},"sha512-verifierfixture"],\n'
+  ),
+};
+for (const [name, text] of Object.entries(locks)) {
+  cpSync(base, join(outRoot, name), { recursive: true, verbatimSymlinks: true });
+  writeFileSync(join(outRoot, name, "bun.lock"), text);
+}
+console.log(Object.keys({ ...doctor, ...locks }).join("\n"));

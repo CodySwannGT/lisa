@@ -25,7 +25,7 @@ const RECENT_RUN_AT = "2026-05-26T12:00:00Z";
 const execFileAsync = promisify(execFile);
 
 describe("automation-status Codex adapter (#801)", () => {
-  const tempDirs = [];
+  const tempDirs: string[] = [];
 
   afterEach(async () => {
     await Promise.all(
@@ -166,16 +166,24 @@ describe("automation-status Codex adapter (#801)", () => {
  * Create one temporary Codex automation fixture for adapter tests.
  *
  * @param {string} automationsDir Parent automations fixture directory.
- * @param {{
- *   readonly id: string
- *   readonly rrule: string
- *   readonly prompt: string
- *   readonly memory: string
- *   readonly cwd?: string
- * }} input Fixture values to write.
+ * @param input Fixture values to write.
+ * @param input.id Automation id, also its directory name.
+ * @param input.rrule Schedule recurrence rule.
+ * @param input.prompt Prompt the automation runs.
+ * @param input.memory Contents of the automation's memory file.
+ * @param input.cwd Work tree to run in; a fresh fixture repo when omitted.
  * @returns {Promise<void>} Resolves after the fixture files are written.
  */
-async function writeAutomationFixture(automationsDir, input) {
+async function writeAutomationFixture(
+  automationsDir: string,
+  input: {
+    readonly id: string;
+    readonly rrule: string;
+    readonly prompt: string;
+    readonly memory: string;
+    readonly cwd?: string;
+  }
+): Promise<void> {
   const automationDir = path.join(automationsDir, input.id);
   const cwd = input.cwd ?? (await createGitWorkTreeFixture(automationsDir));
   await fs.mkdir(automationDir, { recursive: true });
@@ -205,7 +213,9 @@ async function writeAutomationFixture(automationsDir, input) {
  * @param {string} automationsDir Parent fixture directory.
  * @returns {Promise<string>} Path to the created work tree.
  */
-async function createGitWorkTreeFixture(automationsDir) {
+async function createGitWorkTreeFixture(
+  automationsDir: string
+): Promise<string> {
   const reposDir = path.join(automationsDir, "_repos");
   await fs.mkdir(reposDir, { recursive: true });
   const repoDir = await fs.mkdtemp(path.join(reposDir, "repo-"));
@@ -263,14 +273,19 @@ function gitEnvWithoutLocationOverrides() {
  * @param {number} [attempts] Maximum attempts before surfacing the failure.
  * @returns {Promise<void>}
  */
-async function initGitRepoWithRetry(repoDir, attempts = 4) {
+async function initGitRepoWithRetry(
+  repoDir: string,
+  attempts = 4
+): Promise<void> {
   const env = gitEnvWithoutLocationOverrides();
   for (let attempt = 1; ; attempt += 1) {
     try {
       await execFileAsync("git", ["init"], { cwd: repoDir, env });
       return;
     } catch (error) {
-      const transient = TRANSIENT_SPAWN_ERROR_CODES.has(error?.code);
+      const code = errorCode(error);
+      const transient =
+        typeof code === "string" && TRANSIENT_SPAWN_ERROR_CODES.has(code);
       if (!transient || attempt >= attempts) {
         throw error;
       }
@@ -280,18 +295,33 @@ async function initGitRepoWithRetry(repoDir, attempts = 4) {
 }
 
 /**
+ * The `code` a failed spawn carries, if it carries one.
+ *
+ * @param error The rejection value.
+ * @returns The error's `code`, or undefined.
+ */
+function errorCode(error: unknown): unknown {
+  return typeof error === "object" && error !== null && "code" in error
+    ? error.code
+    : undefined;
+}
+
+/**
  * Snapshot fixture automation contents to verify adapter reads remain read-only.
  *
  * @param {string} dir Fixture automation directory.
  * @returns {Promise<Record<string, { automationToml: string, memory: string }>>}
  *   Snapshot of fixture file contents keyed by automation directory name.
  */
-async function snapshotAutomationDir(dir) {
+async function snapshotAutomationDir(
+  dir: string
+): Promise<Record<string, { automationToml: string; memory: string }>> {
   const files = await fs.readdir(dir, { withFileTypes: true });
   const sortedFiles = files
     .slice()
     .sort((left, right) => left.name.localeCompare(right.name));
-  const snapshot = {};
+  const snapshot: Record<string, { automationToml: string; memory: string }> =
+    {};
   for (const entry of sortedFiles) {
     if (!entry.isDirectory()) {
       continue;
@@ -321,6 +351,6 @@ async function snapshotAutomationDir(dir) {
  * @param {string} value Raw string value.
  * @returns {string} TOML-safe string literal contents.
  */
-function escapeTomlString(value) {
+function escapeTomlString(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }

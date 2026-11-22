@@ -27,6 +27,17 @@ import {
   writeWorkflow,
 } from "../../helpers/readiness-workflow-fixtures.js";
 
+/**
+ * The first entry of a list, failing loudly when the list is empty.
+ * @param items - The list under test
+ * @returns Its first entry
+ */
+const firstEntry = <T>(items: readonly T[]): T => {
+  const [first] = items;
+  if (first === undefined) throw new Error("expected at least one entry");
+  return first;
+};
+
 const DOWNLOAD_ARTIFACT_STEP = `      - uses: ${PINNED_DOWNLOAD_ARTIFACT}`;
 
 let tempDir: string | undefined;
@@ -68,11 +79,11 @@ describe("assessDeliveryAuthorityDimension — multiple publish steps", () => {
 
     const record = await assessDeliveryAuthorityDimension(cwd);
     const findings = asFindings(record.findings);
-    const evidence = String(findings[0].evidence);
+    const evidence = String(firstEntry(findings).evidence);
 
     expect(record.status).toBe(FAIL);
     expect(assessReadiness([record]).blockers).toHaveLength(1);
-    expect(assessReadiness([record]).blockers[0].id).toBe("B2");
+    expect(firstEntry(assessReadiness([record]).blockers).id).toBe("B2");
     expect(findings).toHaveLength(1);
     expect(evidence).toContain("docker push ghcr.io/acme/app:latest");
     expect(evidence).not.toContain("npm publish --provenance");

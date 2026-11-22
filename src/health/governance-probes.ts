@@ -1,5 +1,4 @@
 /** Template, package, hook, plugin, and CI deterministic health probes. */
-/* eslint-disable jsdoc/require-param-description, jsdoc/require-returns -- typed probe adapters are self-describing */
 import type { ProjectType } from "../core/config.js";
 import type { HealthFinding } from "./contract.js";
 import { deterministicFinding, namedReason } from "./finding-utils.js";
@@ -21,14 +20,17 @@ import {
 
 const HOOK_CHECK = "hooks.managed";
 const PLUGIN_CHECK = "plugins.current";
+const PLUGIN_REMEDY =
+  "Run `lisa apply .` in this project to register Lisa's Claude Code plugins for this folder.";
 const WORKFLOW_CHECK = "ci.workflows";
 
 /**
  * Managed template finding.
- * @param lisaRoot
- * @param projectRoot
- * @param shape
- * @param config
+ * @param lisaRoot - Lisa package root holding the shipped templates
+ * @param projectRoot - Canonical host project root
+ * @param shape - Detected project types and package.json
+ * @param config - Parsed `.lisa.config.json` contents
+ * @returns Pass, or fail naming every drifted managed file
  */
 export async function managedTemplateFinding(
   lisaRoot: string,
@@ -58,9 +60,10 @@ export async function managedTemplateFinding(
 
 /**
  * Package governance finding.
- * @param lisaRoot
- * @param projectRoot
- * @param shape
+ * @param lisaRoot - Lisa package root holding the shipped templates
+ * @param projectRoot - Canonical host project root
+ * @param shape - Detected project types and package.json
+ * @returns Pass when package.json conforms, otherwise fail
  */
 export async function packageFinding(
   lisaRoot: string,
@@ -87,13 +90,14 @@ export async function packageFinding(
 }
 /**
  * Hook bytes, mode, and installed-state finding.
- * @param lisaRoot
- * @param projectRoot
- * @param types
- * @param config
- * @param reader
- * @param timeoutMs
- * @param signal
+ * @param lisaRoot - Lisa package root holding the shipped templates
+ * @param projectRoot - Canonical host project root
+ * @param types - Detected project stack types
+ * @param config - Parsed `.lisa.config.json` contents
+ * @param reader - Reads the repository's configured hooks path
+ * @param timeoutMs - Bound for the external command, in milliseconds
+ * @param signal - Cancellation shared with the health deadline
+ * @returns Pass, warn when hook state is unreadable, or fail on drift
  */
 export async function hookFinding(
   lisaRoot: string,
@@ -130,12 +134,13 @@ export async function hookFinding(
 }
 /**
  * Actual enabled and installed plugin finding.
- * @param projectRoot
- * @param config
- * @param types
- * @param reader
- * @param timeoutMs
- * @param signal
+ * @param projectRoot - Canonical host project root
+ * @param config - Parsed `.lisa.config.json` contents
+ * @param types - Detected project stack types
+ * @param reader - Reads the plugins Claude Code reports as installed
+ * @param timeoutMs - Bound for the external command, in milliseconds
+ * @param signal - Cancellation shared with the health deadline
+ * @returns Pass, warn when plugin state is unreadable, or fail with the remedy
  */
 export async function pluginFinding(
   projectRoot: string,
@@ -160,22 +165,30 @@ export async function pluginFinding(
       "Lisa plugins are enabled, installed, and version-current."
     );
   }
+  if (inspected.status === "warn") {
+    return deterministicFinding(
+      PLUGIN_CHECK,
+      "warn",
+      namedReason("Plugin state unavailable", inspected.drift)
+    );
+  }
+  // Every failure here is something `lisa apply .` repairs, and dependency
+  // install deliberately never registers plugins (#4135) — so a fresh clone
+  // lands here. Name the fix, not only the drift (#4504).
   return deterministicFinding(
     PLUGIN_CHECK,
-    inspected.status,
-    namedReason(
-      inspected.status === "warn" ? "Plugin state unavailable" : "Plugin drift",
-      inspected.drift
-    )
+    "fail",
+    `${namedReason("Plugin drift", inspected.drift)}. ${PLUGIN_REMEDY}`
   );
 }
 
 /**
  * Workflow presence, managed bytes, and reusable-input contract finding.
- * @param lisaRoot
- * @param projectRoot
- * @param types
- * @param config
+ * @param lisaRoot - Lisa package root holding the shipped templates
+ * @param projectRoot - Canonical host project root
+ * @param types - Detected project stack types
+ * @param config - Parsed `.lisa.config.json` contents
+ * @returns Pass, warn for callers Lisa could not check, or fail on drift
  */
 export async function workflowFinding(
   lisaRoot: string,
@@ -200,7 +213,7 @@ export async function workflowFinding(
     ? deterministicFinding(
         WORKFLOW_CHECK,
         "warn",
-        namedReason("Reusable workflow contracts unavailable", inputs.unknown)
+        namedReason("Workflow callers Lisa could not check", inputs.unknown)
       )
     : deterministicFinding(
         WORKFLOW_CHECK,
@@ -208,4 +221,3 @@ export async function workflowFinding(
         "CI workflows are present and caller inputs match shipped contracts."
       );
 }
-/* eslint-enable jsdoc/require-param-description, jsdoc/require-returns -- restore repository documentation defaults */

@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Prune local branches that have been deleted on remote"
 allowed-tools: ["Skill"]
 ---

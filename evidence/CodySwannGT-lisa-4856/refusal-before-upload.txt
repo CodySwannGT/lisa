@@ -1,0 +1,19 @@
+# refusal-before-upload @ a91cecdbcdb4f60ed7dfe84f1c2c6bd39bf0418e
+=== script: plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh
+=== command: bash plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh TEST-1 <evidence-dir> 101 (gh stubbed)
+=== comment.md:
+![Shot](https://github.com/org/repo/releases/download/pr-assets-2026-11/pr-101-01-search-step-desktop.png)
+
+=== exit: 1
+=== stdout:
+Found 1 screenshots and 1 text evidence files to upload
+
+=== stderr:
+ERROR: /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/lisa-jira-scoped-uexZSY/evidence-101-/comment.md links https://github.com/org/repo/releases/download/pr-assets-2026-11/pr-101-01-search-step-desktop.png in release 'pr-assets-2026-11', but this run uploads to release 'pr-assets'. Regenerate the templates with LISA_EVIDENCE_RELEASE=pr-assets and re-run this script with the same LISA_EVIDENCE_RELEASE=pr-assets. If this link was written by hand, remove it or re-upload the asset to 'pr-assets'.
+No evidence was uploaded.
+
+=== gh release upload calls (0):
+<none>
+=== release assets: []
+=== posted PR body:
+<none posted>

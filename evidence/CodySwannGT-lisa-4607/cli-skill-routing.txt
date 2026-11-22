@@ -1,0 +1,17 @@
+$ grep -n ci-rework|lisa-drive-pr-to-merge|no rejection learning plugins/{src/base,lisa}/skills/lisa-github-build-intake/SKILL.md
+# captured_at 2026-11-07T19:37:47Z head cf887192e5c17bbd9e9e5d2affd0ecb3f848701a
+plugins/src/base/skills/lisa-github-build-intake/SKILL.md:500:classify the item **`ci-rework`**
+plugins/src/base/skills/lisa-github-build-intake/SKILL.md:500:**no rejection learning** is filed
+plugins/src/base/skills/lisa-github-build-intake/SKILL.md:500:Agent work is not complete while the named PR's required checks are failing
+plugins/src/base/skills/lisa-github-build-intake/SKILL.md:543:invoke `lisa-drive-pr-to-merge pr=<n>`
+plugins/lisa/skills/lisa-github-build-intake/SKILL.md:500:classify the item **`ci-rework`**
+plugins/lisa/skills/lisa-github-build-intake/SKILL.md:500:**no rejection learning** is filed
+plugins/lisa/skills/lisa-github-build-intake/SKILL.md:500:Agent work is not complete while the named PR's required checks are failing
+plugins/lisa/skills/lisa-github-build-intake/SKILL.md:543:invoke `lisa-drive-pr-to-merge pr=<n>`
+--- cmp source vs regenerated
+IDENTICAL
+--- rejection-detection exemption (source + generated)
+plugins/src/base/rules/reference/rejection-detection.md:42:CI-rework exemption
+plugins/src/base/rules/reference/rejection-detection.md:131:CI-rework exemption
+plugins/lisa/rules/reference/rejection-detection.md:42:CI-rework exemption
+plugins/lisa/rules/reference/rejection-detection.md:131:CI-rework exemption

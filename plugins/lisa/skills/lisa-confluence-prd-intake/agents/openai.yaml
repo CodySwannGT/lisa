@@ -1,4 +1,4 @@
 display_name: "Confluence PRD Intake"
-short_description: "Scans a Confluence space (or a parent page) for PRD pages currently parented under the configured `ready` lifecycle page and runs the first…"
+short_description: "Run one cycle of Confluence PRD intake: take the first ready PRD page, validate it, and either create its tickets and move it under…"
 default_prompt:
-  - "Use $lisa-confluence-prd-intake: Scans a Confluence space (or a parent page) for PRD pages currently parented under the configured `ready` lifecycle page and runs the first…."
+  - "Use $lisa-confluence-prd-intake: Run one cycle of Confluence PRD intake: take the first ready PRD page, validate it, and either create its tickets and move it under…."

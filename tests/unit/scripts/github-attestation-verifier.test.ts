@@ -6,7 +6,6 @@ import {
   readdirSync,
   renameSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -29,6 +28,7 @@ import {
   assertRecoveryAttestation,
   validateRecovery,
 } from "../../../all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const NOW = Date.parse("2026-10-05T12:00:00Z");
 const EXPIRED_TIME = "2026-10-05T11:00:00Z";
@@ -210,9 +210,22 @@ describe("bounded pinned official-verifier process contract", () => {
   it(
     "kills an actual nonterminating verifier and refuses a verdict",
     () => {
-      expect(() => ghJson(verifierProgram(), ["hang"])).toThrow();
+      // A real hanging child under the real bounded spawn, with every option
+      // ghJson passes except the deadline, which is shortened so the case does
+      // not sit out 30 seconds of wall clock (CodySwannGT/lisa#4616, audit
+      // unit row 12). That ghJson really passes 30 seconds is pinned by the
+      // argv case below, which asserts `timeout: 30_000` on the same options.
+      let passed: { timeout?: number } | undefined;
+      const shortened: typeof boundedSpawnSync = (command, args, options) => {
+        passed = options;
+        return boundedSpawnSync(command, args, { ...options, timeout: 500 });
+      };
+      expect(() => ghJson(verifierProgram(), ["hang"], shortened)).toThrow(
+        /ETIMEDOUT/
+      );
+      expect(passed?.timeout).toBe(30_000);
     },
-    ioLatencyBudgetMs(40_000)
+    ioLatencyBudgetMs(10_000)
   );
 
   it("refuses changed executable bytes before starting it", () => {
@@ -224,7 +237,7 @@ describe("bounded pinned official-verifier process contract", () => {
   it("refuses a symlink in place of the pinned executable", () => {
     const policy = verifierProgram();
     renameSync(policy.ghExecutable, `${policy.ghExecutable}-original`);
-    symlinkSync(`${policy.ghExecutable}-original`, policy.ghExecutable);
+    createSymlink(`${policy.ghExecutable}-original`, policy.ghExecutable);
     expect(() => ghJson(policy, [])).toThrow();
   });
 

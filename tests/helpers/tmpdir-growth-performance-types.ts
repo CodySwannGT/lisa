@@ -1,13 +1,13 @@
 /** Typed evidence records emitted by the real Darwin measurement harness. */
 
 /** One deterministic prefix-count row from a measurement report. */
-export interface TmpdirPrefixCount {
+interface TmpdirPrefixCount {
   readonly prefix: string;
   readonly count: number;
 }
 
 /** Namespace ownership counters carried by every report. */
-export interface TmpdirOwnershipReport {
+interface TmpdirOwnershipReport {
   readonly total: number;
   readonly owned: number;
   readonly live: number;

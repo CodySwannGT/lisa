@@ -1,5 +1,69 @@
 # Lisa Wiki Log
 
+## 2026-11-19 - Control audit: the missing source note
+
+- Added `wiki/sources/repository/2026-11-17-control-audit-docs.md` for `CodySwannGT/lisa#5003`. The 2026-11-17 and 2026-11-18 control-audit ingestions wrote their pages without one, which the "Required Provenance" section of `wiki/schema/llm-wiki-contract.md` does not allow.
+- The note records:
+  - both ingestion dates;
+  - the scope read: `src/controls/`, the `lisa controls` command group, the four skills, the two design notes and the criterion catalogue;
+  - every commit that changed the page;
+  - the three pages synthesized.
+- Both earlier entries now link to the note in place of the sentence that said none was written. No wiki page changed, and `wiki/index.md` already links the Repository Sources folder.
+
+## 2026-11-18 - Control audit: what the report check refuses, and how an answer counts
+
+- Updated `wiki/documentation/workflows/control-audit.md` for `CodySwannGT/lisa#4978`:
+  - a requirement that always applies cannot be filed as not applicable, and the check counts the findings that are;
+  - a pointer may not lead into the audit's own report, Lisa's own records or git's own data, with the two places it still may;
+  - `proved` needs a record for the same part, and both halves of a paired proof;
+  - an answer is typed on its answer line only, a placeholder is not an answer, and the readable report has to be kept because an answer counts only while it stands on its line;
+  - a check declared authoritative has to be required somewhere its author does not control;
+  - `lisa controls seed` refuses a `package.json` it cannot read.
+- Provenance: a repository-sourced update, written from the code under `src/controls/` and the design notes under `docs/design/`. Source note: [2026-11-17 control audit documentation](sources/repository/2026-11-17-control-audit-docs.md) (added on 2026-11-19).
+
+## 2026-11-18 - package.lisa.json minimums
+
+- Updated `wiki/documentation/specs/package-lisa-json.md` for `CodySwannGT/lisa#4932`: a template's new `minimums` section holds the lowest range a host's own direct dependency on a library may hold. Lisa raises a lower range inside its own major and refuses a raise that would cross one. It writes nothing to `overrides`/`resolutions`, so transitive copies keep their own ranges.
+- Added `minimums` to the semantic-behaviors table in `wiki/documentation/overview.md` (Part 5), and a matching "Package.lisa.json" section to `README.md`.
+- `wiki/index.md` is unchanged: the page's description still fits.
+
+## 2026-11-17 - Control audit: the four commands and the control register
+
+- Created `wiki/documentation/workflows/control-audit.md`, the operator-facing page for the four commands that find, declare, wire and prove the controls of any repository, whatever its stack: audit, configure, enforce and attest (epic `CodySwannGT/lisa#4961`, documentation leaf `CodySwannGT/lisa#5003`).
+- The page covers:
+  - what each command does, asks and writes;
+  - how to start one on each of the seven coding agents;
+  - the control register and the other files under `.lisa/`;
+  - the vocabulary;
+  - the `lisa controls` commands underneath;
+  - what the Level 1 verdict means and does not mean;
+  - the requirements (Node, git, macOS, Linux or WSL).
+- Recorded the limits an operator will meet, each checked against the code:
+  - proofs run on a clone of the last commit, without the files git ignores;
+  - supported project types have no paired proofs in this release;
+  - pull-request checks can be exercised only on GitHub;
+  - merge protection is changed only when asked, and only rulesets are read;
+  - edit-time enforcement differs by coding agent;
+  - hook wiring is per checkout;
+  - Windows without WSL is not supported.
+- Updated `wiki/concepts/tasc-specification.md` with a section on the criterion catalogue (`spec/tasc-criteria.json`): what each entry carries, that `docs/agentic-readiness-questionnaire.md` is now generated from it, and that the four commands compute a Level 1 verdict against it.
+- Added the four commands to the command table in `wiki/documentation/overview.md`, and the new page to `wiki/documentation/index.md`.
+- Indexed the new page under `## Documentation` in `wiki/index.md`, and extended the Concepts entry for the specification to point at the catalogue.
+- Added the matching section to `README.md` ("Checking the controls of any repository") and a pointer from `docs/design/paired-proof.md` to `docs/design/before-enforce.md`.
+- Provenance: a repository-sourced update, written from the merged code under `src/controls/`, the four skills under `plugins/src/base/skills/`, each command's `--help`, and the design notes under `docs/design/`. Those remain in the repository as the detailed source. Source note: [2026-11-17 control audit documentation](sources/repository/2026-11-17-control-audit-docs.md) (added on 2026-11-19). Asserted by `tests/unit/controls/control-audit-docs.test.ts` (under `tests/unit/docs/` until 2026-11-19).
+
+## 2026-11-13 - Dependency sign-off off by default
+
+- Updated `wiki/playbooks/dependency-ownership-operator-guide.md` for `CodySwannGT/lisa#4687`: agents now perform every act they have access to, so `dependencies.humanSignOff` resolves to `"none"` by default and the agent ratifies dependencies, recording its reasoning in the entry.
+- Documented how to turn sign-off back on (`humanSignOff: "default"` or `humanGate.mode: "strict"`), and that an invalid value falls back to the mode's default.
+- The same default change makes `learnings.lowConfidence` resolve to `"auto-merge"`, so low-confidence learning PRs merge on their own unless the project sets `"human-triage"` or `humanGate.mode: "strict"` (see the `config-resolution` rule).
+- `wiki/index.md` is unchanged: the page's description still fits.
+
+## 2026-11-12 - Lisa Console removed
+
+- Deleted `wiki/architecture/lisa-console-ui.md` and its `wiki/index.md` entry: the `lisa ui` command, `ui/index.html`, and their tests were removed (`CodySwannGT/lisa#4804`).
+- Updated `wiki/concepts/tasc-specification.md`: the Annex B readiness questionnaire lived in the console and went with it.
+
 ## 2026-10-11 - Devin CLI parity
 
 - Added a Devin CLI section to `wiki/architecture/coding-agent-parity.md` and the `lisa-devin` variant shape to `wiki/architecture/pattern-b-fan-out-spec.md` (Epic `#4283`, leaves `#4426` to `#4429`).

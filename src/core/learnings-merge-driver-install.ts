@@ -9,6 +9,15 @@
  * `lisa install-merge-driver` command an operator can re-run by hand.
  * @module core/learnings-merge-driver-install
  */
+import { readFile } from "node:fs/promises";
+import * as path from "node:path";
+
+import {
+  HOST_LISA_ENTRY,
+  SELF_LISA_ENTRY,
+  buildPortableLearningsMergeDriverCommand,
+  classifyLearningsDriverCommand,
+} from "./learnings-merge-driver-command.js";
 import {
   LEARNINGS_MERGE_DRIVER_DESCRIPTION,
   LEARNINGS_MERGE_DRIVER_NAME,
@@ -50,9 +59,11 @@ export interface MergeDriverInstallResult {
 /** Injectable collaborators for {@link installLearningsMergeDriver}. */
 export interface MergeDriverInstallDependencies {
   /**
-   * How to invoke the Lisa CLI. Defaults to this process's own runtime and
-   * entry script, which is what makes the registration self-locating: whichever
-   * Lisa is running the install is the Lisa the driver will call.
+   * An explicit, already shell-quoted way to invoke the Lisa CLI, registered
+   * in the pre-#4640 `<invocation> merge-learnings …` form. Tests use it to
+   * point the driver at a specific CLI. Omitted, the command is the
+   * worktree-portable one, which resolves Lisa relative to whichever worktree
+   * git is merging in.
    */
   readonly invocation?: string;
 }
@@ -109,37 +120,63 @@ async function probeRepository(projectRoot: string): Promise<RepositoryProbe> {
 }
 
 /**
- * Quote one path for the POSIX shell that git runs a merge driver through.
+ * The worktree-relative path of the Lisa entry this project runs.
  *
- * Single quotes, not double: git executes `merge.<name>.driver` via `sh`, where
- * `$`, a backtick, and a backslash stay special inside double quotes. A path
- * containing `$` would silently expand to nothing and the driver would fail to
- * launch; a backtick would run a command substitution. Inside single quotes the
- * shell treats every byte literally, so only an embedded single quote needs
- * handling — closed, escaped, and reopened as `'\''`.
- * @param value - Raw filesystem path
- * @returns Shell-safe single-quoted token
+ * Relative to the TOP of the worktree, because that is git's cwd when it runs
+ * a driver — so a project nested below the repository root carries its
+ * prefix. Inside the Lisa repository itself the entry is its own build;
+ * everywhere else it is the installed package.
+ * @param projectRoot - Project directory being registered
+ * @returns Entry such as `./node_modules/@codyswann/lisa/dist/index.js`
  */
-function shellQuote(value: string): string {
-  return `'${value.replaceAll("'", "'\\''")}'`;
+async function resolvePortableEntry(projectRoot: string): Promise<string> {
+  const prefix = await tryGit(["rev-parse", "--show-prefix"], projectRoot);
+  const relative = prefix.ok ? prefix.stdout : "";
+  const entry = (await isLisaRepository(projectRoot))
+    ? SELF_LISA_ENTRY
+    : HOST_LISA_ENTRY;
+  return `./${path.posix.join(relative, entry)}`;
 }
 
 /**
- * Resolve how to re-invoke the currently running Lisa CLI.
- *
- * Uses `process.execPath` as the runtime rather than a hardcoded `node`, so a
- * checkout running under Bun registers a Bun-executable command and a published
- * package running under Node registers a Node one. Returns undefined when the
- * entry script is unknown: registering a command that can never launch is worse
- * than leaving git on its default driver, which at least fails visibly.
- * @returns Shell-safe `<runtime> <entry script>` invocation, when resolvable
+ * Whether the project is Lisa's own repository.
+ * @param projectRoot - Project directory being registered
+ * @returns True when package.json names `@codyswann/lisa`
  */
-function resolveLisaInvocation(): string | undefined {
-  const entry = process.argv[1];
-  if (entry === undefined || entry === "") {
-    return undefined;
+async function isLisaRepository(projectRoot: string): Promise<boolean> {
+  try {
+    const manifest: unknown = JSON.parse(
+      await readFile(path.join(projectRoot, "package.json"), "utf8")
+    );
+    return (
+      typeof manifest === "object" &&
+      manifest !== null &&
+      "name" in manifest &&
+      manifest.name === "@codyswann/lisa"
+    );
+  } catch {
+    return false;
   }
-  return `${shellQuote(process.execPath)} ${shellQuote(entry)}`;
+}
+
+/**
+ * The detail reported when a registration is written.
+ *
+ * Names the command it replaced, so `lisa apply` tells the operator that an
+ * absolute registration — one that breaks when its checkout is removed — was
+ * migrated, rather than reporting an indistinguishable "registered".
+ * @param previous - Previously registered command, when there was one
+ * @returns Single-line, operator-facing detail
+ */
+function installedDetail(previous: string | undefined): string {
+  if (previous === undefined || previous === "") {
+    return `registered the ${LEARNINGS_MERGE_DRIVER_NAME} merge driver`;
+  }
+  const kind =
+    classifyLearningsDriverCommand(previous).kind === "absolute"
+      ? "absolute"
+      : "previous";
+  return `replaced the ${LEARNINGS_MERGE_DRIVER_NAME} merge driver's ${kind} registration '${previous}' with a worktree-portable command`;
 }
 
 /**
@@ -195,6 +232,31 @@ export async function probeLearningsMergeDriverRegistration(
   return current.ok && current.stdout !== "" ? "registered" : "unregistered";
 }
 
+/** A registered driver command and the worktree it resolves against. */
+export interface RegisteredLearningsDriver {
+  /** The command as `git config --get` returns it. */
+  readonly command: string;
+  /** Top of this worktree: git's cwd when it runs the driver here. */
+  readonly worktreeTop: string;
+}
+
+/**
+ * Read the registered driver command, for checks that must know whether it
+ * can actually run here rather than merely whether it is set.
+ * @param projectRoot - Project directory to inspect
+ * @returns The command and worktree top, or undefined when unset
+ */
+export async function readLearningsMergeDriverRegistration(
+  projectRoot: string
+): Promise<RegisteredLearningsDriver | undefined> {
+  const current = await tryGit(["config", "--get", DRIVER_KEY], projectRoot);
+  const top = await tryGit(["rev-parse", "--show-toplevel"], projectRoot);
+  if (!current.ok || current.stdout === "" || !top.ok) {
+    return undefined;
+  }
+  return { command: current.stdout, worktreeTop: top.stdout };
+}
+
 /**
  * Register the union merge driver in one project's local git config.
  *
@@ -221,14 +283,12 @@ export async function installLearningsMergeDriver(
       detail: "not a git repository — nothing to register",
     };
   }
-  const invocation = dependencies.invocation ?? resolveLisaInvocation();
-  if (invocation === undefined) {
-    return {
-      kind: "failed",
-      detail: `could not resolve the Lisa entry point — ${NOT_REGISTERED}`,
-    };
-  }
-  const desired = buildLearningsMergeDriverCommand(invocation);
+  const desired =
+    dependencies.invocation === undefined
+      ? buildPortableLearningsMergeDriverCommand(
+          await resolvePortableEntry(projectRoot)
+        )
+      : buildLearningsMergeDriverCommand(dependencies.invocation);
   const current = await tryGit(
     ["config", "--local", "--get", DRIVER_KEY],
     projectRoot
@@ -255,6 +315,6 @@ export async function installLearningsMergeDriver(
   }
   return {
     kind: "installed",
-    detail: `registered the ${LEARNINGS_MERGE_DRIVER_NAME} merge driver`,
+    detail: installedDetail(current.ok ? current.stdout : undefined),
   };
 }

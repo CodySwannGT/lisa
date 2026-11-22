@@ -1,0 +1,30 @@
+[lisa-cleanup-sweep.mjs] case=empty flags='--dry-run --no-processes' exit=0 stdout_lines=1 stderr_bytes=0 entries_left=0
+    stdout: 🧹 would sweep 0 stale temp dirs, 0 orphaned test processes (1 ms)
+[lisa-cleanup-sweep.mjs] case=empty flags='--no-processes' exit=0 stdout_lines=1 stderr_bytes=0 entries_left=0
+    stdout: 🧹 swept 0 stale temp dirs, 0 orphaned test processes (2 ms)
+[lisa-cleanup-sweep.mjs] case=one-stale flags='--dry-run --no-processes' exit=0 stdout_lines=1 stderr_bytes=0 entries_left=1
+    stdout: 🧹 would sweep 1 stale temp dir, 0 orphaned test processes (3 ms)
+[lisa-cleanup-sweep.mjs] case=one-stale flags='--no-processes' exit=0 stdout_lines=1 stderr_bytes=0 entries_left=0
+    stdout: 🧹 swept 1 stale temp dir, 0 orphaned test processes (2 ms)
+[lisa-cleanup-sweep.mjs] case=ten-thousand-stale flags='--dry-run --no-processes' exit=0 stdout_lines=1 stderr_bytes=0 entries_left=10000
+    stdout: 🧹 would sweep 10000 stale temp dirs, 0 orphaned test processes (455 ms)
+[lisa-cleanup-sweep.mjs] case=ten-thousand-stale flags='--no-processes' exit=0 stdout_lines=1 stderr_bytes=0 entries_left=0
+    stdout: 🧹 swept 10000 stale temp dirs, 0 orphaned test processes (1142 ms)
+[zz-prefix-sweep-4694.mjs] case=empty flags='--dry-run --no-processes' exit=0 stdout_lines=1 stderr_bytes=0 entries_left=0
+    stdout: 🧹 would sweep 0 stale temp dirs, 0 orphaned test processes (3 ms)
+[zz-prefix-sweep-4694.mjs] case=empty flags='--no-processes' exit=0 stdout_lines=1 stderr_bytes=0 entries_left=0
+    stdout: 🧹 swept 0 stale temp dirs, 0 orphaned test processes (2 ms)
+[zz-prefix-sweep-4694.mjs] case=one-stale flags='--dry-run --no-processes' exit=0 stdout_lines=1 stderr_bytes=0 entries_left=1
+    stdout: 🧹 would sweep 1 stale temp dir, 0 orphaned test processes (2 ms)
+[zz-prefix-sweep-4694.mjs] case=one-stale flags='--no-processes' exit=0 stdout_lines=1 stderr_bytes=0 entries_left=0
+    stdout: 🧹 swept 1 stale temp dir, 0 orphaned test processes (4 ms)
+[zz-prefix-sweep-4694.mjs] case=ten-thousand-stale flags='--dry-run --no-processes' exit=0 stdout_lines=1 stderr_bytes=0 entries_left=10000
+    stdout: 🧹 would sweep 10000 stale temp dirs, 0 orphaned test processes (405 ms)
+[zz-prefix-sweep-4694.mjs] case=ten-thousand-stale flags='--no-processes' exit=0 stdout_lines=1 stderr_bytes=0 entries_left=0
+    stdout: 🧹 swept 10000 stale temp dirs, 0 orphaned test processes (924 ms)
+[lisa-cleanup-sweep.mjs] flags='--bogus-flag' exit=2 output: lisa-cleanup-sweep: unknown flag --bogus-flag
+usage: lisa-cleanup-sweep.mjs [--dry-run] [--json] [--no-processes] [--max-age-hours N]
+[lisa-cleanup-sweep.mjs] flags='--dry-run' exit=0 output: 🧹 would sweep 0 stale temp dirs, 0 orphaned test processes (144 ms)
+[zz-prefix-sweep-4694.mjs] flags='--bogus-flag' exit=2 output: lisa-cleanup-sweep: unknown flag --bogus-flag
+usage: lisa-cleanup-sweep.mjs [--dry-run] [--json] [--no-processes] [--max-age-hours N]
+[zz-prefix-sweep-4694.mjs] flags='--dry-run' exit=0 output: 🧹 would sweep 0 stale temp dirs, 0 orphaned test processes (332 ms)

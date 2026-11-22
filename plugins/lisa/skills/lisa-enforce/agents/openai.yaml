@@ -1,0 +1,4 @@
+display_name: "Enforce"
+short_description: "Make a repository's declared checks actually run: install what runs them at commit, at push and after an agent edits a file, file a ticket…"
+default_prompt:
+  - "Use $lisa-enforce: Make a repository's declared checks actually run: install what runs them at commit, at push and after an agent edits a file, file a ticket…."

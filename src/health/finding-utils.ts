@@ -1,12 +1,12 @@
 /** Stable, bounded deterministic health finding helpers. */
-/* eslint-disable jsdoc/require-param-description, jsdoc/require-returns -- typed formatting helpers are self-describing */
 import type { HealthFinding, HealthStatus } from "./contract.js";
 
 /**
  * Create one deterministic finding.
- * @param check
- * @param status
- * @param reason
+ * @param check - Stable check identifier
+ * @param status - Outcome of the check
+ * @param reason - Bounded human-readable explanation
+ * @returns The finding, tagged with the deterministic layer
  */
 export function deterministicFinding(
   check: string,
@@ -15,7 +15,6 @@ export function deterministicFinding(
 ): HealthFinding {
   return { check, layer: "deterministic", status, reason };
 }
-/* eslint-enable jsdoc/require-param-description, jsdoc/require-returns -- restore repository documentation defaults */
 
 /**
  * Format a bounded sorted identifier list without exposing values.

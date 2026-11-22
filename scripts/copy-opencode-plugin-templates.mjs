@@ -13,6 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { materialize } from "./materialize-copy-overwrite.mjs";
+import { RAILS_HOOK_ENGINE_FILES } from "./lib/rails-hooks.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const sourceDir = path.join(repoRoot, "src", "opencode", "plugin-templates");
@@ -24,12 +25,14 @@ const canonicalHookDir = path.join(repoRoot, "plugins", "src", "base", "hooks");
 const canonicalSupportFiles = [
   "task-readiness-guard.sh",
   "task-readiness-guard.mjs",
+  "block-host-name-leak.sh",
+  "block-host-name-leak.mjs",
+  "host-name-command-context.mjs",
   "discharge-work-item-gates.sh",
   "block-managed-file-edits.sh",
   "block-no-verify.sh",
-  "parity-safety-net.sh",
-  "parity-safety-net-heredoc.py",
   "guard-dedupe.bash",
+  ...RAILS_HOOK_ENGINE_FILES,
 ];
 
 fs.rmSync(destDir, { recursive: true, force: true });
@@ -48,7 +51,9 @@ for (const filename of canonicalSupportFiles) {
   // build:dist precedes build:plugins. Stamp fresh authoring sources rather
   // than copying possibly stale generated hooks, preserving channel parity.
   materialize(
-    path.join(canonicalHookDir, filename),
+    RAILS_HOOK_ENGINE_FILES.includes(filename)
+      ? path.join(repoRoot, "scripts/lib", filename)
+      : path.join(canonicalHookDir, filename),
     path.join(destDir, filename)
   );
 }

@@ -1,0 +1,27 @@
+### C2: rotation with the repo's own .lisa.config.json (real GitHub, CodySwannGT/lisa)
+### date: 2026-11-08T18:58:53Z  HEAD: b590df4c25815538d0d3e9a6c084c7aaca00212c
+### configured: "pr-assets-{YYYY-MM}"
+### pre-state: gh release view pr-assets-2026-11
+{"tagName":"pr-assets-2026-11"}
+exit=0
+### pre-state Latest release:
+{"tagName":"v4.97.5"}
+### $ node scripts/lisa-work-item.mjs evidence-release
+pr-assets-2026-11
+exit=0
+### $ node scripts/lisa-work-item.mjs evidence-release --ensure   (release already exists from the first verification run on ae3515fe)
+pr-assets-2026-11
+exit=0
+### $ node scripts/lisa-work-item.mjs evidence-release --ensure   (second run: idempotent, release exists)
+pr-assets-2026-11
+exit=0
+### $ gh release view pr-assets-2026-11 --repo CodySwannGT/lisa --json tagName,isDraft,isPrerelease,assets
+{"assets":[],"isDraft":false,"isPrerelease":false,"tagName":"pr-assets-2026-11"}
+exit=0
+### $ gh release view --repo CodySwannGT/lisa --json tagName   (Latest must NOT be pr-assets-2026-11)
+{"tagName":"v4.97.5"}
+exit=0
+### $ gh api repos/CodySwannGT/lisa/releases/latest --jq .tag_name
+v4.97.5
+### legacy pr-assets count unchanged:
+1000

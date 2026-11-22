@@ -1,0 +1,15 @@
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { auditExceptionViolations } from './dist/cli/doctor-readiness-audit-allowlist.js';
+
+const root = mkdtempSync(join(tmpdir(), 'lisa-4521-reproduction-'));
+writeFileSync(join(root, 'audit.ignore.local.json'), JSON.stringify({
+  exclusions: [{
+    id: 'GHSA-mrhx-c7xc-m3w5', package: 'zod', versions: '>=3.0.0 <4.0.0',
+    paths: [], reason: 'Isolated controlled fixture for invalid empty paths.'
+  }]
+}));
+const result = await auditExceptionViolations(root);
+console.log(JSON.stringify({ root, result }));
+process.exitCode = result.some(line => /paths?/i.test(line) && /empty|non.?empty|invalid/i.test(line)) ? 0 : 1;

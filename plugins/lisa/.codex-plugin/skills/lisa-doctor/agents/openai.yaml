@@ -1,4 +1,4 @@
 display_name: "Doctor"
-short_description: "Audit whether the current…"
+short_description: "Check whether this repository…"
 default_prompt:
-  - "Use $lisa-doctor: Audit whether the current…."
+  - "Use $lisa-doctor: Check whether this repository…."

@@ -1,0 +1,677 @@
+# HEAD 1851ff3e61f8f7f44e3795ebbd6ad10e011d15cf, clean copy at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt
+=== MUTATION: gap1: scope exit listener appended instead of prepended
+file: tests/helpers/history-scanner-preparation.ts
+replace: process.prependOnceListener("exit", dispose);
+with:    process.once("exit", dispose);
+418c418
+<   process.prependOnceListener("exit", dispose);
+---
+>   process.once("exit", dispose);
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (76 ms); kept 19 entries not private to this user
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > an interrupted preparation > stops the provision child before removing any folder
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:209:43
+    207|
+    208|     first?.();
+    209|     expect(fs.existsSync(running.parent)).toBe(true);
+       |                                           ^
+    210|     await vi.waitFor(() => expect(alive(running.pid)).toBe(false), {
+    211|       timeout: STUB_DEADLINE_MS,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+VITEST_EXIT=1
+      Tests  1 failed | 11 passed (12)
+     × stops the provision child before removing any folder 56ms
+ Test Files  1 failed | 1 passed (2)
+restored: 0 tracked changes
+
+=== MUTATION: gap2: release diagnostic via async process.stderr.write
+file: tests/helpers/history-scanner-global-setup.ts
+replace: writeStderrSync(
+        `history-scanner preparation: its scratch scope could not be released
+with:    process.stderr.write(
+        `history-scanner preparation: its scratch scope could not be released
+173c173
+<       writeStderrSync(
+---
+>       process.stderr.write(
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (77 ms); kept 19 entries not private to this user
+history-scanner preparation: its scratch scope could not be released (injected release failure); the scratch reaper reclaims it.
+history-scanner preparation: its scratch scope could not be released (injected release failure); the scratch reaper reclaims it.
+history-scanner preparation: its scratch scope could not be released (injected release failure); the scratch reaper reclaims it.
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed release of the parent folder > is written to stderr synchronously, before the release returns
+AssertionError: expected '' to contain 'its scratch scope could not be releas…'
+
+- Expected
++ Received
+
+- its scratch scope could not be released (injected release failure)
+
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:241:26
+    239|     expect(() => parent.release()).not.toThrow();
+    240|
+    241|     expect(stderrText()).toContain(
+       |                          ^
+    242|       "its scratch scope could not be released (injected release failu…
+    243|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed release of the parent folder > gives up after a bounded number of EAGAIN retries, without throwing
+AssertionError: expected +0 to be 100 // Object.is equality
+
+- Expected
++ Received
+
+- 100
++ 0
+
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:256:38
+    254|     expect(() => parent.release()).not.toThrow();
+    255|
+    256|     expect(fsControl.stderrAttempts).toBe(attempts);
+       |                                      ^
+    257|   });
+    258| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed release of the parent folder > stops at once when stderr refuses the write outright, without throwing
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:256:38
+    254|     expect(() => parent.release()).not.toThrow();
+    255|
+    256|     expect(fsControl.stderrAttempts).toBe(attempts);
+       |                                      ^
+    257|   });
+    258| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+VITEST_EXIT=1
+      Tests  3 failed | 9 passed (12)
+     × gives up after a bounded number of EAGAIN retries, without throwing 1ms
+     × is written to stderr synchronously, before the release returns 3ms
+     × stops at once when stderr refuses the write outright, without throwing 0ms
+ Test Files  1 failed | 1 passed (2)
+restored: 0 tracked changes
+
+=== MUTATION: gap2: EAGAIN bound raised 100 -> 101
+file: tests/helpers/stderr-sync.ts
+replace: const STDERR_WRITE_ATTEMPTS = 100;
+with:    const STDERR_WRITE_ATTEMPTS = 101;
+17c17
+< const STDERR_WRITE_ATTEMPTS = 100;
+---
+> const STDERR_WRITE_ATTEMPTS = 101;
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (76 ms); kept 19 entries not private to this user
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed release of the parent folder > gives up after a bounded number of EAGAIN retries, without throwing
+AssertionError: expected 101 to be 100 // Object.is equality
+
+- Expected
++ Received
+
+- 100
++ 101
+
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:256:38
+    254|     expect(() => parent.release()).not.toThrow();
+    255|
+    256|     expect(fsControl.stderrAttempts).toBe(attempts);
+       |                                      ^
+    257|   });
+    258| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |lisa| tests/unit/helpers/stderr-sync.test.ts > writeStderrSync > gives up after a bounded number of EAGAIN retries, without throwing
+AssertionError: expected 101 to be 100 // Object.is equality
+
+- Expected
++ Received
+
+- 100
++ 101
+
+ ❯ tests/unit/helpers/stderr-sync.test.ts:74:27
+     72|     expect(() => writeStderrSync(message)).not.toThrow();
+     73|
+     74|     expect(pipe.attempts).toBe(attempts);
+       |                           ^
+     75|     expect(pipe.writes).toEqual([]);
+     76|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+VITEST_EXIT=1
+      Tests  2 failed | 10 passed (12)
+     × gives up after a bounded number of EAGAIN retries, without throwing 146ms
+     × gives up after a bounded number of EAGAIN retries, without throwing 148ms
+ Test Files  2 failed (2)
+restored: 0 tracked changes
+
+=== MUTATION: gap2: non-EAGAIN errors also retried
+file: tests/helpers/stderr-sync.ts
+replace: if ((error as NodeJS.ErrnoException).code !== "EAGAIN") return;
+with:    void error;
+31c31
+<     if ((error as NodeJS.ErrnoException).code !== "EAGAIN") return;
+---
+>     void error;
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (99 ms); kept 19 entries not private to this user
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed release of the parent folder > stops at once when stderr refuses the write outright, without throwing
+AssertionError: expected 100 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 100
+
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:256:38
+    254|     expect(() => parent.release()).not.toThrow();
+    255|
+    256|     expect(fsControl.stderrAttempts).toBe(attempts);
+       |                                      ^
+    257|   });
+    258| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |lisa| tests/unit/helpers/stderr-sync.test.ts > writeStderrSync > stops at once when stderr refuses the write outright, without throwing
+AssertionError: expected 100 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 100
+
+ ❯ tests/unit/helpers/stderr-sync.test.ts:74:27
+     72|     expect(() => writeStderrSync(message)).not.toThrow();
+     73|
+     74|     expect(pipe.attempts).toBe(attempts);
+       |                           ^
+     75|     expect(pipe.writes).toEqual([]);
+     76|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+VITEST_EXIT=1
+      Tests  2 failed | 10 passed (12)
+     × stops at once when stderr refuses the write outright, without throwing 152ms
+     × stops at once when stderr refuses the write outright, without throwing 167ms
+ Test Files  2 failed (2)
+restored: 0 tracked changes
+
+=== MUTATION: gap4: scope rmSync unguarded
+file: tests/helpers/history-scanner-preparation.ts
+replace: reportFailure("its preparation scope could not be removed", () => {
+      rmSync(scope, { recursive: true, force: true });
+    });
+with:    rmSync(scope, { recursive: true, force: true });
+412,414c412
+<     reportFailure("its preparation scope could not be removed", () => {
+<       rmSync(scope, { recursive: true, force: true });
+<     });
+---
+>     rmSync(scope, { recursive: true, force: true });
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (76 ms); kept 19 entries not private to this user
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed removal of the preparation scope > neither throws from its exit listener nor skips the parent's release
+AssertionError: expected [Function] to not throw an error but 'Error: injected EBUSY removing the sc…' was thrown
+
+- Expected:
+undefined
+
++ Received:
+"Error: injected EBUSY removing the scope"
+
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:266:36
+    264|
+    265|     for (const listener of running.listeners)
+    266|       expect(() => listener()).not.toThrow();
+       |                                    ^
+    267|
+    268|     expect(stderrText()).toContain(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed removal of the preparation scope > keeps the failure path's own reason and still releases the parent at teardown
+Error: injected EBUSY removing the scope
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:77:27
+     75|       basename(String(path)).startsWith(SCOPE_PREFIX)
+     76|     ) {
+     77|       throw Object.assign(new Error("injected EBUSY removing the scope…
+       |                           ^
+     78|         code: "EBUSY",
+     79|       });
+ ❯ dispose tests/helpers/history-scanner-preparation.ts:412:5
+ ❯ prepareHistoryScanner tests/helpers/history-scanner-preparation.ts:464:5
+ ❯ Module.prepareInOwnedParent tests/helpers/history-scanner-global-setup.ts:197:20
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:280:38
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: injected EBUSY removing the scope
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:77:27
+ ❯ Mock ../../../../../workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/node_modules/.bun/@vitest+spy@4.1.11/node_modules/@vitest/spy/dist/index.js:332:34
+ ❯ dispose tests/helpers/history-scanner-preparation.ts:412:5
+ ❯ prepareHistoryScanner tests/helpers/history-scanner-preparation.ts:464:5
+ ❯ Module.prepareInOwnedParent tests/helpers/history-scanner-global-setup.ts:197:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'EBUSY' }
+This error originated in "tests/unit/helpers/history-scanner-global-setup.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "keeps the failure path's own reason and still releases the parent at teardown". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+VITEST_EXIT=1
+      Tests  2 failed | 10 passed (12)
+     × keeps the failure path's own reason and still releases the parent at teardown 53ms
+     × neither throws from its exit listener nor skips the parent's release 54ms
+ Test Files  1 failed | 1 passed (2)
+restored: 0 tracked changes
+
+=== MUTATION: partial write: rewrite from the start instead of the offset
+file: tests/helpers/stderr-sync.ts
+replace: writeRest(bytes, offset + written, attemptsLeft - 1);
+with:    writeRest(bytes, offset, attemptsLeft - 1);
+29c29
+<     writeRest(bytes, offset + written, attemptsLeft - 1);
+---
+>     writeRest(bytes, offset, attemptsLeft - 1);
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (76 ms); kept 19 entries not private to this user
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/helpers/stderr-sync.test.ts > writeStderrSync > writes the message once, in one call, when the pipe takes it all
+AssertionError: expected 'history-scanner stderr probe\nhistory…' to be 'history-scanner stderr probe\n' // Object.is equality
+
+- Expected
++ Received
+
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
+  history-scanner stderr probe
+
+
+ ❯ tests/unit/helpers/stderr-sync.test.ts:53:34
+     51|     writeStderrSync(message);
+     52|
+     53|     expect(pipe.writes.join("")).toBe(message);
+       |                                  ^
+     54|     expect(pipe.attempts).toBe(1);
+     55|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |lisa| tests/unit/helpers/stderr-sync.test.ts > writeStderrSync > finishes a message the pipe accepted only part of, writing it exactly once
+AssertionError: expected 'history-scannehistory-scanner stderr …' to be 'history-scanner stderr probe\n' // Object.is equality
+
+- Expected
++ Received
+
++ history-scannehistory-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
+  history-scanner stderr probe
+
+
+ ❯ tests/unit/helpers/stderr-sync.test.ts:62:34
+     60|     writeStderrSync(message);
+     61|
+     62|     expect(pipe.writes.join("")).toBe(message);
+       |                                  ^
+     63|     expect(pipe.attempts).toBe(2);
+     64|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+VITEST_EXIT=1
+      Tests  2 failed | 10 passed (12)
+     × finishes a message the pipe accepted only part of, writing it exactly once 1ms
+     × writes the message once, in one call, when the pipe takes it all 3ms
+ Test Files  1 failed | 1 passed (2)
+restored: 0 tracked changes
+
+=== MUTATION: partial write: give up after the first accepted chunk
+file: tests/helpers/stderr-sync.ts
+replace: writeRest(bytes, offset + written, attemptsLeft - 1);
+with:    void written;
+29c29
+<     writeRest(bytes, offset + written, attemptsLeft - 1);
+---
+>     void written;
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (75 ms); kept 19 entries not private to this user
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/helpers/stderr-sync.test.ts > writeStderrSync > finishes a message the pipe accepted only part of, writing it exactly once
+AssertionError: expected 'history-scanne' to be 'history-scanner stderr probe\n' // Object.is equality
+
+- Expected
++ Received
+
+- history-scanner stderr probe
+-
++ history-scanne
+
+ ❯ tests/unit/helpers/stderr-sync.test.ts:62:34
+     60|     writeStderrSync(message);
+     61|
+     62|     expect(pipe.writes.join("")).toBe(message);
+       |                                  ^
+     63|     expect(pipe.attempts).toBe(2);
+     64|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+VITEST_EXIT=1
+      Tests  1 failed | 11 passed (12)
+     × finishes a message the pipe accepted only part of, writing it exactly once 3ms
+ Test Files  1 failed | 1 passed (2)
+restored: 0 tracked changes
+
+=== MUTATION: EAGAIN pause removed (tight retry loop)
+file: tests/helpers/stderr-sync.ts
+replace: if (attemptsLeft > 1) pauseBriefly();
+with:    
+32c32
+<     if (attemptsLeft > 1) pauseBriefly();
+---
+>     
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (98 ms); kept 19 entries not private to this user
+VITEST_EXIT=0
+      Tests  12 passed (12)
+ Test Files  2 passed (2)
+restored: 0 tracked changes
+
+=== MUTATION: EAGAIN pause lengthened 1ms -> 50ms per retry
+file: tests/helpers/stderr-sync.ts
+replace: Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1);
+with:    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
+45c45
+<   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1);
+---
+>   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (77 ms); kept 19 entries not private to this user
+VITEST_EXIT=0
+      Tests  12 passed (12)
+ Test Files  2 passed (2)
+restored: 0 tracked changes
+
+=== MUTATION: gap3: lease ignored (always owned run root)
+file: tests/helpers/history-scanner-global-setup.ts
+replace: if (lease !== undefined && lease !== "") {
+with:    if (false) {
+135c135
+<   if (lease !== undefined && lease !== "") {
+---
+>   if (false) {
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (77 ms); kept 19 entries not private to this user
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > where the scope lives > is a supervised worker scope inside the leased suite root when a lease is held
+AssertionError: expected '/private/tmp/lisa-scratch/run-80223-1…' to be '/private/tmp/lisa-scratch/run-80223-1…' // Object.is equality
+
+Expected: "/private/tmp/lisa-scratch/run-80223-1794493483127-bfc3e7ae/worker-80300-b5874b5f0cab3e35/lisa-scratch/run-80300-1794493484277-c9306116"
+Received: "/private/tmp/lisa-scratch/run-80223-1794493483127-bfc3e7ae/worker-80300-b5874b5f0cab3e35/lisa-scratch"
+
+ ❯ workerIn tests/unit/helpers/history-scanner-global-setup.test.ts:330:29
+    328|     );
+    329|     const workerIn = (path: string): void => {
+    330|       expect(dirname(path)).toBe(suiteRoot.path);
+       |                             ^
+    331|       expect(basename(path).startsWith(`worker-${String(process.pid)}-…
+    332|         true
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:337:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+VITEST_EXIT=1
+      Tests  1 failed | 11 passed (12)
+     × is a supervised worker scope inside the leased suite root when a lease is held 36ms
+ Test Files  1 failed | 1 passed (2)
+restored: 0 tracked changes
+

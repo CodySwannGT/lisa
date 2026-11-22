@@ -1,0 +1,223 @@
+name: 📦 Packed-host journey
+
+# The by-hand run of tests/integration/shared-runtime-packed-hosts.test.ts
+# (CodySwannGT/lisa#4606).
+#
+# ## Why this exists as a dispatch-only workflow
+#
+# Owner decision 4 of CodySwannGT/lisa#4587 took the packed-host journey off the
+# pull-request path entirely: it took ≈ 880 s, 57% of the integration job in
+# CI run 41330364793. Its routine protection is now the canary-first rollout
+# (CodySwannGT/lisa#4604) plus the one-command rollback (CodySwannGT/lisa#4605).
+# There is deliberately no post-release run either.
+#
+# The journey stays runnable on demand for packaging changes, and this is the
+# hosted way to run it. docs/packed-host-journey.md says WHEN a change needs
+# it. Dispatch it with:
+#
+#   gh workflow run packed-host-journey.yml -f ref=main
+#
+# ## The fs-probe diagnostic (CodySwannGT/lisa#4636, #5066)
+#
+# `-f probe_diagnostic=true` also runs tests/integration/fs-probe-diagnostic.test.ts:
+# eight paired samples of the filesystem budget probe, an allocated-file
+# variant and a real 5,000-file removal, with the device's discard counters,
+# then a decomposition of one removal into the cost it pays once and the cost
+# it pays per entry, then the unit agreement case repeated on the idle
+# runner. Nothing here adds load: the figures are the runner's own. It runs in its own job, once on the ubuntu-24.04 image the
+# journey's teardown runs on and once on `ubuntu-latest`, the image the unit
+# shards run on: the probe budgets both, and #5066 failed on an image the
+# journey's image alone could not see. `-f journey=false` skips the journey
+# when only the diagnostic is wanted. A dispatch with `--ref <branch>` runs
+# that branch's copy of this file, so a branch that changes the diagnostic can
+# measure itself before it merges:
+#
+#   gh workflow run packed-host-journey.yml --ref <branch> -f ref=<branch> -f probe_diagnostic=true -f journey=false
+#
+# ## Provisioning
+#
+# Copied from the shell-guard trace shards in plugins-sync.yml, which provision
+# the same runtimes the integration job does: the separately qualified updater
+# Node 22.23.3 captured first, then the reviewed CI Node from .nvmrc (24.21.0;
+# the journey refuses any other outer Node), Bun 1.4.4, and Ruby with
+# activerecord for the Rails template host. ubuntu-24.04 is pinned for the
+# same Ruby reason plugins-sync.yml records (CodySwannGT/lisa#4513).
+#
+# NOTE: repo-specific to the Lisa monorepo, NOT a Lisa template — do not move it
+# under plugins/src or the create-only template sets.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag, or commit SHA to run the packed-host journey against
+        required: false
+        default: main
+        type: string
+      probe_diagnostic:
+        description: Also run the fs-probe diagnostic (CodySwannGT/lisa#4636, #5066) on ubuntu-24.04 and ubuntu-latest
+        required: false
+        default: false
+        type: boolean
+      journey:
+        description: Run the packed-host journey itself; false runs only the diagnostic
+        required: false
+        default: true
+        type: boolean
+
+concurrency:
+  group: packed-host-journey-${{ inputs.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  fs_probe_diagnostic:
+    name: 🔬 fs-probe diagnostic (${{ matrix.image }})
+    if: github.repository == 'CodySwannGT/lisa' && inputs.probe_diagnostic
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [ubuntu-24.04, ubuntu-latest]
+    runs-on: ${{ matrix.image }}
+    timeout-minutes: 40
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - name: Select the reviewed CI Node
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version-file: '.nvmrc'
+      - name: '🍞 Setup Bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: 🧾 Record the runner
+        run: |
+          uname -a
+          nproc
+          free -m
+          df -h / /tmp
+          findmnt -no OPTIONS /
+          findmnt -no SOURCE,FSTYPE,OPTIONS -T /tmp
+          findmnt -no SOURCE,FSTYPE,OPTIONS -T "$RUNNER_TEMP"
+      # `bun run test` rather than a bare vitest call, as the tmpdir-growth
+      # benchmark does: the wrapper supervises the scratch root these samples
+      # write into. Both reporters: the default one prints the
+      # FS_PROBE_DIAGNOSTIC lines, the JSON one feeds the proof below.
+      - name: 🔬 Run the fs-probe diagnostic
+        timeout-minutes: 15
+        env:
+          LISA_FS_PROBE_DIAGNOSTIC: '1'
+          LISA_FS_PROBE_DIAGNOSTIC_OUT: ${{ runner.temp }}/fs-probe-diagnostic/samples.jsonl
+        run: |
+          mkdir -p "$RUNNER_TEMP/fs-probe-diagnostic"
+          bun run test tests/integration/fs-probe-diagnostic.test.ts \
+            --reporter=default --reporter=json \
+            --outputFile.json="$RUNNER_TEMP/fs-probe-diagnostic/report.json"
+      # A green suite is compatible with every case having been skipped (the
+      # diagnostic is gated on Linux and its flag); this is not.
+      - name: ✅ Prove the diagnostic actually executed
+        run: >-
+          node scripts/check-test-case-executed.mjs
+          --report "$RUNNER_TEMP/fs-probe-diagnostic/report.json"
+          --name "fs probe diagnostic records the mounts the probe writes to"
+          --name "fs probe diagnostic paired sample 1 of 8"
+          --name "fs probe diagnostic paired sample 8 of 8"
+          --name "fs probe diagnostic decomposes a removal into fixed and per-entry cost, settled 0ms"
+          --name "fs probe diagnostic decomposes a removal into fixed and per-entry cost, settled 1000ms"
+      # The unit agreement case, repeated on this image, idle. No synthetic
+      # load: a failure under contention is read from real unit-shard logs.
+      - name: 🔁 Repeat the agreement case on the idle runner
+        env:
+          OUT: ${{ runner.temp }}/fs-probe-diagnostic
+          CASE: agrees with a real corpus deletion measured in the same window
+        run: |
+          repeat() {
+            for i in $(seq 20); do
+              if bun run test tests/unit/helpers/fs-latency-budget.test.ts -t "$CASE" > "$OUT/agreement-$1-$i.log" 2>&1; then
+                echo "agreement $1 $i pass"
+              else
+                echo "agreement $1 $i FAIL"; grep -m 1 -o 'AssertionError.*' "$OUT/agreement-$1-$i.log" || true
+                echo "$1 $i" >> "$OUT/agreement-failures.txt"
+              fi
+            done
+          }
+          repeat idle
+          test ! -s "$OUT/agreement-failures.txt"
+      - name: 📤 Upload the diagnostic samples
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: fs-probe-diagnostic-${{ matrix.image }}-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/fs-probe-diagnostic/
+          if-no-files-found: warn
+          retention-days: 30
+
+  packed_host_journey:
+    name: 📦 Packed-host journey
+    # Forks have neither the runner minutes nor the reason.
+    if: github.repository == 'CodySwannGT/lisa' && inputs.journey
+    runs-on: ubuntu-24.04
+    # The journey measured ≈ 880 s inside the integration job; 45 minutes
+    # leaves room for install and build without letting a hang run for hours.
+    timeout-minutes: 45
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      # The journey includes genuine updater fixtures. Retain their qualified
+      # executable while the enclosing suite uses the shared runtime.
+      - name: Provision separately qualified updater test runtime
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          # lisa-allow-duplicate-version: independently qualified updater identity (#4367)
+          node-version: '22.23.3' # lisa-preserve-node-version: independently qualified updater (#4367)
+      - name: Preserve actual updater test executable
+        run: |
+          node -e 'if (process.versions.node !== "22.23.3") throw Error("Wrong updater test runtime"); require("node:fs").appendFileSync(process.env.GITHUB_ENV, `LISA_TEST_UPDATER_NODE=${require("node:fs").realpathSync(process.execPath)}\n`);'
+      # .nvmrc holds the reviewed CI Node (24.21.0), the only outer Node the
+      # journey runs under; a literal here would be one more copy to drift.
+      - name: Select the reviewed CI Node
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version-file: '.nvmrc'
+      - name: '🍞 Setup Bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+      - name: Setup Ruby for the Rails template host
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          ruby-version: '4.0.1'
+      - name: Install Rails configuration resolver
+        run: gem install activerecord --version 8.1.4 --no-document
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      # Every figure either run produces is a figure about this machine, and
+      # this machine is gone when the job ends; the mount options are the
+      # discard question the diagnostic exists for.
+      - name: 🧾 Record the runner
+        run: |
+          uname -a
+          nproc
+          free -m
+          df -h /
+          findmnt -no OPTIONS /
+      # The named script builds once and supplies genuine Bun lifecycle context,
+      # and it targets exactly the one journey file.
+      - name: 📦 Run the packed-host journey
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: bun run test:integration:packed-hosts

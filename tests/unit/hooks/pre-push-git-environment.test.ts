@@ -1,12 +1,12 @@
 import { accessSync, constants } from "node:fs";
 import {
   chmod,
+  copyFile,
   mkdir,
   mkdtemp,
   readFile,
   realpath,
   rm,
-  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -16,6 +16,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { trackedHookCopies } from "../../helpers/hook-roster.js";
 import { resolveGit } from "../../support/git-executable.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const GIT = resolveGit();
 const ROOT_HOOK = path.resolve(".husky/pre-push");
@@ -51,6 +52,8 @@ describe("pre-push Git environment isolation", () => {
   it.each([MANAGED_HOOKS[0], MANAGED_HOOKS[1]])(
     "sanitizes %s after work-item validation and before quality commands",
     async hook => {
+      if (hook === undefined)
+        throw new Error("expected two managed pre-push hooks");
       const source = await readFile(path.resolve(hook), "utf8");
       expect(source.indexOf("validate-push")).toBeLessThan(
         source.indexOf("git rev-parse --local-env-vars")
@@ -104,34 +107,39 @@ describe("pre-push Git environment isolation", () => {
     const source = await readFile(RAILS_LEFTHOOK, "utf8");
     const wrapper = "sh scripts/lisa-clean-git-env.sh";
     // The git-environment wrapper stays OUTERMOST on every command. The two
-    // commands that create scratch — RSpec and the Mutant gate — additionally
-    // pass through the scratch supervisor, which sits INSIDE this wrapper: the
-    // supervisor and everything it launches must see the cleaned environment
-    // too, and a supervisor placed outside would hand its payload the
-    // repository-local GIT_* variables this wrapper exists to remove.
-    const supervised = "sh scripts/lisa-scratch-run.sh --suite";
+    // test commands — RSpec and the Mutant gate — run the start-of-run sweep
+    // and then their payload INSIDE this wrapper, so both see the cleaned
+    // environment rather than the repository-local GIT_* variables this
+    // wrapper exists to remove (CodySwannGT/lisa#4603).
+    const swept = "sh -c 'if command -v node";
     expect(source.indexOf("validate-push {1}")).toBeLessThan(
-      source.indexOf(
-        `${wrapper} ${supervised} prepush-rspec -- bundle exec rspec`
-      )
+      source.indexOf(`${wrapper} ${swept}`)
     );
-    for (const command of [
-      "bundle exec bundler-audit check --update",
-      "bundle exec brakeman --no-pager --quiet",
-      "bundle exec reek app/ lib/",
-      "bundle exec flog --all --group app/ lib/",
-      "bundle exec flay app/ lib/",
-    ]) {
-      expect(source).toContain(`${wrapper} ${command}`);
+    expect(source).toContain(
+      `${wrapper} bundle exec bundler-audit check --update`
+    );
+    // The static analysers run through the Rails gate script (pass cache,
+    // CodySwannGT/lisa#4613) INSIDE the wrapper, and fall back to the bare
+    // command, still inside it, when node or the script is absent.
+    const gated = (id: string, command: string): string =>
+      `${wrapper} sh -c 'if command -v node >/dev/null 2>&1 && [ -f scripts/lisa-rails-gates.mjs ]; then exec node scripts/lisa-rails-gates.mjs ${id}; fi; exec ${command}'`;
+    for (const [id, command] of [
+      ["brakeman", "bundle exec brakeman --no-pager --quiet"],
+      ["reek", "bundle exec reek app/ lib/"],
+      ["flog", "bundle exec flog --all --group app/ lib/"],
+      ["flay", "bundle exec flay app/ lib/"],
+    ] as const) {
+      expect(source).toContain(gated(id, command));
     }
-    for (const [suite, payload] of [
-      ["prepush-rspec", "bundle exec rspec"],
-      ["prepush-mutant", "bash scripts/lisa-mutation.sh"],
+    for (const payload of [
+      "bundle exec rspec",
+      "bash scripts/lisa-mutation.sh",
     ]) {
-      expect(source).toContain(
-        `${wrapper} ${supervised} ${suite} -- ${payload}`
-      );
+      expect(source).toContain(`exec ${payload}'`);
     }
+    // rspec and mutation (sweep first) plus the four static analysers.
+    expect(source.split(`${wrapper} ${swept}`)).toHaveLength(7);
+    expect(source).not.toContain("lisa-scratch-run.sh");
   });
 
   it("cleans Rails command environments and preserves foreign-repo discovery", async () => {
@@ -224,27 +232,39 @@ async function createHookFixture(): Promise<{
     path.join(root, "scripts/lisa-work-item.mjs"),
     "// fixture\n"
   );
+  await copyFile(
+    path.resolve("all/copy-overwrite/scripts/lisa-audit.mjs"),
+    path.join(root, "scripts/lisa-audit.mjs")
+  );
+  await mkdir(path.join(root, "node_modules/@codyswann"), { recursive: true });
+  createSymlink(
+    await realpath(process.cwd()),
+    path.join(root, "node_modules/@codyswann/lisa"),
+    "dir"
+  );
   boundedExecFileSync({
     label: "git init",
     command: GIT,
     args: ["init", "-q"],
     cwd: root,
   });
-  await symlink(GIT, path.join(bin, "git"));
+  createSymlink(GIT, path.join(bin, "git"));
   // The real jq, for the same reason node below is the real node: the hook
   // reads this fixture's `{}` package.json with it and must get the honest
   // answer that no optional script is configured. A stub would make the
   // fixture agree with whatever the hook did.
-  await symlink(resolveOnPath("jq"), path.join(bin, "jq"));
+  createSymlink(resolveOnPath("jq"), path.join(bin, "jq"));
   // The hook now also asks node whether package.json carries `test:cov:unit`
   // (#2827). That question has a real answer this fixture depends on — its
   // package.json is `{}`, so the honest answer is "no" and the hook must fall
   // back to `test:cov`, which is what the command log below asserts. Faking it
   // would make the fixture agree with whatever the hook did. So `-e` is
-  // delegated to the real node, and only the work-item invocation is recorded.
+  // delegated to the real node, as is the canonical audit adapter copied above.
+  // Only the actual work-item validation invocation is recorded; a new Node
+  // consumer must execute rather than silently overwrite the validator log.
   await writeExecutable(
     path.join(bin, "node"),
-    '#!/bin/sh\nif [ "$1" = "-e" ]; then\n  exec "$REAL_NODE" "$@"\nfi\nprintf "%s\\n" "$*" > "$HOOK_VALIDATE_LOG"\n'
+    '#!/bin/sh\nif [ "$1" = "scripts/lisa-work-item.mjs" ] && [ "$2" = "validate-push" ]; then\n  printf "%s\\n" "$*" >> "$HOOK_VALIDATE_LOG"\n  exit 0\nfi\nexec "$REAL_NODE" "$@"\n'
   );
   await writeExecutable(path.join(bin, "npm"), FAKE_NPM);
   return { root, bin, commandLog, discoveryLog, validateLog };

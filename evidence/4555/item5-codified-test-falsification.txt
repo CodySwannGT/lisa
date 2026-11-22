@@ -1,0 +1,13 @@
+## Falsification of tests/unit/session-manager/launch-real-tmux.test.ts (verifier, HEAD 2bdfadebda)
+## Mutant: plugins/src/base/skills/lisa-session-manager/scripts/launch-shell.mjs buildSourcedLaunch argv changed to
+##   ["start-server", ";", "source-file", "-", ";", "set-environment", "-g", "VERIFY_MUTANT", <the TELEGRAM_BOT_TOKEN=... word>]
+## i.e. the token also travels in the tmux client's argv.
+$ bunx vitest run tests/unit/session-manager/launch-real-tmux.test.ts --reporter=verbose
+exit=1
+ ✓ |lisa| tests/unit/session-manager/launch-real-tmux.test.ts > buildSourcedLaunch against a real tmux > the ps scan can fail: it sees a decoy holding the token in argv 407ms
+ × |lisa| tests/unit/session-manager/launch-real-tmux.test.ts > buildSourcedLaunch against a real tmux > delivers the token and quoted values to the child, never via argv 851ms
+   → expected [ Array(1) ] to have a length of +0 but got 1
+AssertionError: expected [ Array(1) ] to have a length of +0 but got 1
+      Tests  1 failed | 1 passed (2)
+## Mutant reverted with the inverse edit; `git status --short` afterwards shows no change under plugins/.
+## The test's ps-hits assertion (expect(hits).toHaveLength(0)) is the line that bit. The test's own token is a random per-run fake.

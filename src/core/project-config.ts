@@ -24,6 +24,14 @@ import {
 } from "./config.js";
 import { PROJECT_LEARNINGS_FILENAME } from "./learnings-location.js";
 import {
+  type DependenciesConfig,
+  validateDependenciesConfig,
+} from "./project-config-dependencies.js";
+import {
+  type HumanGateConfig,
+  validateHumanGateConfig,
+} from "./project-config-human-gate.js";
+import {
   type LearningsConfig,
   validateLearningsConfig,
 } from "./project-config-learnings.js";
@@ -36,6 +44,10 @@ import {
   validateNightlyE2EConfig,
   type NightlyE2EConfig,
 } from "./project-config-nightly-e2e.js";
+import {
+  validatePushGateConfig,
+  type PushGateConfig,
+} from "./project-config-push-gate.js";
 
 export {
   AUTO_LOADED_RULES_DIR_PREFIXES,
@@ -44,23 +56,20 @@ export {
 } from "./learnings-location.js";
 
 export {
+  DEFAULT_LOW_CONFIDENCE_ROUTING,
+  LOW_CONFIDENCE_ROUTINGS,
   resolveLearningsSettings,
   resolveProjectLearningsFile,
   type LearningsConfig,
+  type LowConfidenceRouting,
   type ResolvedLearningsSettings,
 } from "./project-config-learnings.js";
 
-export type {
-  BrowserVerificationConfig,
-  KaneBrowserConfig,
-  VerificationConfig,
-} from "./project-config-kane.js";
+export { dependencySettingsWarning } from "./project-config-dependencies.js";
 
-export type {
-  NightlyE2EConfig,
-  NightlyE2ETrackingConfig,
-  NightlyE2ETrackingDestination,
-} from "./project-config-nightly-e2e.js";
+export { humanGateSettingsWarnings } from "./project-config-human-gate.js";
+
+export type { KaneBrowserConfig } from "./project-config-kane.js";
 
 /** Filename of the per-project config, relative to the destination root */
 export const PROJECT_CONFIG_FILENAME = ".lisa.config.json";
@@ -103,12 +112,28 @@ export interface ProjectConfig {
   readonly projectRulesFile?: string;
   /** Optional overrides for the machine-managed learnings ledger. */
   readonly learnings?: LearningsConfig;
+  /**
+   * Optional dependency-governance settings: `humanSignOff` turns the
+   * trust-class ratification requirements off (`"none"`) or keeps them
+   * (`"default"`). When absent or invalid it follows `humanGate.mode`:
+   * `"none"` under `"access-only"`, `"default"` under `"strict"`.
+   */
+  readonly dependencies?: DependenciesConfig;
+  /**
+   * Optional human-gate width (CodySwannGT/lisa#4687): `mode` is
+   * `"access-only"` (default: only acts an agent lacks access to wait on a
+   * person) or `"strict"` (the older, wider gate); `humanOnly` lists decision
+   * classes the project reserves for a person in either mode.
+   */
+  readonly humanGate?: HumanGateConfig;
   /** Optional empirical verification provider configuration. */
   readonly verification?: VerificationConfig;
   /** Optional nightly-E2E automation behavior. */
   readonly nightlyE2E?: NightlyE2EConfig;
   /** Starter provenance and synchronization preferences. */
   readonly starter?: StarterConfig;
+  /** Optional push-gate behaviour, e.g. `buildOnce` (CodySwannGT/lisa#4595). */
+  readonly pushGate?: PushGateConfig;
   /**
    * Update this project to the latest Lisa when an agent session starts
    * (CodySwannGT/lisa#4337). On when absent; `false` opts out. The update runs
@@ -305,17 +330,27 @@ export function validateProjectConfig(
       ? undefined
       : validateProjectRulesFile(obj.projectRulesFile, configPath);
   const learnings = validateLearningsConfig(obj.learnings, configPath);
+  const dependencies = validateDependenciesConfig(obj.dependencies, configPath);
+  const humanGate = validateHumanGateConfig(obj.humanGate, configPath);
   const verification = validateVerificationConfig(obj.verification, configPath);
   const nightlyE2E = validateNightlyE2EConfig(obj.nightlyE2E, configPath);
   const starter = validateStarterConfig(obj.starter);
-  return {
-    ...(harness === undefined ? {} : { harness }),
-    ...(projectRulesFile === undefined ? {} : { projectRulesFile }),
-    ...(learnings === undefined ? {} : { learnings }),
-    ...(verification === undefined ? {} : { verification }),
-    ...(nightlyE2E === undefined ? {} : { nightlyE2E }),
-    ...(starter === undefined ? {} : { starter }),
+  const pushGate = validatePushGateConfig(obj.pushGate, configPath);
+  // An absent key stays absent rather than becoming `key: undefined`.
+  const validated = {
+    harness,
+    projectRulesFile,
+    learnings,
+    dependencies,
+    humanGate,
+    verification,
+    nightlyE2E,
+    starter,
+    pushGate,
   };
+  return Object.fromEntries(
+    Object.entries(validated).filter(([, value]) => value !== undefined)
+  ) as ProjectConfig;
 }
 
 /**

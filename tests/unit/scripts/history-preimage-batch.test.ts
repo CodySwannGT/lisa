@@ -4,7 +4,7 @@
  */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, rmSync, symlinkSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
@@ -17,6 +17,7 @@ import {
   provePreimage,
 } from "../../fixtures/git-history-secrets/harness.mjs";
 import { verifyPreimageBatch } from "../../fixtures/git-history-secrets/preimage-batch.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 useIoLatencyBudget();
 let harness: ReturnType<typeof createHarness>;
@@ -49,7 +50,7 @@ beforeAll(() => {
   harness.git(cwd, "commit", "-qm", "exact replacement character path");
   harness.write(cwd, linked, "placeholder");
   rmSync(join(cwd, linked));
-  symlinkSync(path, join(cwd, linked));
+  createSymlink(path, join(cwd, linked));
   harness.git(cwd, "add", ".");
   harness.git(cwd, "commit", "-qm", "independent symlink refusal");
 });

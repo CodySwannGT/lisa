@@ -1,11 +1,12 @@
 /** Real default-vendor witnesses for portable committed evidence. */
 import { createHash } from "node:crypto";
-import { rmSync, symlinkSync } from "node:fs";
+import { rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { commitFixture, fixtureHash, provePreimage } from "./harness.mjs";
 import { scanImmutableCase } from "./report-mode.mjs";
 import { budgetGraph, retainBudgetInventory } from "./errors.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const source = "config/access.rb";
 const proof = join(tmpdir(), "owned-proof-access.md");
@@ -198,7 +199,7 @@ const addCatalogue = (harness, cwd, setup) => {
     );
     if (setup === "symlink") {
       rmSync(join(cwd, catalogue));
-      symlinkSync("../../../../config/access.rb", join(cwd, catalogue));
+      createSymlink("../../../../config/access.rb", join(cwd, catalogue));
     }
     harness.git(cwd, "add", ".");
     harness.git(cwd, "commit", "-qm", "portable preimage");

@@ -3,8 +3,8 @@
  *
  * GitHub accepts a `conditions.ref_name.include` entry naming a branch that
  * does not exist — the entries are patterns, not references, and neither side
- * validates them. Two Lisa surfaces already touch ruleset conditions and both
- * miss the zero-reach case, for different reasons:
+ * validates them. One Lisa surface already touches ruleset conditions and
+ * misses the zero-reach case:
  *
  * - `compareRulesets` in `ruleset-inspection` holds Lisa's template against the
  *   live ruleset by string equality over `{target, enforcement, conditions,
@@ -12,11 +12,6 @@
  *   is NOT drifted and therefore healthy. It is a template-conformance check
  *   and cannot be a governance-reach check — and it is deceptive precisely
  *   because the field IS compared, which makes the surface read as covered.
- * - `mapRulesetRow` in `cli/ui-github-repo-map` does parse includes, but as a
- *   literal match on the string `~DEFAULT_BRANCH`, and its only consumer ORs
- *   across rows. One satisfying row makes the whole check green and masks
- *   every non-governing row. It answers "is at least one thing gating?", never
- *   "does each ruleset gate anything?".
  *
  * Nothing else in `src/` or `scripts/` enumerated a repository's branches to
  * test an include list against them, so there was no existence check to
@@ -94,7 +89,7 @@ interface ReachEntry {
 }
 
 /** The shipped detector's sweep result. */
-export interface ReachSweep {
+interface ReachSweep {
   readonly zeroReach: readonly ReachEntry[];
   readonly undetermined: readonly ReachEntry[];
   readonly governing: readonly ReachEntry[];
@@ -222,7 +217,7 @@ async function loadDetector(
  * @param sweep - The completed classification
  * @returns The finding
  */
-export function rulesetReachFindingFor(sweep: ReachSweep): HealthFinding {
+function rulesetReachFindingFor(sweep: ReachSweep): HealthFinding {
   if (sweep.zeroReach.length > 0) {
     return deterministicFinding(
       CHECK,

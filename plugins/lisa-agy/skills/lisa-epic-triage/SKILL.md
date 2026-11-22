@@ -9,7 +9,7 @@ Follow this 9-step triage process before implementing any epic. Do not skip tria
 
 ## Triage Steps
 
-1. Verify you have all information needed to understand the full scope of this epic (goals, acceptance criteria, impacted systems, design specs, dependencies, etc.). Do not make assumptions. If anything is missing, stop and ask before proceeding.
+1. Verify you have all information needed to understand the full scope of this epic (goals, acceptance criteria, impacted systems, design specs, dependencies, etc.). Do not make unrecorded assumptions. If anything is missing, find it in the item, its linked work, the code, the wiki and git history, and where a reasonable default exists, take it and record it on the item. Stop only for what that cannot settle — missing access, or a product question with no reasonable default — through the flow's blocked exit, with a specific question and your recommended answer.
 2. Verify the epic is broken down into concrete, well-scoped bugs, tasks, and/or stories that are each fully triaged. If ambiguities exist, stop and resolve them before breaking it down.
 3. Identify all cross-cutting concerns (auth, performance, security, data migrations, third-party integrations) that need to be addressed across the epic.
 4. Identify all dependencies between tasks within the epic, or on external epics, teams, or services. Determine the correct order of execution.

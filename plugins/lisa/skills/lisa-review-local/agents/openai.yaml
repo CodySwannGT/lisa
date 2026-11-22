@@ -1,4 +1,4 @@
 display_name: "Review Local"
-short_description: "performing a code review on local changes on the current branch compared to the main branch"
+short_description: "Review the local branch's changes against main with several parallel reviewers (bugs, CLAUDE.md compliance, history, past PR comments, code…"
 default_prompt:
-  - "Use $lisa-review-local: performing a code review on local changes on the current branch compared to the main branch."
+  - "Use $lisa-review-local: Review the local branch's changes against main with several parallel reviewers (bugs, CLAUDE.md compliance, history, past PR comments, code…."

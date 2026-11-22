@@ -271,4 +271,10 @@ function install(trace, index) {
       }
     };
   }
+  // Push the patch to every ESM `import { spawnSync }` from here on. Without
+  // this the patch reached ESM only when nothing had built the builtin's ESM
+  // facade yet. On CI the access-map tracer (#4593) is preloaded through
+  // NODE_OPTIONS, imports `node:child_process` as ESM and syncs first, so the
+  // facade already held ITS wrappers, and every guard run escaped this trace.
+  createRequire(import.meta.url)("node:module").syncBuiltinESMExports();
 }

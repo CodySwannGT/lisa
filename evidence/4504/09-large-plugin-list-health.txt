@@ -1,0 +1,19 @@
+### health, fake list mode=big-here (entries=3404 bytes=1867564)  $ node dist/index.js health .
+exit=0
+{"check":"plugins.current","layer":"deterministic","status":"pass","reason":"Lisa plugins are enabled, installed, and version-current."}
+### doctor, same mode=big-here
+exit=0
+OK Claude Code plugins registered here?: Lisa plugins are enabled, installed, and version-current.
+### health, fake list mode=big-sibling (entries=3404 bytes=1867576)  $ node dist/index.js health .
+exit=0
+{"check":"plugins.current","layer":"deterministic","status":"fail","reason":"Plugin drift: lisa@lisa. Run `lisa apply .` in this project to register Lisa's Claude Code plugins for this folder."}
+### doctor, same mode=big-sibling
+exit=0
+WARN Claude Code plugins registered here?: Plugin drift: lisa@lisa. Run `lisa apply .` in this project to register Lisa's Claude Code plugins for this folder.
+### health, fake list mode=garbage (entries=n/a bytes=8)  $ node dist/index.js health .
+exit=0
+{"check":"plugins.current","layer":"deterministic","status":"warn","reason":"Plugin state unavailable: actual plugin installation unavailable"}
+### doctor, same mode=garbage
+exit=0
+OK Claude Code plugins registered here?: Claude Code CLI unavailable; plugin registration not checked
+### BITE (mechanism, not the shipped artifact): HEAD cap maxBuffer=256KiB on the same big-here output -> error code=ERR_CHILD_PROCESS_STDIO_MAXBUFFER

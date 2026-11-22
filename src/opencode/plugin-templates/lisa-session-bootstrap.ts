@@ -4,6 +4,7 @@
  * OpenCode runs a plugin's factory function once when it loads the plugin at
  * session start, which is the natural home for Lisa's Codex SessionStart hooks:
  *   - install-pkgs.sh   → install dependencies when node_modules is missing
+ *   - Rails hooks      → install missing Lefthook wrappers independently of Node packages
  *   - setup-jira-cli.sh → write jira-cli config from environment variables, only
  *     when the project's configured tracker is jira
  *   - auto-update.sh    → update the project to the latest Lisa (autoUpdate)
@@ -60,6 +61,19 @@ export const LisaSessionBootstrap = async ({
     }
   } catch {
     // fail open — never block startup on a dependency-install error
+  }
+
+  // Staged beside this factory, so a Rails host needs no local node_modules or
+  // interactive package-manager/mise shell to install its Git wrappers.
+  try {
+    const { ensureRailsHooks } = await import("./rails-hooks.mjs");
+    const result = await ensureRailsHooks(root);
+    if (result.status === "failed") console.error(result.detail);
+  } catch {
+    if (existsSync(`${root}/lefthook.yml`))
+      console.error(
+        "Rails Git hooks could not be installed; run bundle exec lefthook install."
+      );
   }
 
   // auto-update: the same engine as the Claude/Codex/Cursor/Copilot SessionStart

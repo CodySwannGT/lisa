@@ -36,7 +36,18 @@ import {
   makeProject,
   messages,
   runGate,
-} from "./bdd/support";
+} from "./bdd/support.js";
+
+/**
+ * The first element of a list, failing the test loudly when the list is empty.
+ * @param items - The list under test
+ * @returns Its first element
+ */
+function first<T>(items: readonly T[]): T {
+  const [head] = items;
+  if (head === undefined) throw new Error("expected a non-empty list");
+  return head;
+}
 
 const CONFIG_ABSENT = "config-absent";
 const ADOPTION_RETIRED = "adoption-retired";
@@ -120,8 +131,8 @@ describe("absence fails, never skips", () => {
     const run = runGate(makeProject({}));
     expect(run.status).toBe(1);
     expect(run.envelope.status).toBe(INVALID);
-    expect(run.envelope.findings[0].code).toBe(CONFIG_ABSENT);
-    expect(run.envelope.findings[0].message).toContain("never a skip");
+    expect(first(run.envelope.findings).code).toBe(CONFIG_ABSENT);
+    expect(first(run.envelope.findings).message).toContain("never a skip");
     expect(run.envelope.reason).toContain(CONFIG_ABSENT);
   });
 

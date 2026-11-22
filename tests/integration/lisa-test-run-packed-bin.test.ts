@@ -1,4 +1,4 @@
-/** Packed npm-bin boundary proof for the foreground test supervisor. */
+/** Packed npm-bin boundary proof for the foreground test runner. */
 import * as fs from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -13,6 +13,10 @@ import {
   ioLatencyBudgetMs,
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
+import {
+  borrowNodeModules,
+  createSymlink,
+} from "../support/borrowed-node-modules.mjs";
 import { fsLatencyBudgetMs } from "../helpers/fs-latency-budget.js";
 import { resolveGit } from "../support/git-executable.js";
 
@@ -30,7 +34,8 @@ const BIN_ROOT = path.join(TEST_ROOT, "node_modules", ".bin");
 const BIN = path.join(BIN_ROOT, "lisa-test-run");
 const PACKED_ENTRY = path.join(PACKAGE_ROOT, "dist/cli/lisa-test-run.js");
 const PAYLOAD = path.join(TEST_ROOT, "payload.mjs");
-const SCRATCH_NAMESPACE = "lisa-scratch";
+/** The retired scratch namespace; a run must no longer create it (#4602). */
+const RETIRED_SCRATCH_NAMESPACE = "lisa-scratch";
 const ADVERSARIAL_DIST_NAME = `lisa-packed-bin-adversarial-${process.pid}.map`;
 const GIT_BIN = resolveGit();
 
@@ -89,11 +94,7 @@ beforeAll(async () => {
       cwd: REPO_ROOT,
     });
     expect(indexed.status, indexed.stderr).toBe(0);
-    fs.symlinkSync(
-      path.join(REPO_ROOT, "node_modules"),
-      path.join(checkout, "node_modules"),
-      "dir"
-    );
+    borrowNodeModules(path.join(REPO_ROOT, "node_modules"), checkout);
     const built = boundedSpawnSync({
       label: "build immutable checkout for lisa-test-run bin proof",
       command: "bun",
@@ -139,9 +140,10 @@ beforeAll(async () => {
     path.relative(PACKAGE_ROOT, PACKED_ENTRY)
   );
   fs.mkdirSync(BIN_ROOT, { recursive: true });
-  // eslint-disable-next-line sonarjs/file-permissions -- npm bin targets must be executable in the real packed-layout boundary.
-  fs.chmodSync(PACKED_ENTRY, 0o755);
-  fs.symlinkSync(path.relative(BIN_ROOT, PACKED_ENTRY), BIN);
+  // Owner-only execute: npm's bin link needs the target executable by the
+  // user who runs it, and nobody else touches this private fixture tree.
+  fs.chmodSync(PACKED_ENTRY, 0o700);
+  createSymlink(path.relative(BIN_ROOT, PACKED_ENTRY), BIN);
   fs.writeFileSync(
     PAYLOAD,
     [
@@ -167,14 +169,13 @@ afterAll(() => {
 /**
  * Run one packed bin payload and retain its observed result.
  * @param mode - Terminal outcome the fixture should produce.
- * @returns The isolated scratch paths and observed child result.
+ * @returns The isolated temp base, payload marker and observed child result.
  */
 function runPacked(mode: "exit" | "signal") {
   const base = fs.mkdtempSync(path.join(TEST_ROOT, `${mode}-`));
   const marker = path.join(base, "payload.marker");
   const childEnv = {
     ...process.env,
-    LISA_TEST_SCRATCH_SUITE: "lisa",
     LISA_PACKED_BIN_MARKER: marker,
     LISA_PACKED_BIN_MODE: mode,
     TMPDIR: base,
@@ -247,9 +248,9 @@ describe.skipIf(process.platform === "win32")(
         expect(run.result.error, run.result.stderr).toBeUndefined();
         expect(fs.existsSync(run.base), run.result.stderr).toBe(true);
         expect(fs.readFileSync(run.marker, "utf8")).toBe("ran");
-        expect(fs.readdirSync(path.join(run.base, SCRATCH_NAMESPACE))).toEqual(
-          []
-        );
+        expect(
+          fs.existsSync(path.join(run.base, RETIRED_SCRATCH_NAMESPACE))
+        ).toBe(false);
       }
     );
 

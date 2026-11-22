@@ -96,7 +96,7 @@ export interface AgyMcpServerEntry {
 }
 
 /** Top-level mcp_config.json shape. */
-export interface AgyMcpConfig {
+interface AgyMcpConfig {
   readonly mcpServers?: Readonly<Record<string, AgyMcpServerEntry>>;
 }
 

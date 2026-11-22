@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Review local branch changes compared to main"
 allowed-tools: ["Skill"]
 ---

@@ -23,7 +23,7 @@
  * the second is the green-but-inert failure this repository keeps relearning.
  *
  * The probe REPORTS; it never blocks. The reasoning lives beside the behaviour,
- * in the `channel_skew_verdict` block of `scripts/lisa-enforcement-fallback.sh`,
+ * in the `classify_channel_skew` block of `scripts/lisa-enforcement-fallback.sh`,
  * because that is where someone deciding to change it will be standing. The
  * short form: the two error directions have asymmetric costs — an over-reported
  * skew costs a line of notice, an over-confident stand-down costs enforcement.
@@ -59,7 +59,6 @@ const FALLBACK = path.join(
 /** Every guard the dispatcher's own loop resolves. */
 const GUARDS = [
   "block-no-verify",
-  "parity-safety-net",
   "block-shell-json-parsing",
   "block-instruction-file-edits",
   "block-direct-issue-create",

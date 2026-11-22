@@ -1,9 +1,9 @@
 ---
 name: lisa-confluence-write-prd
-description: "Creates or idempotently updates…"
+description: "Create or update a PRD as a…"
 allowed-tools: ["Skill", "Bash"]
 ---
-Creates or idempotently updates a PRD as a Confluence page parented under the configured lifecycle parent page (the draft parent by default, or the ready parent when initial_role is ready so lisa-confluence-prd-intake auto-claims it). The Confluence PRD-source writer behind lisa-prd-source-write. Confluence models PRD state by PARENT PAGE (not labels), per config-resolution. Dedupes by a stable marker embedded in the page body, found via CQL (matched by marker, never by title). All Atlassian access goes through lisa-atlassian-access.
+Create or update a PRD as a Confluence page under the right lifecycle parent page, as draft or ready, without duplicates. The Confluence writer behind lisa-prd-source-write.
 
 
 # Write Confluence PRD: $ARGUMENTS

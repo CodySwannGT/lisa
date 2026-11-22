@@ -13,6 +13,11 @@
  *     merely contains one's text is a question only a tokenizer can answer, so
  *     the semantic guard is the plugin and the globs are what survives if the
  *     plugin fails to load.
+ *   - block-host-name-leak → a universal `tool.execute.before` adapter running
+ *     the canonical Bash wrapper and its two MJS companions. The policy is
+ *     target-scoped: host trackers retain their own names, while Lisa and
+ *     unresolved tracker targets retain inspection. Inactive warnings remain
+ *     visible; the adapter does not reimplement the parser or denylist.
  *   - format-on-edit → OpenCode's BUILT-IN prettier formatter already formats on
  *     edit, so Lisa emits no formatter config (overriding it would be worse than
  *     the default). This is why there is no format plugin below.
@@ -35,6 +40,7 @@ import * as fse from "fs-extra";
 import { copyFile, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { RAILS_HOOK_ENGINE_FILES } from "../../scripts/lib/rails-hooks.mjs";
 import {
   applyEdits,
   modify,
@@ -111,13 +117,32 @@ const NO_VERIFY_DENY_PATTERNS: Readonly<Record<string, "deny">> = {
 const PLUGIN_SUPPORT_FILES = [
   "task-readiness-guard.sh",
   "task-readiness-guard.mjs",
+  "block-host-name-leak.sh",
+  "block-host-name-leak.mjs",
+  "host-name-command-context.mjs",
   "discharge-work-item-gates.sh",
   "block-managed-file-edits.sh",
   "block-no-verify.sh",
+  "guard-dedupe.bash",
+  ...RAILS_HOOK_ENGINE_FILES,
+] as const;
+
+/**
+ * Support files Lisa once copied into `.opencode/plugin/` and no longer ships.
+ *
+ * Stale cleanup is otherwise scoped to the `lisa-` prefix so host-authored
+ * plugins are never touched, and support files carry no prefix. A name listed
+ * here is removed only when the previous ownership manifest records Lisa as
+ * having written it, so a host file that merely shares the name is kept.
+ * `parity-safety-net.sh` was the retired safety-net stub (CodySwannGT/lisa#4803).
+ * `parity-safety-net-heredoc.py` is still shipped to other agents for
+ * `block-instruction-file-edits.sh`, but OpenCode never ships that guard, so
+ * nothing in `.opencode/plugin/` read it (CodySwannGT/lisa#4810).
+ */
+const RETIRED_PLUGIN_SUPPORT_FILES: ReadonlySet<string> = new Set([
   "parity-safety-net.sh",
   "parity-safety-net-heredoc.py",
-  "guard-dedupe.bash",
-] as const;
+]);
 
 /** Result of the OpenCode hooks install pass */
 export interface OpencodeHooksInstallResult {
@@ -242,8 +267,9 @@ function resolveTemplate(filename: string): string {
 /**
  * Delete Lisa plugin modules that were managed last run but aren't shipped this
  * run (e.g. a project type stopped being detected, or a template was renamed).
- * Only files under `.opencode/plugin/` with the `lisa-` prefix are eligible, so
- * host-authored plugins are never touched.
+ * Only files under `.opencode/plugin/` with the `lisa-` prefix, or a retired
+ * support file Lisa recorded writing, are eligible, so host-authored plugins
+ * are never touched.
  * @param previousManagedFiles - Files Lisa managed last run (relative to
  *   `.opencode/`).
  * @param currentFilenames - Plugin filenames Lisa is shipping this run.
@@ -261,7 +287,8 @@ async function deleteStalePlugins(
     .map(file => file.slice(prefix.length))
     .filter(
       name =>
-        name.startsWith(LISA_PLUGIN_PREFIX) &&
+        (name.startsWith(LISA_PLUGIN_PREFIX) ||
+          RETIRED_PLUGIN_SUPPORT_FILES.has(name)) &&
         !name.includes(path.sep) &&
         !currentFilenames.has(name)
     );
@@ -319,7 +346,7 @@ async function mergeOpencodeConfig(destDir: string): Promise<boolean> {
  * @param existingJsonc - Current contents of `opencode.json` (or "").
  * @returns Merged JSON/JSONC string with host content preserved.
  */
-export function mergeNoVerifyDenyRules(existingJsonc: string): string {
+function mergeNoVerifyDenyRules(existingJsonc: string): string {
   if (existingJsonc.trim().length === 0) {
     const fresh = {
       $schema: OPENCODE_SCHEMA_URL,

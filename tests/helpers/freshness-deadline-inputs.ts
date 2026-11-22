@@ -11,21 +11,28 @@ import {
   hostState,
   SOURCE_FALLBACK,
 } from "./host-guard-freshness-fixtures.js";
+import { inheritedEnvironment } from "../support/process-environment.js";
+
+const BUILTIN_FUNCTION_START = "builtin() {";
+const BUILTIN_DELEGATE = ' command builtin "$@"';
+const NESTED_BUILTIN_DELEGATE = ` ${BUILTIN_DELEGATE}`;
+const EXPORT_BUILTIN_FUNCTION = "export -f builtin";
 
 const NODE_SHIM = [
-  `#!${process.execPath}`,
-  "const fs=require('node:fs'),cp=require('node:child_process'),a=process.argv.slice(2),e=process.env,mode=e.LISA_DEADLINE_MODE;",
-  "const real=()=>{const r=cp.spawnSync(e.LISA_DEADLINE_REAL_NODE,a,{stdio:'inherit'});process.exitCode=r.status??1;};",
-  "const mark=pid=>fs.appendFileSync(e.LISA_DEADLINE_ENTRIES,String(pid)+'\\n');",
-  "if(!a[0]?.endsWith('/lisa-enforcement-freshness.mjs')){real();}else{",
-  "mark(process.pid);",
-  "if(['normal','delayed-qualification','missing-runner','unsafe-tmp','anchor-startup','anchor-qualification'].includes(mode)){real();}",
-  "else if(mode==='surviving-child'){const c=cp.spawn('/bin/sleep',['30'],{stdio:'ignore'});mark(c.pid);c.unref();setTimeout(real,200);}",
-  "else if(['stall','post-start-ps-failure','early-parent-exit','node-shim-startup'].includes(mode)){",
-  "if(mode==='post-start-ps-failure')cp.spawnSync('/bin/bash',['-c','ps -p \"$PPID\" -o pid='],{stdio:'ignore'});",
-  "process.stdout.write('installed\\t9.9.9\\nguard0\\tmatching\\n');process.on('SIGTERM',()=>{});const c=cp.spawn('/bin/sleep',['30'],{stdio:'ignore'});mark(c.pid);c.unref();setInterval(()=>{},1000);",
-  "}else{process.stdout.write('installed\\t9.9.9\\n');for(let i=0;i<8;i++)process.stdout.write('guard'+i+'\\tmatching\\n');if(mode==='duplicate')process.stdout.write('installed\\t9.9.9\\n');if(mode==='malformed')process.stdout.write('garbage\\n');if(mode==='unknown')process.stdout.write('extra\\tfact\\n');if(mode!=='incomplete')process.stdout.write('complete\\t1\\n');if(mode==='trailing')process.stdout.write('installed\\t9.9.9\\n');if(mode==='failed')process.exitCode=1;}",
-  "}",
+  "#!/bin/bash",
+  'case "$1" in *lisa-enforcement-freshness.mjs) ;; *) exec "$LISA_DEADLINE_REAL_NODE" "$@" ;; esac',
+  'printf "%s\\n" "$$" >> "$LISA_DEADLINE_ENTRIES"',
+  'case "$LISA_DEADLINE_MODE" in',
+  ' normal|delayed-qualification|missing-runner|unsafe-tmp|anchor-startup|anchor-qualification|job-table-fork|job-table-empty|job-table-duplicate) exec "$LISA_DEADLINE_REAL_NODE" "$@" ;;',
+  ' stall|post-start-ps-failure|early-parent-exit) printf "installed\\t9.9.9\\nguard0\\tmatching\\n"; trap "" TERM; /bin/sleep 30 & printf "%s\\n" "$!" >> "$LISA_DEADLINE_ENTRIES"; wait ;;',
+  // Keep this child alive for two census periods before successful completion.
+  ' surviving-child) /bin/sleep 30 & printf "%s\\n" "$!" >> "$LISA_DEADLINE_ENTRIES"; /bin/sleep 0.2; exec "$LISA_DEADLINE_REAL_NODE" "$@" ;;',
+  ' *) printf "installed\\t9.9.9\\n"; for i in 0 1 2 3 4 5 6; do printf "guard%s\\tmatching\\n" "$i"; done',
+  '    case "$LISA_DEADLINE_MODE" in duplicate) printf "installed\\t9.9.9\\n" ;; malformed) printf "garbage\\n" ;; unknown) printf "extra\\tfact\\n" ;; esac',
+  '    [ "$LISA_DEADLINE_MODE" = incomplete ] || printf "complete\\t1\\n"',
+  '    [ "$LISA_DEADLINE_MODE" != trailing ] || printf "installed\\t9.9.9\\n"',
+  '    [ "$LISA_DEADLINE_MODE" != failed ] ;;',
+  "esac",
   "",
 ].join("\n");
 
@@ -51,11 +58,6 @@ export interface DeadlineFixture {
  */
 function deadlineStartup(mode: string): string {
   return [
-    ...(mode === "node-shim-startup"
-      ? [
-          'case "$(/bin/ps -p $$ -o command=)" in *"$LISA_DEADLINE_NODE_SHIM"*) printf "redundant-shell-startup\\n" >> "$LISA_DEADLINE_PHASES"; /bin/sleep 1.25 ;; esac',
-        ]
-      : []),
     'trap \'case "${BASH_SOURCE[0]}" in */scripts/lisa-hooks/*.sh) printf "%s\\n" "${BASH_SOURCE[0]##*/}" >> "$LISA_DEADLINE_GUARDS"; trap - DEBUG ;; esac\' DEBUG',
     deadlineAdmission(mode),
     ...(mode === "anchor-startup"
@@ -80,7 +82,7 @@ function deadlineStartup(mode: string): string {
       : []),
     ...(mode === "post-start-ps-failure"
       ? [
-          'ps() { if [ -s "$LISA_DEADLINE_ENTRIES" ]; then printf "ps-after-startup-failed\\n" >> "$LISA_DEADLINE_PHASES"; return 127; fi; command ps "$@"; }; export -f ps',
+          'ps() { if [ -s "$LISA_DEADLINE_ENTRIES" ]; then return 127; fi; command ps "$@"; }; export -f ps',
         ]
       : []),
     "",
@@ -93,6 +95,43 @@ function deadlineStartup(mode: string): string {
  * @returns Builtin interceptor delegating every unrelated operation intact.
  */
 function deadlineAdmission(mode: string): string {
+  if (mode === "job-table-empty" || mode === "job-table-duplicate") {
+    return [
+      BUILTIN_FUNCTION_START,
+      ' if [ "$1" = jobs ]; then',
+      '  command builtin printf "%s\\n" "$LISA_DEADLINE_MODE" >> "$LISA_DEADLINE_PHASES"',
+      ...(mode === "job-table-duplicate"
+        ? [NESTED_BUILTIN_DELEGATE, NESTED_BUILTIN_DELEGATE]
+        : []),
+      "  return 0",
+      " fi",
+      BUILTIN_DELEGATE,
+      "}",
+      EXPORT_BUILTIN_FUNCTION,
+    ].join("\n");
+  }
+  if (mode === "job-table-fork") {
+    // Delay only an extra command-substitution fork in the real admission path.
+    // The parent marker proves this interceptor is armed before the job census.
+    return [
+      BUILTIN_FUNCTION_START,
+      ' if [ "$1" = set ] && [ "${2-}" = -m ]; then',
+      "  LISA_DEADLINE_JOB_PARENT_LEVEL=$BASH_SUBSHELL",
+      '  command builtin printf "job-parent\\n" >> "$LISA_DEADLINE_PHASES"',
+      " fi",
+      ' if [ "$1" = jobs ]; then',
+      '  if [ "$BASH_SUBSHELL" -gt "${LISA_DEADLINE_JOB_PARENT_LEVEL:-0}" ]; then',
+      '   command builtin printf "job-table-fork\\n" >> "$LISA_DEADLINE_PHASES"',
+      "   /bin/sleep 1.25",
+      "  else",
+      '   command builtin printf "job-table-direct\\n" >> "$LISA_DEADLINE_PHASES"',
+      "  fi",
+      " fi",
+      BUILTIN_DELEGATE,
+      "}",
+      EXPORT_BUILTIN_FUNCTION,
+    ].join("\n");
+  }
   if (
     ![
       "missing-handshake",
@@ -103,7 +142,7 @@ function deadlineAdmission(mode: string): string {
   )
     return "";
   return [
-    "builtin() {",
+    BUILTIN_FUNCTION_START,
     ' case "$1" in',
     '  set) if [ "$2" = -m ] && [ "$LISA_DEADLINE_MODE" = group-absent ]; then command builtin printf "group-absent\\n" >> "$LISA_DEADLINE_PHASES"; command builtin set +m; return; fi ;;',
     '  printf) if [ "$2" = \'anchor:%s\\nstop\\n\' ]; then case "$LISA_DEADLINE_MODE" in',
@@ -112,9 +151,9 @@ function deadlineAdmission(mode: string): string {
     "   esac; fi ;;",
     '  wait) if [ "$LISA_DEADLINE_MODE" = early-parent-exit ] && [ "${LISA_DEADLINE_EXIT_ONCE-0}" = 0 ]; then LISA_DEADLINE_EXIT_ONCE=1; command builtin printf "early-parent-exit\\n" >> "$LISA_DEADLINE_PHASES"; exit 1; fi ;;',
     " esac",
-    ' command builtin "$@"',
+    BUILTIN_DELEGATE,
     "}",
-    "export -f builtin",
+    EXPORT_BUILTIN_FUNCTION,
   ].join("\n");
 }
 
@@ -185,8 +224,7 @@ export function deadlineEnvironment(
   fixture: DeadlineFixture,
   mode: string
 ): NodeJS.ProcessEnv {
-  // eslint-disable-next-line no-restricted-syntax -- subprocess fixtures inherit real tools, not application configuration
-  const inherited = process.env;
+  const inherited = inheritedEnvironment();
   return {
     ...inherited,
     PATH: `${fixture.bin}:${inherited.PATH}`,
@@ -201,6 +239,5 @@ export function deadlineEnvironment(
     LISA_DEADLINE_PHASES: fixture.phases,
     LISA_DEADLINE_MODE: mode,
     LISA_DEADLINE_REAL_NODE: process.execPath,
-    LISA_DEADLINE_NODE_SHIM: path.join(fixture.bin, "node"),
   };
 }

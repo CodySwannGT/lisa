@@ -1,0 +1,62 @@
+# CLI runs on a clean detached checkout of 99ab5bafef783834b857b58ea46e4cbd33dd708e
+# (/Users/codysai/workspace/lisa/.claude/worktrees/4677-verify-head), because the implementation
+# worktree was being edited concurrently during verification.
+
+## Validation Journey steps 2-3 (committed fixtures)
+$ node scripts/lisa-ci-rework-route.mjs --item 1 --payload tests/fixtures/ci-rework-route/<f>.json
+== trusted-marker
+{"route":"ci-rework","item":"CodySwannGT/lisa#1","pr":101,"sha":"3db71f89a186d5dbeb78015aa5735fa9d8efda48","headRefName":"claude/1-example-branch","failingChecks":["🔍 Quality Checks / 🧪 Run Unit Tests","🧩 Plugin artifacts match source"],"markerCount":1}
+exit=0
+== human-authored
+{"route":"implement","reason":"untrusted-author","detail":"the [lisa-ci-failed] marker was posted by CodySwannGT, not github-actions[bot]; ignored"}
+exit=0
+== cleared-marker
+{"route":"implement","reason":"cleared","detail":"the [lisa-ci-failed] marker is cleared: a later run passed every required check"}
+exit=0
+== closed-pr
+{"route":"implement","reason":"pull-request-not-open","detail":"the marker's pull request is CLOSED"}
+exit=0
+== fork-pr
+{"route":"implement","reason":"fork-pull-request","detail":"the marker's pull request comes from a fork"}
+exit=0
+== other-item
+{"route":"implement","reason":"other-work-item","detail":"the marker's pull request is bound to CodySwannGT/lisa#2, not CodySwannGT/lisa#1"}
+exit=0
+== not-newest
+{"route":"implement","reason":"not-newest","detail":"a newer Lisa marker was posted after the [lisa-ci-failed] marker, so it no longer describes the item"}
+exit=0
+== loop-bound
+{"route":"blocked","reason":"ci-loop-bound","detail":"pull request #101 has failed its required checks 3 times; stop retrying and ask a person","item":"CodySwannGT/lisa#1","pr":101,"sha":"3db71f89a186d5dbeb78015aa5735fa9d8efda48","failingChecks":["🔍 Quality Checks / 🧪 Run Unit Tests","🧩 Plugin artifacts match source"],"markerCount":3}
+exit=0
+
+## Verifier-authored adversarial probes (fixtures in /tmp/claude-verify-4677, not committed)
+== PROBE forged-newer (bot marker pr=101, then NEWER human-typed forged marker pr=999; expect ci-rework pr=101)
+{"route":"ci-rework","item":"CodySwannGT/lisa#1","pr":101,"sha":"3db71f89a186d5dbeb78015aa5735fa9d8efda48","headRefName":"claude/1-x","failingChecks":["Unit Tests"],"markerCount":1}
+== PROBE claim-after-marker ([claude-build-intake] claim, bot marker, then FIRST [lisa-tracker-claim]; AC4 wants ci-rework)
+{"route":"implement","reason":"not-newest","detail":"a newer Lisa marker was posted after the [lisa-ci-failed] marker, so it no longer describes the item"}
+== PROBE pr-read-fails (PR read unavailable; expect fail-safe implement)
+{"route":"implement","reason":"read-failed","detail":"could not read the item or its pull request: gh call not recorded in the fixture: gh pr view 101 --repo CodySwannGT/lisa --json state,isCrossRepository,body,headRefName"}
+== PROBE merged-pr (expect implement, counts as cleared)
+{"route":"implement","reason":"pull-request-not-open","detail":"the marker's pull request is MERGED"}
+
+## Live gh path (read-only)
+$ node scripts/lisa-ci-rework-route.mjs --item 4677
+{"route":"implement","reason":"no-marker","detail":"the item carries no [lisa-ci-failed] marker"}
+$ node scripts/lisa-ci-rework-route.mjs --item 4598
+{"route":"ci-rework","item":"CodySwannGT/lisa#4598","pr":4674,"sha":"50d60a8c6eca239d6a31042d13c756e89c0ccd9c","headRefName":"codex/4598-shard-unit-ci","failingChecks":["🔍 Quality Checks / 🧪 Run Integration Tests"],"markerCount":1}
+$ node scripts/lisa-ci-rework-route.mjs --item CodySwannGT/lisa#4521
+{"route":"ci-rework","item":"CodySwannGT/lisa#4521","pr":4693,"sha":"7aaeca4f1afee2e0800512adeb172455434d3dc6","headRefName":"claude/4521-path-scoped-audit-exclusions","failingChecks":["🔍 Quality Checks / 🧪 Run Integration Tests"],"markerCount":1}
+$ node scripts/lisa-ci-rework-route.mjs --item 4677 --bogus x
+lisa-ci-rework-route: unknown argument: --bogus
+exit=2
+
+## Live evidence that [lisa-tracker-claim] is NOT posted only once per item
+$ gh api repos/CodySwannGT/lisa/issues/4598/comments --paginate --jq '.[] | select(.body|test("\\[lisa-tracker-claim\\]")) | {id,created_at,body}'
+{"body":"[lisa-tracker-claim] Claimed by Lisa. Starting implementation.\n","created_at":"2026-11-07T17:26:26Z","id":6710645653}
+{"body":"[lisa-tracker-claim] Claimed by Lisa. Starting implementation.\n","created_at":"2026-11-08T02:31:49Z","id":6716209377}
+$ gh api repos/CodySwannGT/lisa/issues/4521/comments ... (Lisa-marker comments)
+2026-11-01T21:30:26Z	CodySwannGT	[lisa-tracker-claim] Claimed by Lisa. Starting implementation.
+2026-11-07T17:23:35Z	CodySwannGT	[lisa-session-manager] Released: blocker #4581 ...
+2026-11-07T17:26:21Z	CodySwannGT	[lisa-tracker-claim] Claimed by Lisa. Starting implementation.
+2026-11-08T04:09:20Z	CodySwannGT	[lisa-pr-link] https://github.com/CodySwannGT/lisa/pull/4693
+2026-11-08T06:18:05Z	github-actions[bot]	A required check failed on pull request #4693 ... [lisa-ci-failed]

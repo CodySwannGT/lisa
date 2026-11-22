@@ -1,19 +1,19 @@
 /**
  * A shipped script must be shipped with the files it resolves beside itself.
  *
- * `parity-safety-net.sh` classifies a heredoc by handing the command to a
- * Python parser it finds as a SIBLING OF ITSELF:
+ * `block-instruction-file-edits.sh` hands literal display commands to a Python
+ * heredoc classifier it finds as a SIBLING OF ITSELF:
  *
- *   hook_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
- *   heredoc_parser="$hook_dir/parity-safety-net-heredoc.py"
+ *   lisa_guard_hook_dir="${BASH_SOURCE[0]%/*}"
+ *   ... "$lisa_guard_hook_dir/parity-safety-net-heredoc.py" --literal-display
  *
  * Every plugin tree carried that parser. The `copy-overwrite` tree — the one a
- * host project actually receives — carried seven `.sh` files and nothing else,
+ * host project actually receives — once carried `.sh` files and nothing else,
  * because the build's mirror loop appends `.sh` to a roster of basenames and a
- * companion in another language could not get past that literal. The guard
- * fails closed, correctly, so the consequence in an applied host checkout was
- * that EVERY heredoc was blocked: not intermittently, not on machines missing
- * `python3`, and not fixable by installing anything (issue #3483).
+ * companion in another language could not get past that literal. A guard that
+ * fails closed on a missing companion then blocks every command needing it:
+ * not intermittently, not on machines missing `python3`, and not fixable by
+ * installing anything (issue #3483).
  *
  * The general defect is a script resolving a companion the tree that ships it
  * does not include, so the check is a scan rather than an assertion about one

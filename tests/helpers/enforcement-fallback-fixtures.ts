@@ -24,8 +24,7 @@ import path from "node:path";
 
 import { runBoundedBash } from "./bounded-bash.js";
 import { boundedSpawnSync } from "./io-latency-budget.js";
-import { readConfig } from "../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
-import { requirementsContext } from "../../plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs";
+import { inheritedEnvironment } from "../support/process-environment.js";
 
 /** Absolute, so the interpreter is never resolved through a writeable PATH. */
 const BASH = "/bin/bash";
@@ -97,16 +96,14 @@ const NOTICE_PRECHECK_BARRIER = [
 ].join("\n");
 
 export const BLOCK_NO_VERIFY = "block-no-verify";
-export const PARITY_SAFETY_NET = "parity-safety-net";
 export const BLOCK_SHELL_JSON = "block-shell-json-parsing";
 export const BLOCK_INSTRUCTION_FILES = "block-instruction-file-edits";
 export const BLOCK_ISSUE_CREATE = "block-direct-issue-create";
-export const BLOCK_MANAGED_FILES = "block-managed-file-edits";
+const BLOCK_MANAGED_FILES = "block-managed-file-edits";
 
 /** The guards the dispatcher replays a payload to, in dispatch order. */
 export const GUARDS = [
   BLOCK_NO_VERIFY,
-  PARITY_SAFETY_NET,
   BLOCK_SHELL_JSON,
   BLOCK_INSTRUCTION_FILES,
   BLOCK_ISSUE_CREATE,
@@ -125,13 +122,26 @@ export const HOST_TREE = path.join("scripts", "lisa-hooks");
 /** Directory-relative location of the Lisa monorepo's own guards. */
 export const PLUGIN_TREE = path.join("plugins", "lisa", "hooks");
 
-const temporaries: string[] = [];
+/**
+ * Name prefix every scratch root of this worker shares. The process id keeps
+ * one worker's cleanup from touching another's roots, and the filesystem is
+ * the record of what was made: cleanup lists it rather than a module array.
+ */
+const SCRATCH_PREFIX = `lisa-fallback-copy-${process.pid}-`;
 
-/** Remove every scratch root made since the last call. */
+/**
+ * The one directory every scratch root of this worker is made in, resolved
+ * once when the module loads. Creation and cleanup both use it, so a test
+ * that changes `TMPDIR` in between cannot strand a root where cleanup no
+ * longer looks.
+ */
+const SCRATCH_BASE = tmpdir();
+
+/** Remove every scratch root this worker made since the last call. */
 export function cleanupScratchRoots(): void {
-  // eslint-disable-next-line functional/immutable-data -- a registry of live temp directories is mutable by nature
-  for (const dir of temporaries.splice(0)) {
-    rmSync(dir, { recursive: true, force: true });
+  for (const name of readdirSync(SCRATCH_BASE)) {
+    if (name.startsWith(SCRATCH_PREFIX))
+      rmSync(path.join(SCRATCH_BASE, name), { recursive: true, force: true });
   }
 }
 
@@ -140,11 +150,7 @@ export function cleanupScratchRoots(): void {
  * @returns Absolute path to the new directory.
  */
 export function scratchRoot(): string {
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-fallback-copy-"));
-
-  // eslint-disable-next-line functional/immutable-data -- a registry of live temp directories is mutable by nature
-  temporaries.push(root);
-  return root;
+  return mkdtempSync(path.join(SCRATCH_BASE, SCRATCH_PREFIX));
 }
 
 /**
@@ -301,57 +307,19 @@ export function runFallback(
   tmpDir: string = scratchRoot(),
   overrides: Readonly<Record<string, string>> = {}
 ): Run {
-  // The dispatcher still resolves/attributes guard CODE from projectDir. Its
-  // task DATA must be an owned fixture, never this workstation's bound issue.
-  // These governance payloads require no external integration. A real nested
-  // Git boundary and complete empty requirements keep the readiness control on.
-  const env = {
-    // eslint-disable-next-line no-restricted-syntax -- a subprocess harness inherits the real environment; there is no ConfigService in a hook fixture
-    ...process.env,
-    CLAUDE_PROJECT_DIR: projectDir,
-    CLAUDE_CONFIG_DIR: NO_CONFIG,
-    TMPDIR: tmpDir,
-    ...overrides,
-  };
-  const scopedPayload = (() => {
-    if (projectDir !== REPO_ROOT) return payload;
-    const taskRoot = scratchRoot();
-    const initialized = boundedSpawnSync({
-      label: "isolated dispatcher task repository",
-      command: "git",
-      args: ["init", "-q"],
-      cwd: taskRoot,
-      env,
-    });
-    if (initialized.status !== 0)
-      throw new Error("Cannot initialize dispatcher task fixture");
-    mkdirSync(path.join(taskRoot, ".lisa"));
-    writeFileSync(
-      path.join(taskRoot, ".gitignore"),
-      ".lisa/work-item-context.md\n"
-    );
-    writeFileSync(
-      path.join(taskRoot, ".lisa/work-item-context.md"),
-      requirementsContext(
-        readConfig(taskRoot, env),
-        "fixture/dispatcher#1",
-        "github",
-        [],
-        "# Isolated governance fixture\n"
-      ),
-      { mode: 0o600 }
-    );
-    return typeof payload === "object" && payload !== null
-      ? { ...payload, cwd: taskRoot }
-      : payload;
-  })();
   const result = boundedSpawnSync({
     label: "lisa-enforcement-fallback.sh",
     command: BASH,
     args: [FALLBACK],
-    input: JSON.stringify(scopedPayload),
+    input: JSON.stringify(payload),
     cwd: projectDir,
-    env,
+    env: {
+      ...inheritedEnvironment(),
+      CLAUDE_PROJECT_DIR: projectDir,
+      CLAUDE_CONFIG_DIR: NO_CONFIG,
+      TMPDIR: tmpDir,
+      ...overrides,
+    },
   });
 
   return {
@@ -388,9 +356,13 @@ export async function runFallbackConcurrently(
   const driver = path.join(driverRoot, "run-fallback.sh");
   const bashEnv = path.join(driverRoot, "notice-precheck-barrier.sh");
   const barrierDir = path.join(driverRoot, "arrivals");
+  const uid = process.getuid?.();
+  if (uid === undefined) {
+    throw new Error("the notice barrier race needs a POSIX user id");
+  }
   const marker = path.join(
     realpathSync(tmpDir),
-    `lisa-enforcement-notice-${process.getuid()}`,
+    `lisa-enforcement-notice-${uid}`,
     sessionId
   );
   /**
@@ -401,8 +373,7 @@ export async function runFallbackConcurrently(
     const result = await runBoundedBash(driver, {
       cwd: projectDir,
       env: {
-        // eslint-disable-next-line no-restricted-syntax -- a real hook process inherits the host environment; fixed overrides isolate its external inputs
-        ...process.env,
+        ...inheritedEnvironment(),
         CLAUDE_PROJECT_DIR: projectDir,
         CLAUDE_CONFIG_DIR: NO_CONFIG,
         TMPDIR: tmpDir,

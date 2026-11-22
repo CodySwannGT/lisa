@@ -176,7 +176,7 @@ describe("design-intake gate", () => {
     // disagreement itself would be guessing at a design decision.
     expect(result.comment).toContain(BRAND);
     expect(result.comment).toContain(FRAME_BRAND);
-    expect(result.blocks[0]?.resolvedValue).toBeUndefined();
+    expect(result.blocks[0]).not.toHaveProperty("resolvedValue");
     expectPlainLanguage(result.comment);
   });
 

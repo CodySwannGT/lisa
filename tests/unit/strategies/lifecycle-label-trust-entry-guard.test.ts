@@ -15,7 +15,7 @@
  */
 
 import type { SpawnSyncReturns } from "node:child_process";
-import { mkdtempSync, realpathSync, rmSync, symlinkSync } from "node:fs";
+import { mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -24,6 +24,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { invokedAsScript } from "../../../plugins/src/base/scripts/lifecycle-label-trust.mjs";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const LANE = "plugins/src/base/scripts";
 const SCRIPT = "lifecycle-label-trust.mjs";
@@ -67,7 +68,7 @@ function linkedLane(): string {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-llt-link-"));
   const link = path.join(root, "scripts");
   temps.push(root);
-  symlinkSync(path.resolve(LANE), link);
+  createSymlink(path.resolve(LANE), link);
   return link;
 }
 

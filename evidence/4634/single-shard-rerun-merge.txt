@@ -1,0 +1,24 @@
+2026-11-12T20:51:41.4996826Z Found 4 artifact(s)
+2026-11-12T20:51:41.4998152Z Filtering artifacts by pattern 'lisa-shell-guard-43302409225-*-shard-*'
+2026-11-12T20:51:41.5017852Z Preparing to download the following artifacts:
+2026-11-12T20:51:41.5018902Z - lisa-shell-guard-43302409225-1-shard-3 (ID: 13983090364, Size: 203847, Expected Digest: sha256:70c876c021f3c99ff2eabd387b63f73b2a7ba0df2ff24e68313953d9f5704852)
+2026-11-12T20:51:41.5020877Z - lisa-shell-guard-43302409225-1-shard-1 (ID: 13982651356, Size: 227192, Expected Digest: sha256:33dacf6f15fcb5c54999ff33ff5701e36c04437b6a32bd565c9fa760808e50e1)
+2026-11-12T20:51:41.5022922Z - lisa-shell-guard-43302409225-2-shard-3 (ID: 13982543160, Size: 203613, Expected Digest: sha256:3a26d54eaf1a581c16c70a12a202f68ce45788c8f0e507160d52aa5b61d05cee)
+2026-11-12T20:51:41.5025138Z - lisa-shell-guard-43302409225-1-shard-2 (ID: 13982048285, Size: 228210, Expected Digest: sha256:65453b1d6870a96de58c74f31d6b22476665f91edb57a72a34193257af877fe7)
+2026-11-12T20:51:41.8689572Z Redirecting to blob download url: https://productionresultssa2.blob.core.windows.net/actions-results/cf51ddf8-7160-8294-83ba-6abcce646bb9/workflow-job-run-1d99ce56-6e68-5d62-a47e-1e37f8aec9c9/artifacts/b8f08f791fed137a5ab2d4e16390615953391b20d41cd14c42d1dfe8a1f7ecfc.zip
+2026-11-12T20:51:41.8692134Z Starting download of artifact to: /home/runner/work/_temp/lisa-shell-guard-download/lisa-shell-guard-43302409225-2-shard-3
+2026-11-12T20:51:41.8977814Z Redirecting to blob download url: https://productionresultssa2.blob.core.windows.net/actions-results/10c8e84e-7f6d-8f2b-8b7b-fdf7f10fa690/workflow-job-run-b0a2f6b0-372d-5061-81ca-e0653d8d3538/artifacts/bb3b55c2826418090fe081c519d0bff816d88d28e5fabb753098561b021f6ba6.zip
+2026-11-12T20:51:41.8979394Z Starting download of artifact to: /home/runner/work/_temp/lisa-shell-guard-download/lisa-shell-guard-43302409225-1-shard-2
+2026-11-12T20:51:41.9087268Z Redirecting to blob download url: https://productionresultssa2.blob.core.windows.net/actions-results/10c8e84e-7f6d-8f2b-8b7b-fdf7f10fa690/workflow-job-run-e22f946b-cf3e-510a-b0de-5138e10811eb/artifacts/1b5e061f9ea1a5dec93409968c16776afb97c7779eb029a7dce508cc0597cef6.zip
+2026-11-12T20:51:41.9088878Z Starting download of artifact to: /home/runner/work/_temp/lisa-shell-guard-download/lisa-shell-guard-43302409225-1-shard-1
+2026-11-12T20:51:41.9260143Z Redirecting to blob download url: https://productionresultssa2.blob.core.windows.net/actions-results/10c8e84e-7f6d-8f2b-8b7b-fdf7f10fa690/workflow-job-run-f6809a9a-117a-5da3-819e-1fbea240f741/artifacts/eaf0cf425de316f9bfb5e95c6bb3eae46e8c055aab3527fcd795aa2ffe19098d.zip
+2026-11-12T20:51:41.9262808Z Starting download of artifact to: /home/runner/work/_temp/lisa-shell-guard-download/lisa-shell-guard-43302409225-1-shard-3
+2026-11-12T20:51:54.7935752Z [36;1mnode dist/cli/lisa-test-run.js --profile lisa --adapter direct -- node scripts/check-shell-guard-refusal-coverage.mjs --merge-traces "/home/runner/work/_temp/lisa-shell-guard-download" --trace-out .lisa/shell-guard-trace.jsonl[0m
+2026-11-12T20:51:54.7990753Z shell: /usr/bin/bash -e {0}
+2026-11-12T20:51:54.7991054Z env:
+2026-11-12T20:51:54.7991374Z   LISA_GUARD_PR_HEAD: 0450fe185e4e9a40f60e169f4093e8e5cb64e454
+2026-11-12T20:51:54.7991861Z   LISA_TEST_UPDATER_NODE: /opt/hostedtoolcache/node/22.23.3/x64/bin/node
+2026-11-12T20:51:54.7992466Z ##[endgroup]
+2026-11-12T20:51:54.8677138Z 🧹 swept 0 stale temp dirs, 0 orphaned test processes (8 ms)
+2026-11-12T20:51:56.6648444Z shell-guard refusal coverage: 254 guard(s) observed running under test
+2026-11-12T20:51:56.6649429Z   ✔ Every driven guard was observed refusing AND allowing.

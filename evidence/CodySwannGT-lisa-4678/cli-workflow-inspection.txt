@@ -1,0 +1,64 @@
+$ node inspect-workflow.mjs <base = git show 45c7091462(origin/main):.github/workflows/lisa-ci-failure-redispatch.yml>
+# worktree head_sha=68ca1b31795ba5f0de17b1b40488bb29bfe7e02d origin/main=45c70914628eda3162d47a379747ba5ebe8ab27b captured_at=2026-11-08T09:52:20Z
+{
+  "triggers": [
+    "workflow_run",
+    "check_run",
+    "status",
+    "workflow_dispatch"
+  ],
+  "check_run_types": [
+    "completed"
+  ],
+  "status_value": null,
+  "workflow_run": {
+    "workflows": [
+      "🔍 CI Quality Checks",
+      "🧩 Plugins Sync"
+    ],
+    "types": [
+      "completed"
+    ]
+  },
+  "dispatch_inputs": {
+    "run_id": false,
+    "head_sha": false,
+    "dry_run": false
+  },
+  "job_if": "${{ github.repository == 'CodySwannGT/lisa' && !(github.event_name == 'status' && github.event.state == 'pending') && !(github.event_name == 'check_run' && github.event.check_run.app.slug == 'github-actions') }}",
+  "concurrency": {
+    "group": "lisa-ci-failure-redispatch-${{ github.event.workflow_run.head_sha || github.event.check_run.head_sha || github.event.sha || inputs.head_sha || inputs.run_id }}",
+    "cancel-in-progress": false,
+    "queue": "max"
+  },
+  "job_concurrency": null,
+  "workflow_permissions_equal_base": true,
+  "workflow_permissions": {
+    "contents": "read"
+  },
+  "job_permissions_equal_base": true,
+  "job_permissions": {
+    "contents": "read",
+    "issues": "write",
+    "pull-requests": "read",
+    "checks": "read",
+    "actions": "read"
+  },
+  "checkout_with": {
+    "persist-credentials": false
+  },
+  "checkout_has_ref": false,
+  "run_blocks_with_expression": 0,
+  "run_blocks": 2,
+  "head_ref_mentions_outside_comments": [],
+  "step_env_keys": [
+    [
+      "GH_TOKEN",
+      "EVENT_NAME",
+      "RUN_ID",
+      "HEAD_SHA",
+      "DRY_RUN"
+    ]
+  ]
+}
+exit=0

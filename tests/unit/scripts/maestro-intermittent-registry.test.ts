@@ -27,7 +27,7 @@ import {
   MEASURED_ENTRY,
   PRODUCT,
   reader,
-} from "./maestro-flake-helpers";
+} from "./maestro-flake-helpers.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const TEMPLATE_REL = "expo/create-only/.maestro/flake-classification.json";

@@ -30,6 +30,7 @@ const stages = new Set([
 ]);
 const diagnostics = new WeakMap();
 const capturedErrors = new WeakMap();
+const operatorSentences = new WeakMap();
 const providerPurposes = new Set([
   "repository",
   "main-reference",
@@ -302,7 +303,9 @@ export function publicFailure(error) {
         "reports=child-reported-nonauthoritative"
       );
   }
-  return `npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (${parts.join(" ")})`;
+  const line = `npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (${parts.join(" ")})`;
+  const sentence = operatorSentences.get(error);
+  return sentence ? `${line}\n${sentence}` : line;
 }
 
 /** Only trusted static boundary reasons may leave a phase as a public diagnostic. */
@@ -310,6 +313,19 @@ export class UpdaterError extends Error {
   constructor(reason) {
     super(`npm updater: ${reason}`);
   }
+}
+
+/**
+ * A refusal the operator must act on carries one fixed plain-language sentence,
+ * registered here rather than read from an error property, so no provider
+ * payload or arbitrary exception text can ever reach the public diagnostic.
+ * Any value interpolated into the sentence must already be validated (for
+ * example a branch name checked by validBranchName).
+ */
+export function operatorRefusal(reason, sentence) {
+  const error = new UpdaterError(reason);
+  operatorSentences.set(error, sentence);
+  return error;
 }
 
 /** Reject a boundary explicitly without printing untrusted candidate values. */

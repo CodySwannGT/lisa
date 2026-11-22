@@ -19,7 +19,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { boundedExecFileSync } from "../../helpers/io-latency-budget";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 import {
   formatReport,
@@ -30,9 +30,106 @@ import {
   pipelineStages,
   stageCommand,
   statusReadReason,
-  sweep,
-  workflowRunSources,
+  sweep as sweepUntyped,
+  workflowRunSources as workflowRunSourcesUntyped,
 } from "../../../scripts/check-pipeline-status-reads.mjs";
+
+/** One unread pipeline status, as `inspectShellSource` reports it. */
+interface PipeFinding {
+  readonly file: string;
+  readonly location: string;
+  readonly line: number;
+  readonly statement: string;
+  readonly lastStage: string;
+  readonly reason: string;
+}
+
+/** One block of shell source, as the source collectors describe it. */
+interface ShellSource {
+  readonly file: string;
+  readonly location: string;
+  readonly pipefail: boolean;
+}
+
+/**
+ * Narrow a finding the script declares only as `object`.
+ * @param value - One element of a `findings` array.
+ * @returns The finding, with the fields the sweep always sets.
+ */
+function asFinding(value: object): PipeFinding {
+  if (
+    "file" in value &&
+    typeof value.file === "string" &&
+    "location" in value &&
+    typeof value.location === "string" &&
+    "line" in value &&
+    typeof value.line === "number" &&
+    "statement" in value &&
+    typeof value.statement === "string" &&
+    "lastStage" in value &&
+    typeof value.lastStage === "string" &&
+    "reason" in value &&
+    typeof value.reason === "string"
+  ) {
+    return {
+      file: value.file,
+      location: value.location,
+      line: value.line,
+      statement: value.statement,
+      lastStage: value.lastStage,
+      reason: value.reason,
+    };
+  }
+  throw new Error(`malformed pipeline finding: ${JSON.stringify(value)}`);
+}
+
+/**
+ * Narrow a source descriptor the script declares only as `object`.
+ * @param value - One element of a sources array.
+ * @returns The source, with the fields these tests read.
+ */
+function asSource(value: object): ShellSource {
+  if (
+    "file" in value &&
+    typeof value.file === "string" &&
+    "location" in value &&
+    typeof value.location === "string" &&
+    "pipefail" in value &&
+    typeof value.pipefail === "boolean"
+  ) {
+    return {
+      file: value.file,
+      location: value.location,
+      pipefail: value.pipefail,
+    };
+  }
+  throw new Error(`malformed shell source: ${JSON.stringify(value)}`);
+}
+
+/**
+ * Sweep a tree, with its findings narrowed to their real shape.
+ * @param args - Arguments for the script's `sweep`.
+ * @returns The sweep report.
+ */
+function sweep(...args: Parameters<typeof sweepUntyped>): {
+  inspected: number;
+  files: number;
+  findings: PipeFinding[];
+} {
+  const report = sweepUntyped(...args);
+  return { ...report, findings: report.findings.map(asFinding) };
+}
+
+/**
+ * Collect a workflow's `run:` sources, narrowed to their real shape.
+ * @param args - Arguments for the script's `workflowRunSources`.
+ * @returns The sources.
+ */
+function workflowRunSources(
+  ...args: Parameters<typeof workflowRunSourcesUntyped>
+): ShellSource[] {
+  return workflowRunSourcesUntyped(...args).map(asSource);
+}
 
 /** The combined `set` spelling that a naive `-o` pattern fails to match. */
 const SET_EUO_PIPEFAIL = "set -euo pipefail";
@@ -77,8 +174,8 @@ function write(root: string, relative: string, contents: string): void {
 function inspect(
   text: string,
   overrides: Record<string, unknown> = {}
-): { inspected: number; findings: { statement: string; reason: string }[] } {
-  return inspectShellSource({
+): { inspected: number; findings: PipeFinding[] } {
+  const result = inspectShellSource({
     text,
     file: "example.sh",
     location: "script body",
@@ -86,6 +183,7 @@ function inspect(
     pipefail: false,
     ...overrides,
   });
+  return { ...result, findings: result.findings.map(asFinding) };
 }
 
 afterEach(() => {
@@ -351,7 +449,7 @@ describe("fenced shell blocks in guidance documents", () => {
   ].join("\n");
 
   it("reads only fences tagged as a shell", () => {
-    const sources = markdownShellSources(doc, "SKILL.md");
+    const sources = markdownShellSources(doc, "SKILL.md").map(asSource);
     expect(sources).toHaveLength(1);
     expect(sources[0]?.location).toBe("fenced shell block starting at line 6");
   });

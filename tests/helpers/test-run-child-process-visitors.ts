@@ -207,7 +207,9 @@ function inspectChildProcessExport(
 ): ChildProcessScanState {
   const { index, source } = state;
   const named =
-    ts.isExportDeclaration(node) && node.exportClause !== undefined
+    ts.isExportDeclaration(node) &&
+    node.exportClause !== undefined &&
+    ts.isNamedExports(node.exportClause)
       ? node.exportClause.elements.reduce((current, element) => {
           const value = index.resolve(
             element.propertyName ?? element.name,
@@ -376,10 +378,10 @@ export function scanChildProcessSource(
   const state = visit(initial, source);
   return {
     calls: state.calls,
-    findings: [...state.findings].toSorted((left, right) =>
+    findings: [...state.findings].sort((left, right) =>
       left.localeCompare(right)
     ),
-    inertCalls: [...state.inertCalls].toSorted((left, right) =>
+    inertCalls: [...state.inertCalls].sort((left, right) =>
       left.localeCompare(right)
     ),
   };

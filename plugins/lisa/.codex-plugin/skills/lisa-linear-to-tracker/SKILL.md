@@ -1,9 +1,9 @@
 ---
 name: lisa-linear-to-tracker
-description: "Break down a Linear PRD (a…"
+description: "Turn a Linear PRD (a Linear…"
 allowed-tools: ["Skill", "Bash"]
 ---
-Break down a Linear PRD (a Linear Project) into Epics, Stories, and Sub-tasks in the configured destination tracker (JIRA, GitHub Issues, or Linear per .lisa.config.json). Use this skill whenever the user shares a Linear project URL and wants it converted into tracker tickets, or asks to "break down this Linear project", "create tickets from a Linear project", "turn this Linear PRD into tickets", or similar. This skill mirrors `lisa-notion-to-tracker` and `lisa-confluence-to-tracker` for projects whose PRDs live in Linear — the workflow, gates, dry-run mode, and validation rules are identical; only the source-of-truth tool surface differs (Linear MCP instead of Notion / Confluence MCP).
+Turn a Linear PRD (a Linear Project) into epics, stories, and sub-tasks in the project's tracker. Use when someone shares a Linear project and wants tickets.
 
 
 # Linear PRD to Tracker Breakdown
@@ -158,7 +158,7 @@ This skill is a **PRD source** (Linear); destination tracker resolution is handl
 | `E2E_BASE_URL` | Frontend base URL for Playwright tests | `https://dev.example.io/` |
 | `E2E_GRAPHQL_URL` | GraphQL API URL for curl verification | `https://gql.dev.example.io/graphql` |
 
-If env vars are not available, ask the user to provide them explicitly before proceeding. Do not retrieve credentials from repository files or local agent settings.
+If env vars are not available, resolve them through `lisa-secrets-access`. One that still does not resolve is missing access: stop and name each missing variable. Do not retrieve credentials from repository files or local agent settings.
 
 ## Workflow
 
@@ -221,6 +221,11 @@ planning proceeds. Per atom:
   requirement.
 - **Pattern shape (SHOULD)** — an EARS pattern (ubiquitous / When / While / If-then / Where) or an
   equivalent single-behavior sentence; conforming shapes decompose into Gherkin mechanically.
+- **Learned planning checks** — load the `Planning (...)` checks through the bounded projection
+  (`lisa-task-decomposition` step 0). Test the register against every `Planning (prd)` check; an
+  atom or a missing atom that fails one is a `product-clarity` item quoting the check, exactly
+  like the failures above. Carry the `Planning (decomposition)` checks into Phases 3–5. Each is
+  a gap a dispatched worker once had to stop and ask about, so catching it here is the point.
 
 Failures here are **requirement-level product clarifications**, not internal errors: report each in
 the dry-run report as a `product-clarity` item quoting the atom verbatim, naming the defect, and
@@ -356,7 +361,7 @@ To run the gate, this skill must:
 
 1. Pull the remote links of every epic and story created in this run via `lisa-tracker-read (vendor-neutral; dispatches to jira-read-ticket or github-read-issue)`.
 2. Apply the §8 preservation matrix and verdict rules.
-3. If the gate fails: list each dropped/misrouted artifact and either re-attach via `lisa-tracker-write` (UPDATE mode) or stop and ask the human.
+3. If the gate fails: list each dropped/misrouted artifact and re-attach each via `lisa-tracker-write` (UPDATE mode), choosing the destination ticket from the evidence and recording why. Stop only when re-attaching needs access you lack (for example, the source artifact or the tracker cannot be reached), and name that access.
 4. If the gate passes: print the matrix compactly and proceed to Phase 6.
 
 This gate is not optional.
@@ -386,7 +391,7 @@ Invoke `lisa-prd-backlink` with:
 - `tickets`: the full list created in Phases 3–5, each entry as `{ key, title, type, url, parent_key, requirements }` — `requirements` is the list of Phase 1.4 register ids the ticket satisfies (empty for derived work)
 - `requirement_register`: the Phase 1.4 register (`{ id, verbatim_text, section_heading }` entries), so the back-link section can render the requirement → tickets view
 
-If `lisa-prd-backlink` fails (permission denied, Linear unreachable), surface the error in the Phase 6 report rather than aborting — the tickets are already created. Recommend the user re-run `lisa-prd-backlink` standalone once the source is reachable.
+If `lisa-prd-backlink` fails (permission denied, Linear unreachable), surface the error in the Phase 6 report rather than aborting — the tickets are already created. File one build-ready ticket to re-run `lisa-prd-backlink` standalone for this PRD once the source is reachable (it is idempotent) and link it in the report; when the cause is missing access, name exactly what is unreachable.
 
 ## Handling Ambiguities and Blockers
 

@@ -12,7 +12,7 @@
  * `~/.claude` read happens.
  * @module tests/unit/cli/doctor-session-manager-trust
  */
-import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -56,13 +56,13 @@ async function fixture(
   await mkdir(path.join(home, CLAUDE_DIR), { recursive: true });
   await mkdir(project, { recursive: true });
   await mkdir(stateDir, { recursive: true });
-  await writeFile(path.join(stateDir, ".env"), "x\n");
-  await chmod(path.join(stateDir, ".env"), 0o600);
+  // The bot token is in the secrets provider (#4555), so no plaintext file.
   await writeFile(
     path.join(project, ".lisa.config.json"),
     JSON.stringify({
       tracker,
       github: { org: "example-org", repo: "demo-repo" },
+      secrets: { provider: "bitwarden" },
       sessionManager: {
         name: "p-manager",
         notify: { provider: "telegram", stateDir },
@@ -171,6 +171,33 @@ describe("public repo without trustedAuthorIds", () => {
     );
     expect(probe).not.toHaveBeenCalled();
     expect(check.status).toBe("ok");
+  });
+});
+
+describe("trust with no notification channel (#4555)", () => {
+  const NONE = { notify: { provider: "none" } };
+
+  it("still fails for a public GitHub repo with trustedAuthorIds unset", async () => {
+    const probe = vi.fn(async () => "PUBLIC");
+    const check = await run(await fixture(NONE), probe);
+    expect(probe).toHaveBeenCalledWith(REPO);
+    expect(check.status).toBe("fail");
+    expect(check.detail).toContain("notifications: none");
+    expect(check.detail).toContain("trustedAuthorIds");
+  });
+
+  it("skips the project-scope Telegram plugin finding", async () => {
+    const fx = await fixture(NONE);
+    await mkdir(path.join(fx.project, CLAUDE_DIR), { recursive: true });
+    await writeFile(
+      path.join(fx.project, CLAUDE_DIR, LOCAL_SETTINGS),
+      JSON.stringify({ enabledPlugins: { [PLUGIN_ID]: true } })
+    );
+    const check = await run(fx, async () => PRIVATE);
+    expect(check).toMatchObject({
+      status: "ok",
+      detail: "notifications: none",
+    });
   });
 });
 

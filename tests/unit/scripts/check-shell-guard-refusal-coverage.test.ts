@@ -36,12 +36,19 @@ import {
   judge,
   parseTrace,
 } from "../../../scripts/lib/shell-guard-refusal-coverage.mjs";
+import {
+  candidateSuites,
+  HAND_RUN_SUITES,
+} from "../../../scripts/check-shell-guard-refusal-coverage.mjs";
+import { NIGHTLY_SLOW_SUITES } from "../../../scripts/lib/nightly-slow-suites.mjs";
 
 /** The check's CLI, by repository-relative path. */
 const CHECK = "scripts/check-shell-guard-refusal-coverage.mjs";
 
 /** The tracer, by repository-relative path. */
 const TRACER = "scripts/lib/shell-guard-trace.mjs";
+/** The CI-only access-map tracer (#4593), preloaded through NODE_OPTIONS. */
+const ACCESS_MAP_TRACER = "scripts/lib/test-access-map-tracer.mjs";
 
 /** A guard with thirteen byte-identical tracked copies. */
 const EDIT_GATE = "plugins/src/typescript/hooks/lisa-edit-gate.sh";
@@ -242,6 +249,41 @@ describe("the population", () => {
   });
 });
 
+describe("the candidate suites", () => {
+  /** The journey owner decision 4 of CodySwannGT/lisa#4587 took off the PR path. */
+  const PACKED_HOST_JOURNEY =
+    "tests/integration/shared-runtime-packed-hosts.test.ts";
+
+  it("leave the packed-host journey to its by-hand run (CodySwannGT/lisa#4606)", () => {
+    const suites = candidateSuites(process.cwd());
+
+    // The exclusion is explicit and named, not an accident of the filter: the
+    // journey still names `.sh` files and starts children, so without the
+    // entry it would be collected into a Plugins Sync shard on every PR.
+    expect(HAND_RUN_SUITES).toContain(PACKED_HOST_JOURNEY);
+    expect(suites).not.toContain(PACKED_HOST_JOURNEY);
+    // The absent case: an empty candidate list would also satisfy the line
+    // above while measuring nothing.
+    expect(suites).toContain(
+      "tests/unit/scripts/check-shell-guard-refusal-coverage.test.ts"
+    );
+  });
+
+  it("leave the nightly suites to the nightly run (CodySwannGT/lisa#4896)", () => {
+    const suites = candidateSuites(process.cwd());
+
+    // Every per-PR Vitest run excludes them, so a candidate list that kept one
+    // would never match the native collection it is compared against.
+    expect(HAND_RUN_SUITES).toEqual([
+      PACKED_HOST_JOURNEY,
+      ...NIGHTLY_SLOW_SUITES,
+    ]);
+    for (const suite of NIGHTLY_SLOW_SUITES) {
+      expect(suites).not.toContain(suite);
+    }
+  });
+});
+
 describe("the trace", () => {
   it("keeps the valid records either side of a malformed line", () => {
     const first = JSON.stringify({ script: "a.sh", status: 0 });
@@ -256,61 +298,83 @@ describe("the trace", () => {
     expect(seen).toEqual([0, 2]);
   });
 
-  it("records a guard run under bash and not one merely parsed with -n", () => {
-    const root = scratch();
-    const tracePath = path.join(root, "trace.jsonl");
-    const indexPath = path.join(root, "index.json");
-    const driverPath = path.join(root, "driver.mjs");
-    const subject = guardPopulation(process.cwd()).find(
-      entry => entry.path === EDIT_GATE
-    );
-    writeFileSync(tracePath, "");
-    writeFileSync(
-      indexPath,
-      JSON.stringify({
-        byHash: { [subject?.sha256 ?? ""]: [EDIT_GATE] },
-        sizes: [subject?.size ?? 0],
-      })
-    );
-    // The driver's own children take their deadline from argv rather than from
-    // a literal, so the bound scales with the machine exactly like every other
-    // bounded child here — and `test-budget-conformance` is not asked to tell a
-    // number inside a string from a number inside code.
-    writeFileSync(
-      driverPath,
-      [
-        'import { spawnSync } from "node:child_process";',
-        "const [, , target, budget] = process.argv;",
-        "const bound = { timeout: Number(budget) };",
-        'spawnSync("/bin/bash", ["-n", target], bound);',
-        'spawnSync("/bin/bash", [target], bound);',
-        "",
-      ].join("\n")
-    );
-
-    const result = boundedSpawnSync({
-      label: "shell-guard tracer driver",
-      command: process.execPath,
-      args: [
-        `--import=${path.resolve(TRACER)}`,
-        driverPath,
-        path.resolve(EDIT_GATE),
-        String(ioLatencyBudgetMs(BOUNDED_SPAWN_BASE_MS)),
-      ],
-      cwd: process.cwd(),
-      env: {
-        ...process.env,
-        LISA_SHELL_GUARD_INDEX: indexPath,
-        LISA_SHELL_GUARD_TRACE: tracePath,
+  // The second row is CI's shape: the access-map tracer (#4593) is preloaded
+  // through NODE_OPTIONS, so it loads BEFORE this tracer, imports
+  // `node:child_process` as ESM and syncs the ESM exports to its own wrappers.
+  // A tracer that patched the CJS exports without re-syncing was then bypassed
+  // by every `import { spawnSync }`, and the trace came back empty.
+  it.each([
+    ["alone", {}],
+    [
+      "behind the access-map tracer preloaded through NODE_OPTIONS",
+      {
+        NODE_OPTIONS: `--import=${path.resolve(ACCESS_MAP_TRACER)}`,
+        LISA_ACCESS_MAP: "1",
+        LISA_ACCESS_MAP_ROOT: process.cwd(),
       },
-    });
+    ],
+  ] as const)(
+    "records a guard run under bash and not one merely parsed with -n (%s)",
+    (_name, extra) => {
+      const root = scratch();
+      const accessMap =
+        "LISA_ACCESS_MAP" in extra ? { LISA_ACCESS_MAP_DIR: root } : {};
+      const tracePath = path.join(root, "trace.jsonl");
+      const indexPath = path.join(root, "index.json");
+      const driverPath = path.join(root, "driver.mjs");
+      const subject = guardPopulation(process.cwd()).find(
+        entry => entry.path === EDIT_GATE
+      );
+      writeFileSync(tracePath, "");
+      writeFileSync(
+        indexPath,
+        JSON.stringify({
+          byHash: { [subject?.sha256 ?? ""]: [EDIT_GATE] },
+          sizes: [subject?.size ?? 0],
+        })
+      );
+      // The driver's own children take their deadline from argv rather than from
+      // a literal, so the bound scales with the machine exactly like every other
+      // bounded child here — and `test-budget-conformance` is not asked to tell a
+      // number inside a string from a number inside code.
+      writeFileSync(
+        driverPath,
+        [
+          'import { spawnSync } from "node:child_process";',
+          "const [, , target, budget] = process.argv;",
+          "const bound = { timeout: Number(budget) };",
+          'spawnSync("/bin/bash", ["-n", target], bound);',
+          'spawnSync("/bin/bash", [target], bound);',
+          "",
+        ].join("\n")
+      );
 
-    expect(result.status).toBe(0);
-    // Exactly one record: the `-n` pass parsed the file and executed nothing,
-    // so counting it would report a guard as driven that never ran a line.
-    const observed = parseTrace(readFileSync(tracePath, "utf8"));
-    expect([...(observed.get(EDIT_GATE)?.statuses ?? [])]).toEqual([0]);
-  });
+      const result = boundedSpawnSync({
+        label: "shell-guard tracer driver",
+        command: process.execPath,
+        args: [
+          `--import=${path.resolve(TRACER)}`,
+          driverPath,
+          path.resolve(EDIT_GATE),
+          String(ioLatencyBudgetMs(BOUNDED_SPAWN_BASE_MS)),
+        ],
+        cwd: process.cwd(),
+        env: {
+          ...process.env,
+          ...extra,
+          ...accessMap,
+          LISA_SHELL_GUARD_INDEX: indexPath,
+          LISA_SHELL_GUARD_TRACE: tracePath,
+        },
+      });
+
+      expect(result.status).toBe(0);
+      // Exactly one record: the `-n` pass parsed the file and executed nothing,
+      // so counting it would report a guard as driven that never ran a line.
+      const observed = parseTrace(readFileSync(tracePath, "utf8"));
+      expect([...(observed.get(EDIT_GATE)?.statuses ?? [])]).toEqual([0]);
+    }
+  );
 });
 
 describe("the CLI", () => {

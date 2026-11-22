@@ -1,4 +1,4 @@
 display_name: "Pull Request Review"
-short_description: "address and resolve the code review feedback on a pull request — human and bot (CodeRabbit, etc.)"
+short_description: "Address every review comment on a pull request, human or bot — threads and review bodies: fix valid feedback, reply to the rest explaining…"
 default_prompt:
-  - "Use $lisa-pull-request-review: address and resolve the code review feedback on a pull request — human and bot (CodeRabbit, etc.)."
+  - "Use $lisa-pull-request-review: Address every review comment on a pull request, human or bot — threads and review bodies: fix valid feedback, reply to the rest explaining…."

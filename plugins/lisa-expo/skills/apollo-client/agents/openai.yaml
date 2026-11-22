@@ -1,4 +1,4 @@
 display_name: "Apollo Client"
-short_description: "writing or modifying GraphQL operations, hooks, or mutations using Apollo Client 3.10"
+short_description: "Apollo Client 3.10 GraphQL operations, hooks, and mutations: optimistic responses, cache updates, and generated types"
 default_prompt:
-  - "Use $apollo-client: writing or modifying GraphQL operations, hooks, or mutations using Apollo Client 3.10."
+  - "Use $apollo-client: Apollo Client 3.10 GraphQL operations, hooks, and mutations: optimistic responses, cache updates, and generated types."

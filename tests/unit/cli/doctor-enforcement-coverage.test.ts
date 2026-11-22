@@ -70,7 +70,7 @@ describe("doctor enforcement coverage", () => {
     const check = await checkEnforcementCoverage(fleet.checkoutPath("partial"));
 
     expect(check.status).toBe("warn");
-    expect(check.detail).toContain("2 of 6 guards resolve");
+    expect(check.detail).toContain("2 of 5 guards resolve");
   });
 
   it("passes a checkout that resolves every guard from a current, receipted copy", async () => {
@@ -80,7 +80,7 @@ describe("doctor enforcement coverage", () => {
     const check = await checkEnforcementCoverage(fleet.checkoutPath("clean"));
 
     expect(check.status).toBe("ok");
-    expect(check.detail).toContain("All 6 guards resolve");
+    expect(check.detail).toContain("All 5 guards resolve");
   });
 
   it("never fails, so a checkout mid-upgrade cannot redden doctor", async () => {

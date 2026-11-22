@@ -1,4 +1,4 @@
 display_name: "Setup Atlassian"
-short_description: "Configure Atlassian access for this project"
+short_description: "Configure Atlassian access: install acli, log in, optionally enable the Atlassian MCP, resolve the site's cloudId, and write the atlassian…"
 default_prompt:
-  - "Use $lisa-setup-atlassian: Configure Atlassian access for this project."
+  - "Use $lisa-setup-atlassian: Configure Atlassian access: install acli, log in, optionally enable the Atlassian MCP, resolve the site's cloudId, and write the atlassian…."

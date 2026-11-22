@@ -22,14 +22,7 @@
  * once per session, and every refusal keeps its full attribution regardless.
  * @module tests/unit/hooks/enforcement-fallback-notice-rate
  */
-import {
-  chmodSync,
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  statSync,
-  symlinkSync,
-} from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -51,6 +44,7 @@ import {
   scratchRoot,
   scratchTmpdir,
 } from "../../helpers/enforcement-fallback-fixtures.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 afterEach(cleanupScratchRoots);
 
@@ -62,6 +56,17 @@ const OTHER_SESSION = "99999999-8888-7777-6666-555555555555";
 
 /** The line that only appears when the proactive notice speaks. */
 const NOTICE = "not from npm";
+
+/**
+ * The current POSIX user id, which names the hook's per-user notice directory.
+ * @returns The uid
+ */
+function uid(): number {
+  if (process.getuid === undefined) {
+    throw new Error("the notice directory is keyed on a POSIX uid");
+  }
+  return process.getuid();
+}
 
 /**
  * A checkout whose host tree is behind and whose plugin tree is current — the
@@ -94,11 +99,11 @@ describe("the proactive notice, across one session", () => {
     expect(runs.map(run => run.status)).toEqual(Array(12).fill(0));
     expect(
       runs.filter(run => run.output.includes(NOTICE)),
-      runs.map(run => run.output)
+      runs.map(run => run.output).join("\n")
     ).toHaveLength(1);
     expect(
       lstatSync(
-        path.join(tmp, `lisa-enforcement-notice-${process.getuid()}`, SESSION)
+        path.join(tmp, `lisa-enforcement-notice-${uid()}`, SESSION)
       ).isDirectory()
     ).toBe(true);
   });
@@ -144,10 +149,7 @@ describe("the proactive notice, across one session", () => {
 
     runFallback(bash("ls -la", SESSION), root, tmp);
 
-    const stateDir = path.join(
-      tmp,
-      `lisa-enforcement-notice-${process.getuid()}`
-    );
+    const stateDir = path.join(tmp, `lisa-enforcement-notice-${uid()}`);
     expect(statSync(stateDir).mode & 0o077).toBe(0);
     expect(lstatSync(path.join(stateDir, SESSION)).isDirectory()).toBe(true);
   });
@@ -162,9 +164,9 @@ describe("the proactive notice, across one session", () => {
     );
 
     expect(spoke).toEqual([true, true]);
-    expect(
-      existsSync(path.join(tmp, `lisa-enforcement-notice-${process.getuid()}`))
-    ).toBe(false);
+    expect(existsSync(path.join(tmp, `lisa-enforcement-notice-${uid()}`))).toBe(
+      false
+    );
   });
 
   it("speaks every time when its state cannot be created", () => {
@@ -179,9 +181,7 @@ describe("the proactive notice, across one session", () => {
 
       expect(spoke).toEqual([true, true]);
       expect(
-        existsSync(
-          path.join(tmp, `lisa-enforcement-notice-${process.getuid()}`)
-        )
+        existsSync(path.join(tmp, `lisa-enforcement-notice-${uid()}`))
       ).toBe(false);
     } finally {
       chmodSync(tmp, 0o700);
@@ -195,10 +195,10 @@ describe("the proactive notice, across one session", () => {
 
     for (const stateDir of [
       path.join(tmp, "lisa-enforcement-notice"),
-      path.join(tmp, `lisa-enforcement-notice-${process.getuid()}`),
+      path.join(tmp, `lisa-enforcement-notice-${uid()}`),
     ]) {
       mkdirSync(stateDir, { recursive: true });
-      symlinkSync(target, path.join(stateDir, SESSION));
+      createSymlink(target, path.join(stateDir, SESSION));
     }
 
     const { output } = runFallback(bash("ls -la", SESSION), root, tmp);
@@ -234,7 +234,7 @@ describe("a refusal after the notice has been spent", () => {
     runFallback(bash("ls -la", SESSION), root, tmp);
 
     const { status, output } = runFallback(
-      bash("rm -rf /", SESSION),
+      bash("git commit --no-verify -m x", SESSION),
       root,
       tmp
     );
@@ -242,7 +242,7 @@ describe("a refusal after the notice has been spent", () => {
     expect(status).toBe(BLOCKED);
     expect(output).not.toContain(NOTICE);
     expect(output).toContain(
-      `Refused by ${path.join(root, HOST_TREE, "parity-safety-net.sh")}`
+      `Refused by ${path.join(root, HOST_TREE, "block-no-verify.sh")}`
     );
     expect(output).toContain(
       `installed lisa ${CURRENT}; last applied lisa ${BEHIND}`

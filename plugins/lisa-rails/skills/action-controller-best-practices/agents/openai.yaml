@@ -1,4 +1,4 @@
 display_name: "Action Controller Best Practices"
-short_description: "Build or Refactor large Rails controller files into clean, maintainable code"
+short_description: "Slim down and organize Rails controllers using service, query, and form objects, concerns, presenters, and RESTful resource extraction"
 default_prompt:
-  - "Use $action-controller-best-practices: Build or Refactor large Rails controller files into clean, maintainable code."
+  - "Use $action-controller-best-practices: Slim down and organize Rails controllers using service, query, and form objects, concerns, presenters, and RESTful resource extraction."

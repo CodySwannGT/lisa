@@ -135,7 +135,7 @@ describe("what the summary reads off a hook", () => {
   });
 
   it("counts in the singular when one family is installed", () => {
-    expect(summary([FAMILIES[0]], null)).toContain("1 gate family runs");
+    expect(summary(FAMILIES.slice(0, 1), null)).toContain("1 gate family runs");
   });
 });
 

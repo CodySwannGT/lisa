@@ -1,6 +1,6 @@
 ---
 name: lisa-tracker-read
-description: "Vendor-neutral wrapper for fetching the full scope of a ticket/issue and its related graph. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-read-ticket, lisa-github-read-issue, or lisa-linear-read-issue. Returns a consolidated context bundle so downstream agents never act on a single ticket in isolation."
+description: "Fetch a ticket and everything related to it — parent, siblings, children, links, comments — from whichever tracker the project uses, so work is never done on a ticket in isolation."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 

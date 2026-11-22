@@ -3,21 +3,6 @@
 # Runs on TaskUpdate to remind about updating linked tickets
 # Non-blocking (exit 0) - this is a reminder, not enforcement
 
-# Temporarily disable this hook
-exit 0
-
-PLANS_DIR="${CLAUDE_PROJECT_DIR}/plans"
-
-# Find the active plan file (most recently modified .md in plans/)
-ACTIVE_PLAN=$(find "$PLANS_DIR" -maxdepth 1 -name "*.md" -type f 2>/dev/null | head -1)
-
-if [ -z "$ACTIVE_PLAN" ]; then
-  exit 0
-fi
-
-# Check if the plan contains a ticket URL (JIRA, Linear, GitHub Issues)
-if grep -qiE "(https?://.*(atlassian|jira|linear|github\.com/.*/issues))" "$ACTIVE_PLAN" 2>/dev/null; then
-  echo "REMINDER: This plan is linked to a ticket. Consider running /jira:sync to update the ticket with current progress."
-fi
-
+# Temporarily disabled. The reminder that followed this exit never ran; it is in
+# git history (74981f5be1) for whoever re-enables the hook.
 exit 0

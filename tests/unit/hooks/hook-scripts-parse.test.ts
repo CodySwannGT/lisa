@@ -89,13 +89,12 @@ describe("the enforcement fallback and its shipped twin stay in step", () => {
     expect(existsSync(path.join(REPO_ROOT, SHIPPED_COPY))).toBe(true);
   });
 
-  it.each([REPO_COPY, SHIPPED_COPY])("%s runs every guard", copy => {
+  it.each([REPO_COPY, SHIPPED_COPY])("%s runs every active guard", copy => {
     // Named rather than counted: a guard dropped from one list and not the
     // other is the drift this pins, and the failure has to say which guard.
     const text = readFileSync(path.join(REPO_ROOT, copy), "utf8");
     for (const guard of [
       "block-no-verify",
-      "parity-safety-net",
       "block-shell-json-parsing",
       "block-instruction-file-edits",
       "block-direct-issue-create",
@@ -103,5 +102,6 @@ describe("the enforcement fallback and its shipped twin stay in step", () => {
     ]) {
       expect(text).toContain(guard);
     }
+    expect(text).not.toContain("parity-safety-net");
   });
 });

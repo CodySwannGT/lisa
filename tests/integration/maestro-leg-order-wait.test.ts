@@ -42,9 +42,9 @@ import {
   startFakeApi,
   startFlakyApi,
   startRefusingApi,
-} from "./support/maestro-leg-order-harness";
+} from "./support/maestro-leg-order-harness.js";
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
-import type { SimulatedWorkflow } from "../helpers/workflow-job-graph";
+import type { SimulatedWorkflow } from "../helpers/workflow-job-graph.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REUSABLE_YML = path.join(

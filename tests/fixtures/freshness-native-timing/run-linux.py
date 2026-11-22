@@ -5,7 +5,7 @@ from evaluate import evaluate
 
 SOURCE, OUT = Path('/source'), Path('/out')
 manifest = json.loads((OUT / 'manifest.json').read_text())
-GUARDS = ['block-no-verify', 'parity-safety-net', 'block-shell-json-parsing', 'block-instruction-file-edits', 'block-direct-issue-create', 'block-managed-file-edits', 'block-blind-automerge', 'worktree-binding-guard']
+GUARDS = ['block-no-verify', 'block-shell-json-parsing', 'block-instruction-file-edits', 'block-direct-issue-create', 'block-managed-file-edits', 'block-blind-automerge', 'worktree-binding-guard']
 TRACE = ['strace', '-f', '-ttt', '-T', '-yy', '-s', '256', '-e', 'trace=%process,%signal,%desc,setitimer', '-e', 'signal=SIGALRM,SIGCHLD,SIGKILL']
 
 def digest(path):
@@ -172,7 +172,7 @@ def drive(mode, traced, control=None):
         if 'Blocked: this command bypasses pre-commit/pre-push hooks' not in output or 'jq not found' in output:
             failures.append('actual-original-block-no-verify-refusal')
         if capture['guard_markers'] != [name + '.sh' for name in GUARDS]:
-            failures.append('eight-real-guard-markers-in-order')
+            failures.append('seven-real-guard-markers-in-order')
         if not entries:
             failures.append('actual-helper-entry')
         if mode != 'normal' and capture['unobserved_helper_pids']:
@@ -186,7 +186,7 @@ def drive(mode, traced, control=None):
         if mode != 'normal' and ('9.9.9' in output or 'host content unknown' not in output):
             failures.append('incomplete-remains-unknown')
         if traced and capture['timing']['guard_order'] != [name + '.sh' for name in GUARDS]:
-            failures.append('eight-real-guard-exec-order')
+            failures.append('seven-real-guard-exec-order')
         if traced:
             failures += capture['timing']['failures']
         capture['failures'] = failures

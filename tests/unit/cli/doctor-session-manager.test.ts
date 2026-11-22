@@ -1,5 +1,5 @@
 /**
- * Coverage for the session-manager Telegram isolation doctor check (#4448).
+ * Coverage for the session-manager notifications doctor check (#4448, #4555).
  *
  * Every finding runs against a temp HOME and an injected environment, so the
  * operator's real `~/.claude` is never read. Token files are only ever
@@ -15,11 +15,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { runDoctor } from "../../../src/cli/doctor.js";
 import { checkSessionManagerIsolation } from "../../../src/cli/doctor-session-manager.js";
 
-const CHECK_NAME = "Session manager Telegram isolation?";
+const CHECK_NAME = "Session manager notifications?";
 const PLUGIN_ID = "telegram@claude-plugins-official";
 const PLANTED = "987654321:PLANTED_VALUE_abcdefghijklmnopqrstuvwxyz";
 const TOKEN_FILE = ".env";
 const CONFIG_FILE = ".lisa.config.json";
+const PROVIDER = "bitwarden";
 const roots: string[] = [];
 
 /** Paths of one isolated fixture. */
@@ -33,11 +34,15 @@ interface Fixture {
 
 /**
  * Create a temp HOME, project, and per-project state dir holding a 0600 token.
+ * With `secretsProvider` the project declares one (#4555): then the token
+ * lives in the provider, so no plaintext token file is planted.
  * @param sessionManager - Optional `sessionManager` block override
+ * @param secretsProvider - Optional `secrets.provider` to declare
  * @returns The fixture paths
  */
 async function fixture(
-  sessionManager?: Record<string, unknown> | null
+  sessionManager?: Record<string, unknown> | null,
+  secretsProvider?: string
 ): Promise<Fixture> {
   const root = await mkdtemp(path.join(os.tmpdir(), "lisa-doctor-sm-"));
   const home = path.join(root, "home");
@@ -47,16 +52,21 @@ async function fixture(
     sessionManager === undefined
       ? { name: "p-manager", notify: { provider: "telegram", stateDir } }
       : sessionManager;
-  const config = block === null ? {} : { sessionManager: block };
+  const config = {
+    ...(block === null ? {} : { sessionManager: block }),
+    ...(secretsProvider ? { secrets: { provider: secretsProvider } } : {}),
+  };
   roots.push(root);
   await mkdir(path.join(home, ".claude"), { recursive: true });
   await mkdir(project, { recursive: true });
   await mkdir(stateDir, { recursive: true });
-  await writeFile(
-    path.join(stateDir, TOKEN_FILE),
-    `TELEGRAM_BOT_TOKEN=${PLANTED}\n`
-  );
-  await chmod(path.join(stateDir, TOKEN_FILE), 0o600);
+  if (!secretsProvider) {
+    await writeFile(
+      path.join(stateDir, TOKEN_FILE),
+      `TELEGRAM_BOT_TOKEN=${PLANTED}\n`
+    );
+    await chmod(path.join(stateDir, TOKEN_FILE), 0o600);
+  }
   await writeFile(
     path.join(project, CONFIG_FILE),
     JSON.stringify({ tracker: "github", ...config })
@@ -100,11 +110,12 @@ describe("session-manager doctor check", () => {
     });
   });
 
-  it("is ok when the per-project setup is isolated", async () => {
-    const check = await run(await fixture());
+  it("is ok when the per-project setup is isolated and the token is in the provider", async () => {
+    const check = await run(await fixture(undefined, PROVIDER));
 
     expect(check.status).toBe("ok");
     expect(check.name).toBe(CHECK_NAME);
+    expect(check.detail).toContain("TELEGRAM_BOT_TOKEN_P_MANAGER");
   });
 
   it("fails when stateDir resolves to the shared default dir", async () => {
@@ -129,7 +140,10 @@ describe("session-manager doctor check", () => {
       path.join(fx.project, CONFIG_FILE),
       JSON.stringify({
         sessionManager: {
-          notify: { stateDir: path.join(configDir, "channels", "telegram") },
+          notify: {
+            provider: "telegram",
+            stateDir: path.join(configDir, "channels", "telegram"),
+          },
         },
       })
     );
@@ -139,17 +153,26 @@ describe("session-manager doctor check", () => {
     expect(check.status).toBe("fail");
   });
 
-  it("fails when notify.stateDir is missing", async () => {
-    const check = await run(await fixture({ name: "p-manager" }));
+  it("fails when the telegram provider has no notify.stateDir", async () => {
+    const check = await run(
+      await fixture({ name: "p-manager", notify: { provider: "telegram" } })
+    );
 
     expect(check.status).toBe("fail");
     expect(check.detail).toMatch(/notify\.stateDir is not set/);
   });
 
   it("uses the local config's stateDir over the committed one", async () => {
-    const fx = await fixture({
-      notify: { stateDir: "~/.claude/channels/telegram" },
-    });
+    const fx = await fixture(
+      {
+        name: "p-manager",
+        notify: {
+          provider: "telegram",
+          stateDir: "~/.claude/channels/telegram",
+        },
+      },
+      PROVIDER
+    );
     await writeFile(
       path.join(fx.project, ".lisa.config.local.json"),
       JSON.stringify({ sessionManager: { notify: { stateDir: fx.stateDir } } })
@@ -203,7 +226,7 @@ describe("session-manager doctor check", () => {
     [{ crossSessionInbound: "accept" }, "ok"],
     [{}, "ok"],
   ])("checks managed crossSessionInbound %j", async (settings, status) => {
-    const fx = await fixture();
+    const fx = await fixture(undefined, PROVIDER);
     await writeFile(fx.managed, JSON.stringify(settings));
 
     expect((await run(fx)).status).toBe(status);

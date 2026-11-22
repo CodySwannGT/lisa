@@ -15,6 +15,7 @@
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
+import { currentEnvironment } from "../utils/process-environment.js";
 
 /** Receipt filename inside a worktree's git admin directory. */
 export const OWNER_RECEIPT_FILENAME = "lisa-worktree-owner.json";
@@ -50,7 +51,7 @@ export const OWNER_ID_VARIABLES: readonly string[] = Object.freeze([
 export type OwnershipVerdict = "mine" | "theirs" | "unclaimed";
 
 /** Persisted claim on one worktree. */
-export interface OwnerReceipt {
+interface OwnerReceipt {
   /** Opaque id of the agent that claimed the worktree. */
   readonly ownerId: string;
   /** ISO timestamp the claim was written. */
@@ -77,7 +78,7 @@ export function resolveCallerOwnerId(
 }
 
 /**
- * Read the CLI process environment through one explicit, reviewable exception.
+ * Read the CLI process environment.
  *
  * The owner id is supplied by the surrounding agent runtime and by nothing
  * else, so it has to be read from the externally-supplied environment. Every
@@ -85,8 +86,7 @@ export function resolveCallerOwnerId(
  * @returns Current process environment
  */
 function readProcessEnvironment(): NodeJS.ProcessEnv {
-  // eslint-disable-next-line no-restricted-syntax -- the agent runtime supplies the owner id through process env and nowhere else
-  return process.env;
+  return currentEnvironment();
 }
 
 /**

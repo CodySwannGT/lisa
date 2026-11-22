@@ -1,4 +1,4 @@
 display_name: "Automation Status"
-short_description: "Read-only operator surface for…"
+short_description: "Read-only view of this…"
 default_prompt:
-  - "Use $lisa-automation-status: Read-only operator surface for…."
+  - "Use $lisa-automation-status: Read-only view of this…."

@@ -152,25 +152,71 @@ const pin = () => {
   return selected;
 };
 
-/** Provisioning is explicit; scanning itself stays offline and fails missing tools. */
-export const provisionScanner = async destination => {
-  const selected = pin();
-  const archiveName = `gitleaks_${VERSION}_${process.platform}_${process.arch}.tar.gz`;
-  let response;
+// Official v8.30.1 release asset IDs; each archive must still match PINS.
+const RELEASE_ASSETS = Object.freeze({
+  darwin_arm64: 378332059,
+  darwin_x64: 378332053,
+  linux_x64: 378332058,
+  linux_arm64: 378332057,
+});
+
+/** Contain untrusted transport errors; response acceptance happens separately. */
+const requestArchive = async (url, signal, headers) => {
   try {
-    response = await fetch(
-      `https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/${archiveName}`,
-      { signal: AbortSignal.timeout(120000) }
-    );
+    return await fetch(url, { signal, headers });
   } catch {
+    // probe-direction: fail-closed — no response proves scanner identity;
+    // the remaining official route may retry, but exhausted routes refuse.
+    return null;
+  }
+};
+
+/** A rejected response's cleanup must not expose vendor diagnostics. */
+const discardResponse = async response => {
+  try {
+    await response?.body?.cancel();
+  } catch {
+    // The response was already rejected; only authored refusal is reportable.
+  }
+};
+
+/** Both official routes and body transfer share one unchanged deadline. */
+const downloadArchive = async () => {
+  const signal = AbortSignal.timeout(120000);
+  const archiveName = `gitleaks_${VERSION}_${process.platform}_${process.arch}.tar.gz`;
+  let response = await requestArchive(
+    `https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/${archiveName}`,
+    signal
+  );
+  if (response?.ok) return response;
+  await discardResponse(response);
+  if (!signal.aborted)
+    response = await requestArchive(
+      `https://api.github.com/repos/gitleaks/gitleaks/releases/assets/${RELEASE_ASSETS[`${process.platform}_${process.arch}`]}`,
+      signal,
+      {
+        Accept: "application/octet-stream",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "Lisa-pinned-scanner",
+      }
+    );
+  if (!response)
     throw new HistorySecretError(
       "Pinned scanner download setup failed. Restore access to the official release and retry provisioning."
     );
-  }
-  if (!response.ok)
+  if (!response.ok) {
+    await discardResponse(response);
     throw new HistorySecretError(
       "Pinned scanner download failed. Restore access to the official release and retry provisioning."
     );
+  }
+  return response;
+};
+
+/** Provisioning is explicit; scanning itself stays offline and fails missing tools. */
+export const provisionScanner = async destination => {
+  const selected = pin();
+  const response = await downloadArchive();
   let body;
   try {
     body = await response.arrayBuffer();

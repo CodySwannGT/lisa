@@ -12,7 +12,7 @@
  * Used for governance-critical configurations that must match Lisa's specifications exactly.
  * All keys in this section come from Lisa; project values are discarded.
  */
-export interface ForceSection {
+interface ForceSection {
   [key: string]: unknown;
 }
 
@@ -22,7 +22,7 @@ export interface ForceSection {
  * If a key exists in the project's package.json, the project's value is preserved.
  * If a key is missing, Lisa's value is added.
  */
-export interface DefaultsSection {
+interface DefaultsSection {
   [key: string]: unknown;
 }
 
@@ -31,7 +31,7 @@ export interface DefaultsSection {
  * Used for lists like trustedDependencies where both Lisa's and project's items should be combined.
  * Deduplication uses JSON.stringify for value equality comparison.
  */
-export interface MergeSection {
+interface MergeSection {
   [key: string]: unknown[];
 }
 
@@ -43,7 +43,7 @@ export interface MergeSection {
  * same apply. Each entry maps a package.json section (e.g. "scripts") to the
  * list of keys to delete from it.
  */
-export interface RemoveSection {
+interface RemoveSection {
   [key: string]: string[];
 }
 
@@ -67,7 +67,7 @@ export interface RemoveSection {
  * whenever a governed value changes, the value being replaced stays in the list
  * so a host that skipped a release is still recognised rather than warned at.
  */
-export interface AdoptSection {
+interface AdoptSection {
   [key: string]: Record<string, string[]>;
 }
 
@@ -80,6 +80,11 @@ export interface AdoptSection {
  * - `remove`: Section keys Lisa deletes from the project (retired keys)
  * - `adopt`: Section keys whose Lisa-authored values are reclaimed so
  *   `defaults` can install the current one
+ * - `minimums`: Package name to the lowest version range a host that lists the
+ *   package directly may hold. Lisa raises a lower direct range inside its own
+ *   major and refuses a raise that would cross one. Nothing is installed in a
+ *   host that does not list the package, and nothing is written to `overrides`
+ *   or `resolutions`, so transitive copies are never moved.
  *
  * When multiple package.lisa.json files are loaded from the inheritance chain (all → typescript → specific),
  * they are merged with child types overriding parent types in each section.
@@ -114,19 +119,22 @@ export interface AdoptSection {
  */
 export interface PackageLisaTemplate {
   /** Sections where Lisa's values completely replace project's values */
-  force?: Record<string, unknown>;
+  force?: ForceSection;
 
   /** Sections where project's values are preserved (only set if missing) */
-  defaults?: Record<string, unknown>;
+  defaults?: DefaultsSection;
 
   /** Array sections that are concatenated and deduplicated */
-  merge?: Record<string, unknown[]>;
+  merge?: MergeSection;
 
   /** Section keys Lisa deletes from the project (retired keys) */
-  remove?: Record<string, string[]>;
+  remove?: RemoveSection;
 
   /** Section keys whose Lisa-authored values are reclaimed before defaults */
-  adopt?: Record<string, Record<string, string[]>>;
+  adopt?: AdoptSection;
+
+  /** Lowest range a host's own direct dependency on a package may hold */
+  minimums?: Record<string, string>;
 }
 
 /**
@@ -139,4 +147,11 @@ export interface ResolvedPackageLisaTemplate extends PackageLisaTemplate {
   merge: Record<string, unknown[]>;
   remove: Record<string, string[]>;
   adopt: Record<string, Record<string, string[]>>;
+  minimums: Record<string, string>;
+}
+
+/** Planned package.json content plus messages the operator should see. */
+export interface PackageJsonPlan {
+  readonly packageJson: Record<string, unknown>;
+  readonly notes: readonly string[];
 }

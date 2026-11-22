@@ -12,7 +12,10 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const ROOT = path.resolve(import.meta.dirname, "../../..");
 const NODE_PATCH = "24.21.0";
-const VITEST_FLOOR = "4.1.11";
+// Vitest 5: any Vitest 4 dependency crashes npm 10's arborist through vite's
+// optional devtools peer chain (CodySwannGT/lisa#4871).
+const VITEST_FLOOR = "5.1.0";
+const VITEST_MAJOR = 5;
 const VITE_FLOOR = "8.3.3";
 const PACKAGE_JSON = "package.json";
 const TEMPLATE_NAME = "package.lisa.json";
@@ -129,8 +132,8 @@ describe("shared runtime patch policy", () => {
       ...template.defaults?.devDependencies,
       ...template.force?.devDependencies,
     };
-    expectFloor(tools.vitest, VITEST_FLOOR, 4);
-    expectFloor(tools["@vitest/coverage-v8"], VITEST_FLOOR, 4);
+    expectFloor(tools.vitest, VITEST_FLOOR, VITEST_MAJOR);
+    expectFloor(tools["@vitest/coverage-v8"], VITEST_FLOOR, VITEST_MAJOR);
     expect(tools.vitest).toBe(tools["@vitest/coverage-v8"]);
     if (tools.vite !== undefined) expectFloor(tools.vite, VITE_FLOOR, 8);
     const node =
@@ -143,11 +146,11 @@ describe("shared runtime patch policy", () => {
     async harness => {
       const result = await applyTemplate("typescript", {}, harness);
       expect(result.engines?.node).toBe(NODE_PATCH);
-      expectFloor(result.devDependencies?.vitest, VITEST_FLOOR, 4);
+      expectFloor(result.devDependencies?.vitest, VITEST_FLOOR, VITEST_MAJOR);
       expectFloor(
         result.devDependencies?.["@vitest/coverage-v8"],
         VITEST_FLOOR,
-        4
+        VITEST_MAJOR
       );
       expectFloor(result.overrides?.vite, VITE_FLOOR, 8);
       expectFloor(result.devDependencies?.typescript, "6.0.0", 6);
@@ -183,11 +186,11 @@ describe("shared runtime patch policy", () => {
       },
     });
     expect(result.engines?.node).toBe("22.22.0");
-    expectFloor(result.devDependencies?.vitest, VITEST_FLOOR, 4);
+    expectFloor(result.devDependencies?.vitest, VITEST_FLOOR, VITEST_MAJOR);
     expectFloor(
       result.devDependencies?.["@vitest/coverage-v8"],
       VITEST_FLOOR,
-      4
+      VITEST_MAJOR
     );
     expectFloor(result.devDependencies?.vite, VITE_FLOOR, 8);
   });
@@ -209,7 +212,7 @@ describe("shared runtime patch policy", () => {
       path.join(ROOT, TEMPLATE_NAME)
     )) as Record<string, Manifest>;
     expect(root.engines?.node).toBe(NODE_PATCH);
-    expectFloor(root.dependencies?.knip, "5.0.0", 5);
+    expectFloor(root.dependencies?.knip, "6.0.0", 6);
     expect(source.defaults?.engines?.node).toBe(NODE_PATCH);
     expectFloor(root.devDependencies?.vite, VITE_FLOOR, 8);
     expect(root.devDependencies?.vite).toBe(
@@ -242,6 +245,10 @@ describe("shared runtime patch policy", () => {
     const previous = "22.21.1";
     const caller = "cdk/create-only/.github/workflows/ci.yml";
     const reusable = ".github/workflows/quality.yml";
+    const actionsDoc = "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md";
+    const rootActionsDoc = ".github/GITHUB_ACTIONS.md";
+    const publish =
+      "npm-package/create-only/.github/workflows/publish-to-npm.yml";
     const fixtures: Record<string, string> = {
       ".nvmrc": `${NODE_PATCH}\n`,
       "typescript/copy-overwrite/.nvmrc": `${previous}\n`,
@@ -260,10 +267,20 @@ describe("shared runtime patch policy", () => {
       "tests/fixtures/historical/package.json": JSON.stringify({
         engines: { node: previous },
       }),
+      // Docs that name a Node version drifted when the updater skipped them
+      // (CodySwannGT/lisa#4511): the copy-overwrite template doc and the
+      // root doc it mirrors.
+      [actionsDoc]: `\`\`\`yaml\nnode_version: '${previous}'\n  node_version: '${previous}'\n\`\`\`\n`,
+      [rootActionsDoc]: `node_version: '${previous}'\n`,
     };
     for (const [file, contents] of Object.entries(fixtures)) {
       await fs.outputFile(path.join(tempDir, file), contents);
     }
+    // Major-only forms in a commented usage example and an input default.
+    await fs.outputFile(
+      path.join(tempDir, publish),
+      "#       node_version: '22.x'\non:\n  workflow_call:\n    inputs:\n      node_version:\n        description: 'Node.js version to use'\n        required: false\n        default: '20.x'\n        type: string\n"
+    );
     await fs.ensureDir(path.join(tempDir, "scripts"));
     await fs.copyFile(path.join(ROOT, updater), path.join(tempDir, updater));
     const git = (args: string[]) =>
@@ -307,6 +324,11 @@ describe("shared runtime patch policy", () => {
         "utf8"
       )
     ).toContain(previous);
+    const major = NODE_PATCH.split(".")[0];
+    const published = await fs.readFile(path.join(tempDir, publish), "utf8");
+    expect(published).toContain(`#       node_version: '${major}.x'`);
+    expect(published).toContain(`default: '${major}.x'`);
+    expect(published).not.toMatch(/'2[02]\.x'/);
     expect(run()).toContain("Files updated: 0");
     for (const file of Object.keys(fixtures).filter(file =>
       file.startsWith(".github/workflows/npm-updater")

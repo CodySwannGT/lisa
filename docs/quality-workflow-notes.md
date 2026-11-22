@@ -675,6 +675,21 @@ a caller pull request that merged with a ruleset-required context
 job concluded `skipped` at the `pull-request` moment. The full argument, and
 what it deliberately does not examine, is the `--outcomes` section of the
 prover's header.
+
+ONE EXCEPTION, BY EVENT (#4620). A caller such as `ci.yml` also runs on
+`workflow_dispatch` without passing a `moment`, so a manual run is judged
+at `pull-request` — and the jobs whose own `if:` admits only
+`pull_request` skip there by construction. When the run was started by
+`workflow_dispatch`, `push` or `schedule` (events that gate no merge), a
+required context whose job is listed in `LISA_PULL_REQUEST_ONLY_JOBS` and
+concluded `skipped` is reported NOT JUDGED instead of refused. Everything
+else stays fail-closed: any other job's skip, any other result of a
+pull-request-only job, `pull_request`, `pull_request_target`,
+`merge_group` or an unknown event, and a missing or unreadable
+`LISA_EVENT_NAME` or `LISA_PULL_REQUEST_ONLY_JOBS`. The list is derived
+from the jobs' conditions by
+tests/integration/skipped-required-checks-outcome-wiring.test.ts, which
+fails on drift in either direction.
 ```
 
 ## Note 17

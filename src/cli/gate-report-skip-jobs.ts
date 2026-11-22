@@ -10,7 +10,7 @@
  */
 import type { GateRegistryModule } from "./gate-report-registry.js";
 import type { Finding, SkipJobRow } from "./gate-report-types.js";
-import { parseCiWorkflowInputs } from "./ui-ci-quality-jobs-parse.js";
+import { parseCiWorkflowInputs } from "./ci-workflow-inputs.js";
 
 /** The moment `quality.yml` resolves gates at when a caller declares none. */
 const DEFAULT_MOMENT = "pull-request";

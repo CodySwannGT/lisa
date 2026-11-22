@@ -78,7 +78,7 @@ describe("a note that is absent", () => {
 
   it("tells the operator what a note is for rather than only that it is absent", () => {
     const [defect] = validateNote("");
-    expect(defect.message).toMatch(/what this credential is for/i);
+    expect(defect?.message).toMatch(/what this credential is for/i);
   });
 
   it("raises exactly one defect for an absent note", () => {
@@ -134,7 +134,7 @@ describe("a note with no plain-language purpose", () => {
 
   it("names the fix rather than only the fault", () => {
     const [defect] = validateNote("owner: platform-team");
-    expect(defect.message).toMatch(/first line/i);
+    expect(defect?.message).toMatch(/first line/i);
   });
 
   it("blocks a note that is only a tool line", () => {
@@ -153,7 +153,7 @@ describe("a metadata line that promises a fact and delivers none", () => {
 
   it("names the offending field so the operator knows which line to edit", () => {
     const [defect] = validateNote(`${PROSE}\nscope:`);
-    expect(defect.message).toContain("scope");
+    expect(defect?.message).toContain("scope");
   });
 
   it("reports every empty field, not just the first", () => {
@@ -220,7 +220,7 @@ describe("the tool line grammar", () => {
 
   it("quotes the offending entry so the operator can find it", () => {
     const [defect] = validateNote("A token.\ntool: sonar (for CI)");
-    expect(defect.message).toContain("sonar (for CI)");
+    expect(defect?.message).toContain("sonar (for CI)");
   });
 
   it("warns rather than blocks on a stray separator", () => {

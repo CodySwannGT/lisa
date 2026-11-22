@@ -25,6 +25,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import { loadWorkflow } from "../helpers/workflow-test-utils.js";
+import { sweepAlreadyRanEnv } from "../helpers/cleanup-sweep-skip.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -126,7 +127,8 @@ function runGates(moment: string, cwd: string, env: NodeJS.ProcessEnv = {}) {
     command: process.execPath,
     args: [RUNNER, `--moment=${moment}`],
     cwd,
-    env: { ...surfacelessEnv(), ...env },
+    // Never sweep the machine from inside a test (CodySwannGT/lisa#4597).
+    env: { ...surfacelessEnv(), ...sweepAlreadyRanEnv(), ...env },
   });
 }
 
@@ -186,6 +188,9 @@ describe("the CI gate surface", () => {
       const job = (workflow.jobs as Record<string, Record<string, unknown>>)[
         IDENTITY_JOB
       ];
+      if (job === undefined) {
+        throw new Error(`${file} has no ${IDENTITY_JOB} job`);
+      }
       for (const [name, other] of Object.entries(
         workflow.jobs as Record<
           string,

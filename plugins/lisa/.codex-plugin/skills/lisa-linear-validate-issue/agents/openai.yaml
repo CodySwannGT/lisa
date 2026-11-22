@@ -1,4 +1,4 @@
 display_name: "Linear Validate Issue"
-short_description: "Validates a proposed Linear…"
+short_description: "Check a proposed or existing…"
 default_prompt:
-  - "Use $lisa-linear-validate-issue: Validates a proposed Linear…."
+  - "Use $lisa-linear-validate-issue: Check a proposed or existing…."

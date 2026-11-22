@@ -101,7 +101,6 @@ log_info "Found $app_count Amplify app(s)"
 echo ""
 
 # Process each app
-total_deleted=0
 
 echo "$apps_json" | jq -r '.apps[] | "\(.appId)|\(.name)"' | while IFS='|' read -r app_id app_name; do
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

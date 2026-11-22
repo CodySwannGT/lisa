@@ -122,18 +122,19 @@ describe("assessDeliveryAuthorityDimension — B2 (release path bypasses validat
 
     expect(record.id).toBe(DIMENSION_ID);
     expect(record.status).toBe(FAIL);
-    const findings = asFindings(record.findings);
-    expect(findings[0].blocker).toBe("B2");
-    expect(typeof findings[0].evidence).toBe("string");
-    expect(findings[0].evidence).not.toBe("");
-    expect(findings[0].evidence).toContain("publish");
-    expect(findings[0].evidence).toContain(
+    const [finding] = asFindings(record.findings);
+    if (finding === undefined) throw new Error("expected a finding");
+    expect(finding.blocker).toBe("B2");
+    expect(typeof finding.evidence).toBe("string");
+    expect(finding.evidence).not.toBe("");
+    expect(finding.evidence).toContain("publish");
+    expect(finding.evidence).toContain(
       "npm publish ./unvalidated-fresh-build.tgz"
     );
-    expect(findings[0].invariant_violated).not.toBe("");
-    expect(typeof findings[0].why_proof_missed).toBe("string");
-    expect(typeof findings[0].root_correction).toBe("string");
-    expect(Array.isArray(findings[0].machinery_to_remove)).toBe(true);
+    expect(finding.invariant_violated).not.toBe("");
+    expect(typeof finding.why_proof_missed).toBe("string");
+    expect(typeof finding.root_correction).toBe("string");
+    expect(Array.isArray(finding.machinery_to_remove)).toBe(true);
   });
 
   it("flips the readiness verdict to NOT_READY with B2 standing on dimension 7", async () => {
@@ -144,9 +145,9 @@ describe("assessDeliveryAuthorityDimension — B2 (release path bypasses validat
     const assessment = assessReadiness([record]);
 
     expect(assessment.verdict).toBe("NOT_READY");
-    expect(assessment.blockers[0].id).toBe("B2");
-    expect(assessment.blockers[0].dimension_id).toBe(DIMENSION_ID);
-    expect(assessment.blockers[0].label).toBe(
+    expect(assessment.blockers[0]?.id).toBe("B2");
+    expect(assessment.blockers[0]?.dimension_id).toBe(DIMENSION_ID);
+    expect(assessment.blockers[0]?.label).toBe(
       "A release path bypasses the validated artifact"
     );
     expect(assessment.narrowed_claim).toContain("NOT ready");
@@ -174,11 +175,12 @@ describe("assessDeliveryAuthorityDimension — B2 (release path bypasses validat
     const record = await assessDeliveryAuthorityDimension(cwd);
 
     expect(record.status).toBe(SKIP);
-    const findings = asFindings(record.findings);
-    expect(findings[0].skip).toBe(true);
-    expect(typeof findings[0].reason).toBe("string");
-    expect(findings[0].reason).not.toBe("");
-    expect(Object.hasOwn(findings[0], "blocker")).toBe(false);
+    const [finding] = asFindings(record.findings);
+    if (finding === undefined) throw new Error("expected a finding");
+    expect(finding.skip).toBe(true);
+    expect(typeof finding.reason).toBe("string");
+    expect(finding.reason).not.toBe("");
+    expect(Object.hasOwn(finding, "blocker")).toBe(false);
   });
 });
 
@@ -207,8 +209,8 @@ describe("assessDeliveryAuthorityDimension — B3 (credential over-authority)", 
 
     const assessment = assessReadiness([record]);
     expect(assessment.verdict).toBe("NOT_READY");
-    expect(assessment.blockers[0].id).toBe("B3");
-    expect(assessment.blockers[0].dimension_id).toBe(DIMENSION_ID);
+    expect(assessment.blockers[0]?.id).toBe("B3");
+    expect(assessment.blockers[0]?.dimension_id).toBe(DIMENSION_ID);
   });
 
   it("FAILs with B3 on a write-all permissions grant", async () => {

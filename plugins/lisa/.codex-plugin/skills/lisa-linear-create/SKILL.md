@@ -1,9 +1,9 @@
 ---
 name: lisa-linear-create
-description: "Creates Linear Projects…"
+description: "Create Linear projects, issues…"
 allowed-tools: ["Read", "Glob", "LS", "Skill"]
 ---
-Creates Linear Projects (Epic-equivalent), Issues (Story / Task / Bug / Spike), and sub-Issues (Sub-task) from code files or descriptions. Analyzes the input, determines the appropriate hierarchy, and creates items with comprehensive quality requirements including test-first development and Validation Journey. The Linear counterpart of lisa-jira-create — delegates every write to lisa-linear-write-issue.
+Create Linear projects, issues, and sub-issues from code files or a description, choosing the hierarchy and writing each through lisa-linear-write-issue.
 
 
 # Create Linear Work Items from $ARGUMENTS
@@ -128,7 +128,7 @@ Items must be created in parent-before-child order so each child can be passed i
 2. For each Story, invoke `lisa-linear-write-issue` with the Project ID as `parent_project_id`. Capture each Issue identifier.
 3. For each Sub-task, invoke `lisa-linear-write-issue` with the Story Issue ID as `parent_issue_id` and explicit `build_ready: true`.
 
-- **Declare readiness on every leaf write.** Per the `ready-role-filing` rule an omitted `build_ready` is **not build-ready** on any tracker, so pass `build_ready: true` on each Sub-task (the leaf work units this skill plans) and never on the Epic or Stories, which are containers per `leaf-only-lifecycle`. A leaf that is deliberately held instead passes `human_gate: "<why a human must judge this first>"`. Filing a leaf with neither is an incomplete handoff and `lisa-linear-write-issue` rejects it.
+- **Declare readiness on every leaf write.** Per the `ready-role-filing` rule an omitted `build_ready` is **not build-ready** on any tracker, so pass `build_ready: true` on each Sub-task (the leaf work units this skill plans) and never on the Epic or Stories, which are containers per `leaf-only-lifecycle`. A leaf that is deliberately held instead passes `human_gate: "<the act a person must perform>"`. Filing a leaf with neither is an incomplete handoff and `lisa-linear-write-issue` rejects it.
 
 ### What to pass to each invocation
 

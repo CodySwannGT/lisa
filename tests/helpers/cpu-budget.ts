@@ -54,7 +54,7 @@
  */
 
 /** A measured window of CPU and wall time. */
-export interface CpuBudgetElapsed {
+interface CpuBudgetElapsed {
   /** CPU time (user + system) consumed inside the window, in milliseconds. */
   readonly cpuMs: number;
   /** Wall-clock time spanned by the window, in milliseconds. */

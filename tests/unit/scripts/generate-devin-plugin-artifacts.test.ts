@@ -21,10 +21,10 @@ import {
   CLAUDE_PLUGIN_DIR,
   DOT_MCP_JSON,
   HOOKS_JSON,
-  ENFORCE_TEAM_FIRST,
   PLUGIN_JSON,
   scaffoldSource,
 } from "./cursor-artifact-helpers.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 const SHIM = "devin-tool-name-shim.sh";
 const ROOT = "${CLAUDE_PLUGIN_ROOT}/hooks/";
@@ -118,10 +118,6 @@ describe("generate-devin-plugin-artifacts (#4426)", () => {
 
     const raw = fs.readFileSync(path.join(outDir, HOOKS_JSON), "utf8");
     expect(raw).not.toContain("entire hooks");
-    expect(raw).not.toContain(ENFORCE_TEAM_FIRST);
-    expect(fs.existsSync(path.join(outDir, "hooks", ENFORCE_TEAM_FIRST))).toBe(
-      false
-    );
     expect(fs.existsSync(path.join(outDir, "commands"))).toBe(false);
   });
 
@@ -194,7 +190,7 @@ describe("generate-devin-plugin-artifacts (#4426)", () => {
       // carries jq, so /bin cannot stand for "no jq".
       const bin = path.join(tempDir, "nojq-bin");
       await fs.ensureDir(bin);
-      await fs.symlink("/bin/cat", path.join(bin, "cat"));
+      createSymlink("/bin/cat", path.join(bin, "cat"));
       const env = { PATH: bin };
 
       const toolEvent = boundedSpawnSync({

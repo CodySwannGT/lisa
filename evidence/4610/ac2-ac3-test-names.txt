@@ -1,0 +1,28 @@
+# AC-2/AC-3 Vitest JSON reporter comparison: before = 14 files at HEAD export, after = 7 primaries in worktree
+# command: vitest run <files> --reporter=json ; node names.cjs before-1.json after-1.json pairs.txt
+## Before summary
+ Test Files  14 passed (14)
+      Tests  324 passed (324)
+   Duration  1.80s (transform 481ms, setup 776ms, import 872ms, tests 592ms, environment 1ms)
+## After summary
+ Test Files  7 passed (7)
+      Tests  324 passed (324)
+   Duration  1.54s (transform 581ms, setup 603ms, import 860ms, tests 643ms, environment 0ms)
+before tests=324 files=14 statuses={"passed":324}
+after  tests=324 files=7 statuses={"passed":324}
+fullName only-before=0 only-after=0
+tests/unit/codex/skills-installer-internal-skill-policy.test.ts -> tests/unit/codex/skills-installer.test.ts: tests=1 #NNNN-named=1 missing(leaf)=0 fullName-not-exact=0
+tests/unit/scripts/completion-proof-verify-usage.test.ts -> tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts: tests=13 #NNNN-named=13 missing(leaf)=0 fullName-not-exact=0
+tests/unit/scripts/gate-diagnosis-type-errors.test.ts -> tests/unit/scripts/gate-failure-diagnosis.test.ts: tests=17 #NNNN-named=1 missing(leaf)=0 fullName-not-exact=0
+tests/unit/scripts/generate-cursor-plugin-artifacts.artifacts.test.ts -> tests/unit/scripts/generate-cursor-plugin-artifacts.test.ts: tests=8 #NNNN-named=8 missing(leaf)=0 fullName-not-exact=0
+tests/unit/scripts/lisa-reconcile-policy-units.test.ts -> tests/unit/scripts/lisa-reconcile-policy.test.ts: tests=34 #NNNN-named=1 missing(leaf)=0 fullName-not-exact=0
+tests/unit/strategies/package-lisa-integration-script-layout.test.ts -> tests/unit/strategies/package-lisa.test.ts: tests=34 #NNNN-named=18 missing(leaf)=0 fullName-not-exact=0
+tests/unit/strategies/wiki-status-verdicts.test.ts -> tests/unit/strategies/wiki-status-report-rendering.test.ts: tests=2 #NNNN-named=2 missing(leaf)=0 fullName-not-exact=0
+#NNNN-named tests from deleted files=44 missing-in-primary=0
+## Bite control: after JSON with one #NNNN test dropped and one #NNNN renamed; checker must report 2 missing
+renaming: codex/skills-installer internal skill policy (#774) skips denylisted internal skills during host-project installation
+dropping: test:integration governance and layout (#3070) every template classifies the key the same way typescript: hands the host-facing name back as a default and forces only the reserved base
+fullName only-before=2 only-after=1
+    MISSING: codex/skills-installer internal skill policy (#774) skips denylisted internal skills during host-project installation
+    MISSING: test:integration governance and layout (#3070) every template classifies the key the same way typescript: hands the host-facing name back as a default and forces only the reserved base
+#NNNN-named tests from deleted files=44 missing-in-primary=2

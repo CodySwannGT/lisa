@@ -26,6 +26,7 @@ import {
   boundedSpawnSync,
   useIoLatencyBudget,
 } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 // The bounded children below are handed a base that only fits under a case
 // budget scaling with the same machine they do. Without this call the case
@@ -171,7 +172,7 @@ function consumerWithoutRuleTestScript(): string {
   )}\n`;
   fs.writeFileSync(path.join(projectDir, "package.json"), manifest, "utf-8");
   fs.mkdirSync(binDir, { recursive: true });
-  fs.symlinkSync(AST_GREP, path.join(binDir, "ast-grep"));
+  createSymlink(AST_GREP, path.join(binDir, "ast-grep"));
   return projectDir;
 }
 

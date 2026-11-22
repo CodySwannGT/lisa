@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Scaffold a project-specific front-door ingest skill that does something unique (classify a source, fetch from a special system, stamp domain frontmatter) and then chains into /ingest. Extends ingestion without forking the kernel."
 argument-hint: "<short name for the new ingest path>"
 ---

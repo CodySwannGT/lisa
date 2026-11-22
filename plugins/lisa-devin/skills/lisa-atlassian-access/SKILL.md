@@ -1,6 +1,6 @@
 ---
 name: lisa-atlassian-access
-description: "Vendor-neutral access layer for Atlassian (JIRA + Confluence). Every jira-* and confluence-* skill MUST delegate through this skill rather than calling Atlassian directly. Per the credential-substrate-precedence contract, resolves a substrate per operation with the ATLASSIAN_API_TOKEN curl path first for reads and writes alike whenever the token is present and identity-matched — binding JIRA writes to the configured cloudId — then acli, then the Atlassian MCP as fallbacks. acli is used when installed and switchable to a profile matching the configured site; mismatched active profiles are skipped only after switch plus re-verification fails, and acli writes are a guarded fallback with post-write tenant assertions."
+description: "The one way Lisa skills reach JIRA and Confluence: a token-authenticated REST path matched to the configured site, then acli, then the Atlassian MCP. Every jira-* and confluence-* skill must go through it."
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
 
@@ -50,7 +50,7 @@ EMAIL=$(jq -r '.atlassian.email // empty' .lisa.config.local.json 2>/dev/null)
 [ -z "$CLOUDID" ] && { echo "Error: atlassian.cloudId not set. Run /lisa:setup:atlassian." >&2; exit 1; }
 ```
 
-Probe each tier in order; the first that's ready AND identity-matches is the substrate for this operation. The ordering is the shared `credential-substrate-precedence` contract — the configured-provider token substrate leads for **reads and writes alike**, with acli and the MCP as identity-matched fallbacks — not an Atlassian-local choice. Identity-match is verified before any operation; substrates authenticated as a different Atlassian account are switched to the configured profile when one exists, then skipped only if the switch fails or re-verification still mismatches.
+Probe each tier in order; the first that's ready AND identity-matches is the substrate for this operation. The ordering is the shared `credential-substrate-precedence` contract — the configured-provider token substrate leads for **reads and writes alike**, with acli and the MCP as identity-matched fallbacks — not an Atlassian-local choice. Identity-match is verified before any operation; substrates authenticated as a different Atlassian account are switched to the configured profile when one exists, then skipped only if the switch fails or re-verification still mismatches. acli in particular is used when installed and switchable to a profile matching the configured site; a mismatched active profile is skipped only after switch plus re-verification fails.
 
 ```bash
 substrate=""
@@ -383,6 +383,7 @@ Substrate column meanings (ordering per `credential-substrate-precedence`):
 | `comments key:<K>` (read; all comments, paginated) — **not** `comment`, which is the write | (not exposed) | `mcp__plugin_atlassian_atlassian__getJiraIssue` (comment field only; may be capped — page via curl when `total` exceeds what it returned) | `GET https://<SITE>/rest/api/3/issue/<K>/comment?startAt=<n>&maxResults=100&orderBy=created` |
 | `comment key:<K> body:<B>` | guarded fallback only: `acli jira workitem comment add --key <K> --body "<B>"` + post-read tenant assertion | `mcp__plugin_atlassian_atlassian__addCommentToJiraIssue` | `POST https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issue/<K>/comment` |
 | `link from:<K> to:<K2> type:<T>` | guarded fallback only: `acli jira workitem link create --in <K> --out <K2> --type "<T>" --yes` + direction and tenant assertion (see direction note) | `mcp__plugin_atlassian_atlassian__createJiraIssueLink` | `POST https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issueLink` |
+| `unlink link-id:<ID>` — removes one issue link by its `issuelinks[].id` (the session manager's stale-blocker-link sweep, CodySwannGT/lisa#5065); read the ticket back and confirm the link is gone | (not exposed) | (not exposed: the Atlassian MCP has no link delete; on an MCP-only substrate report the link as not removed and leave it) | `DELETE https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issueLink/<ID>` |
 | `remote-links key:<K>` | (not exposed) | `mcp__plugin_atlassian_atlassian__getJiraIssueRemoteIssueLinks` | `GET https://<SITE>/rest/api/3/issue/<K>/remotelink` |
 | `search-issues jql:<J>` | `acli jira workitem search --jql "<J>" --json` | `mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql` | `POST https://<SITE>/rest/api/3/search/jql` |
 | `list-projects` | `acli jira project list --paginate --json` | `mcp__plugin_atlassian_atlassian__getVisibleJiraProjects` | `GET https://<SITE>/rest/api/3/project/search` |
@@ -477,6 +478,6 @@ Treat all four of these as headless:
 - no TTY
 - `CI=true`
 - `-p` mode
-- **a subagent / teammate session** — measured (#2148): a subagent sees only the OAuth bootstrap stubs (`…__authenticate`, `…__complete_authentication`), never the data tools, and a direct call returns `No such tool available` rather than an auth error. The request never leaves the harness. This is not a general MCP block — other MCP servers work fine from a subagent — it is specific to servers whose OAuth completed in the lead. Crucially **acli works normally in a subagent**, so the ladder already has a working tier; it just has to skip MCP to reach it.
+- **a subagent session** — measured (#2148): a subagent sees only the OAuth bootstrap stubs (`…__authenticate`, `…__complete_authentication`), never the data tools, and a direct call returns `No such tool available` rather than an auth error. The request never leaves the harness. This is not a general MCP block — other MCP servers work fine from a subagent — it is specific to servers whose OAuth completed in the lead. Crucially **acli works normally in a subagent**, so the ladder already has a working tier; it just has to skip MCP to reach it.
 
-Detecting the subagent case: Lisa's Claude hooks already mark it — `SubagentStart` writes `"${STATE_DIR}/${SESSION_ID}.subagent"`, consumed by `enforce-verification-gate.sh` and `enforce-team-first.sh`. Where that flag is unavailable, probing the MCP tier and finding only `authenticate`-shaped tools is the same signal: treat it as unavailable and fall through rather than attempting a call that cannot succeed.
+Detecting the subagent case: Lisa's Claude hooks already mark it — `SubagentStart` writes `"${STATE_DIR}/${SESSION_ID}.subagent"`, consumed by `enforce-verification-gate.sh`. Where that flag is unavailable, probing the MCP tier and finding only `authenticate`-shaped tools is the same signal: treat it as unavailable and fall through rather than attempting a call that cannot succeed.

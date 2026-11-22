@@ -25,11 +25,11 @@ import path from "node:path";
 import process from "node:process";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { mergeGeneratedArtifact } from "../../../scripts/merge-generated-artifact.mjs";
 import {
-  mergeGeneratedArtifact,
-  parseArtifact,
-  renderArtifact,
-} from "../../../scripts/merge-generated-artifact.mjs";
+  parseJsonArtifact,
+  renderJsonArtifact,
+} from "../../../scripts/lib/merge-generated-json.mjs";
 import {
   boundedSpawnSync,
   useIoLatencyBudget,
@@ -408,13 +408,14 @@ describe("lisa-generated-artifact merge driver", () => {
 
   it("roundTripsTheRealArtifacts: parse then render is the identity on both checked-in files", () => {
     for (const file of [
-      "src/core/upstream-evidence-manifest.ts",
-      "src/core/lisa-owned-hash-ledger.ts",
+      "src/core/upstream-evidence-manifest.json",
+      "src/core/lisa-owned-hash-ledger.json",
     ]) {
       const text = readFileSync(path.resolve(file), "utf8");
-      const parsed = parseArtifact(text);
+      const parsed = parseJsonArtifact(text);
       expect(parsed.ok).toBe(true);
-      expect(renderArtifact(parsed.chunks)).toBe(text);
+      if (!parsed.ok) throw new Error(parsed.reason);
+      expect(renderJsonArtifact(parsed.records)).toBe(text);
     }
   });
 
@@ -434,8 +435,9 @@ describe("lisa-generated-artifact merge driver", () => {
    * ## The defect
    *
    * The driver refused a conflict and instructed `git checkout --theirs --
-   * <path>`. `parity-safety-net` blocks every `git checkout` that discards
-   * worktree state, so the driver's own documented resolution was unrunnable —
+   * <path>`. A Lisa guard of the time blocked every `git checkout` that
+   * discarded worktree state, so the driver's own documented resolution was
+   * unrunnable —
    * two controls issuing contradictory instructions on the most-travelled
    * recovery route in the repository, at the moment the operator is already
    * mid-conflict. At the time, the guard's suggested alternative was `git
@@ -455,7 +457,7 @@ describe("lisa-generated-artifact merge driver", () => {
    * larger piece of work and deliberately not attempted here.
    */
   describe("the remedy the driver prints", () => {
-    const HOOK = path.resolve("plugins/lisa/hooks/parity-safety-net.sh");
+    const HOOK = path.resolve("plugins/lisa/hooks/block-no-verify.sh");
     const EXIT_ALLOWED = 0;
     const EXIT_BLOCKED = 2;
 
@@ -479,7 +481,7 @@ describe("lisa-generated-artifact merge driver", () => {
      */
     function classify(command: string): number | null {
       return boundedSpawnSync({
-        label: "parity-safety-net.sh",
+        label: "block-no-verify.sh",
         command: "/bin/bash",
         args: [HOOK],
         input: JSON.stringify({
@@ -516,25 +518,20 @@ describe("lisa-generated-artifact merge driver", () => {
       );
     });
 
-    it("controlOldRemedyIsStillRefused: the command it used to print is blocked", () => {
-      // ON THE DEFECT. Verbatim the shape the driver printed before #3692.
-      // The guard refuses it today exactly as it did then, which is what made
-      // the driver's own documented resolution unrunnable. If this ever goes
-      // green the guard stopped catching the shape, and the remedy rewrite is
-      // no longer what keeps operators out of a blocked command.
+    it("old remedy remains callable after native safety-net retirement", () => {
+      // Historical remedy from before #3692. The native destructive-command
+      // classifier retired in #4672; the surviving no-verify guard allows it.
       expect(
         classify(
           `git checkout --theirs -- ${ARTIFACT} && bun run build:upstream-evidence-manifest`
         )
-      ).toBe(EXIT_BLOCKED);
+      ).toBe(EXIT_ALLOWED);
     });
 
     it("controlHarnessStillRefuses: the classifier can still produce a refusal", () => {
       // Without this, the ALLOWED verdicts above cannot be told apart from a
       // harness failing open — the hook exiting 0 on every input.
-      expect(classify(`git restore --worktree -- ${ARTIFACT}`)).toBe(
-        EXIT_BLOCKED
-      );
+      expect(classify("git commit --no-verify -m x")).toBe(EXIT_BLOCKED);
     });
 
     it("remedyTakesTheirsAndLeavesOursRecoverable: running it discards nothing", () => {

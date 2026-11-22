@@ -1,0 +1,4 @@
+display_name: "Security Audit Handling"
+short_description: "When the dependency security…"
+default_prompt:
+  - "Use $lisa-security-audit-handling: When the dependency security…."

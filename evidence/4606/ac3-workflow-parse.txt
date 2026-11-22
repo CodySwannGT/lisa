@@ -1,0 +1,31 @@
+{
+  "name": "📦 Packed-host journey",
+  "triggers": [
+    "workflow_dispatch"
+  ],
+  "dispatch_inputs": {
+    "ref": {
+      "description": "Branch, tag, or commit SHA to run the packed-host journey against",
+      "required": false,
+      "default": "main",
+      "type": "string"
+    }
+  },
+  "permissions": {
+    "contents": "read"
+  },
+  "runs_on": "ubuntu-24.04",
+  "timeout": 45,
+  "if": "github.repository == 'CodySwannGT/lisa'",
+  "steps": [
+    "📥 Checkout repository :: actions/checkout@v6",
+    "Provision separately qualified updater test runtime :: actions/setup-node@v6",
+    "Preserve actual updater test executable :: node -e 'if (process.versions.node !== \"22.23.3\") throw Error(\"Wrong updater test runtime\"); require(\"node:fs\").appendFileSync(process.env.GITHUB_ENV, `LISA_TEST_UPDATER_NODE=${require(\"node:fs\").realpathSync(process.execPath)}\\n`);'",
+    "Select the reviewed CI Node :: actions/setup-node@v6",
+    "🍞 Setup Bun :: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6",
+    "Setup Ruby for the Rails template host :: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199",
+    "Install Rails configuration resolver :: gem install activerecord --version 8.1.4 --no-document",
+    "Install dependencies :: bun install --frozen-lockfile",
+    "📦 Run the packed-host journey :: bun run test:integration:packed-hosts"
+  ]
+}

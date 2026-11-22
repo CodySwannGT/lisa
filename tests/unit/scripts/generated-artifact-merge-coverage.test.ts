@@ -44,11 +44,12 @@ import {
   mapsToDriver,
   undeclaredChecks,
 } from "../../../scripts/check-generated-artifact-merge-coverage.mjs";
+import { formatGeneratedJson } from "../../../scripts/lib/merge-generated-json.mjs";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
 /** The manifest's path, named once so the ruleset's duplicate-literal rule holds. */
-const MANIFEST_PATH = "src/core/upstream-evidence-manifest.ts";
+const MANIFEST_PATH = "src/core/upstream-evidence-manifest.json";
 
 /** The two-channel artifact's path, named once for the same reason. */
 const TWO_CHANNEL_PATH = "scripts/two-channel-couplings.json";
@@ -89,12 +90,32 @@ describe("the declaration matches this repository", () => {
     expect(inspectGeneratedArtifacts(REPO_ROOT).violations).toEqual([]);
   });
 
-  it("declares five artifacts", () => {
+  it("declares six artifacts", () => {
     // Four when this guard landed; a fifth once CodySwannGT/lisa#3718 added
-    // `src/core/export-surface.json`. Hardcoded per the Test Isolation house
+    // `src/core/export-surface.json`. A sixth, for retired-handler ownership,
+    // left with the safety-net hook in CodySwannGT/lisa#4803, and
+    // CodySwannGT/lisa#4977 brought the count back to six with the generated
+    // operator questionnaire.
+    // Hardcoded per the Test Isolation house
     // rule, so a silently dropped declaration fails here rather than
     // agreeing with whatever the declaration happens to hold.
-    expect(GENERATED_ARTIFACTS.length).toBe(5);
+    expect(GENERATED_ARTIFACTS.length).toBe(6);
+  });
+
+  it("declares the operator questionnaire out of the driver's reach", () => {
+    // It is Markdown prose. The driver merges `"key": value` entries, and a
+    // conflict in this document is settled by regenerating it instead.
+    const questionnaire = GENERATED_ARTIFACTS.find(
+      entry => entry.path === "docs/agentic-readiness-questionnaire.md"
+    );
+
+    expect(questionnaire?.check).toBe("check:readiness-questionnaire");
+    expect(questionnaire?.disposition).toBe(DISPOSITION.UNSUPPORTED);
+    expect(
+      driverCanStructure(
+        readArtifact("docs/agentic-readiness-questionnaire.md")
+      ).reason
+    ).toContain("ZERO entries");
   });
 
   it("covers exactly the two the driver can structure", () => {
@@ -102,7 +123,7 @@ describe("the declaration matches this repository", () => {
       GENERATED_ARTIFACTS.filter(
         entry => entry.disposition === DISPOSITION.DRIVER
       ).map(entry => entry.path)
-    ).toEqual([MANIFEST_PATH, "src/core/lisa-owned-hash-ledger.ts"]);
+    ).toEqual([MANIFEST_PATH, "src/core/lisa-owned-hash-ledger.json"]);
   });
 
   it("gives every unsupported artifact a written reason", () => {
@@ -134,16 +155,41 @@ describe("driverCanStructure", () => {
     const verdict = driverCanStructure(readArtifact(TWO_CHANNEL_PATH));
 
     expect(verdict.ok).toBe(false);
-    expect(verdict.reason).toContain("mixed indentation");
+    expect(verdict.reason).toContain("is nested");
+  });
+
+  it("rejects a JSON artifact with top-level scalars beside its records", () => {
+    const verdict = driverCanStructure(
+      readArtifact("src/core/export-surface.json")
+    );
+
+    expect(verdict.ok).toBe(false);
+    expect(verdict.reason).toContain(
+      "top-level value $generatedBy is not a record of entries"
+    );
+  });
+
+  it("accepts a JSON artifact of records and counts its entries", () => {
+    const verdict = driverCanStructure(
+      formatGeneratedJson({ A: { a: "1", b: ["x", "y"] }, B: { c: true } })
+    );
+
+    expect(verdict.ok).toBe(true);
+    expect(verdict.entries).toBe(3);
+  });
+
+  it("rejects a JSON artifact that re-renders to different bytes", () => {
+    const verdict = driverCanStructure('{"A": {"a": "1"}}\n');
+
+    expect(verdict.ok).toBe(false);
+    expect(verdict.reason).toContain("changed the bytes");
   });
 
   it("rejects a file that parses and round-trips but structures nothing", () => {
     // The measured hole in a round-trip-only oracle: every leading indent
     // stripped, so the parser recognises no entry block and passes the whole
     // file through as opaque text — exactly reproducible, exactly inert.
-    const flattened = readArtifact(
-      "src/core/lisa-owned-hash-ledger.ts"
-    ).replace(/\n[ \t]+/gu, "\n");
+    const flattened = STRUCTURABLE.replace(/\n[ \t]+/gu, "\n");
     const verdict = driverCanStructure(flattened);
 
     expect(verdict.ok).toBe(false);

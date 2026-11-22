@@ -86,7 +86,33 @@ describe("refused $name rewrite: the printed remedy", () => {
     };
   }
 
-  it("refuses the apply and names the verified raise in the refusal itself", async () => {
+  it("raises the host's direct range itself when the floor is Lisa's own", async () => {
+    // A floor Lisa forced is a value Lisa chose, so the apply makes the raise
+    // its remedy names instead of refusing over it (CodySwannGT/lisa#4932).
+    const result = await strategy.apply(
+      sourcePath,
+      destPath,
+      PACKAGE_JSON,
+      createContext()
+    );
+
+    expect(result.action).not.toBe("skipped");
+    const written = await fs.readJson(destPath);
+    expect(written.devDependencies.vite).toBe(
+      suggestSatisfyingDirectRange(FLOOR)
+    );
+    expect(written.overrides.vite).toBe("$vite");
+  });
+
+  it("refuses a floor the host wrote and names the verified raise in the refusal itself", async () => {
+    await fs.writeJson(sourcePath, { force: {} });
+    await fs.writeJson(destPath, {
+      name: "host",
+      dependencies: TS_DEPS,
+      devDependencies: { vite: TOO_LOW },
+      overrides: { vite: FLOOR },
+    });
+
     await expect(
       strategy.apply(sourcePath, destPath, PACKAGE_JSON, createContext())
     ).rejects.toThrow(
@@ -95,6 +121,13 @@ describe("refused $name rewrite: the printed remedy", () => {
   });
 
   it("applies cleanly once the host writes the suggested range", async () => {
+    await fs.writeJson(sourcePath, { force: {} });
+    await fs.writeJson(destPath, {
+      name: "host",
+      dependencies: TS_DEPS,
+      devDependencies: { vite: TOO_LOW },
+      overrides: { vite: FLOOR },
+    });
     await expect(
       strategy.apply(sourcePath, destPath, PACKAGE_JSON, createContext())
     ).rejects.toThrow("would widen if rewritten");
@@ -105,6 +138,7 @@ describe("refused $name rewrite: the printed remedy", () => {
       name: "host",
       dependencies: TS_DEPS,
       devDependencies: { vite: suggested },
+      overrides: { vite: FLOOR },
     });
 
     const result = await strategy.apply(

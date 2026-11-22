@@ -1,4 +1,4 @@
 display_name: "Github PRD Intake"
-short_description: "Scans a GitHub repository for issues carrying the configured `ready` PRD label and runs the first eligible one through the dry-run…"
+short_description: "Run one cycle of GitHub PRD intake: take the first ready PRD issue, validate it, and either create its tickets and mark it ticketed or post…"
 default_prompt:
-  - "Use $lisa-github-prd-intake: Scans a GitHub repository for issues carrying the configured `ready` PRD label and runs the first eligible one through the dry-run…."
+  - "Use $lisa-github-prd-intake: Run one cycle of GitHub PRD intake: take the first ready PRD issue, validate it, and either create its tickets and mark it ticketed or post…."

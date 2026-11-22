@@ -18,7 +18,11 @@
  * background sessions (`claude --bg`, `claude agents`), cross-session
  * messaging and channels, which no other supported agent has. Codex, Cursor,
  * OpenCode, Antigravity, Copilot and Devin can run the setup-time subcommands
- * (init-config, store-token, trust-status, coexistence, validate, start), and
+ * (init-config, store-token into the configured secrets provider,
+ * trust-status, coexistence, validate, start), `status` (pending questions
+ * and their answerCommand) and `answer` (an operator answering a pending
+ * question at the terminal), from the Claude Code plugin install or the npm
+ * package only (never the Codex overlay copy), and
  * `start` hosts a Claude Code manager in tmux whatever agent ran it. Note that
  * trust-status reads Claude Code's own trust record, which is the one that
  * matters: workers are always Claude Code. They cannot run a manager cycle
@@ -34,6 +38,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
+import { answerPlan, channelAnswer } from "./cli-answer-record.mjs";
 import {
   LEDGER_ACTION_NAMES,
   blockedPlan,
@@ -41,8 +46,20 @@ import {
   recordCycle,
   route,
 } from "./cli-cycle.mjs";
+import { answer, itemAnswer, markPlan } from "./cli-human.mjs";
+import { cycle } from "./cyclers.mjs";
+import { orphanPlan } from "./cli-orphans.mjs";
+import { overruledPlan } from "./cli-overruled.mjs";
 import { repoDir, start, status, stop, validate } from "./cli-manager.mjs";
 import { queue } from "./cli-queue.mjs";
+import { staleLinksConfirm, staleLinksPlan } from "./cli-stale-links.mjs";
+import {
+  staleLinksPending,
+  staleLinksPosted,
+  staleLinksReport,
+  staleLinksRestored,
+  staleLinksVerify,
+} from "./cli-stale-links-results.mjs";
 import { CliError, EXIT } from "./cli-runtime.mjs";
 import {
   coexistence,
@@ -60,15 +77,20 @@ const MEASURE = { "max-workers": text, meminfo: text };
 /** Each subcommand: handler, accepted flags, and how many positionals. */
 const COMMANDS = {
   capacity: { run: capacity, options: MEASURE, positionals: 0 },
-  spawn: { run: spawn, options: { ...MEASURE, repo: text }, positionals: 1 },
+  spawn: {
+    run: spawn,
+    options: { ...MEASURE, repo: text, assignees: text },
+    positionals: 1,
+  },
   resume: { run: resume, options: {}, positionals: 1 },
   classify: { run: classify, options: {}, positionals: 1 },
   status: { run: status, options: {}, positionals: 0 },
+  cycle: { run: cycle, options: {}, positionals: 0 },
   start: { run: start, options: { "settle-ms": text }, positionals: 0 },
   stop: { run: stop, options: {}, positionals: 0 },
   "store-token": {
     run: storeToken,
-    options: { replace: flag, "from-clipboard": flag },
+    options: { replace: flag, "from-clipboard": flag, "vault-project": text },
     positionals: 0,
   },
   "trust-status": { run: trustStatus, options: {}, positionals: 0 },
@@ -81,7 +103,7 @@ const COMMANDS = {
   validate: { run: validate, options: {}, positionals: 0 },
   "init-config": {
     run: initConfig,
-    options: { slug: text, write: flag },
+    options: { slug: text, write: flag, notify: text },
     positionals: 0,
   },
   queue: {
@@ -106,6 +128,70 @@ const COMMANDS = {
     options: { input: text, ref: text },
     positionals: 0,
   },
+  "mark-plan": {
+    run: markPlan,
+    options: {
+      kind: text,
+      cause: text,
+      "item-label": { ...text, multiple: true },
+    },
+    positionals: 1,
+  },
+  "overruled-plan": {
+    run: overruledPlan,
+    options: { input: text, max: text },
+    positionals: 0,
+  },
+  "stale-links-plan": {
+    run: staleLinksPlan,
+    options: { tracker: text, input: text, max: text, "github-repo": text },
+    positionals: 0,
+  },
+  "stale-links-confirm": {
+    run: staleLinksConfirm,
+    options: { tracker: text, input: text, plan: text, "github-repo": text },
+    positionals: 0,
+  },
+  "stale-links-verify": {
+    run: staleLinksVerify,
+    options: {
+      tracker: text,
+      input: text,
+      plan: text,
+      blockers: text,
+      "github-repo": text,
+    },
+    positionals: 0,
+  },
+  "stale-links-pending": {
+    run: staleLinksPending,
+    options: {},
+    positionals: 0,
+  },
+  "stale-links-posted": {
+    run: staleLinksPosted,
+    options: { ref: text, removed: text, failed: flag },
+    positionals: 0,
+  },
+  "stale-links-restored": {
+    run: staleLinksRestored,
+    options: { tracker: text, input: text, ref: text, "github-repo": text },
+    positionals: 0,
+  },
+  "stale-links-report": {
+    run: staleLinksReport,
+    options: { input: text },
+    positionals: 0,
+  },
+  "orphan-plan": {
+    run: orphanPlan,
+    options: { input: text, max: text, "stale-hours": text },
+    positionals: 0,
+  },
+  answer: { run: answer, options: {}, positionals: 1 },
+  "item-answer": { run: itemAnswer, options: {}, positionals: 1 },
+  "channel-answer": { run: channelAnswer, options: {}, positionals: 1 },
+  "answer-plan": { run: answerPlan, options: {}, positionals: 1 },
   "record-cycle": {
     run: recordCycle,
     options: {
@@ -125,15 +211,31 @@ const LEDGER_SPECS = {
     positionals: 1,
   },
   "set-question": {
-    options: { "telegram-message-id": text, sender: text },
+    options: { "telegram-message-id": text, sender: text, kind: text },
     positionals: 1,
   },
-  "clear-question": { options: {}, positionals: 1 },
-  finish: { options: { status: text, sender: text }, positionals: 1 },
+  marked: {
+    options: { "marker-type": text, marker: text, "comment-id": text },
+    positionals: 1,
+  },
+  "clear-question": {
+    options: { "reset-attempts": flag, "expect-answer-at": text },
+    positionals: 1,
+  },
+  finish: {
+    options: { status: text, sender: text, "setup-gap": flag },
+    positionals: 1,
+  },
   "validation-failed": { options: { "updated-at": text }, positionals: 1 },
   "validation-cleared": { options: {}, positionals: 1 },
+  "clear-setup-gap": { options: {}, positionals: 1 },
   control: {
-    options: { paused: text, "max-workers": text, me: text },
+    options: {
+      paused: text,
+      "max-workers": text,
+      me: text,
+      "hold-digest": text,
+    },
     positionals: 0,
   },
 };

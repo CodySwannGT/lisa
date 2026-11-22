@@ -152,7 +152,7 @@ catch (error) { console.log(JSON.stringify({ authored: error instanceof HistoryS
         ])
           expect(String(output)).not.toContain(canary);
         const expectedCalls = (
-          phase === "fetch" ? ["fetch"] : ["fetch", "body"]
+          phase === "fetch" ? ["fetch", "fetch"] : ["fetch", "body"]
         )
           .map(value => `${JSON.stringify(value)}\n`)
           .join("");

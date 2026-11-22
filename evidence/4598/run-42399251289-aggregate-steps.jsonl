@@ -1,0 +1,37 @@
+{"completedAt":"2026-11-07T18:11:11Z","conclusion":"success","name":"Set up job","startedAt":"2026-11-07T18:11:09Z"}
+{"completedAt":"2026-11-07T18:11:11Z","conclusion":"skipped","name":"🚨 Fail if the unit-test shards did not pass","startedAt":"2026-11-07T18:11:11Z"}
+{"completedAt":"2026-11-07T18:11:23Z","conclusion":"success","name":"📥 Checkout repository","startedAt":"2026-11-07T18:11:11Z"}
+{"completedAt":"2026-11-07T18:11:23Z","conclusion":"success","name":"📎 Fetch retained nightly guard release tags","startedAt":"2026-11-07T18:11:23Z"}
+{"completedAt":"2026-11-07T18:11:25Z","conclusion":"success","name":"📎 Fetch export-removal witness history","startedAt":"2026-11-07T18:11:23Z"}
+{"completedAt":"2026-11-07T18:11:29Z","conclusion":"success","name":"Provision separately qualified Lisa updater test runtime","startedAt":"2026-11-07T18:11:25Z"}
+{"completedAt":"2026-11-07T18:11:29Z","conclusion":"success","name":"Preserve actual updater test executable before selecting shared Node","startedAt":"2026-11-07T18:11:29Z"}
+{"completedAt":"2026-11-07T18:11:35Z","conclusion":"success","name":"🔧 Setup Node.js","startedAt":"2026-11-07T18:11:29Z"}
+{"completedAt":"2026-11-07T18:11:36Z","conclusion":"success","name":"🍞 Setup Bun","startedAt":"2026-11-07T18:11:35Z"}
+{"completedAt":"2026-11-07T18:11:42Z","conclusion":"success","name":"💾 Restore package downloads","startedAt":"2026-11-07T18:11:36Z"}
+{"completedAt":"2026-11-07T18:11:52Z","conclusion":"success","name":"📦 Install dependencies","startedAt":"2026-11-07T18:11:42Z"}
+{"completedAt":"2026-11-07T18:11:52Z","conclusion":"success","name":"🎛️ Resolve the test-correctness gate","startedAt":"2026-11-07T18:11:52Z"}
+{"completedAt":"2026-11-07T18:11:52Z","conclusion":"success","name":"🧭 Record which registry copy this job resolved","startedAt":"2026-11-07T18:11:52Z"}
+{"completedAt":"2026-11-07T18:11:52Z","conclusion":"skipped","name":"🚨 Report the unconfigured gate","startedAt":"2026-11-07T18:11:52Z"}
+{"completedAt":"2026-11-07T18:11:52Z","conclusion":"success","name":"🔍 Check for test:unit script","startedAt":"2026-11-07T18:11:52Z"}
+{"completedAt":"2026-11-07T18:11:52Z","conclusion":"skipped","name":"🧰 Start coverage service containers","startedAt":"2026-11-07T18:11:52Z"}
+{"completedAt":"2026-11-07T18:11:52Z","conclusion":"skipped","name":"🧪 Apply coverage environment","startedAt":"2026-11-07T18:11:52Z"}
+{"completedAt":"2026-11-07T18:11:52Z","conclusion":"success","name":"🧪 Verify the configured gate runner is installed","startedAt":"2026-11-07T18:11:52Z"}
+{"completedAt":"2026-11-07T18:11:54Z","conclusion":"success","name":"📥 Download every unit-test shard","startedAt":"2026-11-07T18:11:52Z"}
+{"completedAt":"2026-11-07T18:11:54Z","conclusion":"success","name":"🧩 Arm the unit-test shard merge","startedAt":"2026-11-07T18:11:54Z"}
+{"completedAt":"2026-11-07T18:12:14Z","conclusion":"success","name":"🧪 Run the test-correctness gate","startedAt":"2026-11-07T18:11:54Z"}
+{"completedAt":"2026-11-07T18:12:14Z","conclusion":"skipped","name":"🟡 Report the optional gate that failed","startedAt":"2026-11-07T18:12:14Z"}
+{"completedAt":"2026-11-07T18:12:14Z","conclusion":"skipped","name":"🧪 Run unit tests with coverage","startedAt":"2026-11-07T18:12:14Z"}
+{"completedAt":"2026-11-07T18:12:38Z","conclusion":"success","name":"Execute and name Node 24 regression specs","startedAt":"2026-11-07T18:12:14Z"}
+{"completedAt":"2026-11-07T18:12:59Z","conclusion":"success","name":"Execute and name Rails hook installation regression specs","startedAt":"2026-11-07T18:12:38Z"}
+{"completedAt":"2026-11-07T18:13:17Z","conclusion":"success","name":"Execute and name nightly discovery regression specs","startedAt":"2026-11-07T18:12:59Z"}
+{"completedAt":"2026-11-07T18:13:35Z","conclusion":"success","name":"Execute and name required-check registration regression specs","startedAt":"2026-11-07T18:13:17Z"}
+{"completedAt":"2026-11-07T18:14:18Z","conclusion":"success","name":"Execute and name host-name target-scope regression cases","startedAt":"2026-11-07T18:13:35Z"}
+{"completedAt":"2026-11-07T18:16:39Z","conclusion":"success","name":"Execute and name completion authorization regression specs","startedAt":"2026-11-07T18:14:18Z"}
+{"completedAt":"2026-11-07T18:16:39Z","conclusion":"success","name":"📦 Name the coverage artifact","startedAt":"2026-11-07T18:16:39Z"}
+{"completedAt":"2026-11-07T18:16:41Z","conclusion":"success","name":"📤 Upload coverage for the scan job","startedAt":"2026-11-07T18:16:39Z"}
+{"completedAt":"2026-11-07T18:16:41Z","conclusion":"skipped","name":"⏭️ Skip unit tests (no test:unit script)","startedAt":"2026-11-07T18:16:41Z"}
+{"completedAt":"2026-11-07T18:16:42Z","conclusion":"success","name":"Post 🍞 Setup Bun","startedAt":"2026-11-07T18:16:41Z"}
+{"completedAt":"2026-11-07T18:16:42Z","conclusion":"success","name":"Post 🔧 Setup Node.js","startedAt":"2026-11-07T18:16:42Z"}
+{"completedAt":"2026-11-07T18:16:42Z","conclusion":"success","name":"Post Provision separately qualified Lisa updater test runtime","startedAt":"2026-11-07T18:16:42Z"}
+{"completedAt":"2026-11-07T18:16:42Z","conclusion":"success","name":"Post 📥 Checkout repository","startedAt":"2026-11-07T18:16:42Z"}
+{"completedAt":"2026-11-07T18:16:42Z","conclusion":"success","name":"Complete job","startedAt":"2026-11-07T18:16:42Z"}

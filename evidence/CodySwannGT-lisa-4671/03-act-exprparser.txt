@@ -1,0 +1,163 @@
+=== $ go run . .github/workflows/quality-rails.yml   (nektos/act v0.2.97 pkg/exprparser)
+AC-1 (neither input passed): inputs.database_image="" inputs.database_version=""
+  mutation             postgres -> postgres:16                                                                              expected=postgres:16 ok=true 
+  test-mysql           mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-mysql-shard     mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-postgres        postgres -> postgres:16                                                                              expected=postgres:16 ok=true 
+  test-postgres-shard  postgres -> postgres:16                                                                              expected=postgres:16 ok=true 
+AC-2 (database_version=17): inputs.database_image="" inputs.database_version="17"
+  mutation             postgres -> postgres:17                                                                              expected=postgres:17 ok=true 
+  test-mysql           mysql    -> mysql:17                                                                                 expected=mysql:17 ok=true 
+  test-mysql-shard     mysql    -> mysql:17                                                                                 expected=mysql:17 ok=true 
+  test-postgres        postgres -> postgres:17                                                                              expected=postgres:17 ok=true 
+  test-postgres-shard  postgres -> postgres:17                                                                              expected=postgres:17 ok=true 
+AC-3 (database_image=digest pin): inputs.database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" inputs.database_version=""
+  mutation             postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+  test-mysql           mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-mysql-shard     mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+AC-3b (database_image=digest pin + database_version=17): inputs.database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" inputs.database_version="17"
+  mutation             postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+  test-mysql           mysql    -> mysql:17                                                                                 expected=mysql:17 ok=true 
+  test-mysql-shard     mysql    -> mysql:17                                                                                 expected=mysql:17 ok=true 
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+AC-3c (database_image=tag ref): inputs.database_image="pgvector/pgvector:pg17" inputs.database_version=""
+  mutation             postgres -> pgvector/pgvector:pg17                                                                   expected=pgvector/pgvector:pg17 ok=true 
+  test-mysql           mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-mysql-shard     mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-postgres        postgres -> pgvector/pgvector:pg17                                                                   expected=pgvector/pgvector:pg17 ok=true 
+  test-postgres-shard  postgres -> pgvector/pgvector:pg17                                                                   expected=pgvector/pgvector:pg17 ok=true 
+AC-4 (database_image set, database_version=8.4): inputs.database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" inputs.database_version="8.4"
+  mutation             postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+  test-mysql           mysql    -> mysql:8.4                                                                                expected=mysql:8.4 ok=true 
+  test-mysql-shard     mysql    -> mysql:8.4                                                                                expected=mysql:8.4 ok=true 
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+RESULT: PASS
+exit=0
+
+=== $ go run . evidence/CodySwannGT-lisa-4671/controls/quality-rails.base-24d0d26b34.yml   (nektos/act v0.2.97 pkg/exprparser)
+AC-1 (neither input passed): inputs.database_image="" inputs.database_version=""
+  mutation             postgres -> postgres:16                                                                              expected=postgres:16 ok=true 
+  test-mysql           mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-mysql-shard     mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-postgres        postgres -> postgres:16                                                                              expected=postgres:16 ok=true 
+  test-postgres-shard  postgres -> postgres:16                                                                              expected=postgres:16 ok=true 
+AC-2 (database_version=17): inputs.database_image="" inputs.database_version="17"
+  mutation             postgres -> postgres:17                                                                              expected=postgres:17 ok=true 
+  test-mysql           mysql    -> mysql:17                                                                                 expected=mysql:17 ok=true 
+  test-mysql-shard     mysql    -> mysql:17                                                                                 expected=mysql:17 ok=true 
+  test-postgres        postgres -> postgres:17                                                                              expected=postgres:17 ok=true 
+  test-postgres-shard  postgres -> postgres:17                                                                              expected=postgres:17 ok=true 
+AC-3 (database_image=digest pin): inputs.database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" inputs.database_version=""
+  mutation             postgres -> postgres:16                                                                              expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false 
+  test-mysql           mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-mysql-shard     mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-postgres        postgres -> postgres:16                                                                              expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false 
+  test-postgres-shard  postgres -> postgres:16                                                                              expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false 
+AC-3b (database_image=digest pin + database_version=17): inputs.database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" inputs.database_version="17"
+  mutation             postgres -> postgres:17                                                                              expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false 
+  test-mysql           mysql    -> mysql:17                                                                                 expected=mysql:17 ok=true 
+  test-mysql-shard     mysql    -> mysql:17                                                                                 expected=mysql:17 ok=true 
+  test-postgres        postgres -> postgres:17                                                                              expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false 
+  test-postgres-shard  postgres -> postgres:17                                                                              expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false 
+AC-3c (database_image=tag ref): inputs.database_image="pgvector/pgvector:pg17" inputs.database_version=""
+  mutation             postgres -> postgres:16                                                                              expected=pgvector/pgvector:pg17 ok=false 
+  test-mysql           mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-mysql-shard     mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-postgres        postgres -> postgres:16                                                                              expected=pgvector/pgvector:pg17 ok=false 
+  test-postgres-shard  postgres -> postgres:16                                                                              expected=pgvector/pgvector:pg17 ok=false 
+AC-4 (database_image set, database_version=8.4): inputs.database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" inputs.database_version="8.4"
+  mutation             postgres -> postgres:8.4                                                                             expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false 
+  test-mysql           mysql    -> mysql:8.4                                                                                expected=mysql:8.4 ok=true 
+  test-mysql-shard     mysql    -> mysql:8.4                                                                                expected=mysql:8.4 ok=true 
+  test-postgres        postgres -> postgres:8.4                                                                             expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false 
+  test-postgres-shard  postgres -> postgres:8.4                                                                             expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false 
+RESULT: FAIL (12 mismatches)
+exit status 1
+exit=1
+
+=== $ go run . evidence/CodySwannGT-lisa-4671/controls/quality-rails.mutation-reverted.yml   (nektos/act v0.2.97 pkg/exprparser)
+AC-1 (neither input passed): inputs.database_image="" inputs.database_version=""
+  mutation             postgres -> postgres:16                                                                              expected=postgres:16 ok=true 
+  test-mysql           mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-mysql-shard     mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-postgres        postgres -> postgres:16                                                                              expected=postgres:16 ok=true 
+  test-postgres-shard  postgres -> postgres:16                                                                              expected=postgres:16 ok=true 
+AC-2 (database_version=17): inputs.database_image="" inputs.database_version="17"
+  mutation             postgres -> postgres:17                                                                              expected=postgres:17 ok=true 
+  test-mysql           mysql    -> mysql:17                                                                                 expected=mysql:17 ok=true 
+  test-mysql-shard     mysql    -> mysql:17                                                                                 expected=mysql:17 ok=true 
+  test-postgres        postgres -> postgres:17                                                                              expected=postgres:17 ok=true 
+  test-postgres-shard  postgres -> postgres:17                                                                              expected=postgres:17 ok=true 
+AC-3 (database_image=digest pin): inputs.database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" inputs.database_version=""
+  mutation             postgres -> postgres:16                                                                              expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false 
+  test-mysql           mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-mysql-shard     mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+AC-3b (database_image=digest pin + database_version=17): inputs.database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" inputs.database_version="17"
+  mutation             postgres -> postgres:17                                                                              expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false 
+  test-mysql           mysql    -> mysql:17                                                                                 expected=mysql:17 ok=true 
+  test-mysql-shard     mysql    -> mysql:17                                                                                 expected=mysql:17 ok=true 
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+AC-3c (database_image=tag ref): inputs.database_image="pgvector/pgvector:pg17" inputs.database_version=""
+  mutation             postgres -> postgres:16                                                                              expected=pgvector/pgvector:pg17 ok=false 
+  test-mysql           mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-mysql-shard     mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-postgres        postgres -> pgvector/pgvector:pg17                                                                   expected=pgvector/pgvector:pg17 ok=true 
+  test-postgres-shard  postgres -> pgvector/pgvector:pg17                                                                   expected=pgvector/pgvector:pg17 ok=true 
+AC-4 (database_image set, database_version=8.4): inputs.database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" inputs.database_version="8.4"
+  mutation             postgres -> postgres:8.4                                                                             expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false 
+  test-mysql           mysql    -> mysql:8.4                                                                                expected=mysql:8.4 ok=true 
+  test-mysql-shard     mysql    -> mysql:8.4                                                                                expected=mysql:8.4 ok=true 
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+RESULT: FAIL (4 mismatches)
+exit status 1
+exit=1
+
+=== $ go run . evidence/CodySwannGT-lisa-4671/controls/quality-rails.mysql-leak.yml   (nektos/act v0.2.97 pkg/exprparser)
+AC-1 (neither input passed): inputs.database_image="" inputs.database_version=""
+  mutation             postgres -> postgres:16                                                                              expected=postgres:16 ok=true 
+  test-mysql           mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-mysql-shard     mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-postgres        postgres -> postgres:16                                                                              expected=postgres:16 ok=true 
+  test-postgres-shard  postgres -> postgres:16                                                                              expected=postgres:16 ok=true 
+AC-2 (database_version=17): inputs.database_image="" inputs.database_version="17"
+  mutation             postgres -> postgres:17                                                                              expected=postgres:17 ok=true 
+  test-mysql           mysql    -> mysql:17                                                                                 expected=mysql:17 ok=true 
+  test-mysql-shard     mysql    -> mysql:17                                                                                 expected=mysql:17 ok=true 
+  test-postgres        postgres -> postgres:17                                                                              expected=postgres:17 ok=true 
+  test-postgres-shard  postgres -> postgres:17                                                                              expected=postgres:17 ok=true 
+AC-3 (database_image=digest pin): inputs.database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" inputs.database_version=""
+  mutation             postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+  test-mysql           mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-mysql-shard     mysql    -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=mysql:8.0 ok=false 
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+AC-3b (database_image=digest pin + database_version=17): inputs.database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" inputs.database_version="17"
+  mutation             postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+  test-mysql           mysql    -> mysql:17                                                                                 expected=mysql:17 ok=true 
+  test-mysql-shard     mysql    -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=mysql:17 ok=false 
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+AC-3c (database_image=tag ref): inputs.database_image="pgvector/pgvector:pg17" inputs.database_version=""
+  mutation             postgres -> pgvector/pgvector:pg17                                                                   expected=pgvector/pgvector:pg17 ok=true 
+  test-mysql           mysql    -> mysql:8.0                                                                                expected=mysql:8.0 ok=true 
+  test-mysql-shard     mysql    -> pgvector/pgvector:pg17                                                                   expected=mysql:8.0 ok=false 
+  test-postgres        postgres -> pgvector/pgvector:pg17                                                                   expected=pgvector/pgvector:pg17 ok=true 
+  test-postgres-shard  postgres -> pgvector/pgvector:pg17                                                                   expected=pgvector/pgvector:pg17 ok=true 
+AC-4 (database_image set, database_version=8.4): inputs.database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" inputs.database_version="8.4"
+  mutation             postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+  test-mysql           mysql    -> mysql:8.4                                                                                expected=mysql:8.4 ok=true 
+  test-mysql-shard     mysql    -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=mysql:8.4 ok=false 
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true 
+RESULT: FAIL (4 mismatches)
+exit status 1
+exit=1
+

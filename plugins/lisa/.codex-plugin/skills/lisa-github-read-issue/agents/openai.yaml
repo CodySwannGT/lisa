@@ -1,4 +1,4 @@
 display_name: "Github Read Issue"
-short_description: "Fetches the full scope of a…"
+short_description: "Fetch a GitHub issue with…"
 default_prompt:
-  - "Use $lisa-github-read-issue: Fetches the full scope of a…."
+  - "Use $lisa-github-read-issue: Fetch a GitHub issue with…."

@@ -14,7 +14,7 @@
  * evidence the dispatcher reads, by the same rules, and returns what that
  * checkout resolves right now:
  *
- *   - Six guards, first-wins PER GUARD: `scripts/lisa-hooks/` (written into a
+ *   - The census cohort, first-wins PER GUARD: `scripts/lisa-hooks/` (written into a
  *     host by `lisa apply`) shadows `plugins/lisa/hooks/` (the Lisa monorepo's
  *     own source) outright, and the shadowed copy never runs.
  *   - The aggregate takes the strongest refusal, so **the oldest resolved copy
@@ -37,7 +37,7 @@ import { readJsonOrNull } from "../utils/json-utils.js";
 import { pathExists } from "../utils/file-operations.js";
 
 /**
- * The guards the dispatcher runs, in its own order.
+ * The census cohort, in dispatcher order. The retired safety net is excluded.
  *
  * Kept as data rather than inferred from the directory listing: a census that
  * asks "which guard files are here" cannot notice a guard that is missing
@@ -45,7 +45,6 @@ import { pathExists } from "../utils/file-operations.js";
  */
 export const ENFORCEMENT_GUARDS = [
   "block-no-verify",
-  "parity-safety-net",
   "block-shell-json-parsing",
   "block-instruction-file-edits",
   "block-direct-issue-create",
@@ -62,7 +61,7 @@ export type GuardTree = "host" | "plugin";
  * others: a checkout the census could not look into has not been shown to
  * resolve anything, and has not been shown to resolve nothing either.
  */
-export type CoverageResolution = "unreadable" | "none" | "partial" | "full";
+type CoverageResolution = "unreadable" | "none" | "partial" | "full";
 
 /**
  * How old the copy in force is.
@@ -71,14 +70,10 @@ export type CoverageResolution = "unreadable" | "none" | "partial" | "full";
  * copy to be old. That value is what makes it structurally impossible to count
  * an unguarded checkout as a stale one.
  */
-export type CoverageVintage =
-  | "current"
-  | "behind"
-  | "undateable"
-  | "not-applicable";
+type CoverageVintage = "current" | "behind" | "undateable" | "not-applicable";
 
 /** One guard and the copy that would run for it, if any. */
-export interface GuardResolution {
+interface GuardResolution {
   /** Guard name, as the dispatcher spells it. */
   readonly guard: string;
   /** Tree the running copy comes from, or null when nothing resolved. */
@@ -90,7 +85,7 @@ export interface GuardResolution {
 }
 
 /** One guard tree, and the evidence that dates it. */
-export interface TreeVintage {
+interface TreeVintage {
   /** Which tree this is. */
   readonly tree: GuardTree;
   /** Absolute path of the tree. */
@@ -102,7 +97,7 @@ export interface TreeVintage {
 }
 
 /** What `lisa apply` left behind, if anything. */
-export interface ReceiptSummary {
+interface ReceiptSummary {
   /** Whether a readable receipt exists. */
   readonly present: boolean;
   /** Lisa version that completed the apply. */
@@ -120,7 +115,7 @@ export interface ReceiptSummary {
  * `node_modules` is majors behind its `package.json` resolves guards, runs
  * them, and answers every question confidently about a version nobody is using.
  */
-export interface InstallSummary {
+interface InstallSummary {
   /** Range the checkout's manifest declares, or null when it declares none. */
   readonly declared: string | null;
   /** Version actually present under `node_modules`, or null. */

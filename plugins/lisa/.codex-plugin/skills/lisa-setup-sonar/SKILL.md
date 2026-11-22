@@ -1,9 +1,9 @@
 ---
 name: lisa-setup-sonar
-description: "Configure the official…"
+description: "Set up the official SonarQube…"
 allowed-tools: ["Bash", "Read", "Write", "Edit", "AskUserQuestion", "Skill"]
 ---
-Configure the official SonarQube plugin + MCP as Lisa's single Sonar substrate across every supported coding agent. Installs/updates the SonarQube CLI, authenticates (browser login on a dev machine, or SONARQUBE_CLI_TOKEN headless), selects the Test Manager target, runs `sonar integrate <agent>` for each supported agent (Claude, Codex, Cursor, Copilot, Antigravity) and wires the MCP for OpenCode, then writes only non-secret policy to .lisa.config.json. Separate from the CI SonarCloud scan gate, which is unchanged.
+Set up the official SonarQube plugin and MCP for every supported coding agent: install the CLI, authenticate, connect each agent, and record non-secret settings in .lisa.config.json. Separate from the CI SonarCloud scan.
 
 
 # Set up SonarQube (official plugin + MCP)

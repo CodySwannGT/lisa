@@ -1,0 +1,27 @@
+# Validation Journey step 4 - workitem-ref-grammar (test-run-log)
+# HEAD d03e84394bb017ee17509c0bf9ede43fa3eab318
+$ bun run lisa-test-run -- --adapter vitest -- vitest run tests/unit/scripts/npm-update-tracker-workitem.test.ts tests/unit/scripts/npm-update-tracker-finalize.test.ts --reporter=verbose
+# (build/plugin-generation preamble and fleet-admission wait lines omitted; vitest output follows verbatim)
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4859-npm-updater-trackers
+
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-workitem.test.ts > signed work-item grammar per tracker > derives <PROJECT>-<N> for Jira and <TEAM>-<N> for Linear 1ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-workitem.test.ts > signed work-item grammar per tracker > verifies a Jira authorization and gate trailer naming PROJ-7 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-workitem.test.ts > signed work-item grammar per tracker > verifies a Linear authorization and gate trailer naming ENG-7 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-workitem.test.ts > signed work-item grammar per tracker > rejects "acme/widgets#7" under a Jira config 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-workitem.test.ts > signed work-item grammar per tracker > rejects "ENG-7" under a Jira config 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-workitem.test.ts > signed work-item grammar per tracker > rejects "proj-7" under a Jira config 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-workitem.test.ts > signed work-item grammar per tracker > rejects "PROJ-07" under a Jira config 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-workitem.test.ts > signed work-item grammar per tracker > rejects "PROJ-8" under a Jira config 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-workitem.test.ts > signed work-item grammar per tracker > rejects "PROJ-7 " under a Jira config 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-workitem.test.ts > signed work-item grammar per tracker > rejects "acme/widgets#7" under a Linear config 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-workitem.test.ts > signed work-item grammar per tracker > rejects "PROJ-7" under a Linear config 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-workitem.test.ts > signed work-item grammar per tracker > rejects "eng-7" under a Linear config 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-workitem.test.ts > signed work-item grammar per tracker > rejects a descriptor or trailer that disagrees with the allocation 0ms
+ ✓ |lisa| tests/unit/scripts/npm-update-tracker-finalize.test.ts > Linear checkpoint phase through finalizeAuthorization > verifies the signed ENG ref, proves run and claim, persists and reads back the signed checkpoint 998ms
+
+ Test Files  2 passed (2)
+      Tests  14 passed (14)
+   Start at  18:52:39
+   Duration  151.91s (transform 538ms, setup 315ms, import 535ms, tests 1.00s, environment 0ms)
+
+exit=0

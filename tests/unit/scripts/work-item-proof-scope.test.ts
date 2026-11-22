@@ -1,7 +1,7 @@
 /** Ambiguous/example declarations cannot waive actual runtime obligations. */
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import {
@@ -12,12 +12,23 @@ import {
   proofFixture,
   attachRecord,
   proofCli,
+  proofCliSpawned,
   putAsset,
   digest,
   SPEC,
   PROOF_REF,
   setApi,
 } from "../../support/work-item-proof-fixture.js";
+
+// The controlled provider answers in-process (work-item-inprocess-gh.ts), so a
+// case no longer starts a Node process per provider call. The cases on
+// proofCliSpawned keep the guard and provider as real processes, which is this
+// suite's real-boundary proof (CodySwannGT/lisa#4616, audit unit row 24).
+vi.mock("node:child_process", async original =>
+  (await import("../../support/work-item-inprocess-gh.js")).routeFakeGh(
+    await original()
+  )
+);
 
 useIoLatencyBudget();
 afterEach(cleanupFixtures);
@@ -28,7 +39,8 @@ const INVALID_PROOF = "[invalid-proof]";
 /** An internally consistent documentary waiver must not override a real target. */
 function waivedRuntime(
   fixture: ReturnType<typeof proofFixture>,
-  primary: string
+  primary: string,
+  reason = "doc-only"
 ) {
   const state = JSON.parse(
     readFileSync(fixture.env.FAKE_GH_STATE_FILE!, "utf8")
@@ -39,12 +51,12 @@ function waivedRuntime(
   Object.assign(fixture.record.obligations.remote, {
     required: false,
     status: "not-applicable",
-    reason: "doc-only",
+    reason,
   });
   Object.assign(fixture.record.obligations.delivery, {
     required: false,
     status: "not-applicable",
-    reason: "doc-only",
+    reason,
   });
   fixture.record.requirements[0]!.claim_ids = [];
   const verdict = JSON.parse(
@@ -167,7 +179,7 @@ describe("actual CLI completion scope", () => {
     );
     writeFileSync(stateFile, JSON.stringify(state));
     attachRecord(fixture);
-    const result = proofCli(fixture, ["complete", "--ref", PROOF_REF]);
+    const result = proofCliSpawned(fixture, ["complete", "--ref", PROOF_REF]);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain(COMPLETED);
     expect(readFileSync(fixture.env.FAKE_GH_UNHANDLED_FILE!, "utf8")).toBe("");
@@ -245,22 +257,28 @@ describe("actual CLI completion scope", () => {
     expect(result.stdout).toContain(INVALID_PROOF);
   });
 
-  it("permits an actual documentary leaf with explicit no-runtime scope", () => {
-    const fixture = proofFixture();
-    waivedRuntime(
-      fixture,
-      SPEC.replace(
-        "\nproduction\n",
-        "\nNone — no runtime behavior change: doc-only\n"
-      )
-    );
-    attachRecord(fixture);
-    const result = proofCli(fixture, ["complete", "--ref", PROOF_REF]);
-    expect(result.stderr).toBe("");
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain(COMPLETED);
-    expect(readFileSync(fixture.env.FAKE_GH_UNHANDLED_FILE!, "utf8")).toBe("");
-  });
+  it.each(["doc-only", "test-only"])(
+    "permits an actual %s leaf with explicit no-runtime scope",
+    reason => {
+      const fixture = proofFixture();
+      waivedRuntime(
+        fixture,
+        SPEC.replace(
+          "\nproduction\n",
+          `\nNone — no runtime behavior change: ${reason}\n`
+        ),
+        reason
+      );
+      attachRecord(fixture);
+      const result = proofCli(fixture, ["complete", "--ref", PROOF_REF]);
+      expect(result.stderr).toBe("");
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain(COMPLETED);
+      expect(readFileSync(fixture.env.FAKE_GH_UNHANDLED_FILE!, "utf8")).toBe(
+        ""
+      );
+    }
+  );
 
   it("retains unknown requirements appended after the managed usage rollup", () => {
     const fixture = proofFixture();

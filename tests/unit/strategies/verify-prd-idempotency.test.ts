@@ -19,104 +19,13 @@
  *       role (already `verified` / already `blocked`); exactly one lifecycle
  *       label/status remains — mirroring `github-prd-intake` Phase 3f.1.
  *
- * This file holds BOTH the doc-presence assertions (the skill documents the three
- * guards across both plugin roots — source of truth and generated artifact, so an
- * artifact-only edit or a missed `bun run build:plugins` fails the suite) AND the
- * executable selector logic that proves the dedupe decisions are derivable from
- * the documented markers (the [EVIDENCE: idempotent-rerun] codification). Split
- * out of verify-prd-scaffold.test.ts to keep each file within the max-lines
- * budget, mirroring how verify-prd-guard-logic.test.ts was split for #599.
+ * This file holds the executable selector logic that proves the dedupe
+ * decisions are derivable from the documented markers (the
+ * [EVIDENCE: idempotent-rerun] codification). The skill's prose describing the
+ * three guards is not pinned (#4867).
  * @module tests/unit/strategies/verify-prd-idempotency
  */
-import { readFileSync } from "node:fs";
-import path from "node:path";
-
 import { describe, expect, it } from "vitest";
-
-/** Both plugin roots: source of truth and generated artifact. */
-const PLUGIN_ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
-
-/** The vendor-neutral rule the idempotency layer cites by slug. */
-const RULE_SLUG = "prd-lifecycle-rollup";
-
-/** Relative path of the skill within a plugin root. */
-const SKILL_REL = "skills/lisa-verify-prd/SKILL.md";
-
-/** The stable sentinel markers the idempotency layer documents. */
-const EVIDENCE_MARKER = "<!-- lisa:verify-prd-evidence -->";
-const FAILURE_MARKER = "<!-- lisa:verify-prd-failure-report -->";
-const FIX_MARKER_PREFIX = "<!-- lisa:verify-prd-fix";
-
-const read = (root: string, rel: string): string =>
-  readFileSync(path.resolve(root, rel), "utf8");
-
-describe("verify-prd idempotency (#600)", () => {
-  describe.each(PLUGIN_ROOTS)("%s", root => {
-    describe(SKILL_REL, () => {
-      const skill = read(root, SKILL_REL);
-
-      // (0) Idempotency is now IN SCOPE — the frontmatter and scope no longer
-      //     defer it to a sibling.
-      it("declares idempotency in scope, not deferred to sibling work", () => {
-        // A dedicated Phase 8 exists for idempotency.
-        expect(skill).toMatch(/Phase 8[^]*Idempotency/i);
-        // The frontmatter no longer says idempotency is sibling work.
-        expect(skill).not.toMatch(
-          /[Rr]e-run idempotency is handled by sibling work/
-        );
-        // It is no longer listed as out-of-scope sibling work.
-        expect(skill).not.toMatch(/Idempotency.{0,6}\(#600\).{0,40}sibling/i);
-      });
-
-      // (1) Evidence + failure-report comments: stable sentinel + regenerate.
-      it("documents stable sentinels and regenerate-in-place for both comments", () => {
-        expect(skill).toContain(EVIDENCE_MARKER);
-        expect(skill).toContain(FAILURE_MARKER);
-        // Regenerate in place / edit existing — explicitly NOT append.
-        expect(skill).toMatch(/regenerate[^]*in place|edit it in place/i);
-        expect(skill).toMatch(/never append|not[^]*append/i);
-        // Cites the prd-backlink regenerate-don't-append precedent.
-        expect(skill).toMatch(/prd-backlink/);
-      });
-
-      // (2) Fix issues: dedupe by stable marker, reference don't duplicate.
-      it("documents fix-issue dedupe by a stable marker (match by ref, not title)", () => {
-        expect(skill).toContain(FIX_MARKER_PREFIX);
-        // The marker is keyed by PRD ref + requirement identity.
-        expect(skill).toMatch(/prd=[^]*req=|PRD-ref \+ requirement/i);
-        // Reference/update an existing OPEN fix issue rather than duplicating.
-        expect(skill).toMatch(/reference[^]*not[^]*duplicate|never duplicate/i);
-        expect(skill).toMatch(
-          /existing[^]*open[^]*fix issue|open[^]*fix issue/i
-        );
-        // The rollup dedupe-key discipline: match by stable ref, never by title.
-        expect(skill).toMatch(
-          /match by[^]*stable ref|stable ref, never by title/i
-        );
-      });
-
-      // (3) Lifecycle transition: no-op when already at target role.
-      it("documents a no-op transition when the PRD already carries the target role", () => {
-        expect(skill).toMatch(/no-op if already verified/i);
-        expect(skill).toMatch(/no-op if already ticketed/i);
-        // Single-label invariant: exactly one lifecycle label/status remains.
-        expect(skill).toMatch(/single-label invariant/i);
-        expect(skill).toMatch(
-          /exactly \*{0,2}one\*{0,2} (PRD-)?lifecycle label/i
-        );
-        // Mirrors github-prd-intake Phase 3f.1's already-shipped guard.
-        expect(skill).toMatch(/github-prd-intake/);
-        expect(skill).toMatch(/3f\.1/);
-      });
-
-      // (4) Cites the rule by slug — consumer, not a second source of truth.
-      it("cites prd-lifecycle-rollup for the idempotency dedupe key", () => {
-        expect(skill).toContain(RULE_SLUG);
-        expect(skill).toMatch(/idempotency dedupe key/i);
-      });
-    });
-  });
-});
 
 /**
  * A PRD comment as the skill reads it back when deciding whether to regenerate or

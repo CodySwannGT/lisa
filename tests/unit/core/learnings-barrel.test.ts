@@ -17,6 +17,7 @@ import {
   readProjectConfig,
   resolveLearningsSettings,
   resolveProjectLearningsFile,
+  retireLearningEntry,
 } from "../../../src/core/learnings.js";
 
 /** Every symbol the skill's documented snippets invoke on the barrel. */
@@ -28,6 +29,7 @@ const REQUIRED_BARREL_FUNCTIONS = [
   ["persistLearningEntry", persistLearningEntry],
   ["persistConsolidatedLearning", persistConsolidatedLearning],
   ["confirmLearningEntry", confirmLearningEntry],
+  ["retireLearningEntry", retireLearningEntry],
   ["projectLearnings", projectLearnings],
   ["buildUpstreamAttributionIssueBody", buildUpstreamAttributionIssueBody],
 ] as const;

@@ -1,8 +1,8 @@
 ---
 name: harper-auth
-description: "adding or debugging Harper…"
+description: "Add or debug Harper…"
 ---
-This skill should be used when adding or debugging Harper (HarperDB/Fabric) authentication and authorization - roles.yaml, user and role Operations API calls, Basic auth, JWT operation tokens, exported-resource permissions, and Resource context.user checks. Pairs with harper-config-yaml, harper-resources, harper-rest-queries, and harper-operations.
+Add or debug Harper (HarperDB/Fabric) authentication and authorization: roles.yaml, users and roles, Basic auth, JWT tokens, resource permissions, and context.user checks.
 
 
 # Harper Auth

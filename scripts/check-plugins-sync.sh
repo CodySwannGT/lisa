@@ -7,9 +7,10 @@
 # plugins/. Both halves are checked here now, by the same mechanism.
 #
 # The plugins/ half. This guards against editing the
-# build artifact directly: build-plugins.sh runs `rm -rf plugins/lisa && cp -r
-# plugins/src/base`, so any artifact-only edit is silently discarded on the next
-# build/release. Two real PRs (#471, #478) were wiped this way before this check
+# build artifact directly: build-plugins.sh rebuilds every plugins/lisa* tree
+# from plugins/src and publishes it over the live one, removing anything the
+# source does not produce, so any artifact-only edit is silently discarded on
+# the next build/release. Two real PRs (#471, #478) were wiped this way before this check
 # existed.
 #
 # The check is a reproducibility test: regenerate the artifacts from source and
@@ -22,7 +23,21 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
 
-if [ -n "$(git status --porcelain -- plugins/ 2>/dev/null)" ]; then
+# Build once per push (CodySwannGT/lisa#4595). When the gate runner already
+# built this exact tree and its marker records plugins/ and every materialized
+# path as CLEAN before that build, the build it ran is the rebuild this check
+# would run: skip both the pre-build refusals (any dirt now is the build's own
+# output, which is precisely what the diff below must see) and the rebuild, and
+# go straight to the diff. Without a matching marker this behaves as before.
+MATERIALIZED_MANIFEST="$ROOT_DIR/plugins/materialized-artifacts.json"
+marker_built=0
+if [ -n "${LISA_BUILD_MARKER:-}" ] &&
+  node "$ROOT_DIR/scripts/build-unless-marked.mjs" --probe-plugins; then
+  marker_built=1
+  committed_manifest_paths="$(git show HEAD:plugins/materialized-artifacts.json 2>/dev/null | jq -r '.[]' | LC_ALL=C sort)"
+fi
+
+if [ "$marker_built" -eq 0 ] && [ -n "$(git status --porcelain -- plugins/ 2>/dev/null)" ]; then
   echo "✗ plugins/ has uncommitted changes before the sync check could run." >&2
   echo "  Commit them, then re-run: bun run check:plugins" >&2
   echo "  (To set them aside instead, save a patch under your own TMPDIR — not" >&2
@@ -39,9 +54,10 @@ fi
 # silently discarded the edit, which is the precise failure the plugins/
 # pre-check exists to prevent. Absent on a first run, before any manifest has
 # been committed; the post-build check covers that case.
-MATERIALIZED_MANIFEST="$ROOT_DIR/plugins/materialized-artifacts.json"
-committed_manifest_paths=""
-if [ -f "$MATERIALIZED_MANIFEST" ]; then
+if [ "$marker_built" -eq 0 ]; then
+  committed_manifest_paths=""
+fi
+if [ "$marker_built" -eq 0 ] && [ -f "$MATERIALIZED_MANIFEST" ]; then
   committed_manifest_paths="$(jq -r '.[]' "$MATERIALIZED_MANIFEST" | LC_ALL=C sort)"
   committed_generated=()
   while IFS= read -r committed_path; do
@@ -67,7 +83,9 @@ if [ -f "$MATERIALIZED_MANIFEST" ]; then
   fi
 fi
 
-bun run build:plugins >/dev/null
+if [ "$marker_built" -eq 0 ]; then
+  bun run build:plugins >/dev/null
+fi
 
 # Did the SET of destinations change? Asked before the plugins/ diff below,
 # because the manifest lives under plugins/ and that diff would otherwise
@@ -249,3 +267,28 @@ if [ "$marketplace_fail" -ne 0 ]; then
 fi
 
 echo "✓ Marketplace registers every built plugin."
+
+# The four control commands on all seven coding agents (#5002). Everything
+# above proves the built plugins REPRODUCE from plugins/src. None of it proves a
+# command is THERE: a skill dropped from the source, withheld from one agent by
+# its generator's policy file, or missing from the folder OpenCode's installer
+# copies from regenerates just as faithfully as one that is present, and every
+# check above stays green. So the question is asked of the built files
+# directly: is each of audit, configure, enforce and attest in what each agent
+# is given, under the name its operator types, with that form stated in the
+# skill itself, and is every recorded thing an agent cannot do also stated
+# there. A failure names the agent and the skill; a pass lists all four skills
+# under each of the seven agents.
+#
+# Which commands and which agents are required is held by the program, not by
+# the record it reads, so neither can be dropped by editing a data file.
+#
+# Guarded on the record for the same reason build-plugins.sh guards its
+# materialize calls: this script also runs against isolated fixture
+# repositories that declare no control commands. That the record and the
+# program are both present in THIS repository is pinned by
+# tests/unit/controls/control-command-parity-cli.test.ts, so removing either
+# fails a test rather than quietly switching this off.
+if [ -f "$ROOT_DIR/parity/control-commands.json" ]; then
+  node "$ROOT_DIR/scripts/check-control-command-parity.mjs" --root "$ROOT_DIR"
+fi

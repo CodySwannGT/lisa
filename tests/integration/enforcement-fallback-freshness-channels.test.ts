@@ -87,10 +87,10 @@ describe("distinct installed plugin channel evidence", () => {
     const root = currentHost();
     const plugin = path.join(root, "plugins/lisa/hooks");
     mkdirSync(plugin, { recursive: true });
-    rmSync(path.join(root, "scripts/lisa-hooks/parity-safety-net.sh"));
+    rmSync(path.join(root, "scripts/lisa-hooks/block-shell-json-parsing.sh"));
     copyFileSync(
-      path.join(PLUGIN_HOOKS, "parity-safety-net.sh"),
-      path.join(plugin, "parity-safety-net.sh")
+      path.join(PLUGIN_HOOKS, "block-shell-json-parsing.sh"),
+      path.join(plugin, "block-shell-json-parsing.sh")
     );
     datePluginTree(root, "4.61.0");
     const result = driveFreshness(root, undefined, {

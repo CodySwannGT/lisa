@@ -19,6 +19,18 @@ const validInput = (): UpstreamAttributionBodyInput => ({
   upstreamCommitRefs: [PUBLIC_SHA],
 });
 
+/**
+ * Present deliberately malformed input to the builder.
+ *
+ * The builder validates `unknown` at runtime because its callers relay
+ * untrusted filings; these cases exercise that validation, so the value is
+ * asserted to the public input type at this one boundary instead of built to it.
+ * @param value Input that does not satisfy the public contract.
+ * @returns The same value, typed as the builder's public input.
+ */
+const untrusted = (value: unknown): UpstreamAttributionBodyInput =>
+  value as UpstreamAttributionBodyInput;
+
 describe("buildUpstreamAttributionIssueBody", () => {
   it("retains a typed public event contract", () => {
     const typedBuilder: (input: UpstreamAttributionBodyInput) => string =
@@ -40,14 +52,14 @@ describe("buildUpstreamAttributionIssueBody", () => {
   });
 
   it("rejects an unknown top-level field by name without reading its value", () => {
-    const input = validInput() as unknown as Record<string, unknown>;
+    const input: Record<string, unknown> = { ...validInput() };
     const readCanary = vi.fn(() => "HOST_SECRET_CANARY");
     Object.defineProperty(input, "hostProjectRawContext", {
       enumerable: true,
       get: readCanary,
     });
 
-    expect(() => buildUpstreamAttributionIssueBody(input)).toThrow(
+    expect(() => buildUpstreamAttributionIssueBody(untrusted(input))).toThrow(
       /hostProjectRawContext/
     );
     expect(readCanary).not.toHaveBeenCalled();
@@ -55,25 +67,29 @@ describe("buildUpstreamAttributionIssueBody", () => {
 
   it("rejects non-allowlisted excerpt fields by name", () => {
     expect(() =>
-      buildUpstreamAttributionIssueBody({
-        ...validInput(),
-        lisaOwnedExcerpts: [
-          {
-            file: LISA_SURFACE,
-            text: OWNED_TEXT,
-            hostPayload: "private host payload",
-          },
-        ],
-      })
+      buildUpstreamAttributionIssueBody(
+        untrusted({
+          ...validInput(),
+          lisaOwnedExcerpts: [
+            {
+              file: LISA_SURFACE,
+              text: OWNED_TEXT,
+              hostPayload: "private host payload",
+            },
+          ],
+        })
+      )
     ).toThrow(/hostPayload/);
   });
 
   it("rejects host issue links as non-public input", () => {
     expect(() =>
-      buildUpstreamAttributionIssueBody({
-        ...validInput(),
-        hostIssueLink: "https://github.com/acme/example-host/issues/42",
-      })
+      buildUpstreamAttributionIssueBody(
+        untrusted({
+          ...validInput(),
+          hostIssueLink: "https://github.com/acme/example-host/issues/42",
+        })
+      )
     ).toThrow(/hostIssueLink/i);
   });
 });

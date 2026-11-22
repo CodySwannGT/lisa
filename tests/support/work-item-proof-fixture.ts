@@ -2,13 +2,7 @@
  * Native-shaped synthetic provider data around a real disposable Git merge.
  * These payloads test authorization; they are not claimed as hosted evidence.
  */
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import {
@@ -18,6 +12,7 @@ import {
 } from "../../src/utils/usage-accounting.js";
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import {
+  cli,
   createFixture,
   githubConfig,
   git,
@@ -27,7 +22,15 @@ import {
 import { putAsset, PUBLISHER } from "./work-item-proof-assets.js";
 import { prepareProofProvider } from "./work-item-proof-resources.js";
 import { makeProofRecord } from "./work-item-proof-payload.js";
+import { resolveEstimateConfig } from "../../all/copy-overwrite/scripts/lib/work-item-estimate-config.mjs";
+import { tallyEstimate } from "../../all/copy-overwrite/scripts/lib/work-item-estimate-tally.mjs";
+import {
+  buildEstimate,
+  renderEstimateSection,
+  upsertEstimateSection,
+} from "../../all/copy-overwrite/scripts/lib/work-item-estimate.mjs";
 import { SPEC } from "./work-item-proof-spec.js";
+import { createSymlink } from "./borrowed-node-modules.mjs";
 export { SPEC } from "./work-item-proof-spec.js";
 export {
   digest,
@@ -75,6 +78,26 @@ export function proofUsage(sourceRef: string): string {
 }
 
 /**
+ * What a completed item carries under the default `workItem.estimate.required`
+ * (CodySwannGT/lisa#4956): the usage ledger, plus the estimate written at
+ * claim time with its actual tallied from that ledger.
+ * @param sourceRef - Exact canonical source work-item reference.
+ * @returns Usage section followed by the tallied estimate section.
+ */
+export function proofLedger(sourceRef: string): string {
+  const estimated = upsertEstimateSection(
+    proofUsage(sourceRef),
+    renderEstimateSection(
+      buildEstimate(
+        { tokensLow: 1_000_000, tokensHigh: 2_000_000, model: "opus" },
+        resolveEstimateConfig({})
+      )
+    )
+  );
+  return tallyEstimate(estimated);
+}
+
+/**
  * Configure the real disposable host without changing lifecycle mappings.
  * @param fixture - Owned existing host repository.
  * @returns Configured production branch.
@@ -98,7 +121,7 @@ function configureFixture(fixture: Fixture): string {
   writeFileSync(configFile, JSON.stringify(config));
   mkdirSync(path.join(fixture.root, "scripts"), { recursive: true });
   if (!existsSync(entrypoint))
-    symlinkSync(path.join(process.cwd(), ENTRYPOINT), entrypoint);
+    createSymlink(path.join(process.cwd(), ENTRYPOINT), entrypoint);
   return branch;
 }
 /**
@@ -140,7 +163,7 @@ export function proofFixture(sourceRef = PROOF_REF, existing?: Fixture) {
   );
   const merge = mergeOnMain(fixture);
   const now = new Date().toISOString();
-  const body = SPEC + proofUsage(sourceRef);
+  const body = SPEC + proofLedger(sourceRef);
   const facts = prepareProofProvider(fixture, {
     repository,
     number,
@@ -187,13 +210,49 @@ export function attachRecord(
   writeFileSync(fixture.env.FAKE_GH_STATE_FILE!, JSON.stringify(state));
 }
 
+/** What one proof CLI invocation produced, in the spawned result's shape. */
+export interface ProofOutcome {
+  status: number;
+  stderr: string;
+  stdout: string;
+}
+
 /**
- * Execute the live canonical MJS, never an app-dist replacement.
+ * Run the live canonical MJS in-process, through the shared `cli()` harness.
+ *
+ * The proof suites used to spawn the CLI for every case. A spawn costs a whole
+ * Node start and module load per case, and it hides the guard from the
+ * mutation gate, which credits only code loaded in the test's own process
+ * (CodySwannGT/lisa#4616, docs/test-audit-2026-11.md). Each proof suite keeps
+ * at least one case on {@link proofCliSpawned}, so the real executable boundary
+ * is still proven once per behaviour family; the repetitions run here.
+ *
+ * Same environment as the spawned run, including the blanked tokens. The
+ * working directory is NOT the fixture root here (the mutation gate's threads
+ * pool forbids `process.chdir`; `cli()` selects the repository through
+ * `GIT_DIR`/`GIT_WORK_TREE` instead), so a path argument must be absolute.
+ * Every one the proof suites pass is.
+ * @param fixture - Owned disposable repository and controlled provider.
+ * @param args - Exact provider or CLI argument vector.
+ * @returns Exit status (0 when unset) and captured output.
+ */
+export function proofCli(fixture: Fixture, args: string[]): ProofOutcome {
+  const outcome = cli(fixture, args, { GH_TOKEN: "", GITHUB_TOKEN: "" });
+  return {
+    status: outcome.exitCode ?? 0,
+    stderr: outcome.stderr,
+    stdout: outcome.stdout,
+  };
+}
+
+/**
+ * Execute the live canonical MJS as a real child, never an app-dist
+ * replacement. Each proof suite keeps at least one case here.
  * @param fixture - Owned disposable repository and controlled provider.
  * @param args - Exact provider or CLI argument vector.
  * @returns Actual executable exit and captured output.
  */
-export function proofCli(fixture: Fixture, args: string[]) {
+export function proofCliSpawned(fixture: Fixture, args: string[]) {
   return boundedSpawnSync({
     label: `actual completion CLI ${args[0]}`,
     command: process.execPath,

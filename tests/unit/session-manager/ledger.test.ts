@@ -45,6 +45,15 @@ const WORKER = "wk-TEAM-12-1012-0900";
 const T0 = "2026-10-12T09:00:00.000Z";
 const T1 = "2026-10-12T09:01:00.000Z";
 
+/** A pending question not yet marked on the tracker or answered (#4555). */
+const UNMARKED = {
+  markerType: null,
+  marker: null,
+  markedAt: null,
+  managerCommentIds: [],
+  answer: null,
+} as const;
+
 /** The question the lifecycle tests ask. */
 const QUESTION = "Which option?";
 
@@ -88,8 +97,9 @@ describe("ledger", () => {
     expect(await readLedger(root)).toEqual({
       version: 1,
       items: {},
-      control: { paused: false, maxWorkers: null, me: null },
+      control: { paused: false, maxWorkers: null, me: null, setupGaps: {} },
       validationFailures: {},
+      cyclers: {},
     });
   });
 
@@ -161,9 +171,11 @@ describe("ledger", () => {
     );
     expect(asked.pendingQuestion).toEqual({
       text: QUESTION,
+      kind: "worker-question",
       askedAt: T1,
       lastPingAt: T1,
       telegramMessageId: 7,
+      ...UNMARKED,
     });
     const repinged = await setPendingQuestion(
       root,
@@ -172,10 +184,34 @@ describe("ledger", () => {
     );
     expect(repinged.pendingQuestion).toEqual({
       text: QUESTION,
+      kind: "worker-question",
       askedAt: T1,
       lastPingAt: "2026-10-12T09:02:00.000Z",
       telegramMessageId: 9,
+      ...UNMARKED,
     });
+    const cleared = await clearPendingQuestion(root, { ref: REF }, seams);
+    expect(cleared.pendingQuestion).toBeNull();
+  });
+
+  it("keeps a recorded question across a later finish and spawn (#4571)", async () => {
+    // Only clearPendingQuestion clears a question. A finish or a fresh spawn
+    // that ran after it was recorded used to drop the question, its queued
+    // answer and the tracker marker the manager must remove.
+    await spawn("s1");
+    await setPendingQuestion(
+      root,
+      { ref: REF, text: QUESTION, telegramMessageId: 7 },
+      seams
+    );
+    const finished = await recordFinish(
+      root,
+      { ref: REF, status: "FAILED", reason: "stopped" },
+      seams
+    );
+    expect(finished.pendingQuestion).toMatchObject({ text: QUESTION });
+    const respawned = await spawn("s2", "wk-TEAM-12-1012-0930");
+    expect(respawned.pendingQuestion).toMatchObject({ text: QUESTION });
     const cleared = await clearPendingQuestion(root, { ref: REF }, seams);
     expect(cleared.pendingQuestion).toBeNull();
   });
@@ -247,6 +283,7 @@ describe("ledger", () => {
       paused: true,
       maxWorkers: 2,
       me: "operator-id",
+      setupGaps: {},
     });
     await setControl(root, { maxWorkers: null, paused: false });
     expect((await readLedger(root)).control).toMatchObject({

@@ -5,9 +5,9 @@
 # expects an allow/deny JSON object on stdout. The canonical hook consumes the
 # Claude Bash-hook envelope and communicates denial with exit status 2. This
 # adapter only translates protocols; all classification stays in the canonical
-# block-shell-json-parsing.sh beside it (same delegation pattern as
-# parity-safety-net.agy.sh). Fail-open on missing runtimes: unlike the
-# safety net, a missed nudge here risks a fragile script, not data loss.
+# block-shell-json-parsing.sh beside it (same delegation pattern as the other
+# *.agy.sh adapters). Fail-open on missing runtimes: a missed nudge here risks
+# a fragile script, not data loss.
 set -uo pipefail
 
 allow() {

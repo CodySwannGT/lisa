@@ -1,4 +1,4 @@
 display_name: "Design Intake"
-short_description: "Design-handoff gate for a work item with a UI surface"
+short_description: "Check whether a UI work item has every design value it needs bound to the design source's variables"
 default_prompt:
-  - "Use $lisa-design-intake: Design-handoff gate for a work item with a UI surface."
+  - "Use $lisa-design-intake: Check whether a UI work item has every design value it needs bound to the design source's variables."

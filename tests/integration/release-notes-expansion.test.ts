@@ -28,7 +28,7 @@ describe("release notes shell expansion", () => {
   // Quoted heredoc delimiters ('EOF') suppress command substitution, which
   // shipped the literal text $(date ...) into published release notes.
   it("expands $(date) in release notes via an unquoted heredoc", () => {
-    const steps = releaseWorkflow.jobs.github_release.steps ?? [];
+    const steps = releaseWorkflow.jobs.github_release?.steps ?? [];
     const notes = steps.find(s => s.name === "Generate Release Notes");
 
     expect(notes?.run).toContain("cat > RELEASE_NOTES.md << EOF");
@@ -36,7 +36,7 @@ describe("release notes shell expansion", () => {
   });
 
   it("expands the duration arithmetic in the final release summary", () => {
-    const steps = releaseWorkflow.jobs.release_summary.steps ?? [];
+    const steps = releaseWorkflow.jobs.release_summary?.steps ?? [];
     const summary = steps.find(s => s.name === "Generate Final Summary");
 
     expect(summary?.run).toContain("cat >> $GITHUB_STEP_SUMMARY << EOF");

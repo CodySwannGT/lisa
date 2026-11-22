@@ -25,9 +25,8 @@ export const GATE_REPORT_VERSION = 2;
  * One fact, in one of the three states.
  *
  * `unknown` and `not-applicable` both carry a machine `reason` and a human
- * `message`, matching the live-status `ProbeResult` contract the console
- * already renders — a report that says "not checkable here" without saying why
- * is indistinguishable from a bug.
+ * `message` — a report that says "not checkable here" without saying why is
+ * indistinguishable from a bug.
  */
 export type Finding<T> =
   | { readonly state: "verified"; readonly value: T }
@@ -120,6 +119,11 @@ export interface GateMomentCell {
   readonly task: string | null;
   /** The task with the project's runner in front of it. */
   readonly command: string | null;
+  /** Every declared part at this moment, in declaration order. */
+  readonly parts?: readonly {
+    readonly scope: string;
+    readonly argv: readonly string[] | null;
+  }[];
   /** Which of the four sources supplied the task. */
   readonly provenance: TaskProvenance;
   /** Whether `package.json` scripts actually define that task. */
@@ -307,21 +311,6 @@ export interface GateReport {
   /** Counts. */
   readonly summary: GateReportSummary;
 }
-
-/**
- * Who owns a finding the report could not turn into a pass.
- *
- * The report has two audiences and they are not the same person. A consumer
- * asks "what is wrong with MY project, that I can fix"; showing them Lisa's
- * own unfixed defect as fifty-two blanks in their report tells them their
- * project is largely unverified when nothing about it is at fault.
- *
- * Attribution, never suppression. A finding is reattributed away from the
- * project only when it is provably not the project's — a missing script, an
- * absent declaration or an unrunnable command stays firmly in the project's
- * view however unflattering, and no reattribution ever turns a row green.
- */
-export type Attribution = "project" | "lisa" | "third-party";
 
 /**
  * One limitation of Lisa itself, stated once rather than per affected cell.

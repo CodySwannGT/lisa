@@ -157,7 +157,7 @@ export function isFloatingSpec(spec: string): boolean {
  * the worst direction to err for a confidence model.
  */
 const AUDIT_GATE_PATTERN =
-  /\b(npm|bun|yarn|pnpm)\s+audit\b|audit-ci|osv-scanner|dependency-review-action|\bsnyk\b|\btrivy\b|\bgrype\b/i;
+  /\b(npm|bun|yarn|pnpm)\s+audit\b|lisa-audit\.mjs|audit-ci|osv-scanner|dependency-review-action|\bsnyk\b|\btrivy\b|\bgrype\b/i;
 
 /** Package managers whose install command can enforce a committed lockfile. */
 const FROZEN_INSTALL_MANAGERS: ReadonlySet<string> = new Set([

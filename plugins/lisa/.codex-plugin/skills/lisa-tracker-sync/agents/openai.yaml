@@ -1,4 +1,4 @@
 display_name: "Tracker Sync"
-short_description: "Vendor-neutral wrapper for…"
+short_description: "Post milestone updates (plan…"
 default_prompt:
-  - "Use $lisa-tracker-sync: Vendor-neutral wrapper for…."
+  - "Use $lisa-tracker-sync: Post milestone updates (plan…."

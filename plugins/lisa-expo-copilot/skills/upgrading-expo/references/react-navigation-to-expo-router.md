@@ -37,7 +37,7 @@ npx expo-codemod sdk-56-expo-router-react-navigation-replace '**/*.{ts,tsx,js,js
 
 **Stack caveat:** Do NOT rewrite `import { Stack } from "expo-router"` to `expo-router/js-stack`. The root `Stack` is the Expo Router layout component used in route files; only use `expo-router/js-stack` when replacing a `@react-navigation/stack` JS stack navigator.
 
-If you encounter a symbol that has no replacement, ask the user to file an issue in the `expo/expo` repository describing what is needed and why.
+If you encounter a symbol that has no replacement, keep its original import, and file one build-ready ticket in the project's tracker naming the symbol and what is needed, so the migration is revisited when Expo ships a replacement.
 
 ## Check for deprecated imports
 
@@ -48,7 +48,7 @@ For each symbol rewritten in step 2:
 1. Resolve the rewritten module to its source in `node_modules` (e.g., `node_modules/expo-router/build/react-navigation.d.ts`, `js-stack`, `js-tabs`, `js-top-tabs`).
 2. Look for a `@deprecated` JSDoc tag on the named export, or a runtime deprecation warning in the implementation file.
 3. If deprecated, capture both the reason and the recommended replacement from the JSDoc/comment.
-4. Report each deprecated symbol to the user with: the import path, the symbol, the deprecation reason, and the suggested replacement. Wait for the user to confirm before mass-applying further changes.
+4. Migrate each deprecated symbol to its documented replacement in the same change, and report each one with: the import path, the symbol, the deprecation reason, and the replacement applied. Where no replacement is documented, keep it and file one ticket, as above.
 
 ## Done when
 

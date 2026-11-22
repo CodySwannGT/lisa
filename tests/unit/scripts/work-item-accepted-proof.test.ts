@@ -2,7 +2,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import {
@@ -13,9 +13,22 @@ import {
   proofFixture,
   attachRecord,
   proofCli,
+  proofCliSpawned,
   PROOF_REF,
+  SPEC,
+  digest,
   putAsset,
 } from "../../support/work-item-proof-fixture.js";
+
+// The controlled provider answers in-process (work-item-inprocess-gh.ts), so a
+// case no longer starts a Node process per provider call. The cases on
+// proofCliSpawned keep the guard and provider as real processes, which is this
+// suite's real-boundary proof (CodySwannGT/lisa#4616, audit unit row 35).
+vi.mock("node:child_process", async original =>
+  (await import("../../support/work-item-inprocess-gh.js")).routeFakeGh(
+    await original()
+  )
+);
 
 const COMPLETED = "work-item completed:";
 
@@ -110,7 +123,7 @@ describe("accepted completion proof through actual CLI", () => {
   it("allows exact accepted direct completion and a repeated completion writes nothing", () => {
     const fixture = proofFixture();
     attachRecord(fixture);
-    const first = proofCli(fixture, [
+    const first = proofCliSpawned(fixture, [
       "complete",
       "--ref",
       PROOF_REF,
@@ -174,11 +187,44 @@ describe("accepted completion proof through actual CLI", () => {
     expect(observed(fixture).writes).toHaveLength(2);
   });
 
+  it.each([
+    { ending: "the full separator", legacy: SPEC },
+    {
+      ending: "one newline before the first tally",
+      legacy: `${SPEC.trimEnd()}\n`,
+    },
+  ])("finishes with a legacy digest that kept $ending", ({ legacy }) => {
+    const fixture = proofFixture();
+    const legacyDigest = digest(legacy);
+    const report = JSON.parse(
+      readFileSync(
+        path.join(fixture.env.FAKE_GH_ASSET_DIRECTORY!, "3.bin"),
+        "utf8"
+      )
+    );
+    expect(fixture.record.spec_sha256).not.toBe(legacyDigest);
+    fixture.record.spec_sha256 = legacyDigest;
+    Object.assign(
+      fixture.record.obligations.conformance.report,
+      putAsset(fixture, 3, {
+        ...report,
+        spec_sha256: legacyDigest,
+      })
+    );
+    attachRecord(fixture);
+
+    const result = proofCli(fixture, ["complete", "--ref", PROOF_REF]);
+
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain(COMPLETED);
+    expect(observed(fixture).state.state).toBe("CLOSED");
+  });
+
   it("publishes immutable proof, reads it back, and the resulting locator permits completion", () => {
     const fixture = proofFixture();
     const file = path.join(fixture.root, "record-input.json");
     writeFileSync(file, JSON.stringify(fixture.record));
-    const result = proofCli(fixture, [
+    const result = proofCliSpawned(fixture, [
       "publish-completion-proof",
       "--ref",
       PROOF_REF,

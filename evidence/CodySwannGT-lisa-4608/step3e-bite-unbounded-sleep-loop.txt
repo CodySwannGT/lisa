@@ -1,0 +1,62 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.12 /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ❯ |lisa| tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts (133 tests | 1 failed) 20ms
+     × contains no runnable instruction that starts a background watcher 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts > drive-pr-to-merge bounded CI watch (plugins/src/base/skills) > contains no runnable instruction that starts a background watcher
+AssertionError: expected [ 'while true; do sleep 30; done' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "while true; do sleep 30; done",
++ ]
+
+ ❯ tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts:178:23
+    176|         (/\bsleep\s+\d/.test(line) && !boundedGap.test(line))
+    177|     );
+    178|     expect(offenders).toEqual([]);
+       |                       ^
+    179|   });
+    180|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 132 passed (133)
+   Start at  21:50:51
+   Duration  319ms (transform 74ms, setup 122ms, import 7ms, tests 20ms, environment 0ms)
+
+vitest exit=1
+(empty above = plugins/ and tests/ clean after restore)
+diff --git a/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md b/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
+index ed4182fe06..dd9abe240a 100644
+--- a/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
++++ b/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
+@@ -756,6 +756,7 @@ required one has not registered):
+ 
+ ```bash
+ timeout 60 gh pr checks <pr> --watch --interval 10; sleep 30
++while true; do sleep 30; done
+ ```
+ 
+ Never a detached or unbounded sleep loop. After 10 re-polls with no required

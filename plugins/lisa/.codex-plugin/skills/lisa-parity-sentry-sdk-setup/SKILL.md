@@ -4,7 +4,7 @@ description: "Install and configure the…"
 allowed-tools: ["Read", "Edit", "Write", "Bash"]
 synced-from: sentry@claude-plugins-official@1.4.0
 ---
-Install and configure the Sentry SDK for a project — detect the framework/runtime, add the correct @sentry/<framework> package, initialize the client, wire the DSN through env, enable error + performance monitoring, and set up source map upload for readable stack traces. One consolidated skill covering react, nextjs, node, nestjs, express, python, django, react-native, and more. Lisa-native reimplementation of Sentry's SDK-setup suite. Use when adding Sentry to a project or fixing an existing Sentry install.
+Install and configure the Sentry SDK for a project's framework: package, client init, DSN from env, error and performance monitoring, and source maps. Use when adding Sentry or fixing an existing setup.
 
 
 # Sentry SDK Setup
@@ -179,8 +179,11 @@ once at module startup with the DSN from the environment. Await a finite positiv
 flush budget on both success and original-error paths. A false flush result or
 rejection must not turn successful queue work into a retry or replace its real
 error. Keep diagnostics local and non-throwing, and preserve the client for warm
-invocations: `close()` disables it. The following helper wraps the host's existing
-business operation; it neither mutates context nor adds a Lambda callback.
+invocations: `close()` disables it. A warm container reuses the same process, so
+run each invocation inside `Sentry.withIsolationScope()`: tags, user and
+breadcrumbs that one invocation sets then stay with that invocation instead of
+leaking into the next one's events. The following helper wraps the host's existing
+business operation; it neither mutates the Lambda context nor adds a Lambda callback.
 
 <!-- lisa-node24-unwrapped-example:start -->
 ```ts
@@ -202,24 +205,28 @@ export async function withSentryFlush<T>(
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     throw new RangeError("Choose a finite positive Sentry flush budget");
   }
-  try {
-    return await work();
-  } catch (originalError) {
+  // A fresh isolation scope per invocation: scope data set by one warm
+  // invocation must not be attached to the next invocation's events.
+  return Sentry.withIsolationScope(async () => {
     try {
-      Sentry.captureException(originalError);
-    } catch {
-      // Preserve the original handler error even if capture fails.
-    }
-    throw originalError;
-  } finally {
-    try {
-      if (!(await Sentry.flush(timeoutMs))) {
-        reportFlushProblem("Sentry flush did not finish in time");
+      return await work();
+    } catch (originalError) {
+      try {
+        Sentry.captureException(originalError);
+      } catch {
+        // Preserve the original handler error even if capture fails.
       }
-    } catch {
-      reportFlushProblem("Sentry flush rejected");
+      throw originalError;
+    } finally {
+      try {
+        if (!(await Sentry.flush(timeoutMs))) {
+          reportFlushProblem("Sentry flush did not finish in time");
+        }
+      } catch {
+        reportFlushProblem("Sentry flush rejected");
+      }
     }
-  }
+  });
 }
 ```
 <!-- lisa-node24-unwrapped-example:end -->

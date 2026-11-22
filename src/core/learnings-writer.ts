@@ -6,12 +6,19 @@ import {
   applySupersedeAliases,
   findCallerMintedAliasError,
 } from "./learnings-alias.js";
-import { type LearningEntry } from "./learnings-contract.js";
 import {
+  LEARNINGS_CONTRACT,
+  estimateLearningTokens,
+  type LearningEntry,
+} from "./learnings-contract.js";
+import {
+  LEARNINGS_OVER_BUDGET_READ_CEILING,
   LearningsBudgetError,
   assertDocumentBudget,
+  isLedgerOverBudget,
   parseLearningsFile,
   renderLearningsFile,
+  type LearningsReadOptions,
 } from "./learnings-document.js";
 import { requireIsoDate, validateLearningEntry } from "./learnings-entry.js";
 import {
@@ -137,26 +144,53 @@ function writeLearningEntriesWithLock(
 ): Promise<string> {
   return withLearningTargetLock(target, async () => {
     await assertSafeLearningParents(root, path.dirname(target));
-    const existing = await readExistingLearnings(target);
-    const entries = existing === undefined ? [] : parseLearningsFile(existing);
+    // Only a supersede can shrink the ledger, so only a supersede may open an
+    // over-cap one (CodySwannGT/lisa#4536); a plain append keeps the strict
+    // read and its budget refusal routes the capture to the overflow.
+    const readPolicy: LearningsReadOptions = {
+      allowOverBudget: supersede.length > 0,
+    };
+    const existing = await readExistingLearnings(target, readPolicy);
+    const entries =
+      existing === undefined ? [] : parseLearningsFile(existing, readPolicy);
     const plan = planLearningSupersede(entries, entry, supersede);
+    // Report stale targets BEFORE rendering: a caller guard that throws from
+    // the callback must run before a budget refusal can reach the overflow,
+    // so a refused gardening write leaves nothing on disk.
+    reportStaleSupersede(plan.stale, options);
     const aliased = aliasSupersededEntries(plan.removed, plan.entry, options);
-    const rendered = renderNextDocument(plan.retained, aliased);
-    if (plan.stale.length > 0) {
-      options.onStaleSupersede?.(plan.stale);
-      const absent = plan.stale
-        .filter(target => target.reason === "absent")
-        .map(target => target.expected.id);
-      if (absent.length > 0) options.onAbsentSupersede?.(absent);
-    }
+    const rendered = renderSupersededDocument(plan.retained, aliased, {
+      existing,
+      existingCount: entries.length,
+      removedCount: plan.removed.length,
+    });
     await writeFileAtomically(target, rendered, {
       beforeRename: async () => {
         await assertSafeLearningParents(root, path.dirname(target));
-        await assertLearningsUnchanged(target, existing);
+        await assertLearningsUnchanged(target, existing, readPolicy);
       },
     });
     return target;
   });
+}
+
+/**
+ * Tell the caller which supersede targets no longer matched their stamps.
+ * @param stale - Stale targets from the locked plan
+ * @param options - Caller diagnostics
+ */
+function reportStaleSupersede(
+  stale: readonly StaleSupersedeTarget[],
+  options: ConsolidatedLearningOptions
+): void {
+  if (stale.length === 0) {
+    return;
+  }
+  const absent = stale
+    .filter(target => target.reason === "absent")
+    .map(target => target.expected.id);
+  options.onStaleSupersede?.(stale);
+  if (absent.length > 0) options.onAbsentSupersede?.(absent);
 }
 
 /**
@@ -306,16 +340,118 @@ function renderNextDocument(
   entries: readonly LearningEntry[],
   entry: LearningEntry
 ): string {
+  const nextEntries = composeNextEntries(entries, entry);
+  const rendered = renderLearningsFile(nextEntries);
+  assertDocumentBudget(rendered, nextEntries.length, "Learnings file");
+  return rendered;
+}
+
+/** What the locked transaction knew about the ledger it is rewriting. */
+interface SupersedeBaseline {
+  /** Ledger bytes read under the lock, if any. */
+  readonly existing: string | undefined;
+  /** Entry count of the ledger read under the lock. */
+  readonly existingCount: number;
+  /** How many existing entries the plan removed. */
+  readonly removedCount: number;
+}
+
+/**
+ * Render the planned document, permitting a budget breach only when the
+ * existing ledger is already over budget and this write strictly shrinks it.
+ *
+ * An over-budget ledger used to refuse every writer, including the supersede
+ * that would bring it back down (CodySwannGT/lisa#4536). "Over budget" is
+ * {@link isLedgerOverBudget} — over the byte cap OR over `maxEntries` — the
+ * same definition the retire writer uses. On such a ledger a write is allowed
+ * when it removed at least one entry AND either the bytes strictly shrink or,
+ * when the breach is by entry count, the count strictly shrinks. A write that
+ * does neither — a plain append, or a stale stamp that removes nothing — keeps
+ * the budget refusal and its overflow routing. An in-budget ledger is
+ * unaffected.
+ *
+ * Fewer bytes alone is not enough: a non-canonical (padded) ledger re-renders
+ * smaller even when an entry is merely appended, so the removal is required —
+ * otherwise a stale supersede could push the entry count past `maxEntries`
+ * while appearing to shrink. A count-shrinking write may still add bytes, so
+ * it is also refused past {@link LEARNINGS_OVER_BUDGET_READ_CEILING}: a ledger
+ * beyond the tolerant read ceiling could not be opened by any shrink-only
+ * writer again, re-creating the lockout.
+ * @param entries - Existing entries retained by the plan
+ * @param entry - Planned entry carrying its final stable id
+ * @param baseline - What the locked read observed
+ * @returns Next canonical document
+ */
+function renderSupersededDocument(
+  entries: readonly LearningEntry[],
+  entry: LearningEntry,
+  baseline: SupersedeBaseline
+): string {
+  try {
+    return renderNextDocument(entries, entry);
+  } catch (error) {
+    if (!(error instanceof LearningsBudgetError)) {
+      throw error;
+    }
+    const nextEntries = composeNextEntries(entries, entry);
+    const rendered = renderLearningsFile(nextEntries);
+    if (permitsOverBudgetShrink(baseline, rendered, nextEntries.length)) {
+      return rendered;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Decide whether a budget-breaching write still repairs an over-budget ledger.
+ * @param baseline - What the locked read observed
+ * @param baseline.existing - Ledger bytes read under the lock, if any
+ * @param baseline.existingCount - Entry count of the ledger read under the lock
+ * @param baseline.removedCount - How many existing entries the plan removed
+ * @param rendered - Candidate next document
+ * @param nextCount - Entry count of the candidate document
+ * @returns True when the write removed an entry and strictly shrinks the breach
+ */
+function permitsOverBudgetShrink(
+  { existing, existingCount, removedCount }: SupersedeBaseline,
+  rendered: string,
+  nextCount: number
+): boolean {
+  if (existing === undefined || removedCount === 0) {
+    return false;
+  }
+  const existingBytes = estimateLearningTokens(existing);
+  if (!isLedgerOverBudget(existingBytes, existingCount)) {
+    return false;
+  }
+  const renderedBytes = estimateLearningTokens(rendered);
+  if (renderedBytes > LEARNINGS_OVER_BUDGET_READ_CEILING) {
+    return false;
+  }
+  const countBreach = existingCount > LEARNINGS_CONTRACT.maxEntries;
+  return (
+    renderedBytes < existingBytes || (countBreach && nextCount < existingCount)
+  );
+}
+
+/**
+ * Add the planned entry to the retained set in stable id order, refusing any
+ * identity collision.
+ * @param entries - Existing entries retained by the plan
+ * @param entry - Planned entry carrying its final stable id
+ * @returns Next entries, sorted by id
+ */
+function composeNextEntries(
+  entries: readonly LearningEntry[],
+  entry: LearningEntry
+): readonly LearningEntry[] {
   if (entries.some(current => current.id === entry.id)) {
     throw new Error(`Duplicate learning id: ${entry.id}`);
   }
   if (entries.some(current => current.fingerprint === entry.fingerprint)) {
     throw new Error(`Duplicate learning fingerprint: ${entry.fingerprint}`);
   }
-  const nextEntries = [...entries, entry].sort((left, right) =>
+  return [...entries, entry].sort((left, right) =>
     left.id.localeCompare(right.id)
   );
-  const rendered = renderLearningsFile(nextEntries);
-  assertDocumentBudget(rendered, nextEntries.length, "Learnings file");
-  return rendered;
 }

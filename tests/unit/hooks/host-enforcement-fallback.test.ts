@@ -81,7 +81,6 @@ const BYPASS = "git commit --no-verify -m x";
 // the reviewed one, so a guard missing from this list is an unreviewed guard.
 const GUARDS = [
   "block-no-verify",
-  "parity-safety-net",
   "block-shell-json-parsing",
   "block-instruction-file-edits",
   "block-direct-issue-create",
@@ -241,8 +240,8 @@ describe("enforcement in a host layout", () => {
     expect(runInHost(hostProject(), BYPASS)).toBe(BLOCKED);
   });
 
-  it("blocks a destructive command the safety net owns", () => {
-    expect(runInHost(hostProject(), "rm -rf $UNSET_VAR/data")).toBe(BLOCKED);
+  it("leaves the retired safety net inactive", () => {
+    expect(runInHost(hostProject(), "rm -rf $UNSET_VAR/data")).toBe(0);
   });
 
   it("lets an ordinary command through", () => {

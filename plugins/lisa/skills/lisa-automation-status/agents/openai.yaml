@@ -1,4 +1,4 @@
 display_name: "Automation Status"
-short_description: "Read-only operator surface for the current project's Lisa automation fleet"
+short_description: "Read-only view of this project's Lisa automations: compare what is scheduled against what should be, and report each job as healthy…"
 default_prompt:
-  - "Use $lisa-automation-status: Read-only operator surface for the current project's Lisa automation fleet."
+  - "Use $lisa-automation-status: Read-only view of this project's Lisa automations: compare what is scheduled against what should be, and report each job as healthy…."

@@ -81,6 +81,11 @@ on:
         required: false
         default: 1
         type: number
+      integration_test_shards:
+        description: 'Run the integration suite as this many parallel shards (1-20); 🧪 Run Integration Tests stays one check and fails unless every shard passed. Needs an integration gate task that runs jest or vitest through lisa-test-run. The default, 1, runs one unsharded job.'
+        required: false
+        default: 1
+        type: number
       moment:
         # Which set of gates applies. Every job below resolves its gate from
         # `.lisa.config.json` AT THIS MOMENT, so one input decides whether this
@@ -822,7 +827,8 @@ jobs:
             refs/tags/v4.17.16:refs/tags/v4.17.16 \
             refs/tags/v4.26.1:refs/tags/v4.26.1 \
             refs/tags/v4.26.0:refs/tags/v4.26.0 \
-            refs/tags/v4.50.3:refs/tags/v4.50.3
+            refs/tags/v4.50.3:refs/tags/v4.50.3 \
+            refs/tags/v5.14.2:refs/tags/v5.14.2
 
       - name: 🔧 Setup Node.js
         if: matrix.action == 'run'
@@ -2398,6 +2404,14 @@ jobs:
     # context and every downstream `needs.test_unit` reader key on them.
     needs: [gate_plan, test_unit_shard_plan, test_unit_shard]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test:unit,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_unit":"skip"')) }}
+    # Test-to-file access map (#4593, #4611): the Vitest presets arm a tracer
+    # when LISA_ACCESS_MAP=1 and pushGate.affectedTests is on (TS default).
+    env:
+      LISA_ACCESS_MAP: ${{ github.event.pull_request.base.sha != '' && '1' || '' }}
+      LISA_ACCESS_MAP_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      LISA_ACCESS_MAP_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      LISA_ACCESS_MAP_PIECE: ${{ strategy.job-index }}
+      LISA_ACCESS_MAP_PIECES: ${{ strategy.job-total }}
 
     outputs:
       registry_path: ${{ steps.registry.outputs.path }}
@@ -2445,7 +2459,8 @@ jobs:
             refs/tags/v4.17.16:refs/tags/v4.17.16 \
             refs/tags/v4.26.1:refs/tags/v4.26.1 \
             refs/tags/v4.26.0:refs/tags/v4.26.0 \
-            refs/tags/v4.50.3:refs/tags/v4.50.3
+            refs/tags/v4.50.3:refs/tags/v4.50.3 \
+            refs/tags/v5.14.2:refs/tags/v5.14.2
 
       - name: 📎 Fetch export-removal witness history
         if: github.repository == 'CodySwannGT/lisa'
@@ -2710,9 +2725,10 @@ jobs:
           path: ${{ runner.temp }}/lisa-unit-test-shards
 
       # Step outputs, not $GITHUB_ENV: an env-file write reaches every later
-      # step, and Lisa's own regression steps below also run `lisa-test-run`,
-      # which would replay these reports instead of running their specs. Only
-      # the two test-command steps bind the outputs.
+      # step, and any later `lisa-test-run` would replay these reports instead
+      # of running its specs. Only the two test-command steps bind the outputs.
+      # Lisa's own named regression specs run in `test_named_regression_specs`
+      # (#4675), a separate job these values never reach.
       - name: 🧩 Arm the unit-test shard merge
         id: shard_arm
         if: steps.shard_download.outcome == 'success'
@@ -2797,78 +2813,15 @@ jobs:
           LISA_TEST_SHARD_TOTAL: ${{ steps.shard_arm.outputs.total }}
         working-directory: ${{ inputs.working_directory || '.' }}
 
-      - name: Execute and name Node 24 regression specs
+      # Lisa-only. This driver runs nowhere else that a merge waits on: the
+      # named-spec copy in `test_named_regression_specs` is not
+      # ruleset-required, so this job keeps the enforcing run (#4675). It
+      # reads dist/core/downstream-references.js, which the test command above
+      # builds (every `lisa-test-run` builds first), so it runs directly, with
+      # no second build. About 9 s.
+      - name: 🔒 Enforce host-name target scope
         if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
-        run: >-
-          bun run lisa-test-run -- --adapter vitest -- vitest run
-          tests/unit/core/shared-runtime-policy.test.ts
-          tests/unit/core/managed-nvmrc-adoption.test.ts
-          tests/unit/core/qualified-runtime-ci.test.ts
-          tests/unit/core/qualified-host-bun-capture.test.ts
-          tests/unit/configs/expo-jest-pre-setup.test.ts
-          tests/unit/fixtures/shared-runtime-native-deadline.test.ts
-          tests/unit/scripts/bdd-projection-merge.test.ts
-          tests/unit/scripts/bdd-projection-safety.test.ts
-          tests/unit/scripts/bdd-writer-admission.test.ts
-          tests/unit/scripts/bdd-ci-summary.test.ts
-          --reporter=verbose
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: Execute and name nightly discovery regression specs
-        if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
-        run: >-
-          bun run lisa-test-run -- --adapter vitest -- vitest run
-          tests/unit/scripts/nightly-e2e-health-discovery.test.ts
-          --reporter=verbose
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: Execute and name required-check registration regression specs
-        if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
-        run: >-
-          bun run lisa-test-run -- --adapter vitest -- vitest run
-          tests/unit/scripts/vacuous-required-checks-wiring.test.ts
-          tests/unit/scripts/review-gate-substitute.test.ts
-          tests/unit/scripts/absent-required-checks-by-branch.test.ts
-          --reporter=verbose
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: Execute and name host-name target-scope regression cases
-        if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
-        run: |
-          set -euo pipefail
-          bun run lisa-test-run -- --adapter vitest -- vitest run \
-            tests/unit/hooks/block-host-name-leak.test.ts \
-            tests/unit/hooks/shipped-hook-companions.test.ts \
-            tests/unit/scripts/generate-agy-plugin-artifacts.test.ts \
-            --reporter=verbose
-          bun run lisa-test-run -- --adapter direct -- \
-            node scripts/verify-host-name-target-scope.mjs --hooks=plugins/lisa/hooks
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: Execute and name completion authorization regression specs
-        if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
-        run: >-
-          bun run lisa-test-run -- --adapter vitest -- vitest run
-          tests/unit/scripts/portable-usage-ledger.test.ts
-          tests/unit/scripts/work-item-completion-authorization.test.ts
-          tests/unit/scripts/work-item-accepted-proof.test.ts
-          tests/unit/scripts/work-item-sweep-ancestry.test.ts
-          tests/unit/scripts/work-item-coherent-related.test.ts
-          tests/unit/scripts/history-secret-provision-errors.test.ts
-          tests/unit/scripts/review-gate-terminal-skipped.test.ts
-          tests/unit/scripts/work-item-proof-denials.test.ts
-          tests/unit/scripts/work-item-proof-scope.test.ts
-          tests/unit/scripts/work-item-proof-trust.test.ts
-          tests/unit/scripts/work-item-proof-late-read.test.ts
-          tests/unit/scripts/work-item-proof-write-errors.test.ts
-          tests/unit/scripts/work-item-proof-freshness-review.test.ts
-          tests/unit/scripts/work-item-linear-accepted-proof.test.ts
-          tests/unit/scripts/completion-proof-types.test.ts
-          tests/unit/scripts/completion-proof-grammar.test.ts
-          tests/unit/scripts/npm-update-contract.test.ts
-          tests/unit/scripts/lisa-work-item.test.ts
-          tests/unit/scripts/terminal-transition-outcomes.test.ts
-          --reporter=verbose
+        run: node scripts/verify-host-name-target-scope.mjs --hooks=plugins/lisa/hooks
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: Execute and name task readiness regression specs
@@ -2933,6 +2886,25 @@ jobs:
           if-no-files-found: ignore
           retention-days: 1
 
+      - name: ⏱️ Upload per-file test timings
+        if: always() && github.repository == 'CodySwannGT/lisa'
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-timings-${{ github.run_id }}-${{ github.run_attempt }}-unit
+          path: ${{ inputs.working_directory || '.' }}/tmp/test-timings
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: 🗺️ Upload test access map
+        if: always() && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-access-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-unit
+          path: ${{ inputs.working_directory || '.' }}/tmp/test-access-map/*.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 30
+
       - name: ⏭️ Skip unit tests (no test:unit script)
         if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
         env:
@@ -2978,6 +2950,265 @@ jobs:
               exit 1
               ;;
           esac
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+  # Lisa's own named regression specs (#4675). These specs already run inside
+  # the unit suite; these steps re-run them so the log names each one. They
+  # used to run serially in `test_unit` after the suite, which with
+  # unit_test_shards > 1 put about 4.5 minutes of extra work behind every
+  # shard. Here they start beside the shards: no unit-test job needs this one,
+  # and it needs none of them.
+  #
+  # A failing step fails this job, but this job is NOT ruleset-required, so a
+  # red run here does not on its own stop a merge. That is acceptable because
+  # nothing here is the only enforcement: every vitest spec below also runs in
+  # a required suite (`🧪 Run Unit Tests` or its shards for `tests/unit/`,
+  # `🧪 Run Integration Tests` for `tests/integration/`), and the host-name
+  # target-scope driver keeps its enforcing run in `test_unit` as
+  # `🔒 Enforce host-name target scope`. This job exists to name them.
+  #
+  # `needs: [gate_plan]` and the plan check mirror `test_unit`, so a
+  # `"test_unit":"skip"` plan stops this job too; `always() && !cancelled()`
+  # keeps a failed or skipped plan from silencing it, as in `test_unit`.
+  # gate_plan finishes in seconds, so the job still starts beside the shards.
+  #
+  # NO `skip_jobs` token, for the reason `test_unit_shard_plan` gives: the
+  # shipped registry derives `SKIP_JOB_TOKENS` from these conditions, and a
+  # second job on `test:unit` would change what `gateForSkipJob("test:unit")`
+  # advertises to every consumer. The job is Lisa-only, so no caller's
+  # `skip_jobs` reaches it.
+  #
+  # The setup steps are `test_unit`'s, unchanged, so the specs see the same
+  # checkout depth, witness refs, updater runtime and dependencies.
+  test_named_regression_specs:
+    permissions:
+      contents: read
+    name: 🧾 Named Regression Specs
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.unit_test_timeout_minutes }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && github.repository == 'CodySwannGT/lisa' && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_unit":"skip"')) }}
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          # Lisa's tests inspect real historical revisions; callers stay shallow.
+          # Quoted depths are truthy: bare 0 would fall through the || expression.
+          fetch-depth: ${{ github.repository == 'CodySwannGT/lisa' && '0' || '1' }}
+
+      - name: 📎 Fetch retained nightly guard release tags
+        if: github.repository == 'CodySwannGT/lisa'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Lisa-only witness refs; callers have neither these tags nor credentials.
+          if [ "${GITHUB_REPOSITORY:-}" != "CodySwannGT/lisa" ] || [ ! -f scripts/generate-nightly-e2e-guard-certificate.mjs ]; then
+            echo "::notice::Retained nightly guard artifacts are not present in this caller; exact-ref fetch is not applicable."
+            exit 0
+          fi
+          # The token is available only to this contents:read step. A command-
+          # scoped helper avoids writing credentials into git configuration.
+          git -c credential.helper= \
+            -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
+            fetch --no-tags origin \
+            refs/tags/v2.353.0:refs/tags/v2.353.0 \
+            refs/tags/v4.17.16:refs/tags/v4.17.16 \
+            refs/tags/v4.26.1:refs/tags/v4.26.1 \
+            refs/tags/v4.26.0:refs/tags/v4.26.0 \
+            refs/tags/v4.50.3:refs/tags/v4.50.3 \
+            refs/tags/v5.14.2:refs/tags/v5.14.2
+
+      - name: 📎 Fetch export-removal witness history
+        if: github.repository == 'CodySwannGT/lisa'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Export-removal tests need real ancestry, not isolated tag objects.
+          # Deepen history, filter blobs, and pin immutable release/export witnesses.
+          git -c credential.helper= \
+            -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
+            fetch --deepen=2147483647 --filter=blob:none --no-tags origin \
+            "+${GITHUB_SHA}:refs/lisa-test-witnesses/export-head" \
+            refs/tags/v3.0.0:refs/tags/v3.0.0 \
+            refs/tags/v4.0.0:refs/tags/v4.0.0 \
+            c32f33010f5e58879381b0d4c370c630bb179acc:refs/lisa-test-witnesses/export-before \
+            f13bb00ec73e0ebbb2dfd9f030164d2913dcf98d:refs/lisa-test-witnesses/export-after
+
+      - name: Provision separately qualified Lisa updater test runtime
+        if: github.repository == 'CodySwannGT/lisa'
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          # lisa-allow-duplicate-version: independently qualified updater identity (#4367)
+          node-version: '22.23.3' # lisa-preserve-node-version: independently qualified updater (#4367)
+
+      - name: Preserve actual updater test executable before selecting shared Node
+        if: github.repository == 'CodySwannGT/lisa'
+        run: |
+          node -e 'if (process.versions.node !== "22.23.3") throw Error("Wrong updater test runtime"); require("node:fs").appendFileSync(process.env.GITHUB_ENV, `LISA_TEST_UPDATER_NODE=${require("node:fs").realpathSync(process.execPath)}\n`);'
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 🍞 Setup Bun
+        if: github.repository == 'CodySwannGT/lisa' || inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+
+      - name: 💾 Restore package downloads
+        if: inputs.cache_dependencies
+        uses: actions/cache/restore@v5
+        with: *package_download_cache
+
+      - name: 📦 Install dependencies
+        run: |
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: Execute and name Node 24 regression specs
+        if: github.repository == 'CodySwannGT/lisa'
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/unit/core/shared-runtime-policy.test.ts
+          tests/unit/core/managed-nvmrc-adoption.test.ts
+          tests/unit/core/qualified-runtime-ci.test.ts
+          tests/unit/configs/expo-jest-pre-setup.test.ts
+          tests/unit/fixtures/shared-runtime-native-deadline.test.ts
+          tests/unit/fixtures/shared-runtime-teardown.test.ts
+          tests/unit/scripts/bdd-projection-merge.test.ts
+          tests/unit/scripts/bdd-projection-safety.test.ts
+          tests/unit/scripts/bdd-writer-admission.test.ts
+          tests/unit/scripts/bdd-ci-summary.test.ts
+          --reporter=verbose
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: Execute and name Rails hook installation regression specs
+        if: github.repository == 'CodySwannGT/lisa'
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/unit/hooks/install-rails-hooks.test.ts
+          tests/unit/hooks/rails-hook-engine.test.ts
+          tests/unit/hooks/rails-hook-agent-delivery.test.ts
+          tests/unit/health/rails-hook-installation.test.ts
+          tests/unit/cli/doctor-git-hooks.test.ts
+          tests/integration/rails-hook-apply.test.ts
+          --reporter=verbose
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: Execute and name nightly discovery regression specs
+        if: github.repository == 'CodySwannGT/lisa'
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/unit/scripts/nightly-e2e-health-discovery.test.ts
+          --reporter=verbose
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: Execute and name required-check registration regression specs
+        if: github.repository == 'CodySwannGT/lisa'
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/unit/scripts/vacuous-required-checks-wiring.test.ts
+          tests/unit/scripts/review-gate-substitute.test.ts
+          tests/unit/scripts/absent-required-checks-by-branch.test.ts
+          --reporter=verbose
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: Execute and name host-name target-scope regression cases
+        if: github.repository == 'CodySwannGT/lisa'
+        run: |
+          set -euo pipefail
+          bun run lisa-test-run -- --adapter vitest -- vitest run \
+            tests/unit/hooks/block-host-name-leak.test.ts \
+            tests/unit/hooks/block-host-name-launchers.test.ts \
+            tests/unit/opencode/block-host-name-leak-plugin.test.ts \
+            tests/unit/opencode/hooks-installer.test.ts \
+            tests/unit/opencode/host-name-emit.test.ts \
+            tests/unit/opencode/plugin-support-file-staging.test.ts \
+            tests/unit/opencode/support-file-parity.test.ts \
+            tests/unit/hooks/shipped-hook-companions.test.ts \
+            tests/unit/scripts/generate-agy-plugin-artifacts.test.ts \
+            --reporter=verbose
+          bun run lisa-test-run -- --adapter direct -- \
+            node scripts/verify-host-name-target-scope.mjs --hooks=plugins/lisa/hooks
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: Execute and name completion authorization regression specs
+        if: github.repository == 'CodySwannGT/lisa'
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/unit/scripts/portable-usage-ledger.test.ts
+          tests/unit/scripts/work-item-completion-authorization.test.ts
+          tests/unit/scripts/work-item-accepted-proof.test.ts
+          tests/unit/scripts/work-item-sweep-ancestry.test.ts
+          tests/unit/scripts/work-item-coherent-related.test.ts
+          tests/unit/scripts/history-secret-provision-errors.test.ts
+          tests/unit/scripts/review-gate-terminal-skipped.test.ts
+          tests/unit/scripts/review-gate-terminal-neutral.test.ts
+          tests/unit/scripts/work-item-proof-denials.test.ts
+          tests/unit/scripts/work-item-proof-scope.test.ts
+          tests/unit/scripts/work-item-proof-trust.test.ts
+          tests/unit/scripts/work-item-proof-late-read.test.ts
+          tests/unit/scripts/work-item-proof-write-errors.test.ts
+          tests/unit/scripts/work-item-proof-freshness-review.test.ts
+          tests/unit/scripts/work-item-linear-accepted-proof.test.ts
+          tests/unit/scripts/completion-proof-types.test.ts
+          tests/unit/scripts/completion-proof-grammar.test.ts
+          tests/unit/scripts/npm-update-contract.test.ts
+          tests/unit/scripts/lisa-work-item.test.ts
+          tests/unit/scripts/terminal-transition-outcomes.test.ts
+          --reporter=verbose
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # #4521: the hosted log must name each scoped-audit spec as executed and
+      # passed. An explicit file list fails when none of them is found, and the
+      # quality-unit-test-shards-env-scope test fails if any listed file is
+      # renamed away, so this step can never pass having run zero of them.
+      # A skipped case proves nothing either, so any skip fails the step —
+      # except the two intentional bun-only `it.runIf` cases in
+      # quality-audit-fail-closed, which do not apply to its npm/yarn rows.
+      - name: Execute and name dependency-audit scope regression specs
+        if: github.repository == 'CodySwannGT/lisa'
+        run: |
+          set -euo pipefail
+          AUDIT_SPEC_LOG="${RUNNER_TEMP:-/tmp}/dependency-audit-scope-specs.log"
+          bun run lisa-test-run -- --adapter vitest -- vitest run \
+            tests/unit/core/audit-scopes.test.ts \
+            tests/unit/core/audit-scope-hardening.test.ts \
+            tests/unit/core/audit-lockfile-sources.test.ts \
+            tests/unit/core/audit-lockfile-formats.test.ts \
+            tests/unit/core/audit-review-4693.test.ts \
+            tests/unit/core/audit-report-completeness.test.ts \
+            tests/unit/config/zod-security-floor.test.ts \
+            tests/unit/config/audit-ignore-package-names.test.ts \
+            tests/unit/cli/doctor-readiness-supply-chain-exceptions.test.ts \
+            tests/unit/cli/doctor-audit-scope.test.ts \
+            tests/unit/hooks/pre-push-audit-transport-parity.test.ts \
+            tests/unit/strategies/security-audit-handling-scope.test.ts \
+            tests/unit/strategies/package-lisa-audit-script-governance.test.ts \
+            tests/integration/audit-consumer-parity.test.ts \
+            tests/integration/audit-workflow-action.test.ts \
+            tests/integration/audit-registry-verdict.test.ts \
+            tests/integration/quality-audit-fail-closed.test.ts \
+            --reporter=verbose 2>&1 | tee "$AUDIT_SPEC_LOG"
+          if grep -E '↓ .*tests/' "$AUDIT_SPEC_LOG" | grep -v 'quality-audit-fail-closed.test.ts'; then
+            echo "::error title=Skipped audit spec::A dependency-audit scope spec above was skipped, so it proved nothing. Un-skip it or remove it from this step."
+            exit 1
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
   # unit_test_shards > 1 only (#4479). Checks the input and lays out the matrix,
@@ -3038,7 +3269,8 @@ jobs:
   # the runner's own shard flag. Copies rather than YAML anchors because this
   # repository's text-based workflow scans read steps by their `- name:` lines
   # and do not see an aliased step. A leg leaves the unproven verdict, the
-  # Lisa-only regression specs and the coverage hand-off to the aggregate.
+  # host-name target-scope enforcement and the coverage hand-off to the
+  # aggregate; the named regression specs run in `test_named_regression_specs`.
   test_unit_shard:
     permissions:
       contents: read
@@ -3052,6 +3284,14 @@ jobs:
       fail-fast: false
       matrix:
         shard: ${{ fromJSON(needs.test_unit_shard_plan.outputs.shards || '[1]') }}
+    # Test-to-file access map (#4593, #4611): the Vitest presets arm a tracer
+    # when LISA_ACCESS_MAP=1 and pushGate.affectedTests is on (TS default).
+    env:
+      LISA_ACCESS_MAP: ${{ github.event.pull_request.base.sha != '' && '1' || '' }}
+      LISA_ACCESS_MAP_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      LISA_ACCESS_MAP_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      LISA_ACCESS_MAP_PIECE: ${{ strategy.job-index }}
+      LISA_ACCESS_MAP_PIECES: ${{ strategy.job-total }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -3080,7 +3320,8 @@ jobs:
             refs/tags/v4.17.16:refs/tags/v4.17.16 \
             refs/tags/v4.26.1:refs/tags/v4.26.1 \
             refs/tags/v4.26.0:refs/tags/v4.26.0 \
-            refs/tags/v4.50.3:refs/tags/v4.50.3
+            refs/tags/v4.50.3:refs/tags/v4.50.3 \
+            refs/tags/v5.14.2:refs/tags/v5.14.2
 
       - name: 📎 Fetch export-removal witness history
         if: github.repository == 'CodySwannGT/lisa'
@@ -3411,6 +3652,25 @@ jobs:
           overwrite: true
           retention-days: 1
 
+      - name: ⏱️ Upload this shard's per-file test timings
+        if: always() && github.repository == 'CodySwannGT/lisa'
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-timings-${{ github.run_id }}-${{ github.run_attempt }}-unit-shard-${{ matrix.shard }}
+          path: ${{ inputs.working_directory || '.' }}/tmp/test-timings
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: 🗺️ Upload this shard's test access map
+        if: always() && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-access-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-unit-shard-${{ matrix.shard }}
+          path: ${{ inputs.working_directory || '.' }}/tmp/test-access-map/*.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 30
+
   test_mutation:
     permissions:
       contents: read
@@ -3728,21 +3988,71 @@ jobs:
     # workflow consumers call, and that step never runs for them, so callers
     # stay on ubuntu-latest like their other jobs. Move Lisa to ubuntu-26.04 once
     # setup-ruby ships the pinned Ruby for that image (CodySwannGT/lisa#4513).
-    runs-on: ${{ github.repository == 'CodySwannGT/lisa' && 'ubuntu-24.04' || 'ubuntu-latest' }}
+    runs-on: &integration_runner ${{ github.repository == 'CodySwannGT/lisa' && 'ubuntu-24.04' || 'ubuntu-latest' }}
     # Baseline19.9–26.5min (mean22.9, sd2.8) outgrew30min. The60min
     # resource limit preserves quality assertions; the regression is tracked.
     timeout-minutes: 60
-    needs: [gate_plan]
+    # With integration_test_shards > 1 this job is the aggregate and keeps its
+    # id and static name, which the ruleset context and every downstream
+    # `needs.test_integration` reader key on (#4599).
+    needs:
+      [
+        gate_plan,
+        test_integration_shard_plan,
+        test_integration_shard_build,
+        test_integration_shard,
+      ]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test:integration,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_integration":"skip"')) }}
+    # Test-to-file access map (#4593, #4611): the Vitest presets arm a tracer
+    # when LISA_ACCESS_MAP=1 and pushGate.affectedTests is on (TS default).
+    env: &integration_env
+      LISA_ACCESS_MAP: ${{ github.event.pull_request.base.sha != '' && '1' || '' }}
+      LISA_ACCESS_MAP_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      LISA_ACCESS_MAP_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      LISA_ACCESS_MAP_PIECE: ${{ strategy.job-index }}
+      LISA_ACCESS_MAP_PIECES: ${{ strategy.job-total }}
 
-    steps:
+    steps: &integration_steps
+      # With shards this job runs only these two steps and no test: it is the
+      # one `🧪 Run Integration Tests` context, so a leg that failed, was
+      # cancelled or never ran is named and fails it (#4599). The legs run the
+      # steps below, which this job shares with them through the anchor.
+      - name: 📥 Download the integration-test shard results
+        if: always() && inputs.integration_test_shards != 1 && strategy.job-total == 1 && needs.test_integration_shard_plan.result == 'success'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: integration-test-shard-${{ needs.test_integration_shard_plan.outputs.nonce }}-*
+          path: ${{ runner.temp }}/lisa-integration-test-shards
+
+      - name: 🚨 Fail if the integration-test shards did not pass
+        if: always() && inputs.integration_test_shards != 1 && strategy.job-total == 1
+        env:
+          PLAN: ${{ needs.test_integration_shard_plan.result }}
+          BUILD: ${{ needs.test_integration_shard_build.result }}
+          TOTAL: ${{ inputs.integration_test_shards }}
+          RESULTS: ${{ runner.temp }}/lisa-integration-test-shards/integration-test-shard-${{ needs.test_integration_shard_plan.outputs.nonce }}
+        run: |
+          set -u
+          if [ "$PLAN" != success ]; then echo "::error title=Integration-test shards did not run::🧮 Plan Integration-Test Shards ended '$PLAN', so no shard ran."; exit 1; fi
+          case "$BUILD" in failure|cancelled) echo "::error title=Shared build did not pass::🏗️ Build Once for Integration-Test Shards ended '$BUILD', so no shard ran."; exit 1 ;; esac
+          BAD=0
+          for I in $(seq 0 $((TOTAL - 1))); do
+            N=$((I + 1))
+            OUT="$(cat "$RESULTS-$I/outcome" 2>/dev/null || echo 'no result: cancelled, timed out or never ran')"
+            if [ "$OUT" = success ]; then echo "Shard $N/$TOTAL passed."; continue; fi
+            echo "::error title=Integration-test shard $N/$TOTAL did not pass::Shard $N/$TOTAL: $OUT. Open the job 🧪 Integration Tests shard $N/$TOTAL."
+            BAD=1
+          done
+          exit "$BAD"
+
       - name: 📥 Checkout repository
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1)
         uses: actions/checkout@v6
         with:
           persist-credentials: false
 
       - name: Provision separately qualified Lisa updater test runtime
-        if: github.repository == 'CodySwannGT/lisa'
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1) && (github.repository == 'CodySwannGT/lisa')
         uses: actions/setup-node@v6
         with:
           package-manager-cache: false
@@ -3750,18 +4060,19 @@ jobs:
           node-version: '22.23.3' # lisa-preserve-node-version: independently qualified updater (#4367)
 
       - name: Preserve actual updater test executable before selecting shared Node
-        if: github.repository == 'CodySwannGT/lisa'
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1) && (github.repository == 'CodySwannGT/lisa')
         run: |
           node -e 'if (process.versions.node !== "22.23.3") throw Error("Wrong updater test runtime"); require("node:fs").appendFileSync(process.env.GITHUB_ENV, `LISA_TEST_UPDATER_NODE=${require("node:fs").realpathSync(process.execPath)}\n`);'
 
       - name: 🔧 Setup Node.js
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1)
         uses: actions/setup-node@v6
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
 
       - name: 🍞 Setup Bun
-        if: inputs.package_manager == 'bun'
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1) && (inputs.package_manager == 'bun')
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.4.4'
@@ -3770,20 +4081,24 @@ jobs:
       # Rails configuration resolver. Other Node consumers need neither gem.
       - name: 💎 Setup Ruby for Lisa template regression
         if: github.repository == 'CodySwannGT/lisa'
-        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
         with:
           ruby-version: '4.0.1'
 
       - name: 💎 Install Rails configuration resolver for Lisa regression
-        if: github.repository == 'CodySwannGT/lisa'
-        run: gem install activerecord --version 8.1.4 --no-document
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1) && (github.repository == 'CodySwannGT/lisa')
+        # gitlab-crystalball, rspec-core, rspec-expectations and simplecov: the
+        # Rails spec-selection Ruby regression (rails-crystalball-ruby.test.ts,
+        # CodySwannGT/lisa#4612), whose specs use `expect`.
+        run: gem install activerecord:8.1.4 gitlab-crystalball:1.1.3 rspec-core:3.13.6 rspec-expectations:3.13.6 simplecov:1.3.2 --no-document
 
       - name: 💾 Restore package downloads
-        if: inputs.cache_dependencies
+        if: inputs.cache_dependencies && ((inputs.integration_test_shards == 1 || strategy.job-total > 1))
         uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1)
         run: |
           case "$PACKAGE_MANAGER" in
             npm) npm ci ;;
@@ -3797,8 +4112,40 @@ jobs:
           esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 📥 Download the shared build
+        if: strategy.job-total > 1 && needs.test_integration_shard_build.result == 'success'
+        uses: actions/download-artifact@v8
+        with:
+          name: integration-test-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lisa-integration-build
+
+      # After the install, whose postinstall also compiles into dist/.
+      - name: 🏗️ Use the shared build
+        id: shared_build
+        if: strategy.job-total > 1 && needs.test_integration_shard_build.result == 'success'
+        run: node scripts/integration-shard-build.mjs use "$RUNNER_TEMP/lisa-integration-build/build.tgz" --github-output "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # Step outputs: only the two test commands and the proof bind them.
+      - name: 🧩 Arm this integration-test shard
+        id: shard_arm
+        if: strategy.job-total > 1
+        env:
+          INDEX: ${{ strategy.job-index }}
+          TOTAL: ${{ inputs.integration_test_shards }}
+          PLAN: ${{ needs.test_integration_shard_plan.outputs.plan }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lisa-integration-test-shard"
+          printf 'shard=%s\noutput=%s\n' "$((INDEX + 1))/$TOTAL" "$RUNNER_TEMP/lisa-integration-test-shard" >> "$GITHUB_OUTPUT"
+          if [ -n "$PLAN" ]; then
+            printf '%s\n' "$PLAN" > "$RUNNER_TEMP/lisa-integration-shard-plan.json"
+            echo "plan=$RUNNER_TEMP/lisa-integration-shard-plan.json" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: 🔍 Check for test:integration script
         id: check_script
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1)
         run: |
           if [ -f "package.json" ]; then
             if grep -q '"test:integration"' package.json; then
@@ -3813,6 +4160,7 @@ jobs:
 
       - name: 🎛️ Resolve the test-integration gate
         id: gate
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1)
         env:
           GATE_ID: test-integration
           FALLBACK_RUNNER: ${{ inputs.package_manager }} run
@@ -3890,6 +4238,10 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=6144
           GATE_RUNNER: ${{ steps.gate.outputs.runner }}
           GATE_TASK: ${{ steps.gate.outputs.task }}
+          LISA_TEST_SHARD: ${{ steps.shard_arm.outputs.shard }}
+          LISA_TEST_SHARD_OUTPUT: ${{ steps.shard_arm.outputs.output }}
+          LISA_TEST_SHARD_PLAN: ${{ steps.shard_arm.outputs.plan }}
+          LISA_BUILD_MARKER: ${{ steps.shared_build.outputs.marker }}
         run: |
           if [ "$GITHUB_REPOSITORY" = 'CodySwannGT/lisa' ]; then
             $GATE_RUNNER $GATE_TASK --reporter=verbose
@@ -3915,6 +4267,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 🧪 Run integration tests
+        id: test_integration
         if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
         run: |
           if [ "$PACKAGE_MANAGER" = "npm" ]; then
@@ -3926,12 +4279,26 @@ jobs:
           fi
         env:
           NODE_OPTIONS: --max-old-space-size=6144
+          LISA_TEST_SHARD: ${{ steps.shard_arm.outputs.shard }}
+          LISA_TEST_SHARD_OUTPUT: ${{ steps.shard_arm.outputs.output }}
+          LISA_TEST_SHARD_PLAN: ${{ steps.shard_arm.outputs.plan }}
+          LISA_BUILD_MARKER: ${{ steps.shared_build.outputs.marker }}
         working-directory: ${{ inputs.working_directory || '.' }}
+
+      # `lisa-test-run` writes the receipt before the runner starts; without
+      # it the leg ran the WHOLE suite instead of its slice.
+      - name: 🧾 Prove this shard ran only its slice
+        if: always() && strategy.job-total > 1 && (steps.gate_run.outcome == 'success' || steps.gate_run.outcome == 'failure' || steps.test_integration.outcome == 'success' || steps.test_integration.outcome == 'failure')
+        run: |
+          cat "$RUNNER_TEMP/lisa-integration-test-shard/lisa-shard-receipt.json" || {
+            echo "::error title=Integration-test shard was not applied::No shard receipt, so this leg ran the whole suite. integration_test_shards needs a @codyswann/lisa that shards through lisa-test-run, and an integration gate task that runs jest or vitest through it."
+            exit 1
+          }
 
       # The physical deadline benchmark uses its qualified Docker init reaper
       # and native syscall traces. Consumers do not carry this Lisa-only fixture.
       - name: ⏱️ Verify native freshness diagnostic deadlines
-        if: github.repository == 'CodySwannGT/lisa'
+        if: (inputs.integration_test_shards == 1 || (strategy.job-total > 1 && strategy.job-index == 0)) && (github.repository == 'CodySwannGT/lisa')
         run: |
           mkdir -p tmp
           bun run lisa-test-run -- --adapter direct -- python3 tests/fixtures/freshness-native-timing/run.py \
@@ -3939,12 +4306,31 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 📎 Retain native freshness timing evidence
-        if: always() && github.repository == 'CodySwannGT/lisa'
+        if: (inputs.integration_test_shards == 1 || (strategy.job-total > 1 && strategy.job-index == 0)) && (always() && github.repository == 'CodySwannGT/lisa')
         uses: actions/upload-artifact@v7
         with:
           name: freshness-native-timing-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ inputs.working_directory || '.' }}/tmp/freshness-native-timing-ci
           if-no-files-found: error
+
+      - name: ⏱️ Upload per-file test timings
+        if: always() && github.repository == 'CodySwannGT/lisa'
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-timings-${{ github.run_id }}-${{ github.run_attempt }}-integration${{ strategy.job-total > 1 && format('-shard-{0}', strategy.job-index) || '' }}
+          path: ${{ inputs.working_directory || '.' }}/tmp/test-timings
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: 🗺️ Upload test access map
+        if: always() && github.event.pull_request.base.sha != '' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-access-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-integration${{ strategy.job-total > 1 && format('-shard-{0}', strategy.job-index) || '' }}
+          path: ${{ inputs.working_directory || '.' }}/tmp/test-access-map/*.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 30
 
       - name: ⏭️ Skip integration tests (no test:integration script)
         if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
@@ -3992,6 +4378,143 @@ jobs:
               ;;
           esac
         working-directory: ${{ inputs.working_directory || '.' }}
+
+      # Last: the status the leg reached, which the aggregate reads.
+      - name: 🧾 Record this shard's result
+        if: always() && strategy.job-total > 1
+        env:
+          STATUS: ${{ job.status }}
+        run: mkdir -p "$RUNNER_TEMP/result" && echo "$STATUS" > "$RUNNER_TEMP/result/outcome"
+
+      - name: 📤 Upload this shard's result
+        if: always() && strategy.job-total > 1
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-test-shard-${{ needs.test_integration_shard_plan.outputs.nonce }}-${{ strategy.job-index }}
+          path: ${{ runner.temp }}/result
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 1
+
+  # integration_test_shards > 1 only (#4599), mirroring test_unit_shard_plan
+  # (no skip_jobs token; no name containing the aggregate's). In Lisa it also
+  # assigns files to legs from recorded timings; a caller's legs run the
+  # runner's own `--shard=<i>/<n>`.
+  test_integration_shard_plan:
+    permissions:
+      contents: read
+    name: 🧮 Plan Integration-Test Shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && inputs.integration_test_shards != 1 && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_integration":"skip"')) }}
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+      nonce: ${{ steps.plan.outputs.nonce }}
+      plan: ${{ steps.timings.outputs.plan }}
+    steps:
+      - name: 🧮 Compute the integration-test shard matrix
+        id: plan
+        env:
+          SHARDS: ${{ inputs.integration_test_shards }}
+          SKIP_JOBS: ${{ inputs.skip_jobs }}
+        run: |
+          set -euo pipefail
+          case ",${SKIP_JOBS:-}," in
+            *,test:integration,*)
+              echo "::error title=integration_test_shards contradicts skip_jobs::integration_test_shards is $SHARDS but skip_jobs names test:integration. Drop one of them."
+              exit 1
+              ;;
+          esac
+          if ! [[ "$SHARDS" =~ ^[0-9]+$ ]] || [ "$SHARDS" -lt 2 ] || [ "$SHARDS" -gt 20 ]; then
+            echo "::error title=integration_test_shards is invalid::integration_test_shards is \"$SHARDS\"; it must be a whole number from 1 to 20."
+            exit 1
+          fi
+          echo "shards=$(node -p 'JSON.stringify(Array.from({ length: Number(process.argv[1]) }, (_, i) => i + 1))' "$SHARDS")" >> "$GITHUB_OUTPUT"
+          echo "nonce=$(node -p 'crypto.randomUUID()')" >> "$GITHUB_OUTPUT"
+
+      - name: 📥 Checkout repository
+        if: github.repository == 'CodySwannGT/lisa'
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      # contents:read only: declaring a scope the caller lacks startup-fails
+      # its run. A refused listing still yields a plan that keeps the
+      # history-scanner suites in one leg.
+      - name: ⏱️ Assign files to shards from recorded timings
+        id: timings
+        if: github.repository == 'CodySwannGT/lisa'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHARDS: ${{ inputs.integration_test_shards }}
+        run: node scripts/plan-integration-shards.mjs --shards "$SHARDS" --repo "$GITHUB_REPOSITORY" --github-output "$GITHUB_OUTPUT"
+
+  # Lisa only: one build every leg reuses through the build marker (#4599).
+  test_integration_shard_build:
+    permissions:
+      contents: read
+    name: 🏗️ Build Once for Integration-Test Shards
+    runs-on: *integration_runner
+    timeout-minutes: 20
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && inputs.integration_test_shards != 1 && github.repository == 'CodySwannGT/lisa' && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_integration":"skip"')) }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 🍞 Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+
+      - name: 💾 Restore package downloads
+        if: inputs.cache_dependencies
+        uses: actions/cache/restore@v5
+        with: *package_download_cache
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: 🏗️ Build once and record the build marker
+        run: node scripts/integration-shard-build.mjs build "$RUNNER_TEMP/build.tgz"
+
+      - name: 📤 Upload the shared build
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-test-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/build.tgz
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 1
+
+  # One leg per shard, running test_integration's own step list (the anchor),
+  # so a leg resolves the same gate and runs the same command; only the arm
+  # step's environment differs. Lisa's Ruby setup runs in every leg, because a
+  # timing plan can put a Ruby-dependent suite in any of them.
+  test_integration_shard:
+    permissions:
+      contents: read
+    name: 🧪 Integration Tests shard ${{ matrix.shard }}/${{ inputs.integration_test_shards }}
+    runs-on: *integration_runner
+    timeout-minutes: 60
+    needs:
+      [gate_plan, test_integration_shard_plan, test_integration_shard_build]
+    if: ${{ always() && !cancelled() && needs.test_integration_shard_plan.result == 'success' && needs.test_integration_shard_build.result != 'failure' && needs.test_integration_shard_build.result != 'cancelled' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.test_integration_shard_plan.outputs.shards || '[1]') }}
+    env: *integration_env
+    steps: *integration_steps
 
   maestro_e2e:
     permissions:
@@ -4305,11 +4828,15 @@ jobs:
         bdd_coverage,
         learnings_budget,
         test_unit,
+        test_named_regression_specs,
         test_unit_shard_plan,
         test_unit_shard,
         test_mutation,
         test_mutation_measured,
         test_integration,
+        test_integration_shard_plan,
+        test_integration_shard_build,
+        test_integration_shard,
         maestro_e2e,
         gate_config_validity,
         threshold_ratchet,
@@ -4372,6 +4899,15 @@ jobs:
         env:
           LISA_GATE_MOMENT: ${{ inputs.moment }}
           LISA_JOB_RESULTS: ${{ toJSON(needs) }}
+          # The event that started the run, and the jobs in `needs:` whose `if:`
+          # requires `github.event_name == 'pull_request'`. On
+          # workflow_dispatch, push or schedule — events that gate no merge —
+          # the prover reports those jobs' skips as not judged rather than
+          # refusing them (#4620). Every other event, and a missing or
+          # unreadable value, is judged as before. The wiring test derives this
+          # list from the jobs' conditions and fails on drift in either direction.
+          LISA_EVENT_NAME: ${{ github.event_name }}
+          LISA_PULL_REQUEST_ONLY_JOBS: '["verification_coverage", "work_item_traceability"]'
           # Job id -> display name for every job in `needs:` whose name is not a
           # runtime expression. `needs` carries results but no names, and a
           # required context is keyed by name. The wiring test derives this from
@@ -4390,10 +4926,13 @@ jobs:
               "bdd_coverage": "🧾 BDD Behavior Contract",
               "learnings_budget": "📚 Learnings Budget",
               "test_unit": "🧪 Run Unit Tests",
+              "test_named_regression_specs": "🧾 Named Regression Specs",
               "test_unit_shard_plan": "🧮 Plan Unit-Test Shards",
               "test_mutation": "🧬 Mutation Testing Gate",
               "test_mutation_measured": "🧬 Did the mutation gate measure anything?",
               "test_integration": "🧪 Run Integration Tests",
+              "test_integration_shard_plan": "🧮 Plan Integration-Test Shards",
+              "test_integration_shard_build": "🏗️ Build Once for Integration-Test Shards",
               "maestro_e2e": "📱 Native Device Journeys",
               "gate_config_validity": "🧭 Gate Config Validity",
               "threshold_ratchet": "📐 Threshold Ratchet",
@@ -4636,7 +5175,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Only meaningful on pull_request: the range and the PR number both come
-    # from the event payload. Other events report success.
+    # from the event payload. On any other event the job is SKIPPED, which
+    # is why it is listed in `LISA_PULL_REQUEST_ONLY_JOBS` on the
+    # `🔒 Skipped Required Checks` step (#4620).
     needs: [gate_plan]
     if: ${{ always() && !cancelled() && github.event_name == 'pull_request' && !contains(format(',{0},', inputs.skip_jobs), ',work_item_traceability,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"work_item_traceability":"skip"')) }}
     # Rationale: docs/quality-workflow-notes.md#note-18
@@ -5197,6 +5738,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ inputs.node_version }}
+          package-manager-cache: false
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -6754,175 +7296,16 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 📋 Load audit exclusions
-        # FALLBACK ONLY — the exclusion list and the audit invocation below are
-        # npm/yarn/bun `audit` specifics. A project declaring its own
-        # `dependency-vulnerability` task has said what proves the property, and
-        # may well use a scanner with no notion of a GHSA exclusion file.
         if: steps.gate.outputs.configured == 'false'
-        id: audit_exclusions
-        shell: bash
-        run: |
-          # Disable -e so jq exiting non-zero (e.g. on an empty/missing
-          # `.exclusions` array under `set -e`) does not abort the step.
-          # An exclusion file that doesn't parse should yield zero
-          # exclusions, not a failed build.
-          set +e
-          GHSA_IDS=""
-          CVE_IDS=""
-          for config_file in audit.ignore.config.json audit.ignore.local.json; do
-            if [ ! -f "$config_file" ]; then continue; fi
-            FILE_IDS=$(jq -r '.exclusions[]?.id // empty' "$config_file" 2>/dev/null)
-            [ -n "$FILE_IDS" ] && GHSA_IDS="$GHSA_IDS $FILE_IDS"
-            FILE_CVES=$(jq -r '.exclusions[]? | select(.cve != null) | .cve' "$config_file" 2>/dev/null)
-            [ -n "$FILE_CVES" ] && CVE_IDS="$CVE_IDS $FILE_CVES"
-          done
-          GHSA_IDS=$(echo "$GHSA_IDS" | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
-          CVE_IDS=$(echo "$CVE_IDS" | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
-          echo "ghsa_ids=$GHSA_IDS" >> "$GITHUB_OUTPUT"
-          echo "cve_ids=$CVE_IDS" >> "$GITHUB_OUTPUT"
-          echo "Loaded GHSA exclusions: $GHSA_IDS"
-          echo "Loaded CVE exclusions: $CVE_IDS"
+        run: echo "The canonical audit runner reads and validates both audit.ignore files."
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🔒 Run security audit
         if: steps.gate.outputs.configured == 'false'
-        run: |
-          GHSA_IDS="${{ steps.audit_exclusions.outputs.ghsa_ids }}"
-          CVE_IDS="${{ steps.audit_exclusions.outputs.cve_ids }}"
-          # Fail closed (lisa-gates.mjs marks this `unconditional`): a pass needs
-          # the manager's own report shape ($1, over slurped output). The audit
-          # is a network call, so a missing report is retried before failing.
-          AUDIT_OUT="$(mktemp)"
-          audit_capture() {
-            _shape="$1"; shift
-            for _try in 1 2 3; do
-              "$@" > "$AUDIT_OUT" 2> "$AUDIT_OUT.err" || true
-              # bun can print gzip-compressed JSON on stdout.
-              if gzip -dc "$AUDIT_OUT" > "$AUDIT_OUT.d" 2>/dev/null; then mv "$AUDIT_OUT.d" "$AUDIT_OUT"; fi
-              if jq -e -s "$_shape" "$AUDIT_OUT" >/dev/null 2>&1; then return 0; fi
-              if [ "$_try" -lt 3 ]; then sleep 5; fi
-            done
-            echo "::error::'$*' printed no advisory report, so nothing was audited. This is NOT a clean result and NOT a finding."
-            tail -n 20 "$AUDIT_OUT.err" 2>/dev/null || true
-            exit 1
-          }
-
-          if [ "$PACKAGE_MANAGER" = "npm" ]; then
-            # Build jq exclusion filter for npm audit GHSA IDs
-            NPM_EXCLUDE_FILTER=""
-            for _id in $GHSA_IDS; do
-              if [ -n "$NPM_EXCLUDE_FILTER" ]; then
-                NPM_EXCLUDE_FILTER="$NPM_EXCLUDE_FILTER or . == \"$_id\""
-              else
-                NPM_EXCLUDE_FILTER=". == \"$_id\""
-              fi
-            done
-
-            audit_capture '.[0].vulnerabilities | type == "object"' npm audit --production --json
-            AUDIT_JSON=$(cat "$AUDIT_OUT")
-            if [ -n "$NPM_EXCLUDE_FILTER" ]; then
-              UNFIXED_HIGH=$(echo "$AUDIT_JSON" | jq "[.vulnerabilities | to_entries[] | select(.value.severity == \"high\" or .value.severity == \"critical\") | .value.via[] | select(type == \"object\") | .url | ltrimstr(\"https://github.com/advisories/\")] | unique | map(select($NPM_EXCLUDE_FILTER | not)) | length")
-            else
-              UNFIXED_HIGH=$(echo "$AUDIT_JSON" | jq '[.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | .value.via[] | select(type == "object") | .url | ltrimstr("https://github.com/advisories/")] | unique | length')
-            fi
-            if [ "$UNFIXED_HIGH" -gt 0 ]; then
-              echo "::warning::Found high or critical vulnerabilities (after excluding known false positives)"
-              npm audit --production --audit-level=high || true
-              exit 1
-            fi
-            echo "::notice::No high or critical vulnerabilities found (excluding known false positives)"
-          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
-            # Build jq filter for GHSA IDs
-            GHSA_FILTER=""
-            for _id in $GHSA_IDS; do
-              if [ -n "$GHSA_FILTER" ]; then
-                GHSA_FILTER="$GHSA_FILTER or .data.advisory.github_advisory_id == \"$_id\""
-              else
-                GHSA_FILTER=".data.advisory.github_advisory_id == \"$_id\""
-              fi
-            done
-
-            # Build jq filter for CVE IDs
-            CVE_FILTER=""
-            for _cve in $CVE_IDS; do
-              if [ -n "$CVE_FILTER" ]; then
-                CVE_FILTER="$CVE_FILTER or . == \"$_cve\""
-              else
-                CVE_FILTER=". == \"$_cve\""
-              fi
-            done
-
-            # Combine GHSA and CVE filters
-            COMBINED_FILTER=""
-            if [ -n "$GHSA_FILTER" ] && [ -n "$CVE_FILTER" ]; then
-              COMBINED_FILTER="($GHSA_FILTER or (.data.advisory.cves | any($CVE_FILTER)))"
-            elif [ -n "$GHSA_FILTER" ]; then
-              COMBINED_FILTER="($GHSA_FILTER)"
-            elif [ -n "$CVE_FILTER" ]; then
-              COMBINED_FILTER="((.data.advisory.cves | any($CVE_FILTER)))"
-            fi
-
-            audit_capture 'any(.[]; .type == "auditSummary")' yarn audit --groups dependencies --json
-            if [ -n "$COMBINED_FILTER" ]; then
-              jq -r "select(.type == \"auditAdvisory\") | select(.data.advisory.severity == \"high\" or .data.advisory.severity == \"critical\") | select(($COMBINED_FILTER) | not) | .data.advisory" "$AUDIT_OUT" > high_vulns.json
-            else
-              jq -r 'select(.type == "auditAdvisory") | select(.data.advisory.severity == "high" or .data.advisory.severity == "critical") | .data.advisory' "$AUDIT_OUT" > high_vulns.json
-            fi
-
-            if [ -s high_vulns.json ]; then
-              echo "::error::Found high or critical vulnerabilities:"
-              cat high_vulns.json
-              exit 1
-            else
-              echo "::notice::No high or critical vulnerabilities found (excluding known false positives)"
-            fi
-          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
-            GHSA_IDS_JSON=$(printf '%s\n' $GHSA_IDS | jq -R . | jq -s 'map(select(length > 0))')
-            CVE_IDS_JSON=$(printf '%s\n' $CVE_IDS | jq -R . | jq -s 'map(select(length > 0))')
-            # `--production` matches every other audit path (the pre-push hook,
-            # npm `--production`, yarn `--groups dependencies`). Without it bun
-            # alone failed on dev-only advisories that never ship while the local
-            # hook passed; dev/supply-chain coverage is the Snyk step's job.
-            # bun honours `--production` even though `bun audit --help` omits it.
-            # A clean audit prints `{}`; empty stdout is no longer read as one.
-            audit_capture 'length == 1 and (.[0] | type == "object") and all(.[0][]; type == "array")' bun audit --production --json
-            AUDIT_JSON=$(cat "$AUDIT_OUT")
-
-            BUN_HIGH_VULNS=$(echo "$AUDIT_JSON" | jq \
-              --argjson ghsa_ids "$GHSA_IDS_JSON" \
-              --argjson cve_ids "$CVE_IDS_JSON" \
-              '[
-                to_entries[]
-                | .key as $package
-                | (.value // [])[]?
-                | select(.severity == "high" or .severity == "critical")
-                | . + {
-                    package: $package,
-                    ghsa_id: (.url // "" | split("/") | last),
-                    advisory_id: (.id // "" | tostring),
-                    cves: ([.cve?, .cves[]?] | map(select(. != null and . != "")))
-                  }
-                | select(
-                    (
-                      ([.ghsa_id, .advisory_id] | map(select(. != "")) | any(.[]; . as $id | $ghsa_ids | index($id)))
-                      or (.cves | any(.[]; . as $cve | $cve_ids | index($cve)))
-                    )
-                    | not
-                  )
-              ]')
-            UNFIXED_HIGH=$(echo "$BUN_HIGH_VULNS" | jq 'length')
-
-            if [ "$UNFIXED_HIGH" -gt 0 ]; then
-              echo "::error::Found high or critical vulnerabilities (after excluding known false positives):"
-              echo "$BUN_HIGH_VULNS" | jq .
-              exit 1
-            fi
-            echo "::notice::No high or critical vulnerabilities found (excluding known false positives)"
-          else
-            echo "Unsupported package manager: $PACKAGE_MANAGER"
-            exit 1
-          fi
-        working-directory: ${{ inputs.working_directory || '.' }}
+        uses: CodySwannGT/lisa/.github/actions/dependency-audit@da755eb839875e210df9d4e2c001f7943893fd53
+        with:
+          package-manager: ${{ inputs.package_manager }}
+          working-directory: ${{ inputs.working_directory || '.' }}
 
   sonarcloud:
     permissions:

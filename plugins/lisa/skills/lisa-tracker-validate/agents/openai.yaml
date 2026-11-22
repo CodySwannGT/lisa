@@ -1,4 +1,4 @@
 display_name: "Tracker Validate"
-short_description: "Vendor-neutral wrapper for the pre-write quality gate"
+short_description: "Check a proposed or existing ticket against the organization's quality gates in whichever tracker the project uses, and return PASS/FAIL…"
 default_prompt:
-  - "Use $lisa-tracker-validate: Vendor-neutral wrapper for the pre-write quality gate."
+  - "Use $lisa-tracker-validate: Check a proposed or existing ticket against the organization's quality gates in whichever tracker the project uses, and return PASS/FAIL…."

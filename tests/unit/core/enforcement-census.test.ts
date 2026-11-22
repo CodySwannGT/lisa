@@ -161,7 +161,7 @@ describe("a checkout resolving an old guard", () => {
       },
     ]);
     expect(census.summary.partial).toBe(1);
-    expect(census.checkouts[0]?.unresolvedGuards).toHaveLength(4);
+    expect(census.checkouts[0]?.unresolvedGuards).toHaveLength(3);
     expect(renderFleetCensusReport(census)).toContain("unresolved:");
   });
 });

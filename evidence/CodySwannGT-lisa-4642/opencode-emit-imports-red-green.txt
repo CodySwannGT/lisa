@@ -1,0 +1,177 @@
+# Import-resolution guard, stale deletion, RED/GREEN for CodySwannGT/lisa#4642
+artifact_head_sha: e5ebb2a264a7dde6f2bc761fac64e8a95a523088
+captured_at: 2026-11-08T23:27:06Z
+
+## 1. RED: this HEAD's test file + base (6d1ef108e1) src/opencode/skills-installer.ts, in a git-archive snapshot of HEAD
+ ✓ |lisa| tests/unit/opencode/skills-installer-shared-scripts.test.ts > opencode/relative-imports guard > extracts static, re-export, side-effect and dynamic relative specifiers only 2ms
+ ✓ |lisa| tests/unit/opencode/skills-installer-shared-scripts.test.ts > opencode/relative-imports guard > fails naming the importing file and the missing module when an import escapes the tree 3ms
+ × |lisa| tests/unit/opencode/skills-installer-shared-scripts.test.ts > opencode/skills-installer emit against the real Lisa root > resolves every relative import of every emitted module inside .opencode/ 165ms
+ × |lisa| tests/unit/opencode/skills-installer-shared-scripts.test.ts > opencode/skills-installer emit against the real Lisa root > loads session-manager.mjs --help from the emitted tree 174ms
+ × |lisa| tests/unit/opencode/skills-installer-shared-scripts.test.ts > opencode/skills-installer shared-script emit > copies imported shared modules transitively and tracks them as managed 5ms
+ × |lisa| tests/unit/opencode/skills-installer-shared-scripts.test.ts > opencode/skills-installer shared-script emit > deletes a previously managed shared module that is no longer imported 3ms
+ × |lisa| tests/unit/opencode/skills-installer-shared-scripts.test.ts > opencode/skills-installer shared-script emit > refuses to emit two different modules onto the same shared path 5ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  5 failed | 2 passed (7)
+
+## 2. GREEN at HEAD: skills-installer-shared-scripts, shared-scripts-cleanup, shared-scripts-emitter, skills-installer tests
+ ✓ |lisa| tests/unit/opencode/skills-installer.test.ts > opencode/skills-installer > copies a bundled skill folder verbatim into .opencode/skills/lisa 9ms
+ ✓ |lisa| tests/unit/opencode/skills-installer.test.ts > opencode/skills-installer > converts a top-level command into a lisa- prefixed skill 6ms
+ ✓ |lisa| tests/unit/opencode/skills-installer.test.ts > opencode/skills-installer > labels the command compatibility note for OpenCode (not Codex) 4ms
+ ✓ |lisa| tests/unit/opencode/skills-installer.test.ts > opencode/skills-installer > converts a nested command using dash-joined namespace 4ms
+ ✓ |lisa| tests/unit/opencode/skills-installer.test.ts > opencode/skills-installer > excludes maintainer-only skills on the denylist 5ms
+ ✓ |lisa| tests/unit/opencode/skills-installer.test.ts > opencode/skills-installer > returns managedFiles including bundled and command-derived skills 6ms
+ ✓ |lisa| tests/unit/opencode/skills-installer.test.ts > opencode/skills-installer > de-duplicates skills by name across plugins (stack wins over base) 5ms
+ ✓ |lisa| tests/unit/opencode/skills-installer.test.ts > opencode/skills-installer > ignores generated cursor variants so OpenCode installs canonical skills 5ms
+ ✓ |lisa| tests/unit/opencode/skills-installer.test.ts > opencode/skills-installer > deletes stale skills managed previously but not shipped now 5ms
+ ✓ |lisa| tests/unit/opencode/skills-installer.test.ts > opencode/skills-installer > never deletes skills outside .opencode/skills/lisa/ 5ms
+ ✓ |lisa| tests/unit/opencode/skills-installer.test.ts > opencode/skills-installer > idempotent: running twice produces the same files 7ms
+ ✓ |lisa| tests/unit/opencode/skills-installer.test.ts > opencode/skills-installer > removes files dropped from source inside a surviving skill 6ms
+ ✓ |lisa| tests/unit/opencode/skills-installer-shared-scripts.test.ts > opencode/relative-imports guard > extracts static, re-export, side-effect and dynamic relative specifiers only 2ms
+ ✓ |lisa| tests/unit/opencode/skills-installer-shared-scripts.test.ts > opencode/relative-imports guard > fails naming the importing file and the missing module when an import escapes the tree 4ms
+ ✓ |lisa| tests/unit/opencode/shared-scripts-cleanup.test.ts > opencode/shared-scripts-cleanup selection > keeps a module emitted with Windows separators when the manifest holds slashes 1ms
+ ✓ |lisa| tests/unit/opencode/shared-scripts-cleanup.test.ts > opencode/shared-scripts-cleanup selection > never selects skill-folder entries or other installers' entries 0ms
+ ✓ |lisa| tests/unit/opencode/shared-scripts-cleanup.test.ts > opencode/shared-scripts-cleanup on disk > keeps shared modules across a manifest round trip 35ms
+ ✓ |lisa| tests/unit/opencode/shared-scripts-cleanup.test.ts > opencode/shared-scripts-cleanup on disk > leaves an unmanaged sibling alone while deleting a stale managed module 12ms
+ ✓ |lisa| tests/unit/opencode/shared-scripts-cleanup.test.ts > opencode/shared-scripts-cleanup on disk > does not touch previous skill-folder entries through the shared cleanup 12ms
+ ✓ |lisa| tests/unit/opencode/shared-scripts-cleanup.test.ts > opencode/shared-scripts-cleanup on disk > removes the shared directory once its last module is retired 14ms
+ ✓ |lisa| tests/unit/opencode/skills-installer-shared-scripts.test.ts > opencode/skills-installer emit against the real Lisa root > resolves every relative import of every emitted module inside .opencode/ 309ms
+ ✓ |lisa| tests/unit/opencode/shared-scripts-emitter.test.ts > opencode/relative-imports parsing > ignores imports inside line-opening comments 2ms
+ ✓ |lisa| tests/unit/opencode/shared-scripts-emitter.test.ts > opencode/relative-imports parsing > follows require() with a relative string literal 1ms
+ ✓ |lisa| tests/unit/opencode/shared-scripts-emitter.test.ts > opencode/shared-scripts-emitter error branches > ignores a commented-out escaping import of a missing module 27ms
+ ✓ |lisa| tests/unit/opencode/shared-scripts-emitter.test.ts > opencode/shared-scripts-emitter error branches > names the importer, specifier and source when an imported module is missing 35ms
+ ✓ |lisa| tests/unit/opencode/shared-scripts-emitter.test.ts > opencode/shared-scripts-emitter error branches > refuses an import that resolves outside .opencode/skills/scripts/ once emitted 24ms
+ ✓ |lisa| tests/unit/opencode/shared-scripts-emitter.test.ts > opencode/shared-scripts-emitter error branches > copies an identical module shipped by two plugins once 67ms
+ ✓ |lisa| tests/unit/opencode/skills-installer-shared-scripts.test.ts > opencode/skills-installer emit against the real Lisa root > loads session-manager.mjs --help from the emitted tree 655ms
+ ✓ |lisa| tests/unit/opencode/skills-installer-shared-scripts.test.ts > opencode/skills-installer shared-script emit > copies imported shared modules transitively and tracks them as managed 28ms
+ ✓ |lisa| tests/unit/opencode/skills-installer-shared-scripts.test.ts > opencode/skills-installer shared-script emit > deletes a previously managed shared module that is no longer imported 19ms
+ ✓ |lisa| tests/unit/opencode/skills-installer-shared-scripts.test.ts > opencode/skills-installer shared-script emit > refuses to emit two different modules onto the same shared path 16ms
+ Test Files  4 passed (4)
+      Tests  31 passed (31)
+
+## 3. Independent walker (verifier-authored, not the implementer's helper) on the lisa-apply emit
+root: <scratch-project>/.opencode
+script modules scanned: 88
+relative specifiers resolved: 173
+skill->outside-skills/lisa imports now satisfied: 12
+  ok skills/lisa/lisa-session-manager/scripts/cli-cycle.mjs -> skills/scripts/automation-run-record.mjs
+  ok skills/lisa/lisa-session-manager/scripts/cli-cycle.mjs -> skills/scripts/operator-id-kinds.mjs
+  ok skills/lisa/lisa-session-manager/scripts/cli-human.mjs -> skills/scripts/resolve-lifecycle-role.mjs
+  ok skills/lisa/lisa-session-manager/scripts/cli-overruled.mjs -> skills/scripts/resolve-lifecycle-role.mjs
+  ok skills/lisa/lisa-session-manager/scripts/cli-queue.mjs -> skills/scripts/ready-queue-order.mjs
+  ok skills/lisa/lisa-session-manager/scripts/cli-runtime.mjs -> skills/scripts/qa-signal-lifecycle.mjs
+  ok skills/lisa/lisa-session-manager/scripts/escalation-overruled.mjs -> skills/scripts/intake-blocker-reprobe.mjs
+  ok skills/lisa/lisa-session-manager/scripts/human-answer.mjs -> skills/scripts/operator-id-kinds.mjs
+  ok skills/lisa/lisa-session-manager/scripts/queue-github.mjs -> skills/scripts/ready-queue-order.mjs
+  ok skills/lisa/lisa-session-manager/scripts/queue-github.mjs -> skills/scripts/resolve-lifecycle-role.mjs
+  ok skills/lisa/lisa-session-manager/scripts/reconcile.mjs -> skills/scripts/blocker-edge-resolution.mjs
+  ok skills/lisa/lisa-session-manager/scripts/reconcile.mjs -> skills/scripts/intake-blocker-reprobe.mjs
+unresolved/escaping: 0
+walker exit=0
+
+## 4. Walker bite control: skills/scripts/ excluded
+root: <scratch>/bite/.opencode
+script modules scanned: 80
+relative specifiers resolved: 167
+skill->outside-skills/lisa imports now satisfied: 0
+unresolved/escaping: 12
+  FAIL skills/lisa/lisa-session-manager/scripts/cli-cycle.mjs imports "../../../scripts/automation-run-record.mjs" -> skills/scripts/automation-run-record.mjs [MISSING]
+  FAIL skills/lisa/lisa-session-manager/scripts/cli-cycle.mjs imports "../../../scripts/operator-id-kinds.mjs" -> skills/scripts/operator-id-kinds.mjs [MISSING]
+  FAIL skills/lisa/lisa-session-manager/scripts/cli-human.mjs imports "../../../scripts/resolve-lifecycle-role.mjs" -> skills/scripts/resolve-lifecycle-role.mjs [MISSING]
+  FAIL skills/lisa/lisa-session-manager/scripts/cli-overruled.mjs imports "../../../scripts/resolve-lifecycle-role.mjs" -> skills/scripts/resolve-lifecycle-role.mjs [MISSING]
+  FAIL skills/lisa/lisa-session-manager/scripts/cli-queue.mjs imports "../../../scripts/ready-queue-order.mjs" -> skills/scripts/ready-queue-order.mjs [MISSING]
+  FAIL skills/lisa/lisa-session-manager/scripts/cli-runtime.mjs imports "../../../scripts/qa-signal-lifecycle.mjs" -> skills/scripts/qa-signal-lifecycle.mjs [MISSING]
+  FAIL skills/lisa/lisa-session-manager/scripts/escalation-overruled.mjs imports "../../../scripts/intake-blocker-reprobe.mjs" -> skills/scripts/intake-blocker-reprobe.mjs [MISSING]
+  FAIL skills/lisa/lisa-session-manager/scripts/human-answer.mjs imports "../../../scripts/operator-id-kinds.mjs" -> skills/scripts/operator-id-kinds.mjs [MISSING]
+  FAIL skills/lisa/lisa-session-manager/scripts/queue-github.mjs imports "../../../scripts/ready-queue-order.mjs" -> skills/scripts/ready-queue-order.mjs [MISSING]
+  FAIL skills/lisa/lisa-session-manager/scripts/queue-github.mjs imports "../../../scripts/resolve-lifecycle-role.mjs" -> skills/scripts/resolve-lifecycle-role.mjs [MISSING]
+  FAIL skills/lisa/lisa-session-manager/scripts/reconcile.mjs imports "../../../scripts/blocker-edge-resolution.mjs" -> skills/scripts/blocker-edge-resolution.mjs [MISSING]
+  FAIL skills/lisa/lisa-session-manager/scripts/reconcile.mjs imports "../../../scripts/intake-blocker-reprobe.mjs" -> skills/scripts/intake-blocker-reprobe.mjs [MISSING]
+walker exit=1
+
+## 5. AC-3: synthetic escaping imports added to a copy of the emit (missing shared module; out-of-tree file that exists)
+repo guard (findUnresolvedImports at HEAD):
+real emit unresolved: 0
+synthetic unresolved: 2
+  skills/lisa/lisa-session-manager/scripts/cli-cycle.mjs imports "../../../scripts/does-not-exist.mjs" but skills/scripts/does-not-exist.mjs is not in the tree
+  skills/lisa/lisa-session-manager/scripts/reconcile.mjs imports "../../../../../escapee.mjs" but ../escapee.mjs is not in the tree
+verifier walker:
+  FAIL skills/lisa/lisa-session-manager/scripts/cli-cycle.mjs imports "../../../scripts/does-not-exist.mjs" -> skills/scripts/does-not-exist.mjs [MISSING]
+  FAIL skills/lisa/lisa-session-manager/scripts/reconcile.mjs imports "../../../../../escapee.mjs" -> <scratch>/escapee.mjs [OUTSIDE .opencode]
+
+## 6. Stale deletion via a second real lisa apply
+Before apply 2: manifest .files += skills/scripts/obsolete.mjs, skills/scripts/nested/obsolete-nested.mjs (both on disk); unmanaged skills/scripts/host-owned.mjs added as control
+manifest skills/scripts entries before:
+  skills/scripts/automation-run-record.mjs
+  skills/scripts/blocker-edge-resolution.mjs
+  skills/scripts/intake-blocker-reprobe.mjs
+  skills/scripts/intake-prework-denominator.mjs
+  skills/scripts/operator-id-kinds.mjs
+  skills/scripts/qa-signal-lifecycle.mjs
+  skills/scripts/ready-queue-order.mjs
+  skills/scripts/resolve-lifecycle-role.mjs
+  skills/scripts/obsolete.mjs
+  skills/scripts/nested/obsolete-nested.mjs
+on disk before:
+  automation-run-record.mjs
+  blocker-edge-resolution.mjs
+  host-owned.mjs
+  intake-blocker-reprobe.mjs
+  intake-prework-denominator.mjs
+  nested
+  obsolete.mjs
+  operator-id-kinds.mjs
+  qa-signal-lifecycle.mjs
+  ready-queue-order.mjs
+  resolve-lifecycle-role.mjs
+  
+  <scratch-project>/.opencode/skills/scripts/nested:
+  obsolete-nested.mjs
+apply2 exit=0
+[INFO] OpenCode emit: 172 skills, 7 plugin hooks, 29 agents, 72 commands (2 stale removed), AGENTS.md already present (host-owned), opencode.json merged, 1 MCP server(s)
+manifest skills/scripts entries after:
+  skills/scripts/automation-run-record.mjs
+  skills/scripts/blocker-edge-resolution.mjs
+  skills/scripts/intake-blocker-reprobe.mjs
+  skills/scripts/intake-prework-denominator.mjs
+  skills/scripts/operator-id-kinds.mjs
+  skills/scripts/qa-signal-lifecycle.mjs
+  skills/scripts/ready-queue-order.mjs
+  skills/scripts/resolve-lifecycle-role.mjs
+on disk after:
+  automation-run-record.mjs
+  blocker-edge-resolution.mjs
+  host-owned.mjs
+  intake-blocker-reprobe.mjs
+  intake-prework-denominator.mjs
+  operator-id-kinds.mjs
+  qa-signal-lifecycle.mjs
+  ready-queue-order.mjs
+  resolve-lifecycle-role.mjs
+
+## 7. installSkills().deleted and emptied-directory pruning (built dist at HEAD, synthetic Lisa root)
+[emptied] run 1 shared managed: skills/scripts/dep.mjs, skills/scripts/shared.mjs
+[emptied] run 1 skills/scripts/: dep.mjs, shared.mjs
+[emptied] run 2 deleted: ["skills/scripts/dep.mjs","skills/scripts/shared.mjs"]
+[emptied] run 2 shared managed: []
+[emptied] run 2 skills/scripts/: (directory absent)
+[emptied] run 2 .opencode/skills/: lisa
+[host-file] run 1 shared managed: skills/scripts/dep.mjs, skills/scripts/shared.mjs
+[host-file] run 1 skills/scripts/: dep.mjs, shared.mjs
+[host-file] run 2 deleted: ["skills/scripts/dep.mjs","skills/scripts/shared.mjs"]
+[host-file] run 2 shared managed: []
+[host-file] run 2 skills/scripts/: host-owned.mjs
+[host-file] run 2 .opencode/skills/: lisa, scripts
+
+## 8. Non-OpenCode constraint
+files changed 6d1ef108e1..HEAD:
+  src/core/upstream-evidence-manifest.ts
+  src/opencode/relative-imports.ts
+  src/opencode/shared-scripts-cleanup.ts
+  src/opencode/shared-scripts-emitter.ts
+  src/opencode/skills-installer.ts
+  tests/unit/opencode/shared-scripts-cleanup.test.ts
+  tests/unit/opencode/shared-scripts-emitter.test.ts
+  tests/unit/opencode/skills-installer-shared-scripts.test.ts
+lisa apply --harness claude into a scratch project: exit 0; top-level: .agents .claude .gitattributes .github .gitignore .lisa .lisa.config.json .lisaignore AGENTS.md CLAUDE.md package.json scripts specs state 
+'.opencode' present: no; 'OpenCode emit' log lines: 0

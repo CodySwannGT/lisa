@@ -43,7 +43,7 @@ export const OPENCODE_SCHEMA_URL = "https://opencode.ai/config.json";
  * `share: "disabled"` is the headline entry — OpenCode sharing is ON by default
  * and creates public URLs, so disabling it is an enterprise-safety guarantee.
  */
-export const LISA_REQUIRED_SETTINGS: Readonly<Record<string, unknown>> = {
+const LISA_REQUIRED_SETTINGS: Readonly<Record<string, unknown>> = {
   share: "disabled",
 };
 

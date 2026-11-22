@@ -20,6 +20,17 @@ import {
 } from "../../../plugins/src/base/hooks/threshold-ratchet-compare.mjs";
 import { familyFor } from "../../../plugins/src/base/hooks/threshold-ratchet-families.mjs";
 
+/**
+ * The first element of a list, failing the test loudly when the list is empty.
+ * @param items - The list under test
+ * @returns Its first element
+ */
+function first<T>(items: readonly T[]): T {
+  const [head] = items;
+  if (head === undefined) throw new Error("expected a non-empty list");
+  return head;
+}
+
 const VITEST_FILE = "vitest.thresholds.json";
 const ESLINT_FILE = "eslint.thresholds.json";
 const RUBOCOP_FILE = "rubocop.thresholds.yml";
@@ -69,7 +80,10 @@ describe("threshold-ratchet tier 1", () => {
       const current = JSON.stringify({ global: { lines: 50, branches: 70 } });
       const findings = compareFile(VITEST_FILE, base, current);
       expect(findings).toHaveLength(1);
-      expect(findings[0]).toMatchObject({ key: KEY_LINES, type: "weakened" });
+      expect(first(findings)).toMatchObject({
+        key: KEY_LINES,
+        type: "weakened",
+      });
     });
 
     it("allows raising and keeping minimums", () => {
@@ -83,7 +97,7 @@ describe("threshold-ratchet tier 1", () => {
       const current = JSON.stringify({ global: { lines: 70 } });
       const findings = compareFile(VITEST_FILE, base, current);
       expect(findings).toHaveLength(1);
-      expect(findings[0].type).toBe("removed");
+      expect(first(findings).type).toBe("removed");
     });
 
     it("allows adding a new key", () => {
@@ -110,7 +124,7 @@ describe("threshold-ratchet tier 1", () => {
     it("blocks deleting the whole file", () => {
       const findings = compareFile(VITEST_FILE, base, null);
       expect(findings).toHaveLength(1);
-      expect(findings[0].type).toBe("file-deleted");
+      expect(first(findings).type).toBe("file-deleted");
     });
 
     it("allows a brand-new file", () => {
@@ -120,7 +134,7 @@ describe("threshold-ratchet tier 1", () => {
     it("blocks replacing the file with invalid JSON", () => {
       const findings = compareFile(VITEST_FILE, base, "{oops");
       expect(findings).toHaveLength(1);
-      expect(findings[0].type).toBe("unparseable");
+      expect(first(findings).type).toBe("unparseable");
     });
   });
 
@@ -133,7 +147,10 @@ describe("threshold-ratchet tier 1", () => {
       });
       const findings = compareFile(ESLINT_FILE, base, current);
       expect(findings).toHaveLength(1);
-      expect(findings[0]).toMatchObject({ key: "maxLines", type: "weakened" });
+      expect(first(findings)).toMatchObject({
+        key: "maxLines",
+        type: "weakened",
+      });
     });
 
     it("allows lowering an eslint maximum (tightening)", () => {
@@ -154,7 +171,7 @@ describe("threshold-ratchet tier 1", () => {
       const current = base.replace("Max: 20", "Max: 40");
       const findings = compareFile(RUBOCOP_FILE, base, current);
       expect(findings).toHaveLength(1);
-      expect(findings[0]).toMatchObject({
+      expect(first(findings)).toMatchObject({
         key: "Metrics/MethodLength.Max",
         type: "weakened",
       });
@@ -171,7 +188,7 @@ describe("threshold-ratchet tier 1", () => {
       const current = [ABC_SIZE_SECTION, "  Max: 30"].join("\n");
       const findings = compareFile(RUBOCOP_FILE, base, current);
       expect(findings).toHaveLength(1);
-      expect(findings[0].key).toBe("Metrics/AbcSize.Max");
+      expect(first(findings).key).toBe("Metrics/AbcSize.Max");
     });
 
     it("skips empty-value rubocop lines instead of reading them as 0", () => {

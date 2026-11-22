@@ -5,7 +5,15 @@
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
-import { required, keys } from "./npm-update-contract.mjs";
+import {
+  required,
+  keys,
+  DEFAULT_TARGET,
+  policyTarget,
+} from "./npm-update-contract.mjs";
+import { proposalPolicy } from "./automation-provenance-contract.mjs";
+import { cancelOperatorOf } from "./npm-update-policy.mjs";
+import { trackerOf, assertManagedClosure } from "./npm-update-tracker.mjs";
 import { readBytes, readJson, writeJson } from "./npm-update-process.mjs";
 import { assertHostedGate } from "./npm-update-hosted-gate.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
@@ -28,10 +36,16 @@ import {
 import { withStage } from "./npm-update-invariants.mjs";
 
 /** Native dispatch bytes are checked independently of reusable workflow input forwarding. */
-export function assertDispatchCancellation(event, run, request, authority) {
+export function assertDispatchCancellation(
+  event,
+  run,
+  request,
+  authority,
+  target = DEFAULT_TARGET
+) {
   required(
     event &&
-      ["main", "refs/heads/main"].includes(event.ref) &&
+      [target, `refs/heads/${target}`].includes(event.ref) &&
       event.repository?.full_name === authority.repository &&
       String(event.repository.id) === authority.repositoryId &&
       String(event.repository.owner?.id) === authority.ownerId &&
@@ -47,7 +61,8 @@ export function assertDispatchCancellation(event, run, request, authority) {
 
 /** The actual run and repository permission are read through the existing pinned default-token transport. */
 async function manualAuthority(api, proposal, config, request) {
-  assertHostedGate({ policy: config.npmUpdater, proposal, config });
+  const policy = proposalPolicy(config, proposal);
+  assertHostedGate({ policy, proposal, config });
   const invocation = {
     runId: process.env.GITHUB_RUN_ID,
     runAttempt: process.env.GITHUB_RUN_ATTEMPT,
@@ -58,18 +73,20 @@ async function manualAuthority(api, proposal, config, request) {
     ),
     "native cancellation invocation is absent"
   );
-  await api.main(proposal.parent);
+  await api.main(proposal.parent, proposal.target);
   const run = await api.request(
     `repos/${proposal.repository}/actions/runs/${invocation.runId}/attempts/${invocation.runAttempt}`
   );
+  // GitHub: the maintainer's login. Jira/Linear: the declared GitHub cancelOperator (#4873).
+  const operator = cancelOperatorOf(config, policy);
   const permission = await api.request(
-    `repos/${proposal.repository}/collaborators/${config.npmUpdater.maintainer}/permission`
+    `repos/${proposal.repository}/collaborators/${operator}/permission`
   );
   const operatorId = assertManualCancellation(
     run,
     permission,
     api.policy,
-    config.npmUpdater.maintainer,
+    operator,
     proposal,
     request,
     invocation
@@ -79,7 +96,13 @@ async function manualAuthority(api, proposal, config, request) {
       readBytes(process.env.GITHUB_EVENT_PATH, 1_048_576, false)
     )
   );
-  assertDispatchCancellation(event, run, request, api.policy);
+  assertDispatchCancellation(
+    event,
+    run,
+    request,
+    api.policy,
+    policyTarget(proposal)
+  );
   return { invocation, operatorId };
 }
 
@@ -90,7 +113,7 @@ async function cancellationState(context) {
     manualAuthority(api, proposal, config, request)
   );
   const prior = await discoverPrior(api, proposal, { cwd, config });
-  const issue = await api.issue(request.number);
+  const issue = await trackerOf(api).issue(request.number);
   const origin = await withStage("cancel-origin", () =>
     authenticateStaleOrigin({ api, cwd, issue, proposal, config })
   );
@@ -209,8 +232,14 @@ export async function finalizeCancellation(context) {
   };
   if (!current.recorded)
     await withStage("cancel-checkpoint", () =>
-      persistCheckpoint(api, request.number, payload, digest, () =>
-        authorizeCancellation(context, record, paths, state)
+      persistCheckpoint(
+        api,
+        request.number,
+        payload,
+        digest,
+        () => authorizeCancellation(context, record, paths, state),
+        // Only a Jira/Linear host routes the checkpoint through its adapter.
+        api.tracker ? context.config : undefined
       )
     );
   const issue = (await authorizeCancellation(context, record, paths, state))
@@ -222,23 +251,25 @@ export async function finalizeCancellation(context) {
   );
   if (issue.state === "open")
     await withStage("cancel-close", () =>
-      api.request(
-        `repos/${proposal.repository}/issues/${request.number}`,
-        "PATCH",
-        { state: "closed", state_reason: "not_planned" }
-      )
+      api.tracker
+        ? api.tracker.cancel(request.number)
+        : api.request(
+            `repos/${proposal.repository}/issues/${request.number}`,
+            "PATCH",
+            { state: "closed", state_reason: "not_planned" }
+          )
     );
-  const closed = await api.issue(request.number);
+  const closed = await trackerOf(api).issue(request.number);
   required(
-    closed.state === "closed" &&
-      closed.state_reason === "not_planned" &&
-      closed.closed_by?.type === "Bot" &&
-      String(closed.closed_by.id) === api.policy.claimActorId &&
-      closed.body === issue.body &&
-      closed.title === issue.title,
+    closed.body === issue.body && closed.title === issue.title,
     "cancellation closure readback differs"
   );
-  await api.main(proposal.parent);
+  await assertManagedClosure(
+    api,
+    closed,
+    "cancellation closure readback differs"
+  );
+  await api.main(proposal.parent, proposal.target);
   await cancellationDestinationAbsent(api, request.proposalKey);
   return {
     status: "cancelled",

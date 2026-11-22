@@ -14,6 +14,7 @@ import {
   HOST_RULES_DIR,
   LEGACY_PROJECT_RULES_FILE,
   PROJECT_CONFIG_FILENAME,
+  type ProjectConfig,
   readProjectConfig,
   resolveLegacyProjectRulesFile,
   resolveProjectLearningsFile,
@@ -179,7 +180,9 @@ describe("learnings contract", () => {
   it("keeps the ledger at .lisa regardless of the configured project-rules file", () => {
     // The ledger no longer rides along with projectRulesFile: relocating rules
     // must never drag the machine-managed ledger back into an eager tree.
-    const config = { projectRulesFile: CUSTOM_PROJECT_RULES_FILE };
+    const config: ProjectConfig = {
+      projectRulesFile: CUSTOM_PROJECT_RULES_FILE,
+    };
     expect(resolveLegacyProjectRulesFile(config)).toBe(
       CUSTOM_PROJECT_RULES_FILE
     );

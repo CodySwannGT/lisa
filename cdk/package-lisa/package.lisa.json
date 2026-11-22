@@ -1,37 +1,36 @@
 {
   "force": {
     "scripts": {
-      "build": "node scripts/lib/worktree-dependencies.mjs && tsc --noEmit",
+      "build": "node scripts/lib/worktree-dependencies.mjs && node scripts/lisa-typecheck.mjs",
       "cdk": "cdk",
       "lint:fix": "node scripts/lib/worktree-dependencies.mjs && oxlint --fix && eslint . --fix",
       "lint:lisa": "node scripts/lib/worktree-dependencies.mjs && oxlint && eslint . --quiet",
       "prepare": "husky install || true",
       "setup:deploy-key": "setup-deploy-key",
       "test:cov:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile cdk --adapter vitest -- vitest run --coverage",
-      "test:cov:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && LISA_COVERAGE_SCOPE=unit lisa-test-run --profile cdk --adapter vitest -- vitest run --coverage --exclude='**/integration/**'",
+      "test:cov:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && LISA_COVERAGE_SCOPE=unit node scripts/lisa-affected-tests.mjs --push-only --fetch scripts/fetch-test-access-map.mjs -- lisa-test-run --profile cdk --adapter vitest -- vitest run --coverage --exclude='**/integration/**'",
       "test:integration:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile cdk --adapter vitest -- vitest run '.integration.' 'integration/'",
       "test:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile cdk --adapter vitest -- vitest run",
-      "test:mutation": "node scripts/lib/worktree-dependencies.mjs && LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' lisa-test-run --profile cdk --adapter direct -- node scripts/lisa-mutation.mjs",
-      "test:node:lisa": "node scripts/lib/worktree-dependencies.mjs && LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile cdk --adapter direct -- node scripts/lisa-test-node.mjs",
-      "test:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile cdk --adapter vitest -- vitest run --exclude='**/integration/**'",
+      "test:mutation": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile cdk --adapter direct -- node scripts/lisa-mutation.mjs",
+      "test:node:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile cdk --adapter direct -- node scripts/lisa-test-node.mjs",
+      "test:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && node scripts/lisa-affected-tests.mjs --push-only --fetch scripts/fetch-test-access-map.mjs -- lisa-test-run --profile cdk --adapter vitest -- vitest run --exclude='**/integration/**'",
       "test:watch:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile cdk --adapter vitest -- vitest",
       "watch": "node scripts/lib/worktree-dependencies.mjs && tsc -w"
     },
     "dependencies": {
-      "constructs": "^10.7.2",
-      "source-map-support": "^0.5.21"
+      "constructs": "^10.7.2"
     },
     "devDependencies": {
       "aws-cdk": "^2.1127.0",
       "esbuild": "^0.28.1",
       "vite": "^8.3.3",
-      "vitest": "^4.1.11",
-      "@vitest/coverage-v8": "^4.1.11",
-      "eslint-plugin-oxlint": "1.62.0",
-      "oxlint": "1.62.0",
+      "vitest": "^5.1.0",
+      "@vitest/coverage-v8": "^5.1.0",
+      "eslint-plugin-oxlint": ">=1.62.0 <1.86.0",
+      "oxlint": ">=1.62.0 <1.86.0",
       "oxlint-tsgolint": "^0.24.0",
-      "@stryker-mutator/core": "^9.0.0",
-      "@stryker-mutator/vitest-runner": "^9.0.0"
+      "@stryker-mutator/core": "^10.1.1",
+      "@stryker-mutator/vitest-runner": "^10.1.1"
     },
     "private": true,
     "overrides": {
@@ -47,6 +46,13 @@
       "vite": "$vite",
       "qs": "^6.16.0",
       "deepmerge-ts": "^8.0.1"
+    },
+    "devEngines": {
+      "packageManager": {
+        "name": "npm",
+        "version": ">=11.6.0",
+        "onFail": "warn"
+      }
     }
   },
   "defaults": {
@@ -54,7 +60,7 @@
       "aws-cdk-lib": "2.272.0"
     },
     "engines": {
-      "npm": ">= 10.9.4",
+      "npm": ">= 11.6.0",
       "yarn": "please-use-npm",
       "pnpm": "please-use-npm",
       "bun": "please-use-npm",
@@ -120,5 +126,8 @@
         "lisa-test-run -- vitest"
       ]
     }
+  },
+  "minimums": {
+    "source-map-support": ">=0.5.21"
   }
 }

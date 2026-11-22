@@ -5,7 +5,6 @@ import {
   readFile,
   readdir,
   rm,
-  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -18,6 +17,7 @@ import {
 } from "../../../src/standards/storage.js";
 import { STANDARDS_PROOF_ARTIFACT } from "../../../src/standards/contract.js";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 let root: string | undefined;
 const CHECK = "typescript.test";
@@ -101,7 +101,7 @@ describe("standards proof hostile storage reads", () => {
     const target = await createProofDirectory();
     const outside = path.join(root!, "outside.json");
     await writeFile(outside, "{}\n");
-    await symlink(outside, target);
+    createSymlink(outside, target);
 
     await expect(readStandardsProof(root!)).resolves.toMatchObject({
       status: "unreadable",

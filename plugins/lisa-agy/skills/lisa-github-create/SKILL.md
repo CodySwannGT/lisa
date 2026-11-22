@@ -1,6 +1,6 @@
 ---
 name: lisa-github-create
-description: This skill should be used when creating GitHub Issue Epics, Stories, and Sub-tasks from code files or descriptions. It analyzes the provided input, determines the appropriate issue hierarchy, and creates issues with comprehensive quality requirements including test-first development and documentation. The GitHub counterpart of lisa-jira-create.
+description: "Create GitHub epics, stories, and sub-tasks from code files or a description, choosing the hierarchy and writing each to the organization's standards."
 allowed-tools: ["Read", "Glob", "LS", "Skill", "Bash"]
 ---
 
@@ -82,7 +82,7 @@ Issues must be created in parent-before-child order:
 2. For each Story, invoke `lisa-github-write-issue` with the Epic ref as `parent_ref`. Capture each Story number.
 3. For each Sub-task, invoke `lisa-github-write-issue` with the Story ref as `parent_ref` and explicit `build_ready: true`.
 
-- **Declare readiness on every leaf write.** Per the `ready-role-filing` rule an omitted `build_ready` is **not build-ready** on any tracker, so pass `build_ready: true` on each Sub-task (the leaf work units this skill plans) and never on the Epic or Stories, which are containers per `leaf-only-lifecycle`. A leaf that is deliberately held instead passes `human_gate: "<why a human must judge this first>"`. Filing a leaf with neither is an incomplete handoff and `lisa-github-write-issue` rejects it.
+- **Declare readiness on every leaf write.** Per the `ready-role-filing` rule an omitted `build_ready` is **not build-ready** on any tracker, so pass `build_ready: true` on each Sub-task (the leaf work units this skill plans) and never on the Epic or Stories, which are containers per `leaf-only-lifecycle`. A leaf that is deliberately held instead passes `human_gate: "<the act a person must perform>"`. Filing a leaf with neither is an incomplete handoff and `lisa-github-write-issue` rejects it.
 
 ### What to pass to each invocation
 

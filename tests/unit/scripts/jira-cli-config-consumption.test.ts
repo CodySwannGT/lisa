@@ -340,6 +340,7 @@ describe("post-evidence.sh consumes the config Lisa writes", () => {
   async function runPostEvidence(): Promise<{
     status: number | null;
     stderr: string;
+    stdout: string;
   }> {
     const stubDir = await makeGhStub();
     const result = boundedSpawnSync({
@@ -382,7 +383,9 @@ describe("the fix reaches every shipped copy, not just the source", () => {
   it("passes --config to the one real jira-cli invocation in every post-evidence.sh", () => {
     const copies = findShippedScripts("post-evidence.sh");
 
-    expect(copies.length).toBeGreaterThanOrEqual(18);
+    // The base source plus its agent projections; the Expo and Rails stack
+    // copies were retired with their jira-evidence skills (#4921).
+    expect(copies.length).toBeGreaterThanOrEqual(7);
     for (const copy of copies) {
       const text = fs.readFileSync(path.join(repoRoot, copy), "utf8");
       expect(text, copy).toContain(

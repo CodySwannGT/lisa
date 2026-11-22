@@ -10,12 +10,8 @@ import process from "node:process";
 
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
-export const REPO_ROOT = path.resolve(__dirname, "../../..");
-export const SCRIPT = path.join(
-  REPO_ROOT,
-  "scripts",
-  "plugin-routing-validate.mjs"
-);
+const REPO_ROOT = path.resolve(__dirname, "../../..");
+const SCRIPT = path.join(REPO_ROOT, "scripts", "plugin-routing-validate.mjs");
 export const FIXTURE_ROOT = path.join(REPO_ROOT, "parity/fixtures/routing");
 export const FIXTURE_CACHE = path.join(FIXTURE_ROOT, "cache");
 export const VALID_DIR = path.join(FIXTURE_ROOT, "valid");
@@ -26,12 +22,12 @@ export const ROUTING_DIR_FLAG = "--routing-dir";
 export const CACHE_FLAG = "--cache-root";
 export const DEMO_MKT = "demo-marketplace";
 export const PLUGIN_NAME = "has-manifest";
-export const PLUGIN_ID = `${PLUGIN_NAME}@${DEMO_MKT}`;
-export const VERSION = "1.2.3";
-export const STAMP_ACTION = `scaffold Lisa-native skill stamped synced-from: ${PLUGIN_ID}@${VERSION}`;
+const PLUGIN_ID = `${PLUGIN_NAME}@${DEMO_MKT}`;
+const VERSION = "1.2.3";
+const STAMP_ACTION = `scaffold Lisa-native skill stamped synced-from: ${PLUGIN_ID}@${VERSION}`;
 
 /** A single per-file validation result. */
-export interface FileResult {
+interface FileResult {
   readonly file: string;
   readonly errors: readonly string[];
   readonly unverifiable?: boolean;

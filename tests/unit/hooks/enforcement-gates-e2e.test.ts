@@ -47,6 +47,23 @@ const HOOK_RUNTIMES = [
   },
 ] as const;
 
+/** A runtime that ships an eager-rule injection hook. */
+type InjectingRuntime = Extract<
+  (typeof HOOK_RUNTIMES)[number],
+  { injectRulesHook: string }
+>;
+
+/**
+ * Whether a runtime ships an eager-rule injection hook.
+ * @param runtime - One hook runtime
+ * @returns True when it declares `injectRulesHook`
+ */
+function injectsRules(
+  runtime: (typeof HOOK_RUNTIMES)[number]
+): runtime is InjectingRuntime {
+  return "injectRulesHook" in runtime;
+}
+
 /** Spawn result returned by shell hook executions. */
 type HookResult = SpawnSyncReturns<string>;
 
@@ -115,14 +132,14 @@ describe("downstream enforcement gates", () => {
     }
   );
 
-  it.each(HOOK_RUNTIMES.filter(runtime => runtime.injectRulesHook))(
+  it.each(HOOK_RUNTIMES.filter(injectsRules))(
     "$name eager-rule hook injects context into the runtime envelope",
     runtime => {
       const pluginRoot = createPluginRootWithEagerRule();
       const result = boundedSpawnSync({
         label: "inject-rules hook",
         command: BASH,
-        args: [path.join(REPO_ROOT, runtime.injectRulesHook!)],
+        args: [path.join(REPO_ROOT, runtime.injectRulesHook)],
         env: { ...process.env, CLAUDE_PLUGIN_ROOT: pluginRoot },
         input: JSON.stringify({ hook_event_name: "SubagentStart" }),
       });

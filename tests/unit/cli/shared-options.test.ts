@@ -54,6 +54,21 @@ describe("addSharedOptions", () => {
     expect(addSharedOptions(command)).toBe(command);
   });
 
+  it("explains intentional non-interactive apply and installation protection in help", () => {
+    const output: string[] = [];
+    const command = addSharedOptions(new Command("apply")).configureOutput({
+      writeOut: text => {
+        output.push(text);
+      },
+    });
+    command.outputHelp();
+    const help = output.join("");
+    expect(help).toContain("LISA_BOOTSTRAP=1");
+    expect(help).toContain("non-interactive");
+    expect(help).toContain("--full-apply");
+    expect(help).toContain("installation");
+  });
+
   it("parses the shared flags into the documented CLIOptions shape", () => {
     const command = addSharedOptions(new Command("apply"))
       .argument("[destination]")

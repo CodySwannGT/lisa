@@ -83,6 +83,8 @@ export interface PackageLisaApplyHarness {
   hostScripts(): Promise<Record<string, string>>;
   /** Read the whole host manifest back off disk. */
   hostPackage(): Promise<Record<string, unknown>>;
+  /** The host project directory, for a spec that needs more than a manifest. */
+  hostDir(): string;
 }
 
 /**
@@ -204,6 +206,10 @@ function harnessOperations(paths: () => HarnessPaths): PackageLisaApplyHarness {
       return (await fs.readJson(
         path.join(paths().projectDir, PACKAGE_JSON)
       )) as Record<string, unknown>;
+    },
+
+    hostDir() {
+      return paths().projectDir;
     },
   };
 }

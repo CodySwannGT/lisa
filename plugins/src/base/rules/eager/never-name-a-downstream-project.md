@@ -1,9 +1,5 @@
-# Never Name a Downstream Project
+# Never Name a Downstream Project (load-bearing)
 
-Refer to a downstream project by its **role in the argument** — never by organization, product, or repository name — in tracker items, pull requests, commits, rules, skills, anything that outlives the session.
+This rule covers what Lisa ships and publishes. A host repo may name itself. In anything that lands in the Lisa repo or a Lisa issue, refer to a downstream project by its role in the argument, such as "a caller repo" or "repo A". Do not use its org, product, repo, or domain names. Write the evidence, not the identity.
 
-Write the evidence, not the identity: "a caller repo", "repo A" / "repo B" when two are contrasted.
-
-Default-deny: it covers names nobody listed. `block-host-name-leak` catches some of them and is a rate reduction, never a proof.
-
-Full prose: [reference/never-name-a-downstream-project.md](../reference/never-name-a-downstream-project.md).
+Detail: [reference/never-name-a-downstream-project.md](../reference/never-name-a-downstream-project.md).

@@ -1,4 +1,4 @@
 display_name: "Remote Dispatch"
-short_description: "Route one unit of work to a…"
+short_description: "Send one unit of work to a…"
 default_prompt:
-  - "Use $lisa-remote-dispatch: Route one unit of work to a…."
+  - "Use $lisa-remote-dispatch: Send one unit of work to a…."

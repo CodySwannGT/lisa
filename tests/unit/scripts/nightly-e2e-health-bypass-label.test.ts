@@ -58,7 +58,7 @@ import {
   loadGateModule,
   noWait,
   requiredChecksRule,
-} from "../../helpers/nightly-e2e-gate-harness";
+} from "../../helpers/nightly-e2e-gate-harness.js";
 
 /** The audited bypass label, as the gate's own default names it. */
 const LABEL = "nightly-e2e-bypass";

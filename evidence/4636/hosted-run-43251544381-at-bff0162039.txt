@@ -1,0 +1,54 @@
+# CodySwannGT/lisa#4636 - earlier head bff0162039eb9ee873a72f96e8fa5d45824dd039, run 43251544381 (BASELINE: old one-byte probe; checkout already freed; tool still installed from file:<tarball>) (hosted ubuntu-24.04)
+# Extracted verbatim (ANSI stripped) by the verifier at 2026-11-12T18:14:16Z from: gh run view <id> --repo CodySwannGT/lisa --log [--attempt N]
+# Sample fields: probeUs = the probe as built at that head; variantUs = 20 entries x 4 KiB fsync'd; realUs = 5,000 x 4 KiB fsync'd removal; ratios; discards = /sys/block/<dev>/stat discard-counter deltas (immediate, and after settle).
+
+### FS_PROBE_DIAGNOSTIC
+FS_PROBE_DIAGNOSTIC {"kind":"mount","tmpdir":"/tmp/lisa-scratch/run-3564-1794498513181-c8adb523/worker-4516-c7a4b3087339886c","probeMount":{"device":"8:1","mountPoint":"/","fsType":"ext4","options":"rw,relatime;rw,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback"},"rootMount":{"device":"8:1","mountPoint":"/","fsType":"ext4","options":"rw,relatime;rw,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback"},"deviceCountersReadable":true}
+FS_PROBE_DIAGNOSTIC {"kind":"sample","sample":1,"probeUs":18.03250000002663,"variantUs":66.83170000005703,"realUs":65.12270439999993,"variantToReal":1.026,"probeToReal":0.277,"entries":{"probe":100,"variant":100,"real":5000},"discards":{"probe":{"immediate":{"discardIos":0,"discardMerges":0,"discardSectors":0,"discardMs":0},"settled":{"discardIos":1,"discardMerges":0,"discardSectors":8,"discardMs":0}},"variant":{"immediate":{"discardIos":115,"discardMerges":0,"discardSectors":920,"discardMs":4},"settled":{"discardIos":116,"discardMerges":0,"discardSectors":928,"discardMs":4}},"real":{"immediate":{"discardIos":5000,"discardMerges":0,"discardSectors":40000,"discardMs":168},"settled":{"discardIos":5001,"discardMerges":0,"discardSectors":40008,"discardMs":168}}}}
+FS_PROBE_DIAGNOSTIC {"kind":"sample","sample":2,"probeUs":17.05805000001419,"variantUs":75.13145000011718,"realUs":67.39880299999932,"variantToReal":1.115,"probeToReal":0.253,"entries":{"probe":100,"variant":100,"real":5000},"discards":{"probe":{"immediate":{"discardIos":0,"discardMerges":0,"discardSectors":0,"discardMs":0},"settled":{"discardIos":1,"discardMerges":0,"discardSectors":8,"discardMs":0}},"variant":{"immediate":{"discardIos":143,"discardMerges":0,"discardSectors":1144,"discardMs":6},"settled":{"discardIos":144,"discardMerges":0,"discardSectors":1152,"discardMs":6}},"real":{"immediate":{"discardIos":5000,"discardMerges":0,"discardSectors":40000,"discardMs":180},"settled":{"discardIos":5001,"discardMerges":0,"discardSectors":40008,"discardMs":180}}}}
+FS_PROBE_DIAGNOSTIC {"kind":"sample","sample":3,"probeUs":16.732599999886588,"variantUs":69.97689999989234,"realUs":65.1132065999991,"variantToReal":1.075,"probeToReal":0.257,"entries":{"probe":100,"variant":100,"real":5000},"discards":{"probe":{"immediate":{"discardIos":0,"discardMerges":0,"discardSectors":0,"discardMs":0},"settled":{"discardIos":1,"discardMerges":0,"discardSectors":8,"discardMs":0}},"variant":{"immediate":{"discardIos":143,"discardMerges":0,"discardSectors":1144,"discardMs":6},"settled":{"discardIos":144,"discardMerges":0,"discardSectors":1152,"discardMs":6}},"real":{"immediate":{"discardIos":5000,"discardMerges":0,"discardSectors":40000,"discardMs":166},"settled":{"discardIos":5001,"discardMerges":0,"discardSectors":40008,"discardMs":166}}}}
+FS_PROBE_DIAGNOSTIC {"kind":"sample","sample":4,"probeUs":16.840749999391846,"variantUs":63.78374999985681,"realUs":63.67158959999797,"variantToReal":1.002,"probeToReal":0.264,"entries":{"probe":100,"variant":100,"real":5000},"discards":{"probe":{"immediate":{"discardIos":0,"discardMerges":0,"discardSectors":0,"discardMs":0},"settled":{"discardIos":1,"discardMerges":0,"discardSectors":8,"discardMs":0}},"variant":{"immediate":{"discardIos":143,"discardMerges":0,"discardSectors":1144,"discardMs":5},"settled":{"discardIos":144,"discardMerges":0,"discardSectors":1152,"discardMs":5}},"real":{"immediate":{"discardIos":5000,"discardMerges":0,"discardSectors":40000,"discardMs":165},"settled":{"discardIos":5001,"discardMerges":0,"discardSectors":40008,"discardMs":165}}}}
+FS_PROBE_DIAGNOSTIC {"kind":"sample","sample":5,"probeUs":17.380550000234507,"variantUs":62.68264999962411,"realUs":64.53961119999876,"variantToReal":0.971,"probeToReal":0.269,"entries":{"probe":100,"variant":100,"real":5000},"discards":{"probe":{"immediate":{"discardIos":0,"discardMerges":0,"discardSectors":0,"discardMs":0},"settled":{"discardIos":1,"discardMerges":0,"discardSectors":8,"discardMs":0}},"variant":{"immediate":{"discardIos":143,"discardMerges":0,"discardSectors":1144,"discardMs":5},"settled":{"discardIos":144,"discardMerges":0,"discardSectors":1152,"discardMs":5}},"real":{"immediate":{"discardIos":5001,"discardMerges":0,"discardSectors":40008,"discardMs":166},"settled":{"discardIos":5002,"discardMerges":0,"discardSectors":40016,"discardMs":166}}}}
+FS_PROBE_DIAGNOSTIC {"kind":"sample","sample":6,"probeUs":16.963449999457225,"variantUs":66.1066500004381,"realUs":65.4517725999991,"variantToReal":1.01,"probeToReal":0.259,"entries":{"probe":100,"variant":100,"real":5000},"discards":{"probe":{"immediate":{"discardIos":0,"discardMerges":0,"discardSectors":0,"discardMs":0},"settled":{"discardIos":1,"discardMerges":0,"discardSectors":8,"discardMs":0}},"variant":{"immediate":{"discardIos":143,"discardMerges":0,"discardSectors":1144,"discardMs":6},"settled":{"discardIos":144,"discardMerges":0,"discardSectors":1152,"discardMs":6}},"real":{"immediate":{"discardIos":5000,"discardMerges":0,"discardSectors":40000,"discardMs":172},"settled":{"discardIos":5035,"discardMerges":0,"discardSectors":40280,"discardMs":174}}}}
+FS_PROBE_DIAGNOSTIC {"kind":"sample","sample":7,"probeUs":16.845749999629334,"variantUs":63.17534999980126,"realUs":67.44075280000106,"variantToReal":0.937,"probeToReal":0.25,"entries":{"probe":100,"variant":100,"real":5000},"discards":{"probe":{"immediate":{"discardIos":0,"discardMerges":0,"discardSectors":0,"discardMs":0},"settled":{"discardIos":1,"discardMerges":0,"discardSectors":8,"discardMs":0}},"variant":{"immediate":{"discardIos":109,"discardMerges":0,"discardSectors":872,"discardMs":3},"settled":{"discardIos":110,"discardMerges":0,"discardSectors":880,"discardMs":4}},"real":{"immediate":{"discardIos":5000,"discardMerges":0,"discardSectors":40000,"discardMs":181},"settled":{"discardIos":5001,"discardMerges":0,"discardSectors":40008,"discardMs":181}}}}
+FS_PROBE_DIAGNOSTIC {"kind":"sample","sample":8,"probeUs":16.6655000008177,"variantUs":66.86425000079907,"realUs":63.64244499999913,"variantToReal":1.051,"probeToReal":0.262,"entries":{"probe":100,"variant":100,"real":5000},"discards":{"probe":{"immediate":{"discardIos":0,"discardMerges":0,"discardSectors":0,"discardMs":0},"settled":{"discardIos":1,"discardMerges":0,"discardSectors":8,"discardMs":1}},"variant":{"immediate":{"discardIos":143,"discardMerges":0,"discardSectors":1144,"discardMs":4},"settled":{"discardIos":144,"discardMerges":0,"discardSectors":1152,"discardMs":5}},"real":{"immediate":{"discardIos":5000,"discardMerges":0,"discardSectors":40000,"discardMs":161},"settled":{"discardIos":5001,"discardMerges":0,"discardSectors":40008,"discardMs":161}}}}
+
+### diagnostic vitest result lines
+      Tests  9 passed (9)
+     ✓ paired sample 1 of 8  25777ms
+     ✓ paired sample 2 of 8  25802ms
+     ✓ paired sample 3 of 8  25648ms
+     ✓ paired sample 4 of 8  25620ms
+     ✓ paired sample 5 of 8  25569ms
+     ✓ paired sample 6 of 8  25691ms
+     ✓ paired sample 7 of 8  25656ms
+     ✓ paired sample 8 of 8  25616ms
+ Test Files  1 passed (1)
+stderr | tests/integration/fs-probe-diagnostic.test.ts > fs probe diagnostic > paired sample 1 of 8
+stderr | tests/integration/fs-probe-diagnostic.test.ts > fs probe diagnostic > paired sample 2 of 8
+stderr | tests/integration/fs-probe-diagnostic.test.ts > fs probe diagnostic > paired sample 3 of 8
+stderr | tests/integration/fs-probe-diagnostic.test.ts > fs probe diagnostic > paired sample 4 of 8
+stderr | tests/integration/fs-probe-diagnostic.test.ts > fs probe diagnostic > paired sample 5 of 8
+stderr | tests/integration/fs-probe-diagnostic.test.ts > fs probe diagnostic > paired sample 6 of 8
+stderr | tests/integration/fs-probe-diagnostic.test.ts > fs probe diagnostic > paired sample 7 of 8
+stderr | tests/integration/fs-probe-diagnostic.test.ts > fs probe diagnostic > paired sample 8 of 8
+
+### PACKED_HOSTS_TEARDOWN
+PACKED_HOSTS_TEARDOWN {"phase":"registry-close:start","elapsedMs":0,"baseBudgetMs":30000,"budgetMs":30000,"node":"24.21.0","platform":"linux","arch":"x64"}
+PACKED_HOSTS_TEARDOWN {"phase":"registry-close:end","elapsedMs":2,"baseBudgetMs":30000,"budgetMs":30000,"node":"24.21.0","platform":"linux","arch":"x64"}
+PACKED_HOSTS_TEARDOWN {"phase":"root-cleanup:start","elapsedMs":3,"baseBudgetMs":30000,"budgetMs":30000,"node":"24.21.0","platform":"linux","arch":"x64","topLevel":["child-tmp","evidence","fake-bin","oracle","pack","tool"],"fullRun":true,"installersFinished":true,"sharedCacheFreed":true,"sharedCacheEntries":303174}
+PACKED_HOSTS_TEARDOWN {"phase":"root-cleanup:end","elapsedMs":1995,"baseBudgetMs":30000,"budgetMs":30000,"node":"24.21.0","platform":"linux","arch":"x64","inodesFreed":63078,"bytesFreed":663007232,"rootExists":false}
+
+### journey vitest result lines
+      Tests  10 passed (10)
+     ✓ Node24 adoption preserves existing host ownership: custom  3124ms
+     ✓ Node24 adoption preserves existing host ownership: ignored  2534ms
+     ✓ Node24 adoption preserves existing host ownership: known  2504ms
+     ✓ cdk: patched installs, native execution and two idempotent adoptions  164352ms
+     ✓ expo inherits Node24 through genuine native framework checks and two adoptions  45371ms
+     ✓ harper-fabric inherits Node24 through genuine native framework checks and two adoptions  146851ms
+     ✓ nestjs inherits Node24 through genuine native framework checks and two adoptions  142480ms
+     ✓ npm-package inherits Node24 through genuine native framework checks and two adoptions  148274ms
+     ✓ phaser inherits Node24 through genuine native framework checks and two adoptions  136262ms
+     ✓ typescript: patched installs, native execution and two idempotent adoptions  129473ms
+ Test Files  1 passed (1)

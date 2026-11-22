@@ -12,9 +12,9 @@ import {
 
 export const STANDARDS_PROOF_PATH = ".lisa/standards/latest.json";
 export const STANDARDS_PROOF_ARTIFACT = "lisa-standards-proof";
-export const STANDARDS_PROOF_SCHEMA_VERSION = 1;
+const STANDARDS_PROOF_SCHEMA_VERSION = 1;
 
-export const STANDARDS_CHECK_CATEGORIES = [
+const STANDARDS_CHECK_CATEGORIES = [
   "lint",
   "static-analysis",
   "test",
@@ -35,7 +35,7 @@ export interface StandardsProofResult {
 }
 
 /** Git artifact identity established by a standards run. */
-export interface StandardsRepositoryProof {
+interface StandardsRepositoryProof {
   readonly identity: string;
   readonly head: string;
   readonly tree: string;
@@ -98,7 +98,6 @@ const REPOSITORY_IDENTITY = /^[a-z\d.-]+(?::\d+)?\/[a-z\d._/-]+$/u;
  * @param now - Observation time used only to reject future timestamps
  * @returns Strict immutable proof
  */
-// eslint-disable-next-line max-lines-per-function -- exact closed-field validation remains one auditable transaction
 export function validateStandardsProof(
   candidate: unknown,
   now: Date = new Date()
@@ -124,28 +123,10 @@ export function validateStandardsProof(
     "configDigest"
   );
   const repository = requireRepository(read(input, "repository"));
-  const projectTypes = readStrictDenseArray(
-    read(input, "projectTypes"),
-    1,
-    PROJECT_TYPES.length,
-    "projectTypes"
-  ).map((value, index) =>
-    requireClosedString(value, PROJECT_TYPES, `projectTypes[${index}]`)
+  const projectTypes = requireProjectTypes(read(input, "projectTypes"));
+  const applicableChecks = requireApplicableChecks(
+    read(input, "applicableChecks")
   );
-  if (new Set(projectTypes).size !== projectTypes.length) {
-    throw new Error("Invalid projectTypes: entries must be unique");
-  }
-  const applicableChecks = readStrictDenseArray(
-    read(input, "applicableChecks"),
-    1,
-    MAX_CHECKS,
-    "applicableChecks"
-  ).map((value, index) =>
-    requireBoundedMachineId(value, `applicableChecks[${index}]`, 128)
-  );
-  if (new Set(applicableChecks).size !== applicableChecks.length) {
-    throw new Error("Invalid applicableChecks: entries must be unique");
-  }
   const capturedAt = requireCanonicalUtcTimestamp(
     read(input, "capturedAt"),
     "capturedAt"
@@ -179,6 +160,46 @@ export function validateStandardsProof(
     capturedAt,
     results: Object.freeze(results),
   });
+}
+
+/**
+ * Validate the proof's unique, closed list of detected project types.
+ * @param candidate - Untrusted projectTypes value
+ * @returns Validated project types, in proof order
+ */
+function requireProjectTypes(candidate: unknown) {
+  const projectTypes = readStrictDenseArray(
+    candidate,
+    1,
+    PROJECT_TYPES.length,
+    "projectTypes"
+  ).map((value, index) =>
+    requireClosedString(value, PROJECT_TYPES, `projectTypes[${index}]`)
+  );
+  if (new Set(projectTypes).size !== projectTypes.length) {
+    throw new Error("Invalid projectTypes: entries must be unique");
+  }
+  return projectTypes;
+}
+
+/**
+ * Validate the proof's unique, bounded list of applicable check identifiers.
+ * @param candidate - Untrusted applicableChecks value
+ * @returns Validated check identifiers, in proof order
+ */
+function requireApplicableChecks(candidate: unknown): string[] {
+  const applicableChecks = readStrictDenseArray(
+    candidate,
+    1,
+    MAX_CHECKS,
+    "applicableChecks"
+  ).map((value, index) =>
+    requireBoundedMachineId(value, `applicableChecks[${index}]`, 128)
+  );
+  if (new Set(applicableChecks).size !== applicableChecks.length) {
+    throw new Error("Invalid applicableChecks: entries must be unique");
+  }
+  return applicableChecks;
 }
 
 /**

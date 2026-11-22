@@ -34,7 +34,7 @@ import {
   parseArgs,
 } from "../../../all/copy-overwrite/scripts/check-conflict-markers.mjs";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
-import { cleanGitEnv } from "../../helpers/test-utils";
+import { cleanGitEnv } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const SCRIPT = path.resolve(
@@ -124,7 +124,7 @@ function run(
       label: "check-conflict-markers.mjs",
       command: process.execPath,
       args: [SCRIPT, ...args],
-      cwd,
+      ...(cwd === undefined ? {} : { cwd }),
     });
     return { code: 0, stdout };
   } catch (error) {

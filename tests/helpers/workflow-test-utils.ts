@@ -29,7 +29,7 @@ export interface WorkflowJob {
 }
 
 /** Shape of one `workflow_call` input declaration. */
-export interface WorkflowInput {
+interface WorkflowInput {
   description?: string;
   required?: boolean;
   default?: unknown;

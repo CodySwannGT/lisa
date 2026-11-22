@@ -289,7 +289,7 @@ const NON_AUTOMATED_EVENTS: readonly string[] = [
  * @param workflow - The parsed workflow
  * @returns True when at least one trigger fires with no human in the loop
  */
-export function runsUnattended(workflow: ParsedWorkflow): boolean {
+function runsUnattended(workflow: ParsedWorkflow): boolean {
   // An empty trigger list yields `false` here, which is the intended reading:
   // a workflow whose `on:` block could not be parsed proves nothing.
   return workflow.on.events.some(
@@ -305,7 +305,7 @@ export function runsUnattended(workflow: ParsedWorkflow): boolean {
  * @param job - The parsed job
  * @returns True when the job is conditional or names an environment
  */
-export function jobIsGated(job: ParsedWorkflowJob): boolean {
+function jobIsGated(job: ParsedWorkflowJob): boolean {
   return job.ifCondition !== "" || job.environment.length > 0;
 }
 
@@ -315,7 +315,7 @@ export function jobIsGated(job: ParsedWorkflowJob): boolean {
  * @param step - The parsed step
  * @returns True when the step carries its own guard
  */
-export function stepIsGated(step: ParsedWorkflowStep): boolean {
+function stepIsGated(step: ParsedWorkflowStep): boolean {
   if (step.ifCondition !== "") {
     return true;
   }

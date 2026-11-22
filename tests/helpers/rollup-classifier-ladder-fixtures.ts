@@ -8,14 +8,14 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { createSymlink } from "../support/borrowed-node-modules.mjs";
 
 /** Fixed suffix that a trusted plugin root may contribute. */
-export const CLASSIFIER_SUFFIX = "scripts/rollup-blocker-classification.mjs";
+const CLASSIFIER_SUFFIX = "scripts/rollup-blocker-classification.mjs";
 
 /** Exact child graph that must cross the resolver without rewriting. */
 export const EXACT_CHILD_GRAPH = `${JSON.stringify({
@@ -107,7 +107,7 @@ export const createClassifierTree = (): ClassifierTree => {
       { mode: 0o755 }
     );
   }
-  symlinkSync(process.execPath, path.join(tree.stubBin, "node"));
+  createSymlink(process.execPath, path.join(tree.stubBin, "node"));
   return tree;
 };
 
@@ -188,7 +188,7 @@ export const plantEscapingSymlink = (
   const outside = plantClassifier(tree, tree.untrusted, "symlink-target");
   const candidate = classifierAt(trustedRoot);
   mkdirSync(path.dirname(candidate), { recursive: true });
-  symlinkSync(outside, candidate);
+  createSymlink(outside, candidate);
   return candidate;
 };
 
@@ -204,7 +204,7 @@ export const plantEscapingScriptsSymlink = (
 ): string => {
   plantClassifier(tree, tree.untrusted, "ancestor-symlink-target");
   mkdirSync(trustedRoot, { recursive: true });
-  symlinkSync(
+  createSymlink(
     path.join(tree.untrusted, "scripts"),
     path.join(trustedRoot, "scripts"),
     "dir"

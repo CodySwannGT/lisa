@@ -16,7 +16,7 @@ const AUTOMATION_ID = "lisa-auto-codyswanngt-lisa-intake-tickets";
 const RECENT_RUN_AT = "2026-05-26T12:00:00Z";
 
 describe("automation-status Codex cwd health", () => {
-  const tempDirs = [];
+  const tempDirs: string[] = [];
 
   afterEach(async () => {
     await Promise.all(
@@ -71,7 +71,10 @@ describe("automation-status Codex cwd health", () => {
  * @param {string} cwd Configured automation cwd value.
  * @returns {Promise<void>} Resolves after the fixture is written.
  */
-async function writeAutomationFixture(automationsDir, cwd) {
+async function writeAutomationFixture(
+  automationsDir: string,
+  cwd: string
+): Promise<void> {
   const automationDir = path.join(automationsDir, AUTOMATION_ID);
   await fs.mkdir(automationDir, { recursive: true });
   await fs.writeFile(

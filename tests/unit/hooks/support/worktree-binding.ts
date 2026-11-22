@@ -21,13 +21,24 @@ import { cleanGitEnv, resolveGit } from "../../../support/git-executable.js";
 const GUARD_PATH = path.resolve(
   "plugins/src/base/hooks/worktree-binding-guard.mjs"
 );
-export const GIT_PATH = resolveGit();
+const GIT_PATH = resolveGit();
 
 /** Claude's refusal code. Anything else lets the tool call through. */
 export const BLOCKED = 2;
 export const ALLOWED = 0;
 
 export const SESSION = "session-under-test";
+
+/**
+ * The guarded call every case makes unless it names its own: a WRITE.
+ *
+ * Since CodySwannGT/lisa#4816 a provably read-only command in a mismatched
+ * worktree is allowed with a warning, so a default of `echo hello` would turn
+ * every displacement case in this suite into a read and silently stop
+ * exercising the refusal. A write keeps "the guarded call" meaning what it
+ * meant when these cases were written. The guard never runs the command.
+ */
+export const WRITE_COMMAND = "touch guarded-write.txt";
 
 /**
  * The state-file name the guard writes for a (session, agent) pair.
@@ -49,7 +60,7 @@ export function stateKey(session: string, agent?: string): string {
 /** Git's quiet flag, named because the fixture repeats it. */
 export const QUIET = "-q";
 /** This guard's spawn label, named because every case spawns it. */
-export const GUARD_LABEL = "worktree-binding-guard";
+const GUARD_LABEL = "worktree-binding-guard";
 
 /**
  * Directories to remove after each case.
@@ -185,7 +196,7 @@ export function runGuard(call: Call) {
     session_id: call.session ?? SESSION,
     cwd: call.cwd,
     tool_name: call.tool ?? "Bash",
-    tool_input: call.input ?? { command: "echo hello" },
+    tool_input: call.input ?? { command: WRITE_COMMAND },
     ...(call.event === undefined ? {} : { hook_event_name: call.event }),
     ...(call.agent === undefined ? {} : { agent_id: call.agent }),
   };

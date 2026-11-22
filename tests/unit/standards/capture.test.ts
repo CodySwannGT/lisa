@@ -54,10 +54,18 @@ afterEach(() => {
 });
 
 /**
+ * Capture boundaries a test may swap out one at a time. Production reads them
+ * as readonly; each failure-path case below replaces exactly one.
+ */
+type ReplaceableDependencies = {
+  -readonly [K in keyof StandardsCaptureDependencies]: StandardsCaptureDependencies[K];
+};
+
+/**
  * Build deterministic injectable capture boundaries.
  * @returns Complete fake capture dependencies and observable writer
  */
-function dependencies(): StandardsCaptureDependencies & {
+function dependencies(): ReplaceableDependencies & {
   writeProof: ReturnType<typeof vi.fn>;
 } {
   const moments = [

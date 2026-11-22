@@ -19,7 +19,6 @@ import {
   mkdirSync,
   mkdtempSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -29,6 +28,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { taskFixture } from "../../helpers/task-readiness-fixture.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 /** The hook as it is installed into a plugin root. */
 const HOOK = path.resolve(
@@ -99,7 +99,7 @@ function shimWithoutJq(): string {
   temporary.push(shim);
   for (const tool of SHIM_TOOLS) {
     const found = locate(tool);
-    if (found) symlinkSync(found, path.join(shim, tool));
+    if (found) createSymlink(found, path.join(shim, tool));
   }
   return shim;
 }

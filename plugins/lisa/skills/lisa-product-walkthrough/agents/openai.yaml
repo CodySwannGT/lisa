@@ -1,4 +1,4 @@
 display_name: "Product Walkthrough"
-short_description: "Methodology for evaluating the live product when planning work or evaluating a PRD"
+short_description: "Look at the live product before planning work or judging a PRD, so tickets reflect what exists today"
 default_prompt:
-  - "Use $lisa-product-walkthrough: Methodology for evaluating the live product when planning work or evaluating a PRD."
+  - "Use $lisa-product-walkthrough: Look at the live product before planning work or judging a PRD, so tickets reflect what exists today."

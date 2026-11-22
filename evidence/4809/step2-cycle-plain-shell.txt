@@ -1,0 +1,4 @@
+# plain shell: TMUX set=no; this wrapper shell pid=76837 (node's ppid after exec of sm.sh)
+# command: session-manager.mjs cycle --project-root <throwaway>  at 2026-11-12T23:00:10Z
+{"by":"pid:76837","at":"2026-11-12T23:00:10.736Z"}
+# exit=0

@@ -11,6 +11,7 @@
  * @module sync/registry
  */
 import { validateHealthSchedule } from "../health/contract.js";
+import { KNOWLEDGE_SYNCED_SETTING } from "../core/knowledge-role.js";
 import {
   STARTER_SYNC_DEFAULTS,
   validateStarterSync,
@@ -23,6 +24,7 @@ import {
   LINEAR_WORKFLOW_DEFAULTS,
   PRD_LABEL_DEFAULTS,
 } from "./lifecycle-defaults.js";
+import { WORK_ITEM_ESTIMATE_SYNCED_SETTING } from "./work-item-estimate-setting.js";
 
 /**
  * A project file that mirrors a synced setting. Artifact files are only ever
@@ -79,7 +81,7 @@ const WHEN_SOURCE_LINEAR = "source=linear";
 const WHEN_SOURCE_NOTION = "source=notion";
 
 /** One provider's exact setup scope contract. */
-export interface SetupProviderRequirement {
+interface SetupProviderRequirement {
   readonly allOf: readonly string[];
   readonly anyOf?: readonly string[];
   readonly setupHint: string;
@@ -89,7 +91,7 @@ export interface SetupProviderRequirement {
  * Authoritative tracker/PRD-source setup requirements. Config sync and
  * read-only readiness consumers share this map so provider lanes cannot drift.
  */
-export const SETUP_PROVIDER_REQUIREMENTS: Readonly<{
+const SETUP_PROVIDER_REQUIREMENTS: Readonly<{
   tracker: Readonly<Record<string, SetupProviderRequirement>>;
   source: Readonly<Record<string, SetupProviderRequirement>>;
 }> = {
@@ -156,12 +158,14 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
     defaultValue: "claude",
     description: "Target coding-agent harness(es)",
   },
+  KNOWLEDGE_SYNCED_SETTING,
   {
     key: "health.schedule",
     defaultValue: "off",
     validate: validateHealthSchedule,
     description: "Health-check schedule (off, daily, or weekly)",
   },
+  WORK_ITEM_ESTIMATE_SYNCED_SETTING,
   {
     key: "quality.testCoverage",
     defaultValue: COVERAGE_DEFAULTS,
@@ -260,7 +264,11 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
   },
   {
     key: "jira.labels",
-    defaultValue: { human_needed: "Human Needed", spec_defect: "Spec Defect" },
+    defaultValue: {
+      human_needed: "Human Needed",
+      spec_defect: "Spec Defect",
+      wrongly_escalated: BUILD_LABEL_DEFAULTS.wrongly_escalated,
+    },
     relevantWhen: ["jira", WHEN_TRACKER_JIRA],
     description: "JIRA marker labels",
   },
@@ -288,6 +296,7 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
       build: {
         human_needed: BUILD_LABEL_DEFAULTS.human_needed,
         spec_defect: BUILD_LABEL_DEFAULTS.spec_defect,
+        wrongly_escalated: BUILD_LABEL_DEFAULTS.wrongly_escalated,
       },
       prd: PRD_LABEL_DEFAULTS,
     },
@@ -313,12 +322,6 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
     },
     relevantWhen: ["notion", WHEN_SOURCE_NOTION],
     description: "Notion status option names per lifecycle role",
-  },
-  {
-    key: "wiki.ttlSeconds",
-    defaultValue: 300,
-    relevantWhen: ["wiki"],
-    description: "Remote wiki mirror refresh TTL",
   },
 ];
 

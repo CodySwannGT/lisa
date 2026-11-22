@@ -1,4 +1,4 @@
 display_name: "Github Evidence"
-short_description: "Upload text evidence to the GitHub `pr-assets` release, update PR description, and post a GitHub Issue comment with code blocks"
+short_description: "Post text evidence for a GitHub issue: upload it to the GitHub evidence release, update the PR description, and comment on the issue"
 default_prompt:
-  - "Use $lisa-github-evidence: Upload text evidence to the GitHub `pr-assets` release, update PR description, and post a GitHub Issue comment with code blocks."
+  - "Use $lisa-github-evidence: Post text evidence for a GitHub issue: upload it to the GitHub evidence release, update the PR description, and comment on the issue."

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import {
   closeSync,
+  existsSync,
   lstatSync,
   mkdirSync,
   openSync,
@@ -19,9 +20,10 @@ import {
 } from "./shell-guard-refusal-coverage.mjs";
 import {
   identityHash,
-  mergeBundles,
+  mergeShardDirectories,
   nativeArgv,
   parseShard,
+  RERUN_ALL,
   sha256,
   validateBundle,
   validateSnapshot,
@@ -300,6 +302,28 @@ export function collectShard(root, discover, args) {
   );
 }
 
+/**
+ * Read one downloaded shard directory. Null when it holds no manifest.json:
+ * a failed shard still uploads its logs and execution.json for diagnosis.
+ */
+function readBundle(base) {
+  assert(realpathSync(base) === base, "symlinked shard bundle directory");
+  const manifestPath = path.join(base, "manifest.json");
+  if (!existsSync(manifestPath)) return null;
+  const manifestRaw = bytes(manifestPath).toString("utf8");
+  return {
+    manifest: JSON.parse(manifestRaw),
+    manifestRaw,
+    traceRaw: bytes(path.join(base, "trace.jsonl")).toString("utf8"),
+    reportRaw: bytes(path.join(base, "results.json")).toString("utf8"),
+    terminalRaw: bytes(path.join(base, "terminal.json")).toString("utf8"),
+    indexRaw: bytes(path.join(base, INDEX_FILE)).toString("utf8"),
+    executionRaw: bytes(path.join(base, EXECUTION_FILE)).toString("utf8"),
+    stdoutRaw: bytes(path.join(base, STDOUT_FILE)),
+    stderrRaw: bytes(path.join(base, STDERR_FILE)),
+  };
+}
+
 export function mergeCollected(root, discover, args) {
   assert(
     !args.includes("--collect-only") &&
@@ -313,42 +337,21 @@ export function mergeCollected(root, discover, args) {
       lstatSync(directory).isDirectory(),
     "explicit owned download directory required"
   );
-  const entries = readdirSync(directory, { withFileTypes: true });
-  const current = snapshot(root, discover);
-  const prefix = `lisa-shell-guard-${current.provider.runId}-${current.provider.attempt}-shard-`;
-  assert(
-    entries.length === 3 &&
-      entries.every(
-        entry =>
-          entry.isDirectory() &&
-          [1, 2, 3].some(index => entry.name === prefix + index)
-      ),
-    "missing/extra/nonowned/stale-attempt shard bundle"
-  );
-  const bundles = entries.map(entry => {
-    const base = path.join(directory, entry.name);
-    assert(realpathSync(base) === base);
-    const manifestRaw = bytes(path.join(base, "manifest.json")).toString(
-      "utf8"
-    );
-    const manifest = JSON.parse(manifestRaw);
+  // #4634: the download holds every attempt of this run. A failed-jobs re-run
+  // rebuilds only the failed shard, so the newest complete bundle per shard is
+  // merged; selection and every refusal live in mergeShardDirectories.
+  const entries = readdirSync(directory, { withFileTypes: true }).map(entry => {
     assert(
-      entry.name === prefix + manifest.shard.index,
-      "bundle name/shard mismatch"
+      entry.isDirectory(),
+      `download entry ${JSON.stringify(entry.name)} is not a shard bundle directory. ${RERUN_ALL}`
     );
     return {
-      manifest,
-      manifestRaw,
-      traceRaw: bytes(path.join(base, "trace.jsonl")).toString("utf8"),
-      reportRaw: bytes(path.join(base, "results.json")).toString("utf8"),
-      terminalRaw: bytes(path.join(base, "terminal.json")).toString("utf8"),
-      indexRaw: bytes(path.join(base, INDEX_FILE)).toString("utf8"),
-      executionRaw: bytes(path.join(base, EXECUTION_FILE)).toString("utf8"),
-      stdoutRaw: bytes(path.join(base, STDOUT_FILE)),
-      stderrRaw: bytes(path.join(base, STDERR_FILE)),
+      name: entry.name,
+      read: () => readBundle(path.join(directory, entry.name)),
     };
   });
-  const trace = mergeBundles(current, bundles);
+  const current = snapshot(root, discover);
+  const { trace, selected } = mergeShardDirectories(current, entries);
   const target = path.resolve(root, value(args, "--trace-out"));
   mkdirSync(path.dirname(target), { recursive: true });
   // Aggregate provenance says complete shards were validated, not that guards passed.
@@ -357,14 +360,16 @@ export function mergeCollected(root, discover, args) {
     snapshot: current,
     traceSha256: sha256(trace),
     reportedFileCount: current.candidates.length,
-    shards: bundles.map(bundle => ({
-      index: bundle.manifest.shard.index,
+    shards: selected.map(({ index, attempt, name, bundle }) => ({
+      index,
+      attempt,
+      artifact: name,
       manifestSha256: sha256(bundle.manifestRaw),
       producerJob: bundle.manifest.producerJob,
       child: bundle.manifest.child,
     })),
     scope:
-      "complete current native shards validated; ONE existing guard judgment remains required",
+      "newest complete native shard per index of the current run validated; ONE existing guard judgment remains required",
     providerArtifactDigestVerified: false,
   };
   writeFileSync(target, trace);

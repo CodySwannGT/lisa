@@ -1,16 +1,16 @@
 ---
 name: lisa-parity-code-review
-description: "Lisa-native code review of the…"
+description: "Review the current git diff…"
 allowed-tools: ["Read", "Bash", "Grep", "Glob"]
 ---
-Lisa-native code review of the current git diff. Walks every changed hunk and reports correctness bugs, security issues, and obvious defects as severity-ranked findings with file:line references. Vendor-neutral — the cross-agent equivalent of the upstream code-review command, runnable on Codex, agy, Copilot, Cursor, and Claude.
+Review the current git diff hunk by hunk and report bugs, security issues, and defects ranked by severity with file:line references. Works on every agent runtime.
 
 
 # Parity Code Review
 
-Review the code that is *about to ship* — the current uncommitted/branch diff — for defects a reviewer would block on. This is a focused **defect hunt**: correctness, security, and obvious mistakes. It is not a style audit and not a refactor pass (use `parity-code-simplifier` for quality-only cleanup).
+Review the code that is *about to ship* — the current uncommitted/branch diff — for defects a reviewer would block on. This is a focused **defect hunt**: correctness, security, and obvious mistakes. It is not a style audit and not a refactor pass; simplification is covered by the coding-philosophy rule.
 
-> **Not drift-trackable.** This skill intentionally carries **no `synced-from` pin**. The upstream `code-review@claude-plugins-official` plugin publishes **no semver** (its cache version resolves to `unknown`), so a pin would be unparseable and meaningless to `scripts/plugin-parity-drift.mjs`. Drift is tracked **manually** — re-review the upstream command by hand when the curated plugin set is refreshed. This is a Lisa-native reimplementation, **not** a port of upstream code.
+> **Lisa-owned.** This began as a reimplementation of the upstream `code-review@claude-plugins-official` command and was last reviewed against its 1.0.1. Lisa stopped enabling that plugin (CodySwannGT/lisa#4799) because Claude Code now ships a built-in `/code-review`, so this skill is no longer pinned to or drift-tracked against upstream. It stays as the vendor-neutral review for agents without a built-in equivalent. It is one reviewer over the local diff, because the agents it serves (Codex, agy, Copilot, Cursor, Devin) have no common subagent or inline-comment surface; use `lisa-pull-request-review` to act on a pull request.
 
 ## Step 1: Establish the diff
 
@@ -48,7 +48,30 @@ For every changed hunk, evaluate against these lenses:
 4. **Obvious defects** — Dead code paths, unreachable branches, swallowed errors, resource leaks (unclosed handles/connections), `TODO`/`FIXME` left in shipping code, debug logging left on, broken or missing tests for the new behavior.
 5. **Contract & API** — Breaking changes to public signatures, changed return shapes, altered error semantics callers depend on.
 
-## Step 4: Output — severity-ranked findings
+## Step 4: Validate every candidate before reporting it
+
+Step 3 produces candidates, not findings. Re-check each one against the code on its own, as a skeptic whose job is to disprove it:
+
+- If it says something is undefined, unreachable, or mistyped, find the definition, the caller, or the type and confirm it.
+- If it cites a project instruction (`AGENTS.md`, `CLAUDE.md`, a rule file), quote the exact rule and confirm the rule applies to that file's path.
+- If it depends on a specific input or state, name that input and confirm the code can actually receive it.
+
+Drop every candidate you cannot confirm. A false positive costs the reader more than a missed nit, so when in doubt, leave it out.
+
+**High-signal bar.** Only a validated candidate in one of these classes may be **Critical** or **Warning**:
+
+- the code will fail to compile, parse, or resolve (syntax or type errors, missing imports, unresolved references);
+- the code produces a wrong result or an exposure (clear logic or security errors) — either for every input, or for a specific triggering input you have named and confirmed the code can actually receive in practice, as in the example under Step 5;
+- the code fails at runtime in a material way — a crash, a hang, or a resource leak — on a path you have validated as reachable, under the same reachability rule as the class above;
+- the change breaks a project instruction you can quote.
+
+Upstream 1.0.1 drops every input-dependent issue. This skill keeps one that you have validated as reachable, because a reachable null dereference, hang, leak or auth bypass is exactly what a reviewer must block. What it still drops is the hypothetical: an input nobody can show the code receiving.
+
+Never report: pre-existing issues on lines the change did not touch; things that look wrong but are correct; lint-only issues a linter will catch anyway (a parse, compile, correctness, or security defect stays reportable even when a linter also flags it); style or general-quality concerns that no project instruction requires; a lint or type finding that the code explicitly silences (for example with a lint-ignore comment).
+
+A suppression silences only the lint or type finding it names. It never hides a correctness or security defect in that code. A changed `eval(req.body.code)` under `eslint-disable no-eval` is still remote code execution, so report it as Critical.
+
+## Step 5: Output — severity-ranked findings
 
 Group findings by severity. Within each group, list the most impactful first. Every finding **must** carry a `file:line` reference.
 
@@ -59,7 +82,7 @@ Bugs that break correctness, leak/expose data, or introduce a security hole.
 Likely to cause problems later, or a real defect with limited blast radius.
 
 ### Suggestion (nice to have)
-Minor correctness nits or defensive improvements.
+Minor validated correctness nits or defensive improvements below the high-signal bar. This tier is a Lisa addition — upstream 1.0.1 reports nothing below its bar — so keep it short and omit it when empty.
 
 ### Finding format
 
@@ -82,4 +105,4 @@ Example:
 - **Ground every finding in the diff.** No speculative findings, no generic best-practice lectures unrelated to the change.
 - **Be honest about coverage.** If you deprioritized files or couldn't fully trace a path, say so.
 - **If the diff is clean, say so clearly** — "No blocking issues found across N changed files" — do not manufacture problems.
-- This is review-only: report findings, do **not** edit files. Apply fixes via the normal implementation flow or `parity-code-simplifier` (quality) after triage.
+- This is review-only: report findings, do **not** edit files. Apply fixes via the normal implementation flow after triage.

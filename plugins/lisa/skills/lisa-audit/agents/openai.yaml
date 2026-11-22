@@ -1,0 +1,4 @@
+display_name: "Audit"
+short_description: "Audit any repository, on any stack, against the Level 1 requirements: read what already checks each one in each part of the repository and…"
+default_prompt:
+  - "Use $lisa-audit: Audit any repository, on any stack, against the Level 1 requirements: read what already checks each one in each part of the repository and…."

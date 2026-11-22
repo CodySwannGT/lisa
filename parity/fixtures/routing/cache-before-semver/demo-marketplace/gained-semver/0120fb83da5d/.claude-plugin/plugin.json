@@ -1,0 +1,4 @@
+{
+  "name": "gained-semver",
+  "description": "Routing-validate fixture — pre-semver snapshot: no version field under a commit-hash dir name."
+}

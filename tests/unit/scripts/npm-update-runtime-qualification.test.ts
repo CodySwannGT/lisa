@@ -4,17 +4,16 @@ import {
   mkdirSync,
   readFileSync,
   renameSync,
-  symlinkSync,
   writeFileSync,
   chmodSync,
 } from "node:fs";
 import { join } from "node:path";
 import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
-import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../../src/configs/vitest/scratch-supervision.js";
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import {
   privateResult,
   nativeRecorder,
+  stageBoundMs,
   failureMetadata,
   hookWitness,
   browserStderrMetadata,
@@ -28,6 +27,7 @@ import {
   browser,
   browserControl,
 } from "../../fixtures/npm-update-hosted-runtime/components.mjs";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 useIoLatencyBudget();
 const SUMMARY = "summary.json";
@@ -39,10 +39,7 @@ const SHELL = "/bin/sh";
 const NATIVE_PATH = "/usr/bin:/bin";
 
 function fixture(operation: (root: string) => Promise<void> | void) {
-  const owned = createSupervisedUnixFixture(
-    "hook-reader.sock",
-    process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-  );
+  const owned = createSupervisedUnixFixture("hook-reader.sock");
   return Promise.resolve()
     .then(() => operation(owned.root))
     .finally(() => owned.close());
@@ -301,18 +298,42 @@ describe("closed runtime qualification diagnostics", () => {
       ]);
     });
   });
+  it("caps browser and driver stages at ten seconds, inside the phase", () => {
+    // The ceiling the hang cases below shorten, pinned where it is chosen.
+    for (const stage of [
+      "browser",
+      CONTROL_STAGE,
+      "browser-driver",
+      "browser-driver-qualification",
+    ])
+      expect(stageBoundMs(stage)).toBe(10000);
+    for (const stage of [STAGE, "source", "daemon-after"])
+      expect(stageBoundMs(stage)).toBe(1800000);
+  });
   it.each(["browser", CONTROL_STAGE])(
     "bounds a real hanging %s child and retains remaining phase time for cleanup observations",
     async stage => {
       await fixture(async root => {
         const records: object[] = [];
         const deadline = Date.now() + 60000;
-        const native = nativeRecorder(root, deadline, records);
+        // A real hanging child is still killed by the real supervisor, but at
+        // a three-second stage ceiling rather than the shipped ten seconds,
+        // which the case above pins (CodySwannGT/lisa#4616, audit unit row
+        // 18). Three, not one: the Linux process observer takes its first
+        // sample at 2.5 seconds, and the Linux branch below asserts on it.
+        // The child would outlive either ceiling on its own.
+        const native = nativeRecorder(
+          root,
+          deadline,
+          records,
+          (name: string) => (name === stage ? 3000 : stageBoundMs(name))
+        );
         const executable =
           stage === CONTROL_STAGE
             ? join(root, "native-executable-alias")
             : process.execPath;
-        if (stage === CONTROL_STAGE) symlinkSync(process.execPath, executable);
+        if (stage === CONTROL_STAGE)
+          createSymlink(process.execPath, executable);
         await expect(
           native(stage, root, {}, executable, [
             "-e",
@@ -484,7 +505,7 @@ describe("closed runtime qualification diagnostics", () => {
       expect(() => privateResult(output)).toThrow();
       expect(readFileSync(output, "utf8")).toBe("foreign");
       const alias = join(root, "alias.json");
-      symlinkSync(output, alias);
+      createSymlink(output, alias);
       expect(() => privateResult(alias)).toThrow();
       expect(readFileSync(output, "utf8")).toBe("foreign");
     });
@@ -500,7 +521,7 @@ describe("closed runtime qualification diagnostics", () => {
       const output = privateResult(join(parent, SUMMARY));
       try {
         renameSync(parent, retained);
-        symlinkSync(foreign, parent);
+        createSymlink(foreign, parent);
         expect(() => output.write({ nativeSuccess: false })).toThrow(
           "qualification parent changed"
         );

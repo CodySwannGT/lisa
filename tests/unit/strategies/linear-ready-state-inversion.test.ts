@@ -11,21 +11,14 @@
  *
  * `LINEAR_WORKFLOW_DEFAULTS.ready` was already repaired to `Ready`, so this
  * file covers the arm that repair left open: a PER-PROJECT `linear.workflow`
- * override reproducing the same inversion, which nothing validated.
+ * override reproducing the same inversion, which nothing validated. How
+ * `lisa-validate-tracker-mapping` words its live inversion check is guidance
+ * prose, reviewed rather than pinned.
  * @module tests/unit/strategies/linear-ready-state-inversion
  */
-import { readFileSync } from "node:fs";
-import path from "node:path";
-
 import { describe, expect, it } from "vitest";
 
 import { resolveBuildLifecycleRoles } from "../../../plugins/src/base/scripts/queue-contract-resolution.mjs";
-
-const SKILL_ROOT = "plugins/src/base/skills";
-const VALIDATE_MAPPING_SKILL = "lisa-validate-tracker-mapping";
-
-const readSkill = (name: string): string =>
-  readFileSync(path.resolve(SKILL_ROOT, name, "SKILL.md"), "utf8");
 
 describe("Linear `ready` may never be the team's default created state (#2443)", () => {
   it("still defaults `ready` to the dedicated `Ready` state", () => {
@@ -96,59 +89,5 @@ describe("Linear `ready` may never be the team's default created state (#2443)",
     });
 
     expect(jira.roles.ready).toBe("To Do");
-  });
-});
-
-describe("`lisa-validate-tracker-mapping` owns the live inversion check", () => {
-  it("audits the Linear build lane as workflow states", () => {
-    const skill = readSkill(VALIDATE_MAPPING_SKILL);
-
-    expect(skill).toMatch(
-      /\*\*Linear build workflow\*\* \(`linear\.workflow`\)/
-    );
-  });
-
-  it("marks the pre-state-model label keys inert rather than auditing them", () => {
-    const skill = readSkill(VALIDATE_MAPPING_SKILL);
-    const mentions = skill
-      .split("\n")
-      .filter(line => line.includes("linear.labels.build"));
-
-    expect(mentions.length).toBeGreaterThan(0);
-    for (const line of mentions) expect(line).toContain("inert");
-  });
-
-  it("classifies a `ready` equal to the team's default created state as INVERTED", () => {
-    const skill = readSkill(VALIDATE_MAPPING_SKILL);
-
-    expect(skill).toContain("INVERTED");
-    expect(skill).toContain("defaultIssueState");
-  });
-
-  it("never auto-repairs an INVERTED role, because the config alone cannot say what the human meant", () => {
-    const skill = readSkill(VALIDATE_MAPPING_SKILL);
-    const repairSection = skill.slice(skill.indexOf("## Step 6"));
-
-    expect(repairSection).toContain("INVERTED");
-    expect(repairSection).toMatch(/never auto-repair|Never auto-repair/);
-  });
-
-  it("keeps an INVERTED project out of the VALID verdict", () => {
-    const skill = readSkill(VALIDATE_MAPPING_SKILL);
-    const verdictSection = skill.slice(
-      skill.indexOf("A project's verdict"),
-      skill.indexOf("## Step 5")
-    );
-
-    expect(verdictSection).toContain("INVERTED");
-  });
-});
-
-describe("`lisa-linear-access` surfaces which state the team creates into", () => {
-  it("flags the team default on `list-workflow-states` so callers need no second query", () => {
-    const skill = readSkill("lisa-linear-access");
-
-    expect(skill).toContain("defaultIssueState");
-    expect(skill).toContain("isTeamDefault");
   });
 });

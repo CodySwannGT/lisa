@@ -39,7 +39,7 @@ import {
   loadGateModule,
   noWait,
   runWith,
-} from "../../helpers/nightly-e2e-gate-harness";
+} from "../../helpers/nightly-e2e-gate-harness.js";
 
 /** The suite every case speaks about. */
 const LABEL = "Maestro native e2e";

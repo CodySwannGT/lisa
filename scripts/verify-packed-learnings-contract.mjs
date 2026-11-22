@@ -58,7 +58,33 @@ try {
   assert.deepEqual(learnings.resolveLearningsSettings(packedConfig), {
     learningsFile: packedLearningsFile,
     mergeDriverEnabled: false,
+    lowConfidence: "auto-merge",
   });
+  const humanTriageConfigs = [
+    { learnings: { lowConfidence: "human-triage" } },
+    { humanGate: { mode: "strict" } },
+  ];
+  for (const config of humanTriageConfigs) {
+    await writeFile(
+      path.join(configProject, packedConfigFile),
+      `${JSON.stringify(config)}\n`,
+      "utf8"
+    );
+    const resolved = await learnings.readProjectConfig(configProject);
+    assert.equal(
+      learnings.resolveLearningsSettings(resolved).lowConfidence,
+      "human-triage"
+    );
+  }
+  await writeFile(
+    path.join(configProject, packedConfigFile),
+    '{"learnings":{"lowConfidence":"unsupported"}}\n',
+    "utf8"
+  );
+  await assert.rejects(
+    learnings.readProjectConfig(configProject),
+    /learnings\.lowConfidence.*(?:auto-merge|human-triage)/iu
+  );
   await writeFile(
     path.join(configProject, packedConfigFile),
     '{"learnings":{"mergeDriver":"false"}}\n',
@@ -112,10 +138,28 @@ const configs: ProjectConfig[] = [
   { learnings: withFile },
 ];
 for (const config of configs) resolveLearningsSettings(config);
-// @ts-expect-error mergeDriver is a boolean opt-out, never a string
-const invalid: LearningsConfig = { mergeDriver: "false" };
-void invalid;
 `,
+    "utf8"
+  );
+  // The negative case compiles on its own and must FAIL: mergeDriver is a
+  // boolean opt-out, never a string. Asserting tsc's actual diagnostic (rather
+  // than marking the line expected-to-error inside the passing project) proves
+  // the published type rejects the value for the stated reason.
+  await writeFile(
+    path.join(typeConsumer, "invalid-consumer.ts"),
+    `import type { LearningsConfig } from "@codyswann/lisa/learnings";
+
+export const invalid: LearningsConfig = { mergeDriver: "false" };
+`,
+    "utf8"
+  );
+  await writeFile(
+    path.join(typeConsumer, "tsconfig.invalid.json"),
+    `${JSON.stringify(
+      { extends: "./tsconfig.json", include: ["invalid-consumer.ts"] },
+      null,
+      2
+    )}\n`,
     "utf8"
   );
   await executeFile(
@@ -126,6 +170,21 @@ void invalid;
       typeConsumer,
     ],
     { cwd: typeConsumer }
+  );
+  await assert.rejects(
+    executeFile(
+      process.execPath,
+      [
+        path.join(root, "node_modules", "typescript", "bin", "tsc"),
+        "-p",
+        path.join(typeConsumer, "tsconfig.invalid.json"),
+      ],
+      { cwd: typeConsumer }
+    ),
+    error =>
+      /invalid-consumer\.ts\(3,\d+\): error TS2322: Type 'string' is not assignable to type 'boolean( \| undefined)?'/u.test(
+        String(error.stdout)
+      )
   );
 
   const packedVictim = "packed-victim";
@@ -360,7 +419,7 @@ void invalid;
   assert.equal(await readFile(overflow.file, "utf8"), beforeOverflowCollision);
 
   console.log(
-    "[EVIDENCE: packed-learnings-contract] config=validated merge-driver=opt-out types=closed v1=migratable legacy=bounded entries=hardened stamps=hardened race=9 stale=8 chain=stable collision=atomic overflow=fork merge=2 projection=bounded"
+    "[EVIDENCE: packed-learnings-contract] config=validated merge-driver=opt-out low-confidence=default-explicit-strict-invalid types=closed v1=migratable legacy=bounded entries=hardened stamps=hardened race=9 stale=8 chain=stable collision=atomic overflow=fork merge=2 projection=bounded"
   );
 } finally {
   await rm(temporary, { recursive: true, force: true });

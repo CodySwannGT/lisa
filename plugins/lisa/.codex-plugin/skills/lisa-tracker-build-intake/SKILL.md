@@ -1,9 +1,9 @@
 ---
 name: lisa-tracker-build-intake
-description: "Vendor-neutral wrapper for the…"
+description: "Scan the build queue of…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
-Vendor-neutral wrapper for the build-queue scanner. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-build-intake (JQL/project-key queue), lisa-github-build-intake (GitHub repo queue keyed off the `status:ready` label), or lisa-linear-build-intake (Linear team queue keyed off the configured `ready` workflow state). Every vendor scanner processes at most one eligible item per cycle and enforces the claim-time arm of the `leaf-only-lifecycle` rule — dispatch leaf work units only; move or safe-block a container with open child work (or a childless Epic) that carries a stale build-ready role according to the vendor's lifecycle semantics. Counterpart to lisa-intake's PRD-side dispatchers.
+Scan the build queue of whichever tracker the project uses and start one ready leaf ticket per cycle. Containers with open children are moved out of the ready lane instead of being built.
 
 
 # Tracker Build Intake: $ARGUMENTS
@@ -86,6 +86,12 @@ scanner clears a hold by editing the description** — the only body write any o
 whole-body replacement, so a release that went through the description would risk destroying the
 record it was releasing, which is why holds accumulated with no way out (CodySwannGT/lisa#3852).
 The hold note stays in the description as history and the release sits beside it as a comment.
+
+A hold that names no act an agent cannot perform is not a hold at all (`ready-role-filing`,
+"What a human gate is"). Every vendor scanner calls `planHumanGateLift(...)` from
+`scripts/human-gate-lift.mjs` before it classifies, posts the `[lisa-human-gate-lifted]
+reason=<slug>` comment it plans, and applies its label actions, so such a hold is lifted with no
+person involved. Valid holds and label-only holds are never lifted.
 
 Measured: sweeping one team by lane name saw 39 of 343 open rows; by category it sees 100. The
 61-row gap produced 31 consecutive false "dry lane" cycles, every record honest and every

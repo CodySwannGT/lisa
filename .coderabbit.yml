@@ -87,31 +87,23 @@ issue_enrichment:
     # something is a human's call, and Lisa applies it itself through the
     # `[lisa-human-gate]` marker at filing time.
     #
+    # `type:*` and `points:*` have been absent since 2026-11-01, by the owner's
+    # decision (CodySwannGT/lisa#4617). Lisa's issue writer sets both when it
+    # files an item, and build intake and the validator read the type from that
+    # one label, so the bot's guess is a conflict, not enrichment. On 2026-11-01
+    # it overwrote the writer after nearly every create or body edit, usually
+    # within a minute: `type:Bug` on a Story, `type:Story` on a Sub-task, and
+    # `points:8` on an Epic and on Stories. `type:Spike` was never on this
+    # list, so any type the bot gave a Spike was wrong (it gave `type:Task` and
+    # `type:Sub-task`). A wrong or second type can make the validator reject an
+    # item or misroute build intake (a `type:Epic` leaf is never dispatched),
+    # and points on a container are counted twice by anything that totals a
+    # parent together with its children. The accepted cost: a hand-filed issue
+    # no longer gets a type or points guess from the bot.
+    #
     # This block is the reason the file still exists. It is an allowlist over
     # THIS repository's label taxonomy, so it cannot move to org settings.
     labeling_instructions:
-      - label: 'type:Bug'
-        instructions: 'Apply when the issue reports incorrect behaviour in shipped code.'
-      - label: 'type:Task'
-        instructions: 'Apply to a single unit of work that is not a defect and not a user-facing story.'
-      - label: 'type:Story'
-        instructions: 'Apply when the issue describes user-facing behaviour to build.'
-      - label: 'type:Improvement'
-        instructions: 'Apply when the issue refines something that already works.'
-      - label: 'type:Epic'
-        instructions: 'Apply when the issue is a parent tracking several child items.'
-      - label: 'type:Sub-task'
-        instructions: 'Apply when the issue is a child of a larger tracked item.'
-      - label: 'points:1'
-        instructions: 'Apply for a trivial change, roughly one file and no new tests.'
-      - label: 'points:2'
-        instructions: 'Apply for a small change confined to one module.'
-      - label: 'points:3'
-        instructions: 'Apply for a change spanning a few modules with new tests.'
-      - label: 'points:5'
-        instructions: 'Apply for a change spanning several subsystems or needing design.'
-      - label: 'points:8'
-        instructions: 'Apply for a large change that should probably be split.'
       - label: 'component:ci'
         instructions: 'Apply when the issue concerns GitHub Actions workflows or CI configuration.'
       - label: 'component:cli'

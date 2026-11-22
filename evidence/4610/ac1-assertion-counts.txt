@@ -1,0 +1,45 @@
+# AC-1 expect(/assert( counts, 14 affected files. BEFORE = git show HEAD (ef452d2a31), AFTER = worktree
+# command: bash count.sh <worktree> HEAD ; bash count.sh <worktree>
+## BEFORE
+tests/unit/codex/skills-installer-internal-skill-policy.test.ts             expect=   3 assert=   0
+tests/unit/codex/skills-installer.test.ts                                   expect=   8 assert=   0
+tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts          expect=  18 assert=   0
+tests/unit/scripts/completion-proof-verify-usage.test.ts                    expect=  15 assert=   0
+tests/unit/scripts/gate-diagnosis-type-errors.test.ts                       expect=  25 assert=   0
+tests/unit/scripts/gate-failure-diagnosis.test.ts                           expect=  81 assert=   0
+tests/unit/scripts/generate-cursor-plugin-artifacts.artifacts.test.ts       expect=  44 assert=   0
+tests/unit/scripts/generate-cursor-plugin-artifacts.test.ts                 expect=  44 assert=   0
+tests/unit/scripts/lisa-reconcile-policy-units.test.ts                      expect=  62 assert=   0
+tests/unit/scripts/lisa-reconcile-policy.test.ts                            expect=  58 assert=   0
+tests/unit/strategies/package-lisa-integration-script-layout.test.ts        expect=  21 assert=   0
+tests/unit/strategies/package-lisa.test.ts                                  expect= 247 assert=   0
+tests/unit/strategies/wiki-status-report-rendering.test.ts                  expect=  15 assert=   0
+tests/unit/strategies/wiki-status-verdicts.test.ts                          expect=   2 assert=   0
+TOTAL expect=643 assert=0
+## AFTER
+tests/unit/codex/skills-installer-internal-skill-policy.test.ts             expect=   0 assert=   0
+tests/unit/codex/skills-installer.test.ts                                   expect=  11 assert=   0
+tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts          expect=  33 assert=   0
+tests/unit/scripts/completion-proof-verify-usage.test.ts                    expect=   0 assert=   0
+tests/unit/scripts/gate-diagnosis-type-errors.test.ts                       expect=   0 assert=   0
+tests/unit/scripts/gate-failure-diagnosis.test.ts                           expect= 106 assert=   0
+tests/unit/scripts/generate-cursor-plugin-artifacts.artifacts.test.ts       expect=   0 assert=   0
+tests/unit/scripts/generate-cursor-plugin-artifacts.test.ts                 expect=  88 assert=   0
+tests/unit/scripts/lisa-reconcile-policy-units.test.ts                      expect=   0 assert=   0
+tests/unit/scripts/lisa-reconcile-policy.test.ts                            expect= 120 assert=   0
+tests/unit/strategies/package-lisa-integration-script-layout.test.ts        expect=   0 assert=   0
+tests/unit/strategies/package-lisa.test.ts                                  expect= 268 assert=   0
+tests/unit/strategies/wiki-status-report-rendering.test.ts                  expect=  17 assert=   0
+tests/unit/strategies/wiki-status-verdicts.test.ts                          expect=   0 assert=   0
+TOTAL expect=643 assert=0
+## Multiset of trimmed lines containing 'expect' (before vs after); differences listed below
+before lines:      681 after lines:      675
+--- lines only in before / only in after:
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
+## Bite control: drop first expect( line from gate-failure-diagnosis.test.ts copy; counter must drop by 1
+count-bite: orig=81 bitten=80

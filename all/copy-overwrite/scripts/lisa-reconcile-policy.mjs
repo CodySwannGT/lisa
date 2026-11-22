@@ -227,9 +227,10 @@ import {
  * @typedef {object} LivePolicy
  * @property {true} ok Discriminator: the read succeeded.
  * @property {Ruleset[]} rulesets Branch-target rulesets, in full.
+ * @property {number} [listed] How many rulesets the index listed, whatever each one targets. Every read `readLivePolicy` makes carries it; a policy built by hand for planning may leave it out, because planning never reads it.
  * @property {LiveContext[]} contexts Every required context they carry.
  * @property {Record<string, *>} settings Repository settings.
- * @property {Record<string, boolean>} signals Ruleset-surface policy.
+ * @property {Record<string, unknown>} signals Ruleset-surface policy: boolean signals plus the policy ruleset's shape fields.
  */
 
 /**
@@ -261,6 +262,19 @@ export const UNPROVEN = Object.freeze({
   API_ERROR: "api-error",
   MALFORMED: "unreadable-response",
 });
+
+/**
+ * The largest page GitHub returns for a list. The ruleset index is read at
+ * this size, and an answer this long is treated as incomplete.
+ *
+ * This is the only bound on how many rulesets are read. Lisa's own ruleset
+ * reader (`src/health/ruleset-inspection.ts` in the Lisa package) reads the
+ * same list after `lisa controls protect` changes a repository, and it draws
+ * the line at this same length. When it stopped sooner, a repository with a
+ * list the first read took and the second refused had its change sent and
+ * then reported as not confirmed. Change one and the other must follow.
+ */
+const RULESET_PAGE_SIZE = 100;
 
 /** How to respond to measured drift. Mirrors `DRIFT_RESPONSES` in lisa-gates. */
 export const ON_DRIFT = Object.freeze(["repair", "report", "block"]);
@@ -605,19 +619,39 @@ export function liveContexts(rulesets) {
  * index that was readable while a detail fetch failed still leaves the required
  * list unknown, and half a list compared against a whole declaration reports
  * drift that may not exist.
+ *
+ * The same holds for the index itself. GitHub returns a list one page at a
+ * time, thirty entries unless the request asks for more. Read without a page
+ * size, the first thirty were taken for the whole list, so a repository's
+ * thirty-first ruleset required nothing as far as this script knew. The
+ * largest page is asked for, and a page that comes back full is UNPROVEN: a
+ * full page cannot be told from a list that goes on.
  * @param {object} options Read inputs.
  * @param {string} options.repo `OWNER/NAME`.
  * @param {Function} options.gh Injected `gh` runner.
  * @returns {LivePolicy|FailedRead} Live state, or why it could not be read.
  */
 export function readLivePolicy({ repo, gh }) {
-  const index = ghJson(gh, ["api", `repos/${repo}/rulesets`]);
+  const indexArgs = [
+    "api",
+    `repos/${repo}/rulesets?per_page=${RULESET_PAGE_SIZE}`,
+  ];
+  const index = ghJson(gh, indexArgs);
   if (!index.ok) return index;
   if (!Array.isArray(index.value)) {
     return unproven(
       UNPROVEN.MALFORMED,
       `expected an array of rulesets, got ${typeof index.value}`,
-      ["api", `repos/${repo}/rulesets`]
+      indexArgs
+    );
+  }
+  if (index.value.length >= RULESET_PAGE_SIZE) {
+    return unproven(
+      UNPROVEN.MALFORMED,
+      `the ruleset list came back as a full page of ${index.value.length}, ` +
+        `so there may be more rulesets than were read, and a partial list ` +
+        `is not compared`,
+      indexArgs
     );
   }
 
@@ -635,6 +669,10 @@ export function readLivePolicy({ repo, gh }) {
   return {
     ok: true,
     rulesets,
+    // Every ruleset the index held, the ones skipped above included. A caller
+    // about to create a ruleset needs it to know whether the list would then
+    // fill a page, which no later read could take for the whole list.
+    listed: index.value.length,
     contexts: liveContexts(rulesets),
     settings: settings.value ?? {},
     signals: rulesetSignals(rulesets),
@@ -771,9 +809,8 @@ export function reconcileContexts({
             awaitedRecord.ruleset === record.ruleset
         )
       ) {
-        return (
-          entry.integration_id === null || entry.integration_id === undefined
-        );
+        // Awaiting a check by name leaves any existing app restriction in place.
+        return true;
       }
       const expected = record.integration_id ?? ACTIONS_INTEGRATION_ID;
       return entry.integration_id === expected;
@@ -835,7 +872,7 @@ function effectiveAwaitedRecords(awaited, records) {
  * rather than against the project's decision.
  * @param {object} options Comparison inputs.
  * @param {object} options.policy The `policy` block.
- * @param {{settings?: Record<string, *>, signals?: Record<string, boolean>}} options.live The two
+ * @param {{settings?: Record<string, *>, signals?: Record<string, unknown>}} options.live The two
  *   surfaces a policy field can be observed on. Narrower than `LivePolicy` on
  *   purpose: this is everything the comparison reads.
  * @returns {SettingsDrift} Findings.
@@ -1025,7 +1062,7 @@ export function awaitedPins(gates, moment) {
  * the declaration says which one owns each context, so a repair can write it
  * where it was declared instead of wherever the single fallback target points.
  * @param {object} [requiredChecks] The `requiredChecks` map, by ruleset name.
- * @returns {{contexts: string[], homes: Record<string, string>, pins: Record<string, number>}} Declared checks.
+ * @returns {{contexts: string[], homes: Record<string, string>, pins: Record<string, number>, records: Array<{context: string, ruleset: string, integration_id?: number}>}} Declared checks; `records` is the declaration itself, one per context per ruleset.
  */
 export function declaredChecks(requiredChecks = {}) {
   const contexts = [];
@@ -1139,16 +1176,23 @@ export function rulesetPayload(
     return payload;
   }
 
-  // An ADDITION REPLACES a same-named check in this ruleset rather than losing
-  // to it. Only a context the comparison reported unsatisfied HERE reaches
-  // `add`, so an existing check of that name in this ruleset is by construction
-  // the wrong shape — the unpinned form of a pinned declaration, or one pinned
-  // to an app the project did not name. Keeping it and de-duplicating the
-  // addition away wrote a PUT that preserved the wrong pin, so the repair
-  // reported success and converged on nothing: the next run found the same
-  // drift, planned the same repair, and reported the same success forever.
-  const added = new Map(additions.map(check => [check.context, check]));
-  const kept = (rule.parameters?.required_status_checks ?? []).filter(
+  const current = rule.parameters?.required_status_checks ?? [];
+  const pinned = new Map(
+    current
+      .filter(check => Number.isInteger(check?.integration_id))
+      .map(check => [check.context, check])
+  );
+  // A repair can replace an existing app restriction when the addition carries
+  // an app. An awaited check declared only by name keeps its live pin.
+  const added = new Map(
+    additions.map(check => [
+      check.context,
+      check.integration_id === undefined
+        ? (pinned.get(check.context) ?? check)
+        : check,
+    ])
+  );
+  const kept = current.filter(
     check => !remove.includes(check?.context) && !added.has(check?.context)
   );
   rule.parameters = {
@@ -1174,6 +1218,8 @@ export function rulesetPayload(
  *   Ruleset-scoped contexts an external app posts.
  * @param {Record<string, number>} [options.pins] Declared app id per awaited
  *   context.
+ * @param {Record<string, string>} [options.homes] Declared ruleset per context,
+ *   from `declaredChecks`, so a repair lands where it was declared.
  * @returns {RepairAction[]} Planned actions.
  */
 export function planRepairs({

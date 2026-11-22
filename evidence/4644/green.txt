@@ -1,0 +1,27 @@
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4644-update-projects-skill
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > has every copy present, so a renamed path cannot empty this file 1ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude/skills/lisa-update-projects/SKILL.md cites only Lisa paths that exist 2ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md cites only Lisa paths that exist 1ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md cites only Lisa paths that exist 1ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude/skills/lisa-update-projects/SKILL.md still cites every host-path exclusion, so none is stale 0ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md still cites every host-path exclusion, so none is stale 0ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md still cites every host-path exclusion, so none is stale 0ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md has the same numbered steps and headings as the .claude copy 0ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md has the same numbered steps and headings as the .claude copy 0ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md carries the same step bodies as the .claude copy, not only the same headings 0ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md carries the same step bodies as the .claude copy, not only the same headings 0ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers 0ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers 0ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers 0ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean 0ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean 0ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean 0ms
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  10:41:34
+   Duration  410ms (transform 182ms, setup 237ms, import 7ms, tests 9ms, environment 0ms)
+

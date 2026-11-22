@@ -51,7 +51,7 @@ export const LISA_SEEDED_MARKER = "YOURS";
  * leading `---` document marker, a shebang, or a blank line above it and still
  * stops short of any file body.
  */
-export const OWNERSHIP_HEADER_LINES = 4;
+const OWNERSHIP_HEADER_LINES = 4;
 
 /** What a file's own leading lines say about who owns it. */
 export type OwnershipHeader =

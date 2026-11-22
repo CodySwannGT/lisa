@@ -5,4 +5,4 @@
 
 | Date | Operation | Target | Notes |
 |---|---|---|---|
-| {{generatedDate}} | SETUP | {{wikiRoot}}/ | Initialized {{displayName}} with the lisa-wiki kernel. |
+| {{generatedDate}} | SETUP | wiki/ | Initialized {{displayName}} with the lisa-wiki kernel. |

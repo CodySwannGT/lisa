@@ -1,0 +1,80 @@
+# CodySwannGT/lisa#4636 - local unit run (macOS arm64, Darwin 25.2.0), HEAD 693e90fb3fcef27f1da0f8e12d06d6bd59f3c426
+# Command: bun run test --reporter=verbose tests/unit/helpers/fs-latency-budget.test.ts tests/unit/helpers/fs-probe-diagnostic.test.ts tests/unit/fixtures/
+# Exit code: 0. Captured at 2026-11-12T18:14:16Z. Plugin-build 'Generated/Built' lines removed; ANSI stripped.
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4636-fs-probe-teardown
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > fsSlowdownFactorFrom > reports the quiet reference as exactly 1 1ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > fsSlowdownFactorFrom > never returns a factor below 1, so a budget can only widen 0ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > fsSlowdownFactorFrom > scales linearly between the floor and the ceiling 0ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > fsSlowdownFactorFrom > clamps at the ceiling, so a pathological box cannot buy silence 0ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > fsSlowdownFactorFrom > treats an unusable reading as no information rather than as fast 0ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > fsLatencyBudgetMs > never derives a budget below its quiet-box base 969ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > fsLatencyBudgetMs > stays under the base times the ceiling 0ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > fsLatencyBudgetMs > is the base times this worker's measured filesystem slowdown 0ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > fsLatencyBudgetMs > remembers the measurement rather than re-probing on every call 0ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-teardown.test.ts > the packed-host journey's shared install cache > leaves the teardown only what the whole file uses until its end 903ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > the probe's files hold real blocks (CodySwannGT/lisa#4636) > writes each entry as a full 4 KiB block 192ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > the probe's files hold real blocks (CodySwannGT/lisa#4636) > syncs every entry before handing the directory to the timed removal 202ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > a probe fill that fails > removes its directory before rethrowing 9ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-teardown.test.ts > the packed-host journey's shared install cache > positive control: the replaced lifetime left every cached file to the teardown 818ms
+ ✓ |lisa| tests/unit/helpers/fs-probe-diagnostic.test.ts > parseMountInfo > picks the longest mount point holding the target 1ms
+ ✓ |lisa| tests/unit/helpers/fs-probe-diagnostic.test.ts > parseMountInfo > falls back to the root mount, with its mount and super options 0ms
+ ✓ |lisa| tests/unit/helpers/fs-probe-diagnostic.test.ts > parseMountInfo > matches a mount point exactly, and not a sibling sharing its prefix 0ms
+ ✓ |lisa| tests/unit/helpers/fs-probe-diagnostic.test.ts > parseMountInfo > finds nothing in a table without mounts 0ms
+ ✓ |lisa| tests/unit/helpers/fs-probe-diagnostic.test.ts > parseDeviceStat > names every counter in the kernel's field order 0ms
+ ✓ |lisa| tests/unit/helpers/fs-probe-diagnostic.test.ts > parseDeviceStat > leaves out the fields an older kernel does not report 0ms
+ ✓ |lisa| tests/unit/helpers/fs-probe-diagnostic.test.ts > discardDelta > reports what the discard counters moved by 0ms
+ ✓ |lisa| tests/unit/helpers/fs-probe-diagnostic.test.ts > discardDelta > reports nothing when a reading is missing 0ms
+ ✓ |lisa| tests/unit/helpers/fs-probe-diagnostic.test.ts > discardDelta > reports nothing when the device has no discard counters 0ms
+ ✓ |lisa| tests/unit/helpers/fs-probe-diagnostic.test.ts > the sample kinds > times a removal per entry and leaves nothing behind 32ms
+ ✓ |lisa| tests/unit/helpers/fs-probe-diagnostic.test.ts > the sample kinds > takes a paired sample of the probe, the variant and a real corpus 2213ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-teardown.test.ts > the packed-host journey's shared install cache > keeps the cache while an installer is still to run 468ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-teardown.test.ts > the packed-host journey's shared install cache > frees the cache inside the last installer's own call 90ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-teardown.test.ts > the packed-host journey's shared install cache > counts an installer finished twice once 77ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-native-deadline.test.ts > generated host native admission deadline > keeps the default admission wait unscaled and the full work budget 1ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-native-deadline.test.ts > generated host native admission deadline > refuses disabled, nonfinite and unfit admission rather than hiding it 0ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-teardown.test.ts > the packed-host journey's shared install cache > frees a cache an installer rebuilt after it was freed 72ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-teardown.test.ts > the packed-host journey's shared install cache > tries a failed removal again on the next finish 86ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-teardown.test.ts > the packed-host journey's shared install cache > refuses a case it was not told installs through the cache 88ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-teardown.test.ts > the packed-host journey's shared install cache > leaves the cache to the teardown when an installer never runs 254ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-teardown.test.ts > the packed-host journey's shared install cache > fails the last installer when the cache cannot be freed 90ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-teardown.test.ts > the shared install cache's recorded size (CodySwannGT/lisa#4636) > records the cache's entries when its last installer frees it 315ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-teardown.test.ts > the shared install cache's recorded size (CodySwannGT/lisa#4636) > counts the cache before it removes it 94ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-teardown.test.ts > the shared install cache's recorded size (CodySwannGT/lisa#4636) > records nothing while an installer is still to run 87ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-teardown.test.ts > the shared install cache's recorded size (CodySwannGT/lisa#4636) > keeps the recorded count when a later finish finds the cache gone 74ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-teardown.test.ts > the shared install cache's recorded size (CodySwannGT/lisa#4636) > frees the cache even when it cannot be counted 80ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-checkout.test.ts > freeCheckout > removes the checkout without following its node_modules link 11ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-checkout.test.ts > freeCheckout > unlinks the link before the removal runs 9ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-checkout.test.ts > freeCheckout > removes a checkout whose node_modules is a real directory 5ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-checkout.test.ts > countTreeEntries > counts a symbolic link as one entry and never follows it 6ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-native-deadline.test.ts > generated host native admission deadline > gives an actual child the explicit control-plus-work wall deadline 1530ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-patched-floors.test.ts > shared-runtime patched floors > accepts the declared floors 1ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-patched-floors.test.ts > shared-runtime patched floors > refuses an installed vite 8.3.2, below the declared ^8.3.3 0ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-patched-floors.test.ts > shared-runtime patched floors > refuses a vitest below its declared floor 0ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-tool-install.test.ts > the packed tool's install > passes the hosts' registry and cache arguments, and skips lifecycle scripts 1ms
+ ✓ |lisa| tests/unit/fixtures/shared-runtime-tool-install.test.ts > the packed tool's install > requests the candidate version by name, never a file path 0ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > measureUnlinkLatencyUs > returns a positive finite per-entry cost 580ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > the probe stands for the operation it is a proxy for > agrees with a real corpus deletion measured in the same window 5513ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > the shape the ticket was filed on > the spawn factor under-reports a slow filesystem and the probe does not 0ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > the shape the ticket was filed on > derives the wider budget for the same base, at that observation 0ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > the shape the ticket was filed on > records the machine state the observation was taken under 0ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > the derivation cites what it was measured from > names the measured cost, the quiet reference, and the ceiling 471ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > the deletion-dominated call sites are wired to it > the live 100k-entry teardown scales on the filesystem proxy 0ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > the deletion-dominated call sites are wired to it > the unit teardown whose corpus was shrunk instead scales on the filesystem proxy 0ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > the deletion-dominated call sites are wired to it > the packed-bin scratch-tree teardown scales on the filesystem proxy 0ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > the deletion-dominated call sites are wired to it > the packed-host owned-root teardown scales on the filesystem proxy 0ms
+ ✓ |lisa| tests/unit/helpers/fs-latency-budget.test.ts > the deletion-dominated call sites are wired to it > leaves the spawn-dominated cases in those files on the spawn proxy 0ms
+ Test Files  7 passed (7)
+      Tests  61 passed (61)
+   Duration  8.39s (transform 426ms, setup 492ms, import 727ms, tests 15.36s, environment 0ms)
+
+# Falsification control (verifier): set PROBE_FILE_BYTES=1 and commented out sync(fd) in tests/helpers/fs-latency-budget.ts, then ran
+#   bun run test tests/unit/helpers/fs-latency-budget.test.ts  -> exit 1; the file was restored afterwards (git status clean).
+     × writes each entry as a full 4 KiB block 6ms
+     × syncs every entry before handing the directory to the timed removal 4ms
+     × removes its directory before rethrowing 3ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected 1 to be 4096 // Object.is equality
+AssertionError: expected [] to have a length of 20 but got +0
+AssertionError: expected [Function] to throw an error
+      Tests  3 failed | 20 passed (23)

@@ -119,7 +119,6 @@ describe("a dispatcher that resolves zero guards", () => {
 
     for (const guard of [
       "block-no-verify",
-      "parity-safety-net",
       "block-shell-json-parsing",
       "block-instruction-file-edits",
       "block-direct-issue-create",

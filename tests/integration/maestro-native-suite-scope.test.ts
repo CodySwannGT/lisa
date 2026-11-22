@@ -73,6 +73,22 @@ interface ReusableWorkflow {
   jobs: Record<string, WorkflowJob>;
 }
 
+/**
+ * One platform arm's job. Throws rather than returning undefined so a renamed
+ * job fails loudly instead of handing the assertions an empty step list.
+ * @param workflow - The parsed reusable workflow
+ * @param platform - Which platform arm to read
+ * @returns The job definition
+ */
+const platformJob = (
+  workflow: ReusableWorkflow,
+  platform: Platform
+): WorkflowJob => {
+  const job = workflow.jobs[platform];
+  if (job === undefined) throw new Error(`${platform} is not a job`);
+  return job;
+};
+
 /** The two platform arms this workflow fans out into. */
 type Platform = "android" | "ios";
 
@@ -116,7 +132,7 @@ describe("maestro-native-e2e suite-scope marker (executed)", () => {
    * @returns The step's shell script exactly as CI will run it
    */
   const scopeScript = (platform: Platform): string => {
-    const step = (workflow.jobs[platform].steps ?? []).find(candidate =>
+    const step = (platformJob(workflow, platform).steps ?? []).find(candidate =>
       candidate.name?.includes(SCOPE_STEP)
     );
     if (!step?.run) {
@@ -177,8 +193,12 @@ describe("maestro-native-e2e suite-scope marker (executed)", () => {
             ];
           })
       );
+      const scope = parsed.scope;
+      if (scope === undefined) {
+        throw new Error("the scope step wrote no `scope` output");
+      }
       return {
-        scope: parsed.scope,
+        scope,
         file: await fs.readFile(
           path.join(dir, `maestro-${platform}-scope.txt`),
           "utf-8"
@@ -314,7 +334,7 @@ describe("maestro-native-e2e suite-scope contract", () => {
 
   it("takes the artifact name from the executed step, not from an inline expression", () => {
     for (const platform of ["android", "ios"] as const) {
-      const publish = (workflow.jobs[platform].steps ?? []).find(step =>
+      const publish = (platformJob(workflow, platform).steps ?? []).find(step =>
         String(step.with?.name ?? "").startsWith(`maestro-${platform}-scope-`)
       );
       // The decision must be the shell step's output. An inline `${{ }}`
@@ -329,8 +349,8 @@ describe("maestro-native-e2e suite-scope contract", () => {
 
   it("gives the scope step the id the artifact name references", () => {
     for (const platform of ["android", "ios"] as const) {
-      const step = (workflow.jobs[platform].steps ?? []).find(candidate =>
-        candidate.name?.includes(SCOPE_STEP)
+      const step = (platformJob(workflow, platform).steps ?? []).find(
+        candidate => candidate.name?.includes(SCOPE_STEP)
       );
       expect(step?.id).toBe("scope");
       // Known before a flow starts, and most needed when a run dies mid-suite.
@@ -348,8 +368,8 @@ describe("maestro-native-e2e suite-scope contract", () => {
 
   it("keeps every caller-controlled tag input out of the scope step's shell", () => {
     for (const platform of ["android", "ios"] as const) {
-      const step = (workflow.jobs[platform].steps ?? []).find(candidate =>
-        candidate.name?.includes(SCOPE_STEP)
+      const step = (platformJob(workflow, platform).steps ?? []).find(
+        candidate => candidate.name?.includes(SCOPE_STEP)
       );
       // Each tag list arrives through `env:`, so the shell reads it as a
       // variable rather than having a caller's string pasted into the script

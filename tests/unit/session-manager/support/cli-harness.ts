@@ -48,6 +48,15 @@ export const MEMINFO = path.join(
 
 export const MANAGER = "demo-manager";
 
+/**
+ * The tracker identity every default sandbox names as its operator, so a
+ * spawn test can pass the assignees of an item that was taken (CodySwannGT/lisa#5029).
+ */
+export const TAKER = "demo-operator";
+
+/** `spawn`'s `--assignees` for an item assigned to {@link TAKER}. */
+export const TAKEN = ["--assignees", JSON.stringify([TAKER])];
+
 /** Temp dirs made by {@link makeSandbox}, removed by {@link removeSandboxes}. */
 const created: string[] = [];
 
@@ -64,6 +73,8 @@ export interface StubCall {
   readonly argv: string[];
   readonly cwd: string;
   readonly envKeys: string[];
+  /** Names-only detail a stub adds, e.g. what tmux's `source-file -` read. */
+  readonly extra?: Record<string, unknown>;
 }
 
 /** A throwaway project and its sandbox. */
@@ -97,6 +108,7 @@ function defaultBlock(stateDir: string, repoKeys: readonly string[]) {
   return {
     name: MANAGER,
     interval: "5m",
+    operatorIds: [TAKER],
     capacity: {
       maxWorkers: 6,
       gbPerWorker: 1,
@@ -220,6 +232,9 @@ export function runCli(
       STUB_AGENTS_FILE: agentsFile,
       TELEGRAM_STATE_DIR: sandbox.stateDir,
       TELEGRAM_BOT_TOKEN: "planted-value-never-forwarded",
+      // spawn reads the worker's transcript once instead of polling for up to
+      // 30s (lisa#4503); a test that exercises the wait overrides it.
+      LISA_SESSION_MANAGER_FIRST_PROMPT_MS: "0",
       ...options.env,
     },
   });

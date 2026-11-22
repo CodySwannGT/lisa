@@ -13,16 +13,11 @@
  * build time, the release bumps the version after the build, and so the two
  * disagreed after every single release. `SKILL.md` now tells operators to ask
  * for the line instead of copying it, which removes the second copy and with it
- * the thing the parity assertion was defending.
+ * the thing the parity assertion was defending. What `SKILL.md` says about it is
+ * guidance and is reviewed, not pinned (#4867).
  * @module tests/unit/secrets/remote-env-setup-field
  */
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -30,8 +25,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { SETUP_FIELD } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
-
-const SKILL = "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md";
 
 /** Where the entrypoint lives inside a checkout. */
 const ENTRYPOINT = "scripts/lisa-remote-env/setup.sh";
@@ -53,20 +46,6 @@ function checkout(root: string, marker: string): void {
   mkdirSync(dir, { recursive: true });
   writeFileSync(path.join(root, ENTRYPOINT), `echo ${marker}\n`);
 }
-
-describe("SKILL.md", () => {
-  it("tells operators to ASK for the field rather than copying one", () => {
-    // The parity assertion that used to live here is gone because its subject
-    // is: there is no second copy to disagree with. What replaces it is the
-    // guarantee that made the copy unnecessary — the document points at the
-    // emitter, and carries no pinned version of its own to go stale.
-    const doc = readFileSync(SKILL, "utf8");
-
-    expect(doc).toContain("remote-env --emit=");
-    expect(doc).not.toMatch(/@codyswann\/lisa@\d+\.\d+\.\d+/);
-    expect(doc).not.toContain("for f in scripts/lisa-remote-env/setup.sh");
-  });
-});
 
 describe("the emitted remote-env setup field", () => {
   let temporary: string;

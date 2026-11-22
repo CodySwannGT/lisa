@@ -1,0 +1,171 @@
+# Validation Journey step 4 — test-run-log: cleanup sweep unit + integration tests
+# head: 80d5d40ec0bdc11bc35daefc65b83faa9b2f7220  host: Darwin 25.2.0  TMPDIR=/private/tmp/c1-4597-verify (avoids ownerless run roots in /private/tmp/lisa-scratch)
+# 'Generated ... variant' build lines are omitted; everything else is verbatim.
+
+## A. unit (exit 0)
+$ node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*' tests/unit/scripts/lisa-cleanup-sweep tests/unit/scripts/lisa-test-run-sweep tests/unit/scripts/lisa-run-gates-cleanup-sweep
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run "--exclude=**/integration/**" "--exclude=**/*.integration.*" tests/unit/scripts/lisa-cleanup-sweep tests/unit/scripts/lisa-test-run-sweep tests/unit/scripts/lisa-run-gates-cleanup-sweep
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.90.0)
+Built plugins/lisa-typescript (v4.90.0)
+Built plugins/lisa-expo (v4.90.0)
+Built plugins/lisa-nestjs (v4.90.0)
+Built plugins/lisa-cdk (v4.90.0)
+Built plugins/lisa-harper-fabric (v4.90.0)
+Built plugins/lisa-phaser (v4.90.0)
+Built plugins/lisa-rails (v4.90.0)
+Built plugins/lisa-wiki (v4.90.0)
+Built plugins/lisa-openclaw (v4.90.0)
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (121 ms)
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.12 /Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep
+
+lisa fleet admission: waiting for a worker slot — 6 run(s) live, this run is #6, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
+lisa fleet admission: starting OVER CAPACITY after 120s — 5 run(s) live, this run is #5, 3 may execute at once. The machine is oversubscribed; expect timeouts rather than failures.
+lisa fleet admission: waiting for a worker slot — 5 run(s) live, this run is #5, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
+lisa fleet admission: starting OVER CAPACITY after 120s — 5 run(s) live, this run is #4, 3 may execute at once. The machine is oversubscribed; expect timeouts rather than failures.
+
+ Test Files  8 passed (8)
+      Tests  70 passed (70)
+   Start at  17:17:09
+   Duration  241.99s (transform 452ms, setup 773ms, import 282ms, tests 1.53s, environment 0ms)
+
+
+## B. integration, the cleanup-sweep file alone (exit 0)
+$ TMPDIR=/private/tmp/c1-4597-verify bun run lisa-test-run -- --adapter vitest -- vitest run tests/integration/lisa-cleanup-sweep.test.ts --reporter=verbose
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/integration/lisa-cleanup-sweep.test.ts "--reporter=verbose"
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.90.0)
+Built plugins/lisa-typescript (v4.90.0)
+Built plugins/lisa-expo (v4.90.0)
+Built plugins/lisa-nestjs (v4.90.0)
+Built plugins/lisa-cdk (v4.90.0)
+Built plugins/lisa-harper-fabric (v4.90.0)
+Built plugins/lisa-phaser (v4.90.0)
+Built plugins/lisa-rails (v4.90.0)
+Built plugins/lisa-wiki (v4.90.0)
+Built plugins/lisa-openclaw (v4.90.0)
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (125 ms)
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.12 /Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep
+
+lisa fleet admission: waiting for a worker slot — 7 run(s) live, this run is #7, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
+lisa fleet admission: starting OVER CAPACITY after 120s — 7 run(s) live, this run is #7, 3 may execute at once. The machine is oversubscribed; expect timeouts rather than failures.
+lisa fleet admission: waiting for a worker slot — 7 run(s) live, this run is #7, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
+lisa fleet admission: starting OVER CAPACITY after 120s — 7 run(s) live, this run is #7, 3 may execute at once. The machine is oversubscribed; expect timeouts rather than failures.
+ ✓ |lisa| tests/integration/lisa-cleanup-sweep.test.ts > cleanup sweep, real filesystem and processes > removes the 25-hour Lisa folder and keeps the 1-hour one and the non-Lisa one 32ms
+ ✓ |lisa| tests/integration/lisa-cleanup-sweep.test.ts > cleanup sweep, real filesystem and processes > kills the orphan of a dead owner and leaves a live run's child running 636ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  17:36:21
+   Duration  241.35s (transform 147ms, setup 192ms, import 20ms, tests 671ms, environment 0ms)
+
+
+## C. the prescribed 'bun run test:integration -- tests/integration/lisa-cleanup-sweep.test.ts --reporter=verbose' (exit 1)
+# The script already passes 'tests/integration', so vitest ran the WHOLE integration suite. Command lines, summary, every failing line, and the sweep lines:
+$ node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration tests/integration/lisa-cleanup-sweep.test.ts "--reporter=verbose"
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/integration tests/integration/lisa-cleanup-sweep.test.ts "--reporter=verbose"
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (121 ms)
+ × |lisa| tests/integration/npm-update-dual-lock.test.ts > native optional Bun lock preparation > preserves genuine root and transitive registry aliases and refuses corrupted identities 1513ms
+   → expected '1.3.5' to be '1.4.4' // Object.is equality
+ × |lisa| tests/integration/npm-update-dual-lock.test.ts > native optional Bun lock preparation > preserves a coherent three-file proposal for both genuine frozen installers 601ms
+ × |lisa| tests/integration/rails-rspec-shard-ruby.test.ts > lisa_rspec_shard_recorder.rb > hands coverage off and records what RSpec loaded and how long it took 84ms
+   → expected '/private/tmp/c1-4597-verify/lisa-scra…' to be '' // Object.is equality
+ ✓ |lisa| tests/integration/rails-rspec-shard-ruby.test.ts > lisa_rspec_shard_recorder.rb > records an unmeasured run when the project does not use SimpleCov 87ms
+ × |lisa| tests/integration/rails-rspec-shard-ruby.test.ts > lisa_rspec_shard_recorder.rb > refuses a SimpleCov with no finalize_merge 67ms
+   → expected '/private/tmp/c1-4597-verify/lisa-scra…' to match /has no `finalize_merge`/
+ × |lisa| tests/integration/rails-rspec-shard-ruby.test.ts > lisa_rspec_shard_recorder.rb > refuses SimpleCov merging turned off 78ms
+   → expected '/private/tmp/c1-4597-verify/lisa-scra…' to match /merging is off/
+ × |lisa| tests/integration/rails-rspec-shard-ruby.test.ts > lisa_rspec_shard_recorder.rb > refuses to be loaded from inside the project, where SimpleCov would measure it 80ms
+   → expected '/private/tmp/c1-4597-verify/lisa-scra…' to match /loaded from inside the project root/
+ × |lisa| tests/integration/rails-rspec-shard-ruby.test.ts > lisa_rspec_shard_recorder.rb > refuses to run without its shard environment 67ms
+   → expected '/private/tmp/c1-4597-verify/lisa-scra…' to match /LISA_RSPEC_SHARD is not set/
+ × |lisa| tests/integration/rails-rspec-shard-ruby.test.ts > lisa_simplecov_collate.rb > hands every resultset to SimpleCov.collate, then stands its own run down 75ms
+   → expected 1 to be +0 // Object.is equality
+ × |lisa| tests/integration/rails-rspec-shard-ruby.test.ts > lisa_simplecov_collate.rb > exits with SimpleCov's threshold verdict 70ms
+   → expected undefined to deeply equal [ Array(1) ]
+ × |lisa| tests/integration/rails-rspec-shard-ruby.test.ts > lisa_simplecov_collate.rb > refuses to collate nothing, or a resultset that is not there 74ms
+   → expected '/System/Library/Frameworks/Ruby.frame…' to match /no resultsets given/
+ ✓ |lisa| tests/integration/npm-update-dual-lock.test.ts > native optional Bun lock preparation > prepares the original npm-only cohort with no Bun executable available 4014ms
+ ✓ |lisa| tests/integration/lisa-cleanup-sweep.test.ts > cleanup sweep, real filesystem and processes > removes the 25-hour Lisa folder and keeps the 1-hour one and the non-Lisa one 30ms
+ ✓ |lisa| tests/integration/lisa-cleanup-sweep.test.ts > cleanup sweep, real filesystem and processes > kills the orphan of a dead owner and leaves a live run's child running 635ms
+ ✓ |lisa| tests/integration/quality-gate-facade-names.test.ts > quality.yml gate façade names > job names are unchanged > 'lint' still declares the exact context name '🧹 Lint' 1ms
+ FAIL  |lisa| tests/integration/npm-update-dual-lock.test.ts > native optional Bun lock preparation > preserves genuine root and transitive registry aliases and refuses corrupted identities
+ FAIL  |lisa| tests/integration/npm-update-dual-lock.test.ts > native optional Bun lock preparation > preserves a coherent three-file proposal for both genuine frozen installers
+ FAIL  |lisa| tests/integration/rails-rspec-shard-ruby.test.ts > lisa_rspec_shard_recorder.rb > hands coverage off and records what RSpec loaded and how long it took
++ /private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-0gZPaW/driver.rb:23: syntax error, unexpected '=', expecting ';' or '\n'
++ /private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-0gZPaW/driver.rb:27: syntax error, unexpected '=', expecting ';' or '\n'
++ /private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-0gZPaW/driver.rb:28: syntax error, unexpected '=', expecting ';' or '\n'
++ /private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-0gZPaW/driver.rb:29: syntax error, unexpected '=', expecting ';' or '\n'
++ /private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-0gZPaW/driver.rb:30: syntax error, unexpected '='
++ /private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-0gZPaW/driver.rb:31: syntax error, unexpected '='
++ /private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-0gZPaW/driver.rb:43: syntax error, unexpected end-of-input, expecting end
+ FAIL  |lisa| tests/integration/rails-rspec-shard-ruby.test.ts > lisa_rspec_shard_recorder.rb > refuses a SimpleCov with no finalize_merge
+"/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-H20Ay1/driver.rb:23: syntax error, unexpected '=', expecting ';' or '\\n'
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-H20Ay1/driver.rb:27: syntax error, unexpected '=', expecting ';' or '\\n'
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-H20Ay1/driver.rb:28: syntax error, unexpected '=', expecting ';' or '\\n'
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-H20Ay1/driver.rb:29: syntax error, unexpected '=', expecting ';' or '\\n'
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-H20Ay1/driver.rb:30: syntax error, unexpected '='
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-H20Ay1/driver.rb:43: syntax error, unexpected end-of-input, expecting end
+ FAIL  |lisa| tests/integration/rails-rspec-shard-ruby.test.ts > lisa_rspec_shard_recorder.rb > refuses SimpleCov merging turned off
+"/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-EaYc5X/driver.rb:23: syntax error, unexpected '=', expecting ';' or '\\n'
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-EaYc5X/driver.rb:27: syntax error, unexpected '=', expecting ';' or '\\n'
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-EaYc5X/driver.rb:28: syntax error, unexpected '=', expecting ';' or '\\n'
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-EaYc5X/driver.rb:29: syntax error, unexpected '=', expecting ';' or '\\n'
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-EaYc5X/driver.rb:30: syntax error, unexpected '='
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-EaYc5X/driver.rb:31: syntax error, unexpected '='
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-EaYc5X/driver.rb:43: syntax error, unexpected end-of-input, expecting end
+ FAIL  |lisa| tests/integration/rails-rspec-shard-ruby.test.ts > lisa_rspec_shard_recorder.rb > refuses to be loaded from inside the project, where SimpleCov would measure it
+"/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-CemDbo/driver.rb:23: syntax error, unexpected '=', expecting ';' or '\\n'
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-CemDbo/driver.rb:27: syntax error, unexpected '=', expecting ';' or '\\n'
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-CemDbo/driver.rb:28: syntax error, unexpected '=', expecting ';' or '\\n'
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-CemDbo/driver.rb:29: syntax error, unexpected '=', expecting ';' or '\\n'
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-CemDbo/driver.rb:30: syntax error, unexpected '='
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-CemDbo/driver.rb:31: syntax error, unexpected '='
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-CemDbo/driver.rb:43: syntax error, unexpected end-of-input, expecting end
+ FAIL  |lisa| tests/integration/rails-rspec-shard-ruby.test.ts > lisa_rspec_shard_recorder.rb > refuses to run without its shard environment
+"/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-unrwid/driver.rb:23: syntax error, unexpected '=', expecting ';' or '\\n'
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-unrwid/driver.rb:27: syntax error, unexpected '=', expecting ';' or '\\n'
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-unrwid/driver.rb:28: syntax error, unexpected '=', expecting ';' or '\\n'
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-unrwid/driver.rb:29: syntax error, unexpected '=', expecting ';' or '\\n'
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-unrwid/driver.rb:30: syntax error, unexpected '='
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-unrwid/driver.rb:31: syntax error, unexpected '='
+/private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-unrwid/driver.rb:43: syntax error, unexpected end-of-input, expecting end
+ FAIL  |lisa| tests/integration/rails-rspec-shard-ruby.test.ts > lisa_simplecov_collate.rb > hands every resultset to SimpleCov.collate, then stands its own run down
+ FAIL  |lisa| tests/integration/rails-rspec-shard-ruby.test.ts > lisa_simplecov_collate.rb > exits with SimpleCov's threshold verdict
+ FAIL  |lisa| tests/integration/rails-rspec-shard-ruby.test.ts > lisa_simplecov_collate.rb > refuses to collate nothing, or a resultset that is not there
+"/System/Library/Frameworks/Ruby.framework/Versions/2.6/usr/lib/ruby/2.6.0/rubygems/core_ext/kernel_require.rb:54:in `require': /private/tmp/c1-4597-verify/lisa-scratch/run-26357-1794090097412-6432b5d0/worker-63907-6db974bef6fa710c/lisa-rspec-shard-ruby-KHpt0Y/lib/simplecov.rb:7: syntax error, unexpected '=', expecting ';' or '\\n' (SyntaxError)
+ Test Files  2 failed | 233 passed | 2 skipped (237)
+      Tests  10 failed | 3855 passed | 73 skipped (3938)

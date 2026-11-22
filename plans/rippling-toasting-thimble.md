@@ -1,3 +1,5 @@
+> **Historical plan.** The `load_audit_exclusions` ID-only filter described here was replaced in #4693 by the shared matcher `scripts/lisa-audit.mjs` / `src/core/audit-matcher.ts` (package, `versions` and `paths` scoping; see #4509). Do not re-implement the old filter.
+
 # Plan: Centralize Audit Vulnerability Exclusions into JSON Config Files
 
 ## Context

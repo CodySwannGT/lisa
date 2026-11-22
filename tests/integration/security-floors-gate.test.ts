@@ -44,7 +44,15 @@ import {
   boundedSpawnSync,
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
-import { loadWorkflow } from "../helpers/workflow-test-utils.js";
+import {
+  loadWorkflow,
+  type ParsedWorkflow,
+} from "../helpers/workflow-test-utils.js";
+
+/** The parsed workflow, plus the `pull_request` trigger this file reads. */
+type PullRequestTriggeredWorkflow = ParsedWorkflow & {
+  on?: { pull_request?: { paths?: string[] } };
+};
 
 // The bounded children below are handed a base that only fits under a case
 // budget scaling with the same machine they do. Without this call the case
@@ -271,7 +279,7 @@ describe("🔒 security-floor audit step", () => {
   it("starts the job when the governance root manifest changes", () => {
     // A gate that cannot be triggered by the file it governs is not watching
     // that file. The `paths:` filter carried the same one-level glob.
-    const workflow = loadWorkflow(WORKFLOW);
+    const workflow: PullRequestTriggeredWorkflow = loadWorkflow(WORKFLOW);
     const paths = workflow.on?.pull_request?.paths ?? [];
 
     expect(paths).toContain(ROOT_MANIFEST);

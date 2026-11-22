@@ -4,8 +4,11 @@ import { lstat, open, realpath, type FileHandle } from "node:fs/promises";
 import * as path from "node:path";
 import { LEARNINGS_CONTRACT } from "./learnings-contract.js";
 import {
+  LEARNINGS_OVER_BUDGET_READ_CEILING,
+  LearningsBudgetError,
   conflictMarkerError,
   findConflictMarkerInBytes,
+  type LearningsReadOptions,
 } from "./learnings-document.js";
 import {
   eagerContextRejection,
@@ -55,10 +58,12 @@ export function resolveSafeLearningTarget(
 /**
  * Read only a bounded regular file from the inode that was safety-checked.
  * @param target - Resolved learnings file path
+ * @param options - Read policy; only shrink-only writers relax the cap
  * @returns Existing content, or undefined when the file does not exist
  */
 export async function readExistingLearnings(
-  target: string
+  target: string,
+  options: LearningsReadOptions = {}
 ): Promise<string | undefined> {
   try {
     const beforeOpen = await lstat(target);
@@ -79,17 +84,7 @@ export async function readExistingLearnings(
           "Unsafe project learnings path: target changed during open"
         );
       }
-      if (opened.size > LEARNINGS_CONTRACT.maxTokens) {
-        // Diagnose conflict corruption before reporting size. A conflicted
-        // merge roughly doubles the ledger, so this branch is exactly where a
-        // real corruption lands — reporting "exceeds maxTokens" here would
-        // send the writer's caller off shortening entries instead of
-        // recompacting the duplicated block.
-        await assertNoConflictMarkerPrefix(handle);
-        throw new Error(
-          `Project learnings payload exceeds maxTokens ${LEARNINGS_CONTRACT.maxTokens}`
-        );
-      }
+      await assertReadableLedgerSize(handle, opened.size, options);
       return handle.readFile({ encoding: "utf8" });
     } finally {
       await handle.close();
@@ -99,6 +94,42 @@ export async function readExistingLearnings(
       return undefined;
     }
     throw error;
+  }
+}
+
+/**
+ * Refuse an opened ledger larger than the read policy allows.
+ *
+ * Conflict corruption is diagnosed before size: a conflicted merge roughly
+ * doubles the ledger, so this branch is exactly where a real corruption lands —
+ * reporting "exceeds maxTokens" here would send the writer's caller off
+ * shortening entries instead of recompacting the duplicated block.
+ *
+ * The refusal is a {@link LearningsBudgetError} (CodySwannGT/lisa#4536) so a
+ * capture against an over-cap ledger reaches the overflow instead of failing
+ * as an unclassified error.
+ * @param handle - Open handle to the verified regular file
+ * @param size - Byte size of the opened inode
+ * @param options - Read policy
+ */
+async function assertReadableLedgerSize(
+  handle: FileHandle,
+  size: number,
+  options: LearningsReadOptions
+): Promise<void> {
+  if (size <= LEARNINGS_CONTRACT.maxTokens) {
+    return;
+  }
+  await assertNoConflictMarkerPrefix(handle);
+  if (options.allowOverBudget !== true) {
+    throw new LearningsBudgetError(
+      `Project learnings payload exceeds maxTokens ${LEARNINGS_CONTRACT.maxTokens}`
+    );
+  }
+  if (size > LEARNINGS_OVER_BUDGET_READ_CEILING) {
+    throw new LearningsBudgetError(
+      `Project learnings payload exceeds the over-budget read ceiling ${LEARNINGS_OVER_BUDGET_READ_CEILING} (maxTokens ${LEARNINGS_CONTRACT.maxTokens})`
+    );
   }
 }
 
@@ -132,12 +163,14 @@ export class LearningsConcurrentWriteError extends Error {
  * silent lost learning into a failed capture the caller can retry.
  * @param target - Resolved learnings file path
  * @param preImage - Content this transaction read under the lock
+ * @param options - The read policy the transaction read its pre-image with
  */
 export async function assertLearningsUnchanged(
   target: string,
-  preImage: string | undefined
+  preImage: string | undefined,
+  options: LearningsReadOptions = {}
 ): Promise<void> {
-  const current = await readExistingLearnings(target);
+  const current = await readExistingLearnings(target, options);
   if (current !== preImage) {
     throw new LearningsConcurrentWriteError(target);
   }

@@ -5,9 +5,19 @@
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { required } from "./npm-update-contract.mjs";
 import { validateProposal, keys } from "./npm-update-contract.mjs";
+import {
+  directoryOf,
+  proposalPolicy,
+} from "./automation-provenance-contract.mjs";
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 import { writeJson, withPrivateRoot } from "./npm-update-process.mjs";
+import { cancelOperatorOf } from "./npm-update-policy.mjs";
+import {
+  managedActor,
+  trackerOf,
+  assertManagedClosure,
+} from "./npm-update-tracker.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
 import {
   completeCheckpoints,
@@ -119,6 +129,7 @@ function cancellationCheckpoint(issue) {
 
 /** Provider operator and official signature independently authenticate the complete historical subject. */
 async function verifyRecordedBundle(api, authority, checkpoint, record, issue) {
+  const managed = await managedActor(api);
   const run = await api.request(
     `repos/${record.repository}/actions/runs/${record.runId}/attempts/${record.runAttempt}`
   );
@@ -126,7 +137,14 @@ async function verifyRecordedBundle(api, authority, checkpoint, record, issue) {
     `repos/${record.repository}/collaborators/${record.maintainer}/permission`
   );
   assertRecordedOperator(run, permission, authority, record);
-  assertOriginTransport(issue.comments, checkpoint.digest, authority, run);
+  assertOriginTransport(
+    issue.comments,
+    checkpoint.digest,
+    authority,
+    run,
+    Date.now(),
+    managed
+  );
   await withPrivateRoot(async root => {
     const paths = {
       cancellation: join(root, "cancellation.json"),
@@ -165,7 +183,13 @@ export async function recordedCancellation({
   keys(checkpoint.payload.preview, ["cancellation"]);
   const record = checkpoint.payload.preview.cancellation;
   validateCancellation(record, record);
-  const historical = await committedCancellationConfig(cwd, record.parent);
+  const directory = directoryOf(proposal);
+  const historical = await committedCancellationConfig(
+    cwd,
+    record.parent,
+    directory
+  );
+  const committed = proposalPolicy(historical, proposal);
   const authority = historical.automationProvenance;
   required(
     [
@@ -176,13 +200,11 @@ export async function recordedCancellation({
       "ghExecutable",
       "ghSha256",
     ].every(key => authority[key] === api.policy[key]) &&
-      historical.npmUpdater.maintainer === config.npmUpdater.maintainer,
+      cancelOperatorOf(historical, committed) ===
+        cancelOperatorOf(config, proposalPolicy(config, proposal)),
     "recorded cancellation authority differs"
   );
-  const replacement = validateProposal(
-    checkpoint.payload.proposal,
-    historical.npmUpdater
-  );
+  const replacement = validateProposal(checkpoint.payload.proposal, committed);
   required(
     replacement.selectionKey === proposal.selectionKey,
     "recorded cancellation selection differs"
@@ -208,13 +230,12 @@ export async function recordedCancellation({
     "cancellation subject digest differs"
   );
   await verifyRecordedBundle(api, authority, checkpoint, record, issue);
-  await api.main(proposal.parent);
+  await api.main(proposal.parent, proposal.target);
   await cancellationDestinationAbsent(api, record.oldProposalKey);
   if (issue.state === "closed")
-    required(
-      issue.state_reason === "not_planned" &&
-        issue.closed_by?.type === "Bot" &&
-        String(issue.closed_by.id) === api.policy.claimActorId,
+    await assertManagedClosure(
+      api,
+      issue,
       "closure is not the authenticated managed cancellation"
     );
   return checkpoint;
@@ -234,7 +255,7 @@ export async function discoverSupersession(
   const issues = [],
     records = new Map();
   for (const item of found) {
-    const issue = await api.issue(item.number);
+    const issue = await trackerOf(api).issue(item.number);
     required(
       !issue.pull_request && typeof issue.body === "string",
       "foreign supersession issue"

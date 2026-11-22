@@ -37,7 +37,7 @@ import { TOOL_LINE } from "./note-format.mjs";
  * Unknown names are dropped rather than reported as an error: a note naming a
  * CLI this version of Lisa does not ship is a request from the future, not a
  * broken environment, and failing setup over it would be a poor trade.
- * @param {Record<string, string>} notes Note text by secret name.
+ * @param {Record<string, unknown> | null | undefined} notes Note text by secret name; absent notes and non-string values contribute nothing.
  * @param {string[]} known Tool names Lisa can install.
  * @returns {string[]} Known tool names, deduplicated, in catalogue order.
  */

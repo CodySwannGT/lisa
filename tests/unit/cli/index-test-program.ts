@@ -1,5 +1,4 @@
 /** Shared dependency-injected CLI program fixture. */
-import type { Server } from "node:http";
 import { vi } from "vitest";
 import { createProgram } from "../../../src/cli/index.js";
 import type { UpdateCheckResult } from "../../../src/cli/update-check.js";
@@ -23,7 +22,6 @@ export interface TestProgram {
   readonly runHealthCli: ReturnType<typeof vi.fn>;
   readonly runStandardsProofCli: ReturnType<typeof vi.fn>;
   readonly runSync: ReturnType<typeof vi.fn>;
-  readonly runUi: ReturnType<typeof vi.fn>;
   readonly runCheckLearningsBudget: ReturnType<typeof vi.fn>;
   readonly runFileUpstream: ReturnType<typeof vi.fn>;
   readonly runUpdateCheck: ReturnType<typeof vi.fn>;
@@ -44,7 +42,6 @@ export function createTestProgram(): TestProgram {
   const runHealthCli = vi.fn(async () => undefined);
   const runStandardsProofCli = vi.fn(async () => undefined);
   const runSync = vi.fn(async () => 0);
-  const runUi = vi.fn(async () => ({}) as Server);
   const runCheckLearningsBudget = vi.fn(async () => 0);
   const runFileUpstream = vi.fn(async () => 0);
   const runUpdateCheck = vi.fn(async () => SKIPPED_RESULT);
@@ -59,7 +56,6 @@ export function createTestProgram(): TestProgram {
     runHealthCli,
     runStandardsProofCli,
     runSync,
-    runUi,
     runCheckLearningsBudget,
     runFileUpstream,
     runUpdateCheck,
@@ -76,7 +72,6 @@ export function createTestProgram(): TestProgram {
     runHealthCli,
     runStandardsProofCli,
     runSync,
-    runUi,
     runCheckLearningsBudget,
     runFileUpstream,
     runUpdateCheck,

@@ -12,7 +12,7 @@
  */
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { getCurrentTest } from "vitest/suite";
+import { TestRunner } from "vitest";
 
 import { BUILD_ENV_FINGERPRINTS } from "../../src/core/bootstrap-environment.js";
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
@@ -86,7 +86,9 @@ export function deferToCi(
   env: NodeJS.ProcessEnv = process.env
 ): never {
   const note = decide(runtime, remedy, env);
-  const test = getCurrentTest();
+  // Vitest 5 dropped the `vitest/suite` entry; the same runner state is
+  // reached through `TestRunner` (CodySwannGT/lisa#4871).
+  const test = TestRunner.getCurrentTest();
   // Outside a running test there is nothing to skip; failing is the only
   // honest outcome. Suites deciding before collection use suiteDeferral.
   if (test === undefined) throw new CiRuntimeUnavailable(runtime, remedy);

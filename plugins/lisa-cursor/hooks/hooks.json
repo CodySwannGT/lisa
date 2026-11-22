@@ -51,11 +51,11 @@
         "matcher": "Bash"
       },
       {
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/parity-safety-net.sh",
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-shell-json-parsing.sh",
         "matcher": "Bash"
       },
       {
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-shell-json-parsing.sh",
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-masked-exit-status.sh",
         "matcher": "Bash"
       },
       {
@@ -105,6 +105,10 @@
     "sessionStart": [
       {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/install-pkgs.sh",
+        "matcher": "startup"
+      },
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/install-rails-hooks.sh",
         "matcher": "startup"
       },
       {

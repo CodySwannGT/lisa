@@ -24,7 +24,7 @@ import {
   annotated,
   changed,
   unannotated,
-} from "./design-source-gate-fixtures";
+} from "./design-source-gate-fixtures.js";
 
 const FIGMA_ANNOTATION = `// DESIGN-SOURCE: ${FIGMA_URL}`;
 const MARKER_ANNOTATION = `// ${MARKER}`;
@@ -36,7 +36,9 @@ describe("design-source gate — change verdict", () => {
     });
 
     expect(result.verdict).toBe("FAIL");
-    expect(result.violations.map(v => v.path)).toEqual([PATHS.invented]);
+    expect(result.violations.map(entry => entry.path)).toEqual([
+      PATHS.invented,
+    ]);
     expect(result.violations[0]?.status).toBe("undeclared");
   });
 
@@ -47,7 +49,9 @@ describe("design-source gate — change verdict", () => {
 
     expect(result.verdict).toBe("PASS");
     expect(result.violations).toEqual([]);
-    expect(result.exceptions.map(e => e.path)).toEqual([PATHS.debugPanel]);
+    expect(result.exceptions.map(entry => entry.path)).toEqual([
+      PATHS.debugPanel,
+    ]);
   });
 
   it("PASSes a UI change backed by a Figma source", () => {
@@ -57,7 +61,7 @@ describe("design-source gate — change verdict", () => {
 
     expect(result.verdict).toBe("PASS");
     expect(result.violations).toEqual([]);
-    expect(result.sealed.map(s => s.path)).toEqual([PATHS.button]);
+    expect(result.sealed.map(entry => entry.path)).toEqual([PATHS.button]);
     expect(result.exceptions).toEqual([]);
   });
 
@@ -67,7 +71,9 @@ describe("design-source gate — change verdict", () => {
     });
 
     expect(result.verdict).toBe("PASS");
-    expect(result.notApplicable.map(n => n.path)).toEqual([PATHS.config]);
+    expect(result.notApplicable.map(entry => entry.path)).toEqual([
+      PATHS.config,
+    ]);
   });
 
   it("judges only the files this change touched, never the whole tree", () => {
@@ -108,7 +114,7 @@ describe("design-source gate — change verdict", () => {
     });
 
     expect(result.verdict).toBe("FAIL");
-    expect(result.violations.map(v => v.path)).toEqual([
+    expect(result.violations.map(entry => entry.path)).toEqual([
       "src/components/A.tsx",
       "src/components/B.tsx",
     ]);
@@ -129,7 +135,7 @@ describe("design-source gate — change verdict", () => {
     // Sync-back is the preference, not a second blocking gate: the marker is
     // still a valid exit, but a reasonless one is surfaced for review.
     expect(result.verdict).toBe("PASS");
-    expect(result.syncBackPreferred.map(e => e.path)).toEqual([
+    expect(result.syncBackPreferred.map(entry => entry.path)).toEqual([
       PATHS.debugPanel,
     ]);
   });
@@ -171,7 +177,7 @@ describe("design-source gate — every failing status reaches the verdict", () =
       const result = evaluateDesignSource({ files: [file] });
 
       expect(result.verdict).toBe("FAIL");
-      expect(result.violations.map(v => v.path)).toEqual([file.path]);
+      expect(result.violations.map(entry => entry.path)).toEqual([file.path]);
       expect(result.reasons).toContain(`${status}:${file.path}`);
       expect(result.summary.violations).toBe(1);
     }

@@ -45,6 +45,7 @@ import {
   validateGates,
   validatePolicy,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import { NIGHTLY_SLOW_SUITES } from "../../../scripts/lib/nightly-slow-suites.mjs";
 import { runArtifactChecks } from "../../../scripts/run-artifact-checks.mjs";
 
 /** One gate resolved at one moment, as `resolveMoment` reports it. */
@@ -87,6 +88,7 @@ const CERTIFICATE_TASK = "check:nightly-guard-certificate";
 const TWO_CHANNEL_TASK = "check:two-channel-couplings";
 const DELETION_BASIS_TASK = "check:deletion-basis";
 const EXPORT_SURFACE_TASK = "check:export-surface";
+const QUESTIONNAIRE_TASK = "check:readiness-questionnaire";
 const MERGE_COVERAGE_TASK = "check:merge-coverage";
 
 /** The runner the aggregate hands those names to. */
@@ -107,11 +109,15 @@ const ALL_RAN = [
   TWO_CHANNEL_TASK,
   DELETION_BASIS_TASK,
   EXPORT_SURFACE_TASK,
+  QUESTIONNAIRE_TASK,
   MERGE_COVERAGE_TASK,
 ];
 
 /** Moment whose required gates become branch-protection contexts. */
 const PULL_REQUEST = "pull-request";
+
+/** The gate that runs the integration suite at each moment. */
+const INTEGRATION_GATE = "test-integration";
 
 /** The public command the built-in Node-suite facade must execute. */
 const TEST_NODE_SUITES_COMMAND =
@@ -152,9 +158,8 @@ const REQUIRED_PR_CONTEXTS = [
   "🔍 Quality Checks / 🧪 Run Integration Tests",
   "🔍 Quality Checks / 🧪 Run Unit Tests",
   "🔍 Quality Checks / 🧹 Lint",
-  // Bootstrapped and promoted together on #1547: declaring the first root BDD
-  // contract without making this context required would leave it advisory.
-  "🔍 Quality Checks / 🧾 BDD Behavior Contract",
+  // "🧾 BDD Behavior Contract" left this list in #4804: Lisa's root BDD
+  // contract covered only the removed console, so the gate is declared off.
   // Last, not first: contextsFor sorts with localeCompare, which orders every
   // emoji-prefixed derived context ahead of a plain vendor name.
   ...AWAITED_VENDOR_CONTEXTS,
@@ -296,6 +301,16 @@ describe("check:artifacts consolidates every derived-artifact check", () => {
     );
   });
 
+  it("includes the operator questionnaire's own check", () => {
+    expect(script(ARTIFACTS_TASK)).toContain(QUESTIONNAIRE_TASK);
+    expect(script(QUESTIONNAIRE_TASK)).toBe(
+      "node scripts/generate-readiness-questionnaire.mjs --check"
+    );
+    expect(script("build:readiness-questionnaire")).toBe(
+      "node scripts/generate-readiness-questionnaire.mjs"
+    );
+  });
+
   it("passes only when all checks pass", () => {
     const result = runComposition(0, 0, 0, 0);
     expect(result.code).toBe(0);
@@ -371,8 +386,11 @@ describe("check:artifacts states its verdict last", () => {
     // Both landed on the same line from opposite branches, so the union of
     // the two is what the script now runs. Hardcoded per the Test Isolation
     // house rule: deriving it from the script would make the assertion agree
-    // with whatever the script happens to say.
-    expect(line).toContain("all 7 generated-artifact checks passed");
+    // with whatever the script happens to say. (An eighth, the retired
+    // safety-net manifest check, left with CodySwannGT/lisa#4803, and
+    // CodySwannGT/lisa#4977 made it eight again with
+    // `check:readiness-questionnaire`.)
+    expect(line).toContain("all 8 generated-artifact checks passed");
   });
 
   it("names the failing check last, where a reader is already looking", () => {
@@ -434,8 +452,8 @@ describe("gates backing a required branch-protection context", () => {
       entry => entry.mode === "await"
     );
 
-    const byName = (left: string, right: string): number =>
-      left.localeCompare(right);
+    const byName = (left: string | null, right: string | null): number =>
+      (left ?? "").localeCompare(right ?? "");
     expect(gates.map(entry => entry.awaits).sort(byName)).toEqual(
       [...AWAITED_VENDOR_CONTEXTS].sort(byName)
     );
@@ -511,7 +529,7 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     expect(
       covering
         .map(entry => entry.id)
-        .toSorted((left, right) => left.localeCompare(right))
+        .sort((left, right) => left.localeCompare(right))
     ).toEqual(COVERAGE_PROVER_GATES);
     const tasks = [...new Set(covering.map(entry => entry.task))];
     // One task, not two: the same run proves both properties, and the pre-push
@@ -655,7 +673,7 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     // holding as suites are added rather than needing this line edited each
     // time. Membership is "the suite drives Stryker", read from the suites.
     const gate = gatesAt(parsedConfig(), PUSH).find(
-      entry => entry.id === "test-integration"
+      entry => entry.id === INTEGRATION_GATE
     );
     expect(gate?.task).toBe("test:integration:push");
 
@@ -697,9 +715,19 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     expect(command).toContain(
       "lisa-test-run -- --adapter vitest -- vitest run tests/integration"
     );
+    // A suite on the nightly-only list is excluded from every run by the
+    // shared Vitest config (CodySwannGT/lisa#4896), which is a stronger
+    // exclusion than a push flag, so the flag is not repeated for it.
+    const nightlyOnly = new Set(
+      NIGHTLY_SLOW_SUITES.map(file => path.basename(file))
+    );
     for (const suite of spawning) {
+      if (nightlyOnly.has(suite)) continue;
       expect(command, suite).toContain(`--exclude='**/${suite}'`);
     }
+    expect(
+      spawning.filter(suite => !nightlyOnly.has(suite)).length
+    ).toBeGreaterThan(0);
     // The other direction, and the reason the split is safe to make: a suite
     // that only names the tool must still RUN at push. Without this, narrowing
     // discovery could be undone later by excluding a cheap suite anyway and
@@ -710,14 +738,38 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
   });
 
   it("does not drop the bite test — it moves to the moment that owns its cost", () => {
-    // The mutation gate it is the bite control for is a pull-request gate, and
-    // the pull-request integration pass still collects the whole directory.
+    // The pull-request integration pass collects the whole directory except
+    // the packed-host journey, which owner decision 4 of CodySwannGT/lisa#4587
+    // moved to a by-hand run (CodySwannGT/lisa#4606), and the nightly-only
+    // suites the shared Vitest config excludes — the bite test among them,
+    // which now runs on `.github/workflows/nightly-slow-tests.yml`
+    // (CodySwannGT/lisa#4896).
     const onPr = gatesAt(parsedConfig(), PULL_REQUEST).find(
-      entry => entry.id === "test-integration"
+      entry => entry.id === INTEGRATION_GATE
     );
     expect(onPr?.task).toBe("test:integration");
     expect(script("test:integration")).toBe(
-      "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration"
+      "node scripts/lib/worktree-dependencies.mjs && LISA_TEST_TIMINGS_SCOPE=integration $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration --exclude='**/shared-runtime-packed-hosts.test.ts'"
+    );
+  });
+
+  it("keeps the packed-host journey off every gated integration pass, but runnable", () => {
+    // Owner decision 4 of CodySwannGT/lisa#4587: the ~880 s journey leaves the
+    // PR path entirely and is protected by the canary rollout and one-command
+    // rollback instead (CodySwannGT/lisa#4606). Both moments' tasks exclude
+    // it, and the by-hand script still targets exactly that file.
+    const config = parsedConfig();
+    for (const moment of [PULL_REQUEST, "push"]) {
+      const task = gatesAt(config, moment).find(
+        entry => entry.id === INTEGRATION_GATE
+      )?.task;
+      expect(task, moment).toBeTruthy();
+      expect(script(task as string), moment).toContain(
+        "--exclude='**/shared-runtime-packed-hosts.test.ts'"
+      );
+    }
+    expect(script("test:integration:packed-hosts")).toBe(
+      "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration/shared-runtime-packed-hosts.test.ts"
     );
   });
 });

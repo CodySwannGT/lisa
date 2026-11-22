@@ -40,9 +40,30 @@ interface CheckRow {
   readonly description?: string;
 }
 
+/** The violation-kind names the guard exports in `VIOLATIONS`. */
+type ViolationName =
+  | "undeclared"
+  | "suppressesRequired"
+  | "incoherent"
+  | "stale"
+  | "orphaned"
+  | "badExemption"
+  | "whitespace"
+  | "vacuous"
+  | "unproven"
+  | "absent"
+  | "reviewWaived"
+  | "reviewUnsatisfied"
+  | "reviewCarried"
+  | "reviewObjected"
+  | "reviewObjectionUnread"
+  | "requiredSkipped"
+  | "requiredNotRun"
+  | "requiredAmbiguous";
+
 /** The guard's vacuity exports. */
 interface GuardModule {
-  readonly VIOLATIONS: Record<string, string>;
+  readonly VIOLATIONS: Readonly<Record<ViolationName, string>>;
   readonly NEVER_BLOCKING: readonly string[];
   readonly REVIEW_DESCRIPTION_DEFAULTS: {
     readonly proof: readonly string[];
@@ -60,10 +81,25 @@ interface GuardModule {
   citeHeadSha(headSha: string | undefined): string;
   readonly ENTITLEMENT_WAIVERS: readonly string[];
   readonly REVIEW_SATISFACTIONS: readonly string[];
-  readonly REVIEW_GATE_STATES: Record<string, string>;
+  readonly REVIEW_GATE_STATES: Readonly<
+    Record<"satisfied" | "waived" | "unsatisfied", string>
+  >;
   readonly REVIEW_GATE_BLOCKING: readonly string[];
-  readonly NEVER_BLOCKING: readonly string[];
-  readonly REVIEW_GATE_CONDITIONS: Record<string, string>;
+  readonly REVIEW_GATE_CONDITIONS: Readonly<
+    Record<
+      | "satisfied"
+      | "waived"
+      | "waivedWithReview"
+      | "absent"
+      | "objected"
+      | "pending"
+      | "unrecognised"
+      | "notReviewed"
+      | "undetermined"
+      | "substituted",
+      string
+    >
+  >;
   reviewGateState(
     reading: {
       present: boolean;
@@ -336,7 +372,7 @@ describe("vacuous required checks", () => {
           description: RATE_LIMITED,
         },
       ]).violations;
-      expect(violation.message).toMatch(/branch protection/i);
+      expect(violation?.message).toMatch(/branch protection/i);
     });
 
     it("still reports a vacuous check that is NOT ruleset-required", () => {
@@ -352,7 +388,7 @@ describe("vacuous required checks", () => {
         ]
       );
       expect(result.violations).toHaveLength(1);
-      expect(result.violations[0].message).not.toMatch(/branch protection/i);
+      expect(result.violations[0]?.message).not.toMatch(/branch protection/i);
     });
 
     it("does not claim required-ness it cannot prove when the snapshot is untrusted", () => {
@@ -367,9 +403,9 @@ describe("vacuous required checks", () => {
         ],
         { trustRequiredContexts: false }
       ).violations;
-      expect(violation.kind).toBe(mod.VIOLATIONS.vacuous);
-      expect(violation.message).not.toMatch(/branch protection/i);
-      expect(violation.message).toMatch(/not transcribed|cannot say/i);
+      expect(violation?.kind).toBe(mod.VIOLATIONS.vacuous);
+      expect(violation?.message).not.toMatch(/branch protection/i);
+      expect(violation?.message).toMatch(/not transcribed|cannot say/i);
     });
 
     it("passes a check that proved it did work", () => {
@@ -396,7 +432,7 @@ describe("vacuous required checks", () => {
       expect(result.violations.map(violation => violation.kind)).toEqual([
         mod.VIOLATIONS.unproven,
       ]);
-      expect(result.violations[0].message).toMatch(/did not report/i);
+      expect(result.violations[0]?.message).toMatch(/did not report/i);
     });
 
     it("stays silent about a check that is genuinely RED", () => {
@@ -451,7 +487,7 @@ describe("vacuous required checks", () => {
       expect(result.violations.map(violation => violation.kind)).toEqual([
         mod.VIOLATIONS.unproven,
       ]);
-      expect(result.violations[0].message).toMatch(/did not report/i);
+      expect(result.violations[0]?.message).toMatch(/did not report/i);
     });
 
     it("answers nothing at all when no check is declared evidence-bearing", () => {
@@ -970,6 +1006,9 @@ describe("vacuous required checks", () => {
         headSha: () => HEAD_SHA,
         fetch: () => {
           const roster = reads[Math.min(polls, reads.length - 1)];
+          if (roster === undefined) {
+            throw new Error("settleWith needs at least one roster read");
+          }
           polls += 1;
           return roster;
         },

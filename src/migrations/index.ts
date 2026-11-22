@@ -1,4 +1,5 @@
-import { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
+import { CorrectLisaCoderabbitLabelingMigration } from "./correct-lisa-coderabbit-labeling.js";
+import { DelegateLegacyTestScriptsMigration } from "./delegate-legacy-test-scripts.js";
 import { EnsureDeployOutcomeGuardMigration } from "./ensure-deploy-outcome-guard.js";
 import { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
 import { EnsureLearningsGitattributesMigration } from "./ensure-learnings-gitattributes.js";
@@ -16,9 +17,11 @@ import { EnsureRequiredHistorySecretGateMigration } from "./ensure-required-hist
 import { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
 import { EnsureThirdPartyActionPinsMigration } from "./ensure-third-party-action-pins.js";
 import { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
-import { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
+import { EnsureKnowledgeRoleMigration } from "./ensure-knowledge-role.js";
 import { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
 import { PruneRetiredClaudeDenyRulesMigration } from "./prune-retired-claude-deny-rules.js";
+import { PruneRetiredClaudeStackPluginKeysMigration } from "./prune-retired-claude-stack-plugin-keys.js";
+import { PruneRetiredThirdPartyPluginsMigration } from "./prune-retired-third-party-plugins.js";
 import { PruneRetiredEntireHooksMigration } from "./prune-retired-entire-hooks.js";
 import { PreserveVerificationOptInsMigration } from "./preserve-verification-opt-ins.js";
 import { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
@@ -31,35 +34,9 @@ import type {
 
 export type {
   Migration,
-  MigrationAction,
   MigrationContext,
   MigrationResult,
 } from "./migration.interface.js";
-export { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
-export { EnsureDeployOutcomeGuardMigration } from "./ensure-deploy-outcome-guard.js";
-export { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
-export { EnsureLearningsGitattributesMigration } from "./ensure-learnings-gitattributes.js";
-export { EnsureLearningsMergeDriverMigration } from "./ensure-learnings-merge-driver.js";
-export { EnsureLighthouseCollectOptionsMigration } from "./ensure-lighthouse-collect-options.js";
-export { EnsureNightlyE2EWorkflowPinsMigration } from "./ensure-nightly-e2e-workflow-pins.js";
-export { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
-export { EnsureOxlintBaseConfigsMigration } from "./ensure-oxlint-base-configs.js";
-export { EnsurePinnedReusableWorkflowRefsMigration } from "./ensure-pinned-reusable-workflow-refs.js";
-export { EnsurePlaywrightDedicatedCallerMigration } from "./ensure-playwright-dedicated-caller.js";
-export { EnsurePushDefaultSafeMigration } from "./ensure-push-default-safe.js";
-export { EnsureQualityCallerScopesMigration } from "./ensure-quality-caller-scopes.js";
-export { EnsureSeededGatesMigration } from "./ensure-seeded-gates.js";
-export { EnsureRequiredHistorySecretGateMigration } from "./ensure-required-history-secret-gate.js";
-export { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
-export { EnsureThirdPartyActionPinsMigration } from "./ensure-third-party-action-pins.js";
-export { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
-export { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
-export { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
-export { PruneRetiredClaudeDenyRulesMigration } from "./prune-retired-claude-deny-rules.js";
-export { PruneRetiredEntireHooksMigration } from "./prune-retired-entire-hooks.js";
-export { PreserveVerificationOptInsMigration } from "./preserve-verification-opt-ins.js";
-export { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
-export { UntrackCodexMarketplaceMigration } from "./untrack-codex-marketplace.js";
 
 /**
  * Registry that runs applicable migrations against a destination project
@@ -75,7 +52,6 @@ export class MigrationRegistry {
     this.migrations = migrations ?? [
       new EnsureTsconfigLocalIncludesMigration(),
       new EnsureTsconfigLocalFilesFallbackMigration(),
-      new EnsureAuditIgnoreLocalExclusionsMigration(),
       new EnsureDeployOutcomeGuardMigration(),
       new EnsureJestRnMockAccessibilityManagerMigration(),
       new EnsureLearningsGitattributesMigration(),
@@ -83,6 +59,7 @@ export class MigrationRegistry {
       new EnsureLighthouseCollectOptionsMigration(),
       new EnsureNightlyE2EWorkflowPinsMigration(),
       new EnsureLisaPostinstallMigration(),
+      new DelegateLegacyTestScriptsMigration(),
       new EnsureOxlintBaseConfigsMigration(),
       new EnsurePlaywrightDedicatedCallerMigration(),
       new EnsurePushDefaultSafeMigration(),
@@ -92,11 +69,15 @@ export class MigrationRegistry {
       new PreserveVerificationOptInsMigration(),
       new EnsureSonarExcludesLisaHarnessMigration(),
       new EnsureThirdPartyActionPinsMigration(),
-      new EnsureWikiSourceDeclaredMigration(),
+      new EnsureKnowledgeRoleMigration(),
       new PruneRetiredClaudeDenyRulesMigration(),
       new PruneRetiredEntireHooksMigration(),
       new ReconcileClaudeStackPluginsMigration(),
+      // After reconcile: a successor it adds retires its predecessor at once.
+      new PruneRetiredClaudeStackPluginKeysMigration(),
+      new PruneRetiredThirdPartyPluginsMigration(),
       new UntrackCodexMarketplaceMigration(),
+      new CorrectLisaCoderabbitLabelingMigration(),
       // Last: every other workflow migration has finished editing caller files,
       // so the pin this writes is the one that survives the apply.
       new EnsurePinnedReusableWorkflowRefsMigration(),

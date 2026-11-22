@@ -180,7 +180,8 @@ function openDependencies(blockedBy) {
  *   labels?: unknown
  *   markers?: unknown
  *   blockedBy?: unknown
- * }} node
+ *   [field: string]: unknown
+ * }} node A tracker node; fields other than these, such as its prose, are ignored.
  * @param {{ specDefect?: unknown, humanNeeded?: unknown }} [markerNames]
  * @returns {{ class: string, actor: string, signals: readonly string[] }}
  */
@@ -240,7 +241,7 @@ function childArray(children) {
  * @param {readonly string[]} path
  * @param {Set<string>} seen
  * @param {{ examined: number, unexaminable: string[] }} tally
- * @returns {object[]}
+ * @returns {RollupBlocker[]}
  */
 function collectHolds(children, context, path, seen, tally) {
   return childArray(children).flatMap(child => {
@@ -282,6 +283,42 @@ function collectHolds(children, context, path, seen, tally) {
 }
 
 /**
+ * One held item at the bottom of a chain of holds.
+ * @typedef {object} RollupBlocker
+ * @property {string} ref The held item.
+ * @property {string[]} path Refs from the container down to it.
+ * @property {string} class Its blocker class.
+ * @property {string} actor Who must act to clear it.
+ * @property {readonly string[]} signals The recorded signals that classified it.
+ */
+
+/**
+ * A rollup whose children could be examined.
+ * @typedef {object} RollupClassification
+ * @property {true} ok Discriminator: something was examined.
+ * @property {{ref: string, type: string}} container The rollup itself.
+ * @property {"blocked" | "not-blocked"} verdict Whether anything is held.
+ * @property {number} examined Children examined.
+ * @property {RollupBlocker[]} blockers Every hold found.
+ * @property {Record<string, RollupBlocker[]>} byClass Holds grouped by class.
+ * @property {string[]} unexaminable Children that could not be read.
+ * @property {string} renderedState The rollup's own displayed state.
+ * @property {string} childTally Human summary of the counts.
+ */
+
+/**
+ * A rollup that could not be classified, and why.
+ * @typedef {object} RollupFailure
+ * @property {false} ok Discriminator: nothing usable was examined.
+ * @property {{ref: string, type: string}} container The rollup itself.
+ * @property {"unclassified"} verdict Never an all-clear.
+ * @property {0} examined Nothing was examined.
+ * @property {string} reason One of `CLASSIFICATION_FAILURES`.
+ * @property {string} message The plain-language failure.
+ * @property {string} detail What the failure was about, or empty.
+ */
+
+/**
  * Classify every hold under a container and derive the rollup from it.
  *
  * Refuses rather than reports when it examined nothing: an unreadable tracker,
@@ -298,7 +335,7 @@ function collectHolds(children, context, path, seen, tally) {
  *   blockedStates?: unknown
  *   markerNames?: { specDefect?: unknown, humanNeeded?: unknown }
  * }} input
- * @returns {object}
+ * @returns {RollupClassification | RollupFailure} The classified holds, or why nothing could be classified.
  */
 export function classifyRollupBlockers(input = {}) {
   const container = {
@@ -363,7 +400,7 @@ export function classifyRollupBlockers(input = {}) {
  * @param {{ ref: string, type: string }} container
  * @param {string} reason
  * @param {{ detail?: string }} [extra]
- * @returns {object}
+ * @returns {RollupFailure}
  */
 function failure(container, reason, extra = {}) {
   return {

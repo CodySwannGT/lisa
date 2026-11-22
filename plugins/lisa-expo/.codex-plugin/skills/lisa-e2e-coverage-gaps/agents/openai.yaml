@@ -1,4 +1,4 @@
 display_name: "E2e Coverage Gaps"
-short_description: "Explore gaps in the automated…"
+short_description: "Find end-to-end paths the…"
 default_prompt:
-  - "Use $lisa-e2e-coverage-gaps: Explore gaps in the automated…."
+  - "Use $lisa-e2e-coverage-gaps: Find end-to-end paths the…."

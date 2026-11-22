@@ -14,7 +14,7 @@ const HOOKS_REL = "plugins/src/base/hooks";
 const RATCHET_MODULES = [
   "threshold-ratchet-families.mjs",
   "threshold-ratchet-compare.mjs",
-];
+] as const;
 const STRYKER_FILE = "stryker.conf.json";
 const K6_FILE = ".github/k6/thresholds/normal.json";
 const LISA_CONFIG_FILE = ".lisa.config.json";
@@ -96,7 +96,7 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       });
       const findings = compareFile(STRYKER_FILE, base, current);
       expect(findings).toHaveLength(1);
-      expect(findings[0].type).toBe(TYPE_EXEMPTION);
+      expect(findings[0]?.type).toBe(TYPE_EXEMPTION);
     });
 
     it("allows exclusions scoped to a root the change is adding", () => {
@@ -131,8 +131,8 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       });
       const findings = compareFile(STRYKER_FILE, base, current);
       expect(findings).toHaveLength(1);
-      expect(findings[0].type).toBe(TYPE_EXEMPTION);
-      expect(findings[0].key).toBe("mutate !src/new/**");
+      expect(findings[0]?.type).toBe(TYPE_EXEMPTION);
+      expect(findings[0]?.key).toBe("mutate !src/new/**");
     });
 
     it.each([
@@ -194,8 +194,8 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       });
       const findings = compareFile(STRYKER_FILE, base, current);
       expect(findings).toHaveLength(1);
-      expect(findings[0].type).toBe(TYPE_EXEMPTION);
-      expect(findings[0].key).toBe("mutate !src/hard-stuff/**");
+      expect(findings[0]?.type).toBe(TYPE_EXEMPTION);
+      expect(findings[0]?.key).toBe("mutate !src/hard-stuff/**");
     });
 
     it("flags removing a mutate target", () => {
@@ -205,7 +205,7 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       });
       const findings = compareFile(STRYKER_FILE, base, current);
       expect(findings).toHaveLength(1);
-      expect(findings[0].type).toBe(TYPE_EXEMPTION);
+      expect(findings[0]?.type).toBe(TYPE_EXEMPTION);
     });
   });
 
@@ -222,7 +222,7 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       const current = base.replace(P95_BOUND, "p(95)<3000");
       const findings = compareFile(K6_FILE, base, current);
       expect(findings).toHaveLength(1);
-      expect(findings[0].type).toBe("weakened");
+      expect(findings[0]?.type).toBe("weakened");
     });
 
     it("allows tightening an upper bound", () => {
@@ -234,7 +234,7 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       const current = base.replace(RATE_LOWER, "rate>=0.9");
       const findings = compareFile(K6_FILE, base, current);
       expect(findings).toHaveLength(1);
-      expect(findings[0].type).toBe("weakened");
+      expect(findings[0]?.type).toBe("weakened");
     });
 
     it("blocks flipping a bound's direction at the same value", () => {
@@ -245,15 +245,15 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       const current = base.replace(RATE_LOWER, "rate<=0.99");
       const findings = compareFile(K6_FILE, base, current);
       expect(findings).toHaveLength(1);
-      expect(findings[0].type).toBe("weakened");
-      expect(findings[0].message).toContain("direction");
+      expect(findings[0]?.type).toBe("weakened");
+      expect(findings[0]?.message).toContain("direction");
     });
 
     it("blocks turning off abortOnFail", () => {
       const current = base.replace('"abortOnFail":true', '"abortOnFail":false');
       const findings = compareFile(K6_FILE, base, current);
       expect(findings).toHaveLength(1);
-      expect(findings[0].key).toBe("http_req_failed.abortOnFail");
+      expect(findings[0]?.key).toBe("http_req_failed.abortOnFail");
     });
 
     it("blocks removing an explicit abortOnFail entirely", () => {
@@ -266,7 +266,7 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       });
       const findings = compareFile(K6_FILE, base, current);
       expect(findings).toHaveLength(1);
-      expect(findings[0].key).toBe("http_req_failed.abortOnFail");
+      expect(findings[0]?.key).toBe("http_req_failed.abortOnFail");
     });
 
     it("handles long-format arrays without crashing and per item", () => {
@@ -289,7 +289,7 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       expect(compareFile(K6_FILE, arrayBase, arrayBase)).toHaveLength(0);
       const findings = compareFile(K6_FILE, arrayBase, weakened);
       expect(findings).toHaveLength(1);
-      expect(findings[0].key).toBe("http_req_duration.abortOnFail[1]");
+      expect(findings[0]?.key).toBe("http_req_duration.abortOnFail[1]");
     });
 
     it("blocks deleting a gated metric", () => {
@@ -301,7 +301,7 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       });
       const findings = compareFile(K6_FILE, base, current);
       expect(findings).toHaveLength(1);
-      expect(findings[0].type).toBe("removed");
+      expect(findings[0]?.type).toBe("removed");
     });
   });
 
@@ -337,7 +337,7 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       });
       const findings = compareFile(LISA_CONFIG_FILE, base, current);
       expect(findings).toHaveLength(1);
-      expect(findings[0].type).toBe("allow-added");
+      expect(findings[0]?.type).toBe("allow-added");
     });
 
     it("ignores unrelated .lisa.config.json changes", () => {

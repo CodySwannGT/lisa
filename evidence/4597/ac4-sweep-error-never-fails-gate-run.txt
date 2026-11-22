@@ -1,0 +1,29 @@
+# AC-4 — a sweep error is printed and the gate run continues (exit 0)
+# head: 80d5d40ec0bdc11bc35daefc65b83faa9b2f7220  captured: 2026-11-07T22:43:37Z  host: Darwin 25.2.0  node: v22.22.0
+# throwaway repo /private/tmp/c1v-demo/ac4-fail-repo, every declared gate off, so a non-zero exit could only come from the sweep
+## (1) TMPDIR points at a path that does not exist
+$ ls -d /private/tmp/c1v-demo/no-such-dir
+ls: /private/tmp/c1v-demo/no-such-dir: No such file or directory
+$ env -u LISA_CLEANUP_SWEPT TMPDIR=/private/tmp/c1v-demo/no-such-dir node /Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep/all/copy-overwrite/scripts/lisa-run-gates.mjs --moment=push
+     1	🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.90.0 · registry=/Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:1323a4b7ebad · lisa-run-gates.mjs=sha256:f18880e3f1b0
+     2	🧹 swept 0 stale temp dirs, 0 orphaned test processes (137 ms); 1 error, first: cannot read /private/tmp/c1v-demo/no-such-dir: ENOENT: no such file or directory, opendir '/private/tmp/c1v-demo/no-such-dir'
+     3	🚦 Gates at push:
+     4	✅ push: 0 proved, 0 failed (optional), 0 not proved, 0 killed, 0 not applicable here, of 0 gate(s) declared.
+     5	   (the gates block declares nothing at push)
+exit=0
+## (2) TMPDIR=$HOME — the sweep refuses it, says so, and the gates still run
+$ env -u LISA_CLEANUP_SWEPT TMPDIR=$HOME node /Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep/all/copy-overwrite/scripts/lisa-run-gates.mjs --moment=push
+     1	🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.90.0 · registry=/Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:1323a4b7ebad · lisa-run-gates.mjs=sha256:f18880e3f1b0
+     2	🧹 swept 0 stale temp dirs, 0 orphaned test processes (128 ms); 1 error, first: refusing to sweep /Users/codysai: it is or contains the home directory
+     3	🚦 Gates at push:
+     4	✅ push: 0 proved, 0 failed (optional), 0 not proved, 0 killed, 0 not applicable here, of 0 gate(s) declared.
+     5	   (the gates block declares nothing at push)
+exit=0
+## (3) the sweep CLI itself on the missing root: one line, exit 0
+$ TMPDIR=/private/tmp/c1v-demo/no-such-dir node .../lisa-cleanup-sweep.mjs --no-processes
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (2 ms); 1 error, first: cannot read /private/tmp/c1v-demo/no-such-dir: ENOENT: no such file or directory, opendir '/private/tmp/c1v-demo/no-such-dir'
+exit=0
+## (4) a usage error is the one case the CLI exits non-zero (2) — the gate runner never passes flags
+lisa-cleanup-sweep: unknown flag --bogus
+usage: lisa-cleanup-sweep.mjs [--dry-run] [--json] [--no-processes] [--max-age-hours N]
+exit=2

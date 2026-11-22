@@ -12,7 +12,7 @@ import {
   section,
 } from "./completion-proof-shape.mjs";
 import { parseLisaUsageSection } from "./usage-ledger.mjs";
-import { verifyLisaUsageSectionIntegrity } from "./usage-ledger-integrity.mjs";
+import { isLisaUsageLedgerIntact } from "./usage-ledger-integrity.mjs";
 
 /** Find captured structured records without evaluating their contents. */
 function records(value, depth = 0, budget = { remaining: 100000 }) {
@@ -362,15 +362,63 @@ export function validateObligations(record, scope, claims) {
   );
 }
 
-/** Use the same canonical parser/integrity implementation as the TS writer. */
+/**
+ * Whether one usage entry is the canonical Verify entry for this work item.
+ * @param {any} entry Parsed usage entry, if any.
+ * @param {string} ref Work-item reference.
+ * @param {any} context Provider context.
+ * @returns {boolean} True when the flow and artifact identity both match.
+ */
+function isVerifyEntryFor(entry, ref, context) {
+  const identity = String(entry?.artifactRef ?? "").replace(/^github:/, "");
+  const linear =
+    context.provider === "linear" &&
+    identity === `linear:${context.scope.split("/")[0]}/${ref}`;
+  return (
+    ["lisa-verify", "verify"].includes(entry?.flow) &&
+    (linear ||
+      identity === ref ||
+      identity === `https://github.com/${ref.replace("#", "/issues/")}`)
+  );
+}
+
+/**
+ * Use the same canonical parser/integrity implementation as the TS writer.
+ *
+ * Every comment on the work item is read, from any author. A `## Lisa Usage`
+ * section in a COMMENT that is malformed or fails its integrity check therefore
+ * cannot be allowed to fail the whole authorization: one stray or hand-edited
+ * comment would otherwise turn a completed item into `invalid-proof`
+ * (CodySwannGT/lisa#4564). Such a section contributes no entries and is
+ * skipped, and an expected id is satisfied when ANY intact section carries the
+ * matching Verify entry, so a later conflicting copy cannot shadow it.
+ *
+ * The work-item BODY (`documents[0]`) is not a stray comment, and every
+ * failure there stays fatal: a duplicated heading, a section that does not
+ * parse, and a section that fails its integrity check (CodySwannGT/lisa#4570).
+ * Skipping a malformed or tampered body would let an intact comment authorize
+ * the item, which was refused before #4564. Nothing is accepted that was not
+ * accepted before: every expected id still needs an intact, well-formed
+ * section holding the Verify entry for this exact item.
+ */
 export function validateVerifyUsage(documents, ref, expectedIds, context) {
   requireProof(
     Array.isArray(expectedIds) && expectedIds.length > 0,
     "Canonical Verify usage is missing."
   );
   const found = new Map();
-  for (const document of documents) {
-    const usage = section(document, "Lisa Usage");
+  let skipped = 0;
+  for (const [index, document] of documents.entries()) {
+    let usage;
+    try {
+      usage = section(document, "Lisa Usage");
+    } catch (error) {
+      // documents[0] is the work-item body; a duplicate heading there stays
+      // fatal. In a comment it is one more stray section to skip.
+      if (index === 0) throw error;
+      skipped += 1;
+      continue;
+    }
     if (!usage) continue;
     const canonical = `## Lisa Usage\n${usage}\n`;
     let parsed;
@@ -378,29 +426,36 @@ export function validateVerifyUsage(documents, ref, expectedIds, context) {
       parsed = parseLisaUsageSection(canonical);
     } catch {
       requireProof(
-        false,
-        "The current canonical Verify usage section is malformed."
+        index > 0,
+        "The work-item body's canonical Verify usage section is malformed."
       );
+      skipped += 1;
+      continue;
     }
     if (!parsed.range) continue;
-    requireProof(
-      verifyLisaUsageSectionIntegrity(canonical).ok,
-      "The canonical usage ledger failed its stored-surface integrity check."
-    );
-    for (const entry of parsed.entries) found.set(entry.entryId, entry);
+    if (!isLisaUsageLedgerIntact(canonical)) {
+      requireProof(
+        index > 0,
+        "The work-item body's canonical usage ledger failed its stored-surface integrity check."
+      );
+      skipped += 1;
+      continue;
+    }
+    for (const entry of parsed.entries) {
+      if (!found.has(entry.entryId)) found.set(entry.entryId, []);
+      found.get(entry.entryId).push(entry);
+    }
   }
+  const note =
+    skipped > 0
+      ? ` ${skipped} malformed or integrity-failing usage section(s) were ignored.`
+      : "";
   for (const id of expectedIds) {
-    const entry = found.get(id);
-    const identity = String(entry?.artifactRef ?? "").replace(/^github:/, "");
-    const linear =
-      context.provider === "linear" &&
-      identity === `linear:${context.scope.split("/")[0]}/${ref}`;
     requireProof(
-      ["lisa-verify", "verify"].includes(entry?.flow) &&
-        (linear ||
-          identity === ref ||
-          identity === `https://github.com/${ref.replace("#", "/issues/")}`),
-      `Canonical Verify usage entry ${id} is absent or belongs to another work item.`
+      (found.get(id) ?? []).some(entry =>
+        isVerifyEntryFor(entry, ref, context)
+      ),
+      `Canonical Verify usage entry ${id} is absent or belongs to another work item.${note}`
     );
     // acceptedAt/lifecycleSources attest the later native terminal event. They
     // are deliberately not prerequisites of the transition they describe.

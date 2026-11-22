@@ -3,26 +3,22 @@
 
 /** Exclude only actual canonical accounting; retain unknown requirement text. */
 import { parseLisaUsageSection } from "./usage-ledger.mjs";
-import { verifyLisaUsageSectionIntegrity } from "./usage-ledger-integrity.mjs";
+import { isLisaUsageLedgerIntact } from "./usage-ledger-integrity.mjs";
 import { requireProof } from "./completion-proof-errors.mjs";
-
-/** Stable presentation matching; this does not parse or authorize usage data. */
-const normalizedRow = line =>
-  line
-    .trim()
-    .split("|")
-    .map(part => part.trim())
-    .join("|");
+import { trackerRowKey as comparisonKey } from "./tracker-row-fold.mjs";
+import { humanLines } from "./work-item-estimate.mjs";
 
 /** Match the canonical writer's visible table rows to the already parsed data. */
 function accountingRows(entries) {
-  const known = new Set([
-    "## Lisa Usage",
-    "_This section is managed by Lisa. Rewrites update matching usage entries in place and preserve older rows._",
-    "|Flow|Source|Model|Tokens|Cost|",
-    "|---|---|---|---:|---:|",
-    "|_No direct entries recorded_|||||",
-  ]);
+  const known = new Set(
+    [
+      "## Lisa Usage",
+      "_This section is managed by Lisa. Rewrites update matching usage entries in place and preserve older rows._",
+      "|Flow|Source|Model|Tokens|Cost|",
+      "|---|---|---|---:|---:|",
+      "|_No direct entries recorded_|||||",
+    ].map(comparisonKey)
+  );
   for (const entry of entries) {
     const tokens =
       entry.totalTokens !== null
@@ -37,7 +33,7 @@ function accountingRows(entries) {
           ? `${entry.cost} ${entry.currency}`
           : String(entry.cost);
     known.add(
-      normalizedRow(
+      comparisonKey(
         `| ${entry.flow} | ${entry.source} | ${entry.provider}/${entry.model} | ${tokens} | ${cost} |`
       )
     );
@@ -79,7 +75,7 @@ export function usageSpecRemainder(document) {
   try {
     parsed = parseLisaUsageSection(document);
     requireProof(
-      verifyLisaUsageSectionIntegrity(document).ok,
+      isLisaUsageLedgerIntact(document),
       "The canonical usage section is not an intact stored ledger."
     );
   } catch {
@@ -96,9 +92,23 @@ export function usageSpecRemainder(document) {
         /<!-- lisa:usage-(?:entry(?:-measured-subset)?|rollup(?:-token-status)?|effectiveness) [^\r\n]*? -->/g,
         token => (canonicalToken(token, parsed) ? "" : token)
       );
-      return !line.trim() || known.has(normalizedRow(line)) ? "" : line;
+      return !line.trim() || known.has(comparisonKey(line)) ? "" : line;
     })
     .join("");
+}
+
+/**
+ * A `## Lisa Estimate` section without the lines Lisa wrote
+ * (CodySwannGT/lisa#4956). The estimate and its actual tally are rewritten as
+ * work is claimed and completed, so they are metadata, like the usage ledger,
+ * not requirements: rewriting them must not invalidate an accepted proof. Only
+ * the exact lines re-rendering the section's own tokens produces are dropped;
+ * every other line, whatever it starts with, is a person's and stays in the
+ * spec digest.
+ */
+export function estimateSpecRemainder(document) {
+  const human = humanLines(document);
+  return human.length ? `${human.join("\n")}\n` : "";
 }
 
 /** Only a closed canonical metadata schema can be omitted from the primary spec. */

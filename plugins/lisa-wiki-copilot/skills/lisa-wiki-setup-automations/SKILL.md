@@ -1,6 +1,6 @@
 ---
 name: lisa-wiki-setup-automations
-description: "Set up the recurring LLM Wiki ingest automation on the local workstation using the CURRENT runtime's native scheduler — Codex automations (the native automations / automation_update mechanism) or, on Claude, /schedule. This skill is a declarative specification: it states WHICH automation to create, how often, and with which command; it does not template schedule files or run scheduling code itself — the runtime's native automation mechanism does the creating. Creates one automation: wiki-ingest, a full /lisa-wiki:ingest cycle, once a day by default (override with cadence). Named and scoped lisa-wiki-auto-<project>-* so it never collides with or clobbers the base /setup-automations set. The wiki counterpart of /lisa:setup-automations — it lives here because the wiki plugin is standalone and installable without the base plugin. Tear down with /lisa-wiki:tear-down-automations."
+description: "Schedule the recurring daily wiki ingest for this project using the current runtime's native scheduler (Codex automations or Claude /schedule). Use when setting up wiki automation; undo with lisa-wiki-tear-down-automations."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
@@ -11,10 +11,8 @@ automation to create, on what cadence, and with which command — and the runtim
 **native** scheduling mechanism. Do **not** hand-template schedule files or write shell to create
 them; invoke the runtime's automation tool with the spec below.
 
-It is the wiki counterpart of the base `/lisa:setup-automations`. It is a **separate** skill because
-the wiki plugin (`lisa-wiki`) is standalone — it can be installed without the base Lisa plugin, in
-which case `/lisa:setup-automations` is not present to schedule ingest. The two skills are
-independent and use disjoint name prefixes, so running both is safe.
+It is the wiki counterpart of the base `/lisa:setup-automations` and schedules only the wiki ingest.
+The two skills are independent and use disjoint name prefixes, so running both is safe.
 
 ## Runtime scheduler (branch on the current runtime)
 

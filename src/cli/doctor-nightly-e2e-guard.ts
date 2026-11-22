@@ -318,4 +318,3 @@ export async function checkNightlyE2eGuard(
 
 /** Backward-compatible name for direct callers of the former executable probe. */
 export const probeNightlyE2eGuardTarget = proveNightlyE2eGuardTarget;
-export type { NightlyGuardProbeResult } from "./doctor-nightly-e2e-guard-contract.js";

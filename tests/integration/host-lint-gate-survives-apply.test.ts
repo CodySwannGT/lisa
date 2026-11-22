@@ -91,7 +91,7 @@ describe("a host gate chained into lint survives the shipped apply", () => {
    */
   function shippedLintBase(): string {
     const template = fs.readJsonSync(path.join(REPO_ROOT, TEMPLATE)) as {
-      force: { scripts: Record<string, string> };
+      force: { scripts: { "lint:lisa": string } };
     };
     return template.force.scripts["lint:lisa"];
   }

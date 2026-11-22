@@ -1,4 +1,4 @@
 display_name: "Debrief"
-short_description: "Run the Debrief flow over a…"
+short_description: "Run a Debrief over a shipped…"
 default_prompt:
-  - "Use $lisa-debrief: Run the Debrief flow over a…."
+  - "Use $lisa-debrief: Run a Debrief over a shipped…."

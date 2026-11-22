@@ -115,14 +115,14 @@ describe("Phaser templates", () => {
     expect(settings.enabledPlugins?.["lisa-phaser@lisa"]).toBe(true);
   });
 
-  it("enables the lisa-wiki plugin for the docs wiki", () => {
-    const settings = readJson(PHASER_MERGE_SETTINGS) as {
+  it("enables the lisa-wiki plugin for every project, Phaser included", () => {
+    const settings = readJson("all/merge/.claude/settings.json") as {
       readonly enabledPlugins?: Record<string, boolean>;
     };
     expect(settings.enabledPlugins?.["lisa-wiki@lisa"]).toBe(true);
   });
 
-  it("ships a docs-focused wiki config with no business roster", () => {
+  it("ships a docs-focused wiki config at the fixed wiki/ root", () => {
     const config = readJson(
       "phaser/create-only/wiki/lisa-wiki.config.json"
     ) as {
@@ -131,10 +131,11 @@ describe("Phaser templates", () => {
       readonly staff?: readonly unknown[];
       readonly categories?: readonly string[];
     };
-    expect(config.mode).toBe("embedded");
-    expect(config.wikiRoot).toBe("wiki");
-    // Docs-only: opt out of the default Chief/Sales/Marketing/Finance roster.
-    expect(config.staff).toEqual([]);
+    // Every wiki lives at wiki/ in its own repo: no repo modes, no root override,
+    // and no digital-staff roster.
+    expect(config.mode).toBeUndefined();
+    expect(config.wikiRoot).toBeUndefined();
+    expect(config.staff).toBeUndefined();
     expect(config.categories).toContain("architecture");
     expect(config.categories).toContain("conventions");
   });
@@ -208,27 +209,38 @@ describe("Phaser templates", () => {
     expect(opts["exactOptionalPropertyTypes"]).toBe(true);
   });
 
-  it("ships the Phaser 4 toolchain (PWA, packing, bundle budget) in defaults", () => {
-    const template = readJson(PHASER_PACKAGE_LISA_TEMPLATE) as {
-      readonly defaults?: {
-        readonly devDependencies?: Record<string, string>;
-      };
+  it("ships the bundle budget, and leaves PWA and packing tools to the change that wires them", () => {
+    // A package no host file imports yet is what the strict dead-code gate
+    // reports, so the toolchain a game adds step by step is installed by the
+    // skill step that uses it rather than preinstalled (CodySwannGT/lisa#4932).
+    const template = readJson(PHASER_PACKAGE_LISA_TEMPLATE) as Record<
+      "force" | "defaults",
+      { readonly devDependencies?: Record<string, string> } | undefined
+    >;
+    const dev = {
+      ...template.force?.devDependencies,
+      ...template.defaults?.devDependencies,
     };
-    const dev = template.defaults?.devDependencies ?? {};
+    const assetPipeline = "phaser-asset-pipeline";
+    const installedBy = {
+      "vite-plugin-pwa": "phaser-build-deploy",
+      "free-tex-packer-core": assetPipeline,
+      audiosprite: assetPipeline,
+    };
 
-    expect(dev["vite-plugin-pwa"]).toBeDefined();
-    expect(dev["free-tex-packer-core"]).toBeDefined();
     expect(dev["size-limit"]).toBeDefined();
+    for (const [tool, skill] of Object.entries(installedBy)) {
+      expect(dev[tool], tool).toBeUndefined();
+      expect(readText(`plugins/src/phaser/skills/${skill}/SKILL.md`)).toContain(
+        `bun add -d ${tool}`
+      );
+    }
   });
 
   it("defers to Phaser's official skills and drops duplicative lisa skills", () => {
     // Phaser ships authoritative API skills in node_modules/phaser/skills; the
-    // lisa-phaser plugin must point at them, not duplicate (and drift from) them.
-    // The pointer lives in the EAGER head (#3993 split the rule into tiers), so
-    // it reaches a session that never asks for the reference body.
-    const rules = readText("plugins/src/phaser/rules/eager/phaser.md");
-    expect(rules).toContain("node_modules/phaser/skills");
-
+    // lisa-phaser plugin must not duplicate (and drift from) them. How the rule
+    // words its pointer to them is reviewed, not pinned.
     const skillsDir = path.join(REPO_ROOT, "plugins/src/phaser/skills");
     const skills = fs.readdirSync(skillsDir);
     // Removed: these duplicate official Phaser skills.
@@ -355,14 +367,6 @@ describe("Phaser templates", () => {
     // retirement deleting an opt-in without saying what replaced it is how
     // enforcement disappears quietly.
     expect(source).toMatch(/coverage-adequacy[\s\S]*check:verification/u);
-  });
-
-  it("documents the Vite 8 (rolldown) function-form manualChunks", () => {
-    const skill = readText(
-      "plugins/src/phaser/skills/phaser-build-deploy/SKILL.md"
-    );
-    expect(skill).toContain("manualChunks: id");
-    expect(skill).not.toContain('manualChunks: { phaser: ["phaser"] }');
   });
 
   it("ships a pre-push verification (UAT) snippet that runs the coverage check", () => {

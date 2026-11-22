@@ -100,8 +100,7 @@ export function recordKillMark({ kind, gateId }, deps = {}) {
     // `randomBytes`, not `Math.random`: the suffix only has to make two marks
     // written in the same millisecond by the same pid distinct, but a shipped
     // file reaches every downstream project and the shipped ruleset refuses a
-    // pseudorandom source on sight rather than judging each call site. Matching
-    // what `scratch-owner` already does costs nothing here.
+    // pseudorandom source on sight rather than judging each call site.
     const name = `${String(now)}-${String(pid)}-${randomBytes(4).toString("hex")}.json`;
     writeFileSync(
       join(dir, name),

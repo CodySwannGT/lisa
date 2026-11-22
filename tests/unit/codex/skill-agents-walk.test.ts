@@ -86,7 +86,7 @@ describe("codex/skill-agents-walk", () => {
       ["alpha", "Alpha"],
       ["beta", "Beta"],
       ["gamma", "Gamma"],
-    ]) {
+    ] as const) {
       const yamlPath = openaiYamlPath(name);
       expect(await fs.pathExists(yamlPath)).toBe(true);
       const parsed = parseYaml(await fs.readFile(yamlPath, "utf8")) as Record<

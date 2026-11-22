@@ -1,6 +1,7 @@
 /**
  * Delivery identity is separate from runtime proof. Invoke the actual shipped
  * pair without source-tree helpers, and pin each native registration or gap.
+ * The README prose describing the gap is not pinned (#4867).
  * @module tests/integration/enforcement-fallback-freshness-delivery
  */
 import { copyFileSync, readFileSync } from "node:fs";
@@ -81,12 +82,10 @@ describe("shared delivered fallback freshness", () => {
     ["Antigravity", "plugins/lisa-agy/hooks.json"],
     ["Copilot", "plugins/lisa-copilot/.claude-plugin/plugin.json"],
   ])(
-    "documents %s's individual guard surface and aggregate diagnostic representation gap",
-    (agent, file) => {
+    "keeps %s on its individual guard surface, without the aggregate fallback",
+    (_agent, file) => {
       expect(text(file)).toContain("block-no-verify");
       expect(text(file)).not.toContain(FALLBACK);
-      expect(text("README.md")).toContain(`| ${agent} |`);
-      expect(text("README.md")).toContain("aggregate diagnostic");
     }
   );
 });

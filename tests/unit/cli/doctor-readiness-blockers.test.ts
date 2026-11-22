@@ -22,6 +22,7 @@ import {
   assessReadiness,
   computeNarrowedClaim,
   detectShipBlockers,
+  type DetectedBlocker,
 } from "../../../src/cli/doctor-readiness-blockers.js";
 
 /** Blocker id and dimension id literals reused across the blocker-gate cases. */
@@ -90,6 +91,7 @@ describe("detectShipBlockers", () => {
 
     expect(blockers.map(blocker => blocker.id)).toEqual([BLOCKER_B2]);
     const [b2] = blockers;
+    if (b2 === undefined) throw new Error("expected the B2 blocker to stand");
     expect(b2.dimension_id).toBe(DIMENSION_DELIVERY_AUTHORITY);
     // A detected blocker records the finding that evidences it (never emitted bare).
     expect(typeof b2.evidence).toBe("string");
@@ -288,7 +290,7 @@ describe("assessReadiness (blocker gate + narrowed claim)", () => {
 });
 
 /** Shared single-blocker fixture reused across computeNarrowedClaim cases. */
-const SINGLE_STANDING_BLOCKER = {
+const SINGLE_STANDING_BLOCKER: DetectedBlocker = {
   id: "B2",
   label: "A release path bypasses the validated artifact",
   owning_dimensions: [DIMENSION_DELIVERY_AUTHORITY],

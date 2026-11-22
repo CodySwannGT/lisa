@@ -1,4 +1,4 @@
 display_name: "Queue Status"
-short_description: "Read-only operator surface for…"
+short_description: "Read-only health view of this…"
 default_prompt:
-  - "Use $lisa-queue-status: Read-only operator surface for…."
+  - "Use $lisa-queue-status: Read-only health view of this…."

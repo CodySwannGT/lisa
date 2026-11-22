@@ -1,9 +1,9 @@
 ---
 name: lisa-tracker-sync
-description: "Vendor-neutral wrapper for…"
+description: "Post milestone updates (plan…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
-Vendor-neutral wrapper for posting milestone updates to the linked ticket/issue. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-sync, lisa-github-sync, or lisa-linear-sync. Posts at: plan created, implementation in progress, PR ready, PR merged. Suggests (never auto-transitions) the next status.
+Post milestone updates (plan created, in progress, PR ready, PR merged) to the linked ticket in whichever tracker the project uses. Suggests the next status but never changes it.
 
 
 # Tracker Sync: $ARGUMENTS

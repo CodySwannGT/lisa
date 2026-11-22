@@ -19,14 +19,16 @@ Apply `do-it-now`'s **Worth doing** guidance before deciding to file. A declined
 ## Every filing declares one of three things
 
 - **`build_ready: true`** — complete enough to build; enters the ready lane for auto-pickup. Required for an accepted worthwhile defect found during other work, so it is claimable next cycle with no human flipping status.
-- **`human_gate: "<why a human must judge this first>"`** — deliberately held outside the queue. The writer stamps a visible line plus `<!-- [lisa-human-gate] reason=<short-slug> -->` so the hold is auditable.
+- **`human_gate: "<the act a person must perform>"`** — deliberately held outside the queue because the item needs an **act an agent cannot perform** (see "What a human gate is" below). The writer checks the reason first, refuses one that names only a topic, then stamps a visible line naming the act plus `<!-- [lisa-human-gate] reason=<short-slug> -->` so the hold is auditable.
 - **The container declaration** — `None — container: state rolls up from children`, the canonical line `derived-branch-plan` defines and every writer stamps in place of a Target Backend Environment. A container is never build-ready (`leaf-only-lifecycle`) and needs no gate, so it declares the third thing instead. Deliberately **not** keyed on `--label type:Epic`: a declared type is a claim that costs a leaf nothing and leaves it looking buildable, where the container line costs the item the environment and Branch Plan a leaf needs to be built. It is refused alongside a by-design leaf type (`type:Bug` / `type:Task` / `type:Sub-task` / `type:Improvement`) — an item cannot be a container and a leaf at once.
+
+**A decision is not a gate.** A choice between options with a reasonable default — what to name a role, how to classify existing state, when to dispatch a follow-up, which policy to adopt — is the agent's to make. **Decide and record:** pick the default, write the decision on the item, and file it `build_ready: true`.
 
 Filed, not ready, and no `human_gate` is the **incomplete handoff** case — writers reject it and name both ways to resolve it. `build_ready: false` with no reason is the same omission with a value attached. `build_ready` stays subordinate to `leaf-only-lifecycle`: a container is never build-ready and needs no gate.
 
 ## The named exception
 
-`lisa-exploratory-qa` files findings not-ready **by design** — its findings are candidate defects whose product significance a human should judge. It is the named human-gate exception, not drift: it pairs `ready=false` with an explicit `human_gate` reason. The sibling `e2e-coverage-gaps` skills are the contrast (a missing test is not a product question, so they file build-ready).
+`lisa-exploratory-qa` is the named human-gate exception **only under `humanGate.mode: "strict"`**. There it files findings not-ready by design, because a person judges their product significance, and it pairs `ready=false` with an explicit `human_gate` reason. Under the default `"access-only"` mode `ready` defaults to true: the agent judges significance itself, records that judgement on each finding in a `Decision:` line, and files a worthwhile, complete finding `build_ready: true`; a person can reverse it. An operator who passes `ready=false` is placing an explicit operator hold, filed with its own `human_gate` reason. The sibling `e2e-coverage-gaps` skills are the contrast (a missing test is not a product question, so they file build-ready).
 
 `lisa-repair-intake` sweeps for open items that are neither in the ready role nor marked `[lisa-human-gate]`, and surfaces them rather than promoting them.
 
@@ -65,10 +67,10 @@ The safe direction is the implicit one. A ticket that reaches a build queue by a
 A writer accepts a filing only when it carries **one** of:
 
 - **`build_ready: true`** — the item is complete enough to build and enters the ready lane for auto-pickup. This is the correct answer for an accepted worthwhile defect found during other work.
-- **`human_gate: "<why a human must judge this first>"`** — the item is deliberately held outside the queue because a human product call is pending. The writer stamps a visible marker on the item so the hold is auditable rather than indistinguishable from an accident:
+- **`human_gate: "<the act a person must perform>"`** — the item is deliberately held outside the queue because it needs an act an agent cannot perform. The writer validates the reason (see "What a human gate is" below), then stamps a visible marker naming that act so the hold is auditable rather than indistinguishable from an accident:
 
   ```text
-  Held for a human product call: <reason>.
+  Held for a person to <act>: <reason>.
   <!-- [lisa-human-gate] reason=<short-slug> -->
   ```
 
@@ -94,21 +96,85 @@ The declaration is refused alongside a **by-design leaf type** declared as a fla
 
 One string, defined in one rule, read by the guard and stamped by the writers — which is what keeps this exemption from drifting back into prose only.
 
+## What a human gate is
+
+A human gate is for an **act an agent cannot perform**. It is not for "a pending product call": almost any open choice can be read as one, and reading it that way held plain decisions for a person whose answer was nearly always "you decide" — nine in one week in one portfolio repository, every one overruled, and three more filed hours after the operator's standing direction was recorded (CodySwannGT/lisa#4658). Each false gate costs an operator interruption and stalls the work until someone notices.
+
+The acts that qualify are the ones an agent **lacks access to** perform. Each gate's text must name that access:
+
+| Act id | Act the agent lacks access to | Examples |
+|---|---|---|
+| `credential` | Complete a login or supply a credential only a person holds | an interactive SSO, OAuth or MFA login; an API key created in a vendor console; a password or private key only a person holds; a secret store the agent cannot write |
+| `spend` | Spend money | a paid plan, a purchase, a paid-account upgrade |
+| `external-account` | Open an external account | a vendor or provider account in a person's or the company's name |
+| `legal-signoff` | Sign a legal agreement on the company's behalf | a contract, BAA or DPA, license acceptance |
+| `person-only-account` | Act from an account only a person holds | a protected-deployment required reviewer, a ruleset approval that must come from a person |
+| `unreachable-system` | Act in a system the agent cannot reach | granting the agent an access it lacks, admin rights, an on-site or hardware step |
+| `operator-hold` | Honour a hold the operator explicitly asked for | the operator said to hold this item, or passed `ready=false` to a filing skill |
+| `human-authored-surface` | Edit a file the project says only people write (the authorship rule, not missing access; held in both modes) | a promotion, demotion or retirement that lands in a host's `.agents/rules/`, `PROJECT_RULES.md` or `AGENTS.md` |
+| `own-dependency-copy` | Approve maintaining our own copy of an open-source library (not missing access; held in both modes) | a fork, a patch carried through patch-package, Bun or pnpm `patchedDependencies` or `yarn patch`, or a vendored copy: step 7, the last, of the `lisa-security-audit-handling` ladder, reached only when refreshing, upgrading, overriding, excluding an unreachable advisory, replacing the dependency and fixing upstream cannot resolve it. A copy is maintenance taken on indefinitely, and copy-overwrite ships it to every host |
+| `project-policy` | A decision class this project declared human-only | `humanGate.humanOnly` in `.lisa.config.json` |
+
+**Everything else is a decision.** That includes acts older wording reserved for a person: a product, scoping or design call; accepting a risk; a compliance judgement; naming an accountable owner from the evidence available; promoting or demoting a learning; a harness intervention; retiring an automation; judging an exploratory-QA finding's significance; picking an epic or parent; ratifying a dependency; and a threshold-ratchet exception. (Ratifying a dependency is a decision; maintaining our own fork, patch or vendored copy of one is the `own-dependency-copy` gate above.) The agent decides and records: it picks the reasonable default, writes the decision on the item (a `Decision:` line saying what was chosen and why), and files it `build_ready: true`. A person who disagrees reverses it on the item; nobody had to be interrupted first.
+
+**The reason must name the act.** `human_gate: "role-split-triage"` names a topic and is refused; `human_gate: "the production payment-provider secret key only the founder holds"` names an act and is accepted. The check is executable, and every writer runs it before stamping a hold:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT:-node_modules/@codyswann/lisa/plugins/lisa}/scripts/human-gate-act.mjs" check --reason "<the human_gate reason>"
+```
+
+It prints a JSON verdict and exits `0` (a legitimate gate: use its `label` in the visible line), `1` (refused: its `remedy` names the decide-and-record path, so do not file the item held), or `2` (usage or config error: stop and report). The vocabulary is closed on purpose. A list of acts can be audited; a list of "topics that feel important" is the reading that produced the false gates.
+
+### A project can widen the gate
+
+A project that wants a decision class to stay human-only declares it, rather than every project inheriting the widest reading:
+
+```json
+{ "humanGate": { "humanOnly": ["pricing", "hiring"] } }
+```
+
+A reason naming a declared class (as a whole word) is accepted, in either mode. `.lisa.config.local.json` replaces the list when it sets one. Nothing widens the gate implicitly.
+
+### A project can choose the stricter gate
+
+`humanGate.mode` sets how wide the gate is. `"access-only"` (the default) is the table above. A project that wants a person in more decisions sets `{ "humanGate": { "mode": "strict" } }`, which restores the older gate:
+
+- three more acts count as human gates again: `compliance-signoff` (a HIPAA, GDPR or SOC 2 approval), `accountable-person` (naming an accountable person), and `lisa-policy` (a call Lisa's own policy used to reserve for a person: exploratory-QA findings, learnings promotion and demotion, harness interventions, automation retirement);
+- `dependencies.humanSignOff` defaults to `"default"` (a person ratifies) instead of `"none"`, and `learnings.lowConfidence` defaults to `"human-triage"` instead of `"auto-merge"`.
+
+A key the project sets explicitly always wins over the mode. The effective values are printed in the session's `lisa-resolved-config` block.
+
+### Existing invalid holds are lifted, with no person involved
+
+Holds filed under the old wording keep stalling items, and an operator should never have to comment to release one. The intake and repair sweeps re-evaluate every open `[lisa-human-gate]` hold against this definition with `planHumanGateLift` (`scripts/human-gate-lift.mjs`). The sweep lifts a hold only when it is sure. Its reason slug must name only a topic, no hold-related line (any marker line, any "Held for …" line, or the line beside one) may name an act, and no secret or act token (a credential, password, MFA code, API key, token, secret, signature, BAA or contract, admin rights, access, spend, budget, payment or money, legal or compliance) may appear anywhere in that text, judged as one set. Any doubt keeps the hold: a wrongly kept hold costs one interruption, while a wrongly lifted credential hold dispatches work that cannot succeed. For a hold that passes, the sweep:
+
+- posts a visible `[lisa-human-gate-lifted] reason=<slug>` comment explaining why;
+- removes the `human_needed` marker label;
+- moves the item to the build-ready role (unless it has since moved to another lifecycle lane).
+
+This is not a forged human release. A release records a person's answer, so it must come from a trusted human. A lift records that the hold was invalid under this contract, so there is nothing for a person to authorize. Its authority comes from re-classifying the hold rather than from who wrote the comment: a lift comment naming a valid hold discharges nothing. Valid holds (a credential, spend, a signature) are untouched and still wait for their act. A label-only hold (an access block, a blocked verdict) declares no reason to judge and is never lifted.
+
+Every reader of the hold verdict passes the project's `humanGateMode` (`humanGate.mode`) and `humanOnly` classes (`humanGate.humanOnly`) alongside `comments` and `trustedHumanActorIds` (`classifyReadyCandidate`, `classifyPreWorkCandidate`, `planHumanGateReconciliation`, `planHumanGateRelease`, `planLabelNormalization`, `planHumanGateLift`). A reader that omits either judges a hold that setting makes valid as invalid, so a lift comment naming that hold would discharge it there. `node scripts/human-gate-act.mjs policy` prints the effective `{ "mode", "humanOnly" }`; an invalid mode fails safe to `"strict"` and is reported on stderr.
+
 ## Complete defects found during other work are filed build-ready
 
 Any defect discovered while doing something else, which is complete enough to build, is filed through `lisa-track` / `lisa-tracker-write` with **explicit `build_ready: true`**. It must be claimable by build-intake on the next cycle with no human flipping status. "Complete enough to build" is the `work-item-definition-of-ready` bar — reproduction, observed-versus-expected, and Gherkin acceptance criteria — not a placeholder to be fleshed out later.
 
-The same explicitness applies in the other direction. A filing that is genuinely a human product call declares `human_gate`; it does not simply omit the flag and hope the tracker default is the merciful one.
+The same explicitness applies in the other direction. A filing that genuinely needs an act an agent cannot perform declares `human_gate`; it does not simply omit the flag and hope the tracker default is the merciful one.
 
-## The named exception: `lisa-exploratory-qa`
+## Mid-build filings are a planning signal
 
-`lisa-exploratory-qa` files its findings **not** build-ready by default, and that is **correct** — it is the named human-gate exception under this rule, not drift to be repaired.
+A ticket a worker has to file **while building** a dispatched item, because that item was mis-scoped, mis-split, or depends on work nobody filed, is filed exactly as above. It is also evidence that planning let a gap through, and it is routed as such: the filer sends one `planning-miss` candidate through `lisa-persist-learning`, with the item being built (never the new ticket) as `triggering_issue` and the check planning should have run as the rule. `lisa-implement` owns the step and its exclusions (outages, credentials, tool access, flaky tools, and decisions planning flagged as human gates); the judge decides whether it really was a miss. The signal never delays or changes the filing.
 
-Exploratory QA is a first-time-user experience pass. Its findings are *candidate* defects and usability observations whose product significance a human should judge; auto-readying them would push judgment work into the build queue, which is precisely the failure the gate model exists to prevent. Its `ready=false` is therefore paired with an explicit `human_gate` reason and stamped with `[lisa-human-gate]` — an explicit human-gate marker, never a bare omission.
+## The named exception: `lisa-exploratory-qa` (strict mode)
+
+Under `humanGate.mode: "strict"`, `lisa-exploratory-qa` files its findings **not** build-ready, and that is **correct** — it is the named human-gate exception under this rule, not drift to be repaired. Exploratory QA is a first-time-user experience pass, and in strict mode a person judges each finding's product significance. Its `ready=false` is therefore paired with an explicit `human_gate` reason and stamped with `[lisa-human-gate]` — an explicit human-gate marker, never a bare omission.
+
+Under the default `"access-only"` mode the agent makes that significance call itself. It records its judgement on each finding in a `Decision:` line (why it matters, or why it was dropped), files a worthwhile, complete finding `build_ready: true`, and a person can reverse it. An operator-passed `ready=false` is an `operator-hold`, not this exception.
 
 The sibling `e2e-coverage-gaps` skills are the contrast: a missing automated test is not a product question, so they file `build_ready: true` by default.
 
-Other legitimate human-gate filings follow the same shape — `lisa-learnings-audit` promotion/demotion tickets, `lisa-improve-harness` intervention proposals, automation-retirement proposals, and provisioning tickets for access a human must grant. Each declares its `human_gate` reason rather than relying on a default.
+Other legitimate human-gate filings follow the same shape. In either mode: provisioning tickets for access the agent lacks (a credential, a login, an access grant), and a promotion ticket whose change lands on a surface declared human-authored (a host's `.agents/rules/`, `PROJECT_RULES.md` or `AGENTS.md`), which no agent writes — an authorship rule, not an access gate. Under `strict` only: `lisa-learnings-audit` promotion/demotion tickets, `lisa-improve-harness` intervention proposals and automation-retirement proposals. Each declares its `human_gate` reason rather than relying on a default.
 
 ## This rule is enforced, not merely stated
 
@@ -135,7 +201,7 @@ Resolving it from the calling project unconditionally made the highest-value rep
 | `github`, renamed lane | the caller's own label | refused; the target never carried that token |
 | `github`, stock lane | `status:ready` | worked — because both repositories happened to pick the same string. A coincidence, not a routing decision, which is why the defect was intermittent across the fleet rather than universal |
 
-Unsatisfiable is not the same as refused. The only escape that *did* work cross-repo was `[lisa-human-gate]`, and using it there is a lie about the item: it stamps a build-ready defect report as held for a human product call, and the target's build queue scans the ready role and nothing else. The report is filed and never picked up — the exact incomplete handoff this guard exists to prevent, committed one repository over. (The workaround actually in use was worse still: ask a second agent, in a repo with the right label, to type the command. A control routinely satisfied by delegating around it is misrouting, not enforcing.)
+Unsatisfiable is not the same as refused. The only escape that *did* work cross-repo was `[lisa-human-gate]`, and using it there is a lie about the item: it stamps a build-ready defect report as held for a person, and the target's build queue scans the ready role and nothing else. The report is filed and never picked up — the exact incomplete handoff this guard exists to prevent, committed one repository over. (The workaround actually in use was worse still: ask a second agent, in a repo with the right label, to type the command. A control routinely satisfied by delegating around it is misrouting, not enforcing.)
 
 So the target is extracted from the command — `--repo` / `-R` / `--repo=o/r` in any position before a bare `--`, and the `repos/<org>/<repo>/issues` endpoint on the `gh api` and `curl` paths — and the role resolved for **it**:
 
@@ -166,7 +232,7 @@ Two limits, stated rather than implied, because a control that documents its own
 
 ## Recovery
 
-`lisa-repair-intake` sweeps for the failure this rule prevents: recently filed items that are open, not in the configured ready role, and carrying **no** `[lisa-human-gate]` marker. Each is an incomplete handoff — surfaced with its filing context so an operator can promote it or gate it deliberately. The sweep reports rather than guesses: it never silently promotes an item into the queue, because a filing whose readiness nobody declared is exactly the input the gate model says a human should see.
+`lisa-repair-intake` sweeps for the failure this rule prevents: recently filed items that are open, not in the configured ready role, and carrying **no** `[lisa-human-gate]` marker. Each is an incomplete handoff — surfaced with its filing context so it can be promoted or gated deliberately: by the agent acting on the report, which records its reason on the item, or by an operator under `humanGate.mode: "strict"`. The sweep reports rather than guesses: it never silently promotes an item into the queue, because a filing whose readiness nobody declared needs a deliberate, recorded decision rather than a default.
 
 ## Related
 

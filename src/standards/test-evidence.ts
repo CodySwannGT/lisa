@@ -1,14 +1,12 @@
 /** Positive, private-output evidence that a managed test runner executed tests. */
 
-export const TEST_EVIDENCE_FORMATS = [
-  "vitest",
-  "jest",
-  "playwright",
-  "rspec",
-  "managed",
-] as const;
 /** Runner grammar used to prove that at least one test executed. */
-export type TestEvidenceFormat = (typeof TEST_EVIDENCE_FORMATS)[number];
+export type TestEvidenceFormat =
+  | "vitest"
+  | "jest"
+  | "playwright"
+  | "rspec"
+  | "managed";
 
 const MAX_EVIDENCE_OUTPUT_CHARACTERS = 1024 * 1024;
 const MAX_EVIDENCE_LINES = 4096;

@@ -1,4 +1,8 @@
-/* eslint-disable sonarjs/no-duplicate-string, jsdoc/require-jsdoc, max-lines, @eslint-community/eslint-comments/disable-enable-pair -- repeated fixture identifiers make the finding matrix explicit */
+/**
+ * `runDeterministicHealth` with every inspector mocked: check order, named
+ * drift failures, bounded warnings, and the shared deadline.
+ * @module tests/unit/health/deterministic.test
+ */
 import { mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -13,27 +17,10 @@ import {
   vi,
 } from "vitest";
 
-const mocks = vi.hoisted(() => ({
-  config: {} as Record<string, unknown>,
-  configPresent: true,
-  settings: {} as Record<string, unknown> | undefined,
-  texts: new Map<string, string | undefined>(),
-  sync: {
-    actions: [] as { key: string; kind: string; detail: string }[],
-    missingRequired: [] as { key: string; setupHint: string }[],
-    dryRun: true,
-  },
-  drift: {
-    managed: [] as string[],
-    hooks: [] as string[],
-    workflows: [] as string[],
-  },
-  missingWorkflows: [] as string[],
-  staleWorkflowInputs: [] as string[],
-  packageConforms: true,
-  rulesetsPresent: true,
-  runConfigSync: vi.fn(),
-}));
+const mocks = await vi.hoisted(async () => {
+  const { defaultMockState } = await import("./deterministic-fixtures.js");
+  return { ...defaultMockState(), runConfigSync: vi.fn() };
+});
 
 vi.mock("../../../src/sync/config-sync.js", () => ({
   runConfigSync: mocks.runConfigSync,
@@ -43,9 +30,10 @@ vi.mock("../../../src/core/lisa-plugin-selection.js", () => ({
   selectProjectLisaPlugins: vi.fn(async () => ["lisa"]),
 }));
 
-vi.mock("../../../src/cli/version.js", () => ({
-  getPackageVersion: vi.fn(() => "2.999.0"),
-}));
+vi.mock("../../../src/cli/version.js", async () => {
+  const { PACKAGE_VERSION } = await import("./deterministic-fixtures.js");
+  return { getPackageVersion: vi.fn(() => PACKAGE_VERSION) };
+});
 
 vi.mock("../../../src/health/read-only-fs.js", () => ({
   projectPathKind: vi.fn(async (_root: string, relativePath: string) =>
@@ -88,59 +76,37 @@ vi.mock("../../../src/health/hook-inspection.js", () => ({
   inspectHookInstallation: vi.fn(async () => ({ status: "pass", drift: [] })),
 }));
 
-vi.mock("../../../src/health/plugin-inspection.js", () => ({
-  readInstalledClaudePlugins: vi.fn(async () => ["lisa@lisa"]),
-  inspectPlugins: vi.fn(async () => {
-    const marker = mocks.texts.get(
-      path.join(".claude", ".lisa-plugins-synced")
-    );
-    if (mocks.settings === undefined) {
-      return { status: "warn", drift: ["unsupported harness"] };
-    }
-    return marker === "2.999.0\n"
-      ? { status: "pass", drift: [] }
-      : { status: "fail", drift: ["plugin version marker"] };
-  }),
-}));
-
-vi.mock("../../../src/health/ruleset-inspection.js", () => ({
-  readGithubRulesets: vi.fn(async () => []),
-  rulesetFinding: vi.fn(
-    async (
-      _lisaRoot: string,
-      _projectRoot: string,
-      _types: readonly string[],
-      _config: Record<string, unknown>,
-      reader: () => Promise<unknown>
-    ) => {
-      try {
-        await reader();
-      } catch {
-        return {
-          check: "github.rulesets",
-          layer: "deterministic",
-          status: "warn",
-          reason:
-            "GitHub rulesets could not be observed within the deterministic deadline.",
-        };
+vi.mock("../../../src/health/plugin-inspection.js", async () => {
+  const { PACKAGE_VERSION, PLUGIN_MARKER_PATH } =
+    await import("./deterministic-fixtures.js");
+  return {
+    readInstalledClaudePlugins: vi.fn(async () => ["lisa@lisa"]),
+    inspectPlugins: vi.fn(async () => {
+      if (mocks.settings === undefined) {
+        return { status: "warn", drift: ["unsupported harness"] };
       }
-      return mocks.rulesetsPresent
-        ? {
-            check: "github.rulesets",
-            layer: "deterministic",
-            status: "pass",
-            reason:
-              "Required GitHub rulesets are active and materially current.",
-          }
-        : {
-            check: "github.rulesets",
-            layer: "deterministic",
-            status: "fail",
-            reason: "GitHub ruleset drift: Base missing",
-          };
-    }
-  ),
-}));
+      return mocks.texts.get(PLUGIN_MARKER_PATH) === `${PACKAGE_VERSION}\n`
+        ? { status: "pass", drift: [] }
+        : { status: "fail", drift: ["plugin version marker"] };
+    }),
+  };
+});
+
+vi.mock("../../../src/health/ruleset-inspection.js", async () => {
+  const { fakeRulesetFinding } = await import("./deterministic-fixtures.js");
+  return {
+    readGithubRulesets: vi.fn(async () => []),
+    rulesetFinding: vi.fn(
+      async (
+        _lisaRoot: string,
+        _projectRoot: string,
+        _types: readonly string[],
+        _config: Record<string, unknown>,
+        reader: () => Promise<unknown>
+      ) => fakeRulesetFinding(reader, mocks.rulesetsPresent)
+    ),
+  };
+});
 
 vi.mock("../../../src/health/ruleset-reach-inspection.js", () => ({
   readGithubBranches: vi.fn(async () => ({
@@ -157,49 +123,34 @@ vi.mock("../../../src/health/ruleset-reach-inspection.js", () => ({
 }));
 
 import { runDeterministicHealth } from "../../../src/health/deterministic.js";
+import {
+  CHECK_ORDER,
+  defaultMockState,
+  PLUGIN_MARKER_PATH,
+} from "./deterministic-fixtures.js";
 
-const CHECK_ORDER = [
-  "project.state",
-  "project.wiki",
-  "starters.remote",
-  "config.required",
-  "config.sync",
-  "templates.managed",
-  "package.conformance",
-  "instructions.canonical",
-  "hooks.managed",
-  "plugins.current",
-  "ci.workflows",
-  "github.rulesets",
-  "github.declared-checks",
-  "github.ruleset-reach",
-  "expo.splash-exit",
-] as const;
+/** Check identifiers the suite inspects by name. */
+const CONFIG_REQUIRED = "config.required";
+const CONFIG_SYNC = "config.sync";
+const PLUGINS_CURRENT = "plugins.current";
+const GITHUB_RULESETS = "github.rulesets";
+/** Setup hint that must never reach a finding reason. */
+const UNDISCLOSED_HINT = "do not disclose this hint";
 
 let projectRoot: string;
 
+/** Restore the in-band default mock state before each case. */
 function resetMocks(): void {
-  mocks.config = {
-    tracker: "github",
-    github: { org: "example", repo: "project" },
-  };
-  mocks.configPresent = true;
-  mocks.settings = { enabledPlugins: { "lisa@lisa": true } };
-  mocks.texts = new Map([
-    ["AGENTS.md", "Canonical project instructions."],
-    ["CLAUDE.md", "@AGENTS.md"],
-    [path.join(".claude", ".lisa-plugins-synced"), "2.999.0\n"],
-  ]);
-  mocks.sync = { actions: [], missingRequired: [], dryRun: true };
-  mocks.drift = { managed: [], hooks: [], workflows: [] };
-  mocks.missingWorkflows = [];
-  mocks.staleWorkflowInputs = [];
-  mocks.packageConforms = true;
-  mocks.rulesetsPresent = true;
+  Object.assign(mocks, defaultMockState());
   mocks.runConfigSync.mockReset();
   mocks.runConfigSync.mockImplementation(async () => mocks.sync);
 }
 
+/**
+ * Run the deterministic layer against the suite's project root.
+ * @param overrides - Option overrides merged over the fixture defaults
+ * @returns The deterministic Health result
+ */
 async function collect(
   overrides: Parameters<typeof runDeterministicHealth>[1] = {}
 ) {
@@ -254,15 +205,15 @@ describe("runDeterministicHealth", () => {
   it.each([
     ["project.state", () => (mocks.configPresent = false), "Project config"],
     [
-      "config.required",
+      CONFIG_REQUIRED,
       () =>
         (mocks.sync.missingRequired = [
-          { key: "github.repo", setupHint: "do not disclose this hint" },
+          { key: "github.repo", setupHint: UNDISCLOSED_HINT },
         ]),
       "github.repo",
     ],
     [
-      "config.sync",
+      CONFIG_SYNC,
       () =>
         (mocks.sync.actions = [
           {
@@ -294,9 +245,8 @@ describe("runDeterministicHealth", () => {
       ".husky/pre-push",
     ],
     [
-      "plugins.current",
-      () =>
-        mocks.texts.set(path.join(".claude", ".lisa-plugins-synced"), "old"),
+      PLUGINS_CURRENT,
+      () => mocks.texts.set(PLUGIN_MARKER_PATH, "old"),
       "plugin version marker",
     ],
     [
@@ -304,7 +254,7 @@ describe("runDeterministicHealth", () => {
       () => mocks.missingWorkflows.push(".github/workflows/ci.yml"),
       "ci.yml",
     ],
-    ["github.rulesets", () => (mocks.rulesetsPresent = false), "Base"],
+    [GITHUB_RULESETS, () => (mocks.rulesetsPresent = false), "Base"],
   ])(
     "reports observed %s drift as a named failure",
     async (check, arrange, name) => {
@@ -317,7 +267,7 @@ describe("runDeterministicHealth", () => {
         layer: "deterministic",
       });
       expect(observed?.reason).toContain(name);
-      expect(observed?.reason).not.toContain("do not disclose this hint");
+      expect(observed?.reason).not.toContain(UNDISCLOSED_HINT);
       expect(observed?.reason).not.toContain("secret");
     }
   );
@@ -331,13 +281,13 @@ describe("runDeterministicHealth", () => {
     });
 
     expect(
-      result.findings.find(finding => finding.check === "plugins.current")
+      result.findings.find(finding => finding.check === PLUGINS_CURRENT)
     ).toMatchObject({
       status: "warn",
       reason: "Plugin state unavailable: unsupported harness",
     });
     const rulesets = result.findings.find(
-      finding => finding.check === "github.rulesets"
+      finding => finding.check === GITHUB_RULESETS
     );
     expect(rulesets?.status).toBe("warn");
     expect(rulesets?.reason).not.toContain("never-print-this");
@@ -354,17 +304,17 @@ describe("runDeterministicHealth", () => {
 
     expect(Date.now() - started).toBeLessThan(1_000);
     expect(
-      result.findings.find(finding => finding.check === "config.required")
+      result.findings.find(finding => finding.check === CONFIG_REQUIRED)
     ).toMatchObject({
       status: "fail",
     });
     expect(
-      result.findings.find(finding => finding.check === "config.sync")
+      result.findings.find(finding => finding.check === CONFIG_SYNC)
     ).toMatchObject({
       status: "fail",
     });
     expect(
-      result.findings.find(finding => finding.check === "github.rulesets")
+      result.findings.find(finding => finding.check === GITHUB_RULESETS)
     ).toMatchObject({
       status: "warn",
     });

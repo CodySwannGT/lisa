@@ -1,0 +1,12 @@
+$ node scripts/lisa-ci-failure-redispatch.mjs --payload tests/fixtures/ci-failure-redispatch/check-run-actions-owned.json --dry-run
+# worktree head_sha=68ca1b31795ba5f0de17b1b40488bb29bfe7e02d captured_at=2026-11-08T09:49:21Z
+run 51200000003 -> PR (none) -> work item (none)
+outcome: ignored-actions-check — a check run created by GitHub Actions is covered by workflow_run (dry run: nothing written)
+{
+  "repository": "CodySwannGT/lisa",
+  "runId": 51200000003,
+  "outcome": "ignored-actions-check",
+  "reason": "a check run created by GitHub Actions is covered by workflow_run",
+  "actions": []
+}
+exit=0

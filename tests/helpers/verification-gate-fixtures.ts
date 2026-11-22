@@ -12,7 +12,7 @@ import path from "path";
 import {
   FIXTURE_HEAD_SHA,
   FIXTURE_TIMESTAMP,
-} from "./verification-gate-harness";
+} from "./verification-gate-harness.js";
 
 /** Directory holding the committed failure-mode verdict fixtures (BCE-6). */
 const FAILURE_MODE_DIR = path.resolve("tests/fixtures/verification");
@@ -36,7 +36,7 @@ export const BROWSER_BOUNDARY = "browser";
 export const SCREENSHOT_KIND = "screenshot";
 
 /** Evidence kind that reaches only the code-unit boundary. */
-export const UNIT_LOG_KIND = "test-run-log";
+const UNIT_LOG_KIND = "test-run-log";
 
 /** Claim id used by the default v2 fixture. */
 export const GATED_CLAIM_ID = "AC-1";

@@ -11,6 +11,10 @@
 # the only thing visible. A green check here means RELEASED. Whether the change
 # reached an environment is a separate fact, and it is answered by CodePipeline
 # — which may still be holding at a manual approval gate — not by this run.
+#
+# Lisa proves that delivery from CodePipeline's own execution record. Declare it
+# in .lisa.config.json as verification.completion.delivery.<env> with
+# mechanism: aws-codepipeline, pipeline_name and region.
 
 name: 📦 Release
 

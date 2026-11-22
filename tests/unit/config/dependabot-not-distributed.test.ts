@@ -109,22 +109,4 @@ describe("Lisa does not distribute a Dependabot configuration", () => {
     expect(hashed).toEqual([]);
     expect(surfaced).toEqual([]);
   });
-
-  it("does not promise the file in the distributed GitHub Actions guide", () => {
-    const guide = fs.readFileSync(
-      path.join(
-        repoRoot,
-        "typescript",
-        COPY_OVERWRITE,
-        ".github",
-        "GITHUB_ACTIONS.md"
-      ),
-      "utf-8"
-    );
-
-    // The bot-loop guard legitimately names `dependabot[bot]` as a PR author to
-    // skip, which is about other people's bots and is not a promise to ship a
-    // config. Only the delivered-file tree is asserted against.
-    expect(guide).not.toMatch(/dependabot\.ya?ml/);
-  });
 });

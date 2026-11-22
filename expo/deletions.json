@@ -35,7 +35,8 @@
     "eslint-plugin-ui-standards",
     "vitest.config.ts",
     "vitest.config.local.ts",
-    "vitest.thresholds.json"
+    "vitest.thresholds.json",
+    "eslint.expo.ts"
   ],
   "keep": [
     ".github/workflows/build.yml",
@@ -76,6 +77,7 @@
     "eslint-plugin-ui-standards": "needs-review",
     "vitest.config.ts": "needs-review",
     "vitest.config.local.ts": "needs-review",
-    "vitest.thresholds.json": "needs-review"
+    "vitest.thresholds.json": "needs-review",
+    "eslint.expo.ts": "legacy: a standalone copy of the Expo ESLint factory that nothing loads (hosts load @codyswann/lisa/eslint/expo), and it requires plugins no Expo host is given (CodySwannGT/lisa#4947)"
   }
 }

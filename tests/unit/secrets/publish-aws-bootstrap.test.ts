@@ -95,7 +95,9 @@ describe("AWS bootstrap candidate validation", () => {
 
   it("isolates STS verification from ambient AWS credentials", () => {
     const candidate = validateAwsBootstrap(bundle("AKIACANDIDATE"));
-    const run = vi.fn(() => "expiry");
+    const run = vi.fn<NonNullable<Parameters<typeof verifyAwsBootstrap>[1]>>(
+      () => "expiry"
+    );
 
     verifyAwsBootstrap(candidate, run);
 

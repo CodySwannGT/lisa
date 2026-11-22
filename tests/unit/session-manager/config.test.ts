@@ -48,9 +48,19 @@ describe("SESSION_MANAGER_DEFAULTS", () => {
         cpuFraction: 0.75,
         maxLoadPerCore: 1.5,
       },
-      stall: { noOutputMinutes: 60, maxAttempts: 3, requestionHours: 4 },
-      notify: { provider: "telegram" },
+      stall: {
+        noOutputMinutes: 60,
+        maxAttempts: 3,
+        requestionHours: 4,
+        orphanHours: 2,
+      },
+      notify: { provider: "none" },
     });
+  });
+
+  it("resolves an absent notify block to no notification channel", () => {
+    const resolved = mustResolve({ sessionManager: { name: NAME } });
+    expect(resolved.notify).toEqual({ provider: "none" });
   });
 
   it("is frozen, so no caller can change another caller's defaults", () => {
@@ -82,9 +92,15 @@ describe("resolveSessionManagerConfig", () => {
         cpuFraction: 0.75,
         maxLoadPerCore: 1.5,
       },
-      stall: { noOutputMinutes: 60, maxAttempts: 3, requestionHours: 4 },
+      stall: {
+        noOutputMinutes: 60,
+        maxAttempts: 3,
+        requestionHours: 4,
+        orphanHours: 2,
+      },
       notify: NOTIFY,
       trustedAuthorIds: null,
+      trustedReleaseIds: undefined,
     });
   });
 
@@ -110,6 +126,7 @@ describe("resolveSessionManagerConfig", () => {
       noOutputMinutes: 60,
       maxAttempts: 5,
       requestionHours: 4,
+      orphanHours: 2,
     });
   });
 

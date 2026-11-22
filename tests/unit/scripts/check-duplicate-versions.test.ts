@@ -51,7 +51,7 @@ import {
   STRICT_FLAG,
   VIOLATION_FIXTURE,
   WORKFLOW_FILE,
-} from "./check-duplicate-versions-helpers";
+} from "./check-duplicate-versions-helpers.js";
 
 const temporaryRoots: string[] = [];
 

@@ -42,6 +42,12 @@ const DEFAULTS = {
   global: { statements: 70, branches: 70, functions: 70, lines: 70 },
 } as const;
 
+/**
+ * A jest.thresholds.json override declaring only a unit floor. Jest's
+ * `coverageThreshold` type requires `global`; an empty one merges to nothing.
+ */
+const JEST_UNIT_ONLY = { global: {}, unit: { lines: 55 } };
+
 afterEach(() => {
   delete process.env[COVERAGE_SCOPE_ENV];
 });
@@ -139,7 +145,7 @@ describe("jest thresholds under the unit scope", () => {
   it("enforces a declared unit block when the scope is unit", () => {
     process.env[COVERAGE_SCOPE_ENV] = UNIT_COVERAGE_SCOPE;
 
-    const merged = jestMergeThresholds(DEFAULTS, { unit: { lines: 55 } });
+    const merged = jestMergeThresholds(DEFAULTS, JEST_UNIT_ONLY);
 
     expect(merged?.global).toEqual({
       statements: 70,
@@ -150,7 +156,7 @@ describe("jest thresholds under the unit scope", () => {
   });
 
   it("leaves the full-suite floor untouched by that same declaration", () => {
-    const merged = jestMergeThresholds(DEFAULTS, { unit: { lines: 55 } });
+    const merged = jestMergeThresholds(DEFAULTS, JEST_UNIT_ONLY);
 
     expect(merged?.global).toMatchObject({ lines: 70 });
   });
@@ -158,8 +164,8 @@ describe("jest thresholds under the unit scope", () => {
   it("never hands the runner a `unit` key it would read as a path glob", () => {
     process.env[COVERAGE_SCOPE_ENV] = UNIT_COVERAGE_SCOPE;
 
-    expect(
-      jestMergeThresholds(DEFAULTS, { unit: { lines: 55 } })
-    ).not.toHaveProperty("unit");
+    expect(jestMergeThresholds(DEFAULTS, JEST_UNIT_ONLY)).not.toHaveProperty(
+      "unit"
+    );
   });
 });

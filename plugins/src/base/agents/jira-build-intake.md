@@ -1,6 +1,6 @@
 ---
 name: jira-build-intake
-description: JIRA build-intake agent. Runs one build-intake cycle against a JIRA project (or JQL filter) — claims tickets in the configured `ready` status, dispatches each to the jira-agent build flow, transitions to the configured (env-aware) `done` status on success. Symmetric counterpart to notion-prd-intake. Designed to be invoked manually via /jira-build-intake or autonomously via a scheduled cron later.
+description: "Runs one JIRA build-intake cycle: takes the first ready leaf ticket, builds it through the jira-agent flow, and moves it to done. Manual or scheduled."
 skills:
   - jira-build-intake
   - jira-read-ticket
@@ -29,13 +29,13 @@ Once you have a project key or JQL, RUN. Do not ask the caller whether to procee
 
 The invoking caller (a slash command or a future schedule wrapper) hands you a JIRA project key (e.g. `SE`) or a full JQL filter. You do not pick the query yourself.
 
-If no query is provided, stop and ask. Never run intake against a default scope — the side effects (status transitions, PRs opened, builds running) are too high to act without an explicit target.
+If no query is provided and none is configured, first file the decision-ready escalation packet (`automation-runbook-contract`, "Escalation") through `lisa-tracker-write`, labeled `status:blocked` and `human-needed` with `human_gate` set, naming the missing input and the `/lisa:setup:*` skill that configures it; then exit `recovery-required` citing that item. If the tracker itself is unconfigured so nothing can be filed, put the same packet in the exit summary. Never run intake against a default scope — the side effects (status transitions, PRs opened, builds running) are too high to act without an explicit target.
 
 ### 2. Run the intake skill
 
 Invoke the `jira-build-intake` skill with the query as `$ARGUMENTS`. The skill owns the cycle logic — JQL execution, claim, in-session lifecycle dispatch (the jira-agent workflow culminating in the lisa-implement skill), transition on success, summary. Do not duplicate that logic here.
 
-The skill runs the jira-agent workflow in-session per ticket — read full graph, verify, triage, then route to the flow by invoking its lifecycle skill (lisa-implement / lisa-plan) via the Skill tool, plus sync progress and post evidence. Never spawn jira-agent (or the lifecycle flow) as a subagent — the lifecycle skill must run in the lead session so it can create its agent team.
+The skill runs the jira-agent workflow in-session per ticket — read full graph, verify, triage, then route to the flow by invoking its lifecycle skill (lisa-implement / lisa-plan) via the Skill tool, plus sync progress and post evidence. Never spawn jira-agent (or the lifecycle flow) as a subagent — run the whole cycle in this session.
 
 ### 3. Surface the summary
 

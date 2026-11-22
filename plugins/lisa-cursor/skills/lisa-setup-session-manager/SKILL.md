@@ -1,14 +1,19 @@
 ---
 name: lisa-setup-session-manager
-description: "Set up the local session manager for this project: writes the non-secret `sessionManager` block to `.lisa.config.json` (detecting a multi-repo layout: repos under `projects/`, or directly under the project root), stores the project's own Telegram bot token outside the repo, checks the Telegram plugin is installed but not enabled at user scope, keeps the manager's state out of git, seeds the checked-in runbook, starts the manager in tmux, walks the operator through pairing, and finishes with doctor's session-manager check. Idempotent."
+description: "Set up this project's local session manager: write its config, optionally connect a Telegram channel, keep its state out of git, start it in tmux, and run doctor's check. Idempotent."
 allowed-tools: ["Bash", "Read", "Write", "Skill", "AskUserQuestion"]
 ---
 
 # Setup session manager
 
-After this skill the project has a `sessionManager` block, a bot token in its own state directory, a
-runbook at `.lisa/automations/session-manager.runbook.md`, and a running manager paired with the
-operator's Telegram chat. Re-running is safe: every step keeps what is already there.
+After this skill the project has a `sessionManager` block, a runbook at
+`.lisa/automations/session-manager.runbook.md`, and a running manager. Telegram is optional: with it,
+the project also has its own bot token (in the project's secrets provider when one is configured,
+else in its own state directory) and a manager paired with the operator's
+Telegram chat; with no channel (the default), Steps 3 and 4 and the pairing in Step 9 are skipped,
+and questions wait in the manager's ledger, where `status` shows them, and on the item itself,
+which the manager marks human-needed while it keeps dispatching other work. Re-running is safe: every
+step keeps what is already there.
 
 The manager itself always runs on Claude Code (see `lisa-session-manager` "Runtime parity"). Setup
 can run from any agent that can reach the scripts; `start` launches the Claude Code manager.
@@ -40,22 +45,37 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
 
 ## Step 2: Write the config block
 
-1. Preview: `node "$SM/session-manager.mjs" init-config --project-root "$ROOT"`. It detects
+0. Ask the operator whether they want Telegram notifications: worker questions and status on their
+   phone, through a bot they create for this project. Say plainly that it is optional: without it
+   the manager runs normally, and questions wait in its ledger (shown by `status`) instead of
+   reaching a phone. Their answer is `<notify>`: `telegram` or `none` (the default).
+1. Preview: `node "$SM/session-manager.mjs" init-config --notify <notify> --project-root "$ROOT"`.
+   It detects
    `projects/*/.lisa.config.json`, or, when `projects/` holds none, the root's own children that
    have a `.lisa.config.json` and their own `.git` (written as `repos.root: "."`). It proposes
-   `name`, `interval`, `repos`, `capacity`, `stall` and a per-project `notify.stateDir`. Repo
+   `name`, `interval`, `repos`, `capacity`, `stall` and `notify`: `{"provider":"none"}`, or with
+   `--notify telegram` the telegram provider and a per-project `notify.stateDir`. Repo
    detection leaves out linked worktrees and keeps one checkout per remote, so ticket worktrees and
    second clones are not proposed. Show the block to the operator and ask whether any repo is
    missing or should not be routed.
 2. Write it: the same command with `--write`. It adds only non-secret fields and never overwrites an
-   existing block (`reason: "exists"` means keep it).
+   existing block (`reason: "exists"` means keep it). To add Telegram to an existing block later,
+   set `notify` to `{"provider":"telegram","stateDir":"~/.claude/channels/telegram-<project>"}`
+   (the `<project>` part as `init-config --notify telegram` would derive it) and re-run this skill.
 3. Each repo's `hints` are a draft: its name plus one per well-known dependency (`NestJS`, `Expo`,
    `AWS CDK`, ...). Ask the operator to correct them and add the areas that identify the repo
    (e.g. `api`: `["NestJS","migrations"]`, `web`: `["Expo","screens"]`), and whether to
    set `sessionManager.trustedAuthorIds`. Without it, any author's Ready item reaches a
-   bypass-permissions worker; say so plainly. The list holds stable tracker user ids as strings,
+   bypass-permissions worker; say so plainly. If an integration files Ready items with no person
+   behind them (Linear's Sentry integration does), add `integration:<service>` (the value `queue`
+   prints as `authorIntegration`) rather than dropping the key, which would also drop every hold
+   releaser. To let different people release holds than author work, set
+   `sessionManager.trustedReleaseIds` (people only; it defaults to `trustedAuthorIds`). The list holds stable tracker user ids as strings,
    never logins: the GitHub numeric user id (`gh api users/<login> --jq .id`), the Jira
-   `accountId`, or the Linear user id. A login matches no one and silently excludes every item.
+   `accountId`, or the Linear user id. A plain login matches no one in the queue and silently
+   excludes every item; to trust a GitHub login on purpose write it as `login:<login>`, and to say
+   outright that an entry is an id write `id:<id>`. A login GitHub frees (after a rename or a
+   deleted account) can be re-registered by someone else, so prefer `id:` for trust.
 4. Set `sessionManager.operatorIds` to a non-empty **array** holding the operator's own tracker
    user id, e.g. `"operatorIds": ["<operator-id>"]` (a bare string fails `validate`). Look up the
    OPERATOR, not the credential: `gh api user` / `viewer.id` return whoever the tracker credential
@@ -68,23 +88,72 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
    "me", spelled as the tracker API returns it: the GitHub **login** (`gh api users/<login> --jq
    .login`), the Jira `accountId`, or the Linear user id (the operator's entry in the team's member
    list, or `viewer.id` only when the operator runs the lookup with their own credential).
+   **Prefer the kind-keyed form**, which every reader (the queue, the claim and answers on the
+   item) matches the same way: `"login:<github-login>"` on GitHub, `"id:<accountId or user id>"` on
+   Jira and Linear. A plain entry still works as before, but a plain **all-digit** GitHub login is
+   read as a login by the queue and as a numeric id by the answer matcher, so the operator could
+   not answer on the item and the unrelated account whose numeric id equals it could; `validate`
+   warns about it (in `warnings`, never failing) and names both forms. An unknown prefix
+   (`user:octocat`) or an empty value (`login:`) fails `validate`, naming the entry.
+   **Recommend setting it in every setup**, even a single-user one: it is also who may answer a
+   human-needed question by replying on the item. With none of `operatorIds`,
+   `trustedReleaseIds` and `trustedAuthorIds` set, the manager reads no answer off the item at all, because the tracker
+   credential's identity is the one the workers and the manager post as, so its comments cannot be
+   told apart from a human's answer. The operator then answers only at the terminal, with the
+   `answerCommand` that `status` lists. Say so plainly.
 5. Ask whether to set `sessionManager.backlogPickup` to `true` (default off). When the Ready queue
    is exhausted and a worker slot is still free, the manager then looks at backlog items (open
    leaves in no lifecycle role) that nobody else is assigned to, that are not human-held and have
    no unfinished blocker. Each one that passes the full tracker validation, including the
-   stateless-pickup check, is assigned to the first `operatorIds` entry, moved to Ready and
-   dispatched. Say plainly that this lets the manager start work nobody marked Ready, so it needs
+   stateless-pickup check, is moved to Ready and dispatched. One already assigned to an operator
+   keeps that assignee; an unassigned one is assigned to the manager's own tracker identity
+   ("me"), as every item the manager takes is. Say plainly that this lets the manager start work nobody marked Ready, so it needs
    `operatorIds` and should go with `trustedAuthorIds` on any tracker outsiders can write to.
 6. `node "$SM/session-manager.mjs" validate --project-root "$ROOT"` must print `valid: true`.
+   Show the operator every entry of `warnings`, when there is one, in plain words, and offer to
+   rewrite a plain all-digit operator entry in the `login:` / `id:` form it names.
 
 ## Step 3: Store the bot token
+
+Only when `sessionManager.notify.provider` is `telegram`. With no channel (`none`, or no `notify`
+block) there is no token: skip Steps 3 and 4 and go to Step 5.
 
 The operator creates a bot with @BotFather, one per project. Then run
 `node "$SM/session-manager.mjs" store-token --project-root "$ROOT"`.
 
+Where the token goes depends on the project's secrets provider (`secrets.provider` in
+`.lisa.config.json`, read through `lisa-secrets-access`):
+
+- **A provider is configured** (`secrets.provider` set and not `env`): the token is stored in it as
+  `TELEGRAM_BOT_TOKEN_<NAME>` (the manager name upper-snaked, e.g. `lisa-1a2b-manager` →
+  `TELEGRAM_BOT_TOKEN_LISA_1A2B_MANAGER`) and nothing is written to disk. `start` resolves it from
+  there each time. If `secrets.require` is declared, add that name to it first, or `store-token`
+  exits 2 saying so.
+  - **Migration.** If an older setup left a plaintext `<notify.stateDir>/.env`, `store-token`
+    moves it: it stores the token, reads it back and compares, and only then deletes the file. It
+    needs no prompt. Report it as "moved the bot token from `<path>` into `<provider>` and deleted
+    the file" (the `migratedFrom` and `deleted` fields), never with the value.
+  - `alreadyStored: true`: the provider already holds it; nothing to do. A matching leftover file
+    is deleted too.
+  - Exit 2 naming `--vault-project`: the provider project is ambiguous. Ask the operator which
+    project, then re-run with `--vault-project <id>`.
+  - Exit 2 because the file holds a different token or other keys: say what `message` reports and
+    let the operator decide (`--replace` makes the file's token the stored one).
+  - Exit 1 (provider unreachable or rate-limited): nothing was stored and the file was kept. Wait a
+    minute and run it again.
+  - A provider Lisa cannot write to (anything but Bitwarden today): the message asks the operator
+    to create `TELEGRAM_BOT_TOKEN_<NAME>` in the provider themselves; then re-run `store-token`,
+    which verifies it and deletes any plaintext copy.
+- **No provider configured**: the token is written to `<notify.stateDir>/.env` (mode 0600) as
+  before. Tell the operator that this is a plaintext file, that doctor will warn about it, and that
+  configuring a secrets provider and re-running `store-token` moves it there.
+
+Outcomes either way:
+
 - `stored: true`: done.
-- Exit 2 because a token already exists: keep it (re-running setup is safe). Only when the operator
-  says the stored token is wrong or belongs to another project, re-run with `store-token --replace`.
+- With no provider, exit 2 because a token already exists: keep it (re-running setup is safe). Only
+  when the operator says the stored token is wrong or belongs to another project, re-run with
+  `store-token --replace`.
 - `reason: "no-tty"` (an agent's Bash has no terminal): offer the operator both routes, and say
   plainly that Claude Code's `!` prefix has no terminal either, so it fails the same way:
   - **Clipboard (simplest):** they copy the token from the BotFather chat and tell you; then run
@@ -96,11 +165,13 @@ The operator creates a bot with @BotFather, one per project. Then run
 - `empty` / `invalid`: say what was wrong and ask again.
 
 Never ask for the token in chat, never echo, log or commit it, and never put it in
-`.lisa.config.json`. It lives only in `<notify.stateDir>/.env`.
+`.lisa.config.json`. It lives only in the secrets provider, or in `<notify.stateDir>/.env` when
+no provider is configured. Never read it back from either to check it: `store-token` already
+verified the stored copy.
 
 ## Step 4: Telegram plugin scope
 
-Read `claude plugin list --json` and look at the `telegram@claude-plugins-official` entries.
+Only when `notify.provider` is `telegram`. Read `claude plugin list --json` and look at the `telegram@claude-plugins-official` entries.
 
 - **Not installed:** ask the operator to install it with
   `claude plugin install telegram@claude-plugins-official -s user`, then re-check.
@@ -173,11 +244,17 @@ project), on every machine that runs the manager:
    bypass-permissions worker runs. Ask the operator for the IDs, add them, re-run `validate`, then
    continue. `lisa doctor` fails on the same condition.
 1. `node "$SM/session-manager.mjs" start --project-root "$ROOT"`. `started` and `already-running`
-   are both fine. Exit 2 names what is missing (usually the token from Step 3), or that a tmux
-   session of the same name belongs to another project root, or that the manager
-   exited right after starting. For the last, ask the operator to run the printed foreground command
-   in their own terminal: claude prints its own error there. Fix it, then run `start` again.
-2. Walk the operator through pairing, in their own terminal:
+   are both fine. With no channel it needs no token, plugin or pairing and launches without
+   `--channels`. Exit 2 names what is missing (with Telegram, usually the token from Step 3, or a
+   plaintext `.env` left over beside a secrets provider: run the `store-token` command the message
+   names, which migrates it, then `start` again), or that a tmux session of the same name belongs
+   to another project root, or that the manager exited right after starting. For the last, ask the
+   operator to run the printed foreground command in their own terminal: claude prints its own
+   error there (with a provider, the line fetches the token itself; it never holds the value). Fix
+   it, then run `start` again. Exit 1 saying "Nothing was started" means the secrets provider could
+   not be reached or rate-limited the read: wait a minute and run `start` again.
+2. Only with Telegram (`notify` is `telegram` in the `start` output); with no channel there is no
+   pairing, so skip to Step 10. Walk the operator through pairing, in their own terminal:
    1. `tmux attach -t <name>` (the `attach` value from the output).
    2. Send any message to the bot in a private chat. The bot replies with a pairing code.
    3. In the attached manager session: `/telegram:access pair <code>`.
@@ -191,10 +268,13 @@ Telegram message asked for it. Every allowlisted sender effectively has shell ac
 ## Step 10: Verify
 
 Run `lisa doctor` (or `npx @codyswann/lisa doctor` when the `lisa` CLI is not on the PATH) and
-confirm the "Session manager Telegram isolation?" check is green. Fix every warning it names, then
+confirm the "Session manager notifications?" check is green. With no channel its detail is
+`notifications: none`, and it skips every Telegram check. Fix every warning it names, then
 `node "$SM/session-manager.mjs" status --project-root "$ROOT"` should show the manager running.
 
-Report: the config block written (or kept), where the token lives (the path, never the value), the
-plugin scope result, the runbook path, which repo dirs were already trusted and which the operator
+Report: the config block written (or kept), the notification channel (`telegram` or `none`), and
+with Telegram where the token lives (the provider and secret name, or the file path; never the
+value), whether a plaintext `.env` was migrated and deleted, and the plugin scope result, the
+runbook path, which repo dirs were already trusted and which the operator
 accepted trust in, what the competing-loop check found, the manager's tmux session name, and the
 doctor result.

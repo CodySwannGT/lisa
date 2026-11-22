@@ -18,7 +18,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
 /** The shipped gate registry. */
-export const GATES_SCRIPT = path.join(
+const GATES_SCRIPT = path.join(
   REPO_ROOT,
   "all",
   "copy-overwrite",
@@ -36,7 +36,7 @@ export const REPORT_STEP = "🚨 Report the unconfigured gate";
 export const QUALITY_YML = ".github/workflows/quality.yml";
 
 /** The reusable browser-suite workflow, repository-relative. */
-export const PLAYWRIGHT_YML = ".github/workflows/playwright-e2e.yml";
+const PLAYWRIGHT_YML = ".github/workflows/playwright-e2e.yml";
 
 /** Both workflows carrying façade jobs. */
 export const FACADE_WORKFLOWS: readonly string[] = [
@@ -64,7 +64,7 @@ export const ON_EDIT_SURFACE = "on-edit-hook";
 export const PRE_TOOL_REFUSAL_SURFACE = "pre-tool-refusal-hook";
 
 /** One inventory entry, as the shipped table publishes it. */
-export interface Invocation {
+interface Invocation {
   gate: string;
   moment: string;
   surface: string;

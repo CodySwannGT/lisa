@@ -18,18 +18,21 @@
  * `process.env`, a shared helper may not.
  * @module tests/helpers/enforcement-vintage-harness
  */
-import { copyFileSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { boundedSpawnSync } from "./io-latency-budget.js";
+import { useOwnedTempDirs } from "./owned-temp-dirs.js";
+
+/** Temp folders this file creates, removed when it finishes (CodySwannGT/lisa#5095). */
+const ownedDir = useOwnedTempDirs();
 
 /** The shipped hook, as a harness invokes it. */
-export const HOOK = "plugins/src/base/hooks/enforcement-vintage.sh";
+const HOOK = "plugins/src/base/hooks/enforcement-vintage.sh";
 /** The renderer the hook delegates to. */
-export const RENDERER = "plugins/src/base/hooks/enforcement-vintage.mjs";
+const RENDERER = "plugins/src/base/hooks/enforcement-vintage.mjs";
 /** The renderer's sibling for the project-pin and npm-latest rows. */
-export const NPM_MODULE = "plugins/src/base/hooks/enforcement-vintage-npm.mjs";
+const NPM_MODULE = "plugins/src/base/hooks/enforcement-vintage-npm.mjs";
 /** Directory every plugin payload keeps its hooks in. */
 const HOOKS = "hooks";
 /** Manifest directory a Claude plugin dates itself from. */
@@ -44,7 +47,7 @@ const PLUGIN_TREE = ["plugins", "lisa"];
 const NO_OP_GUARD = "#!/usr/bin/env bash\nexit 0\n";
 
 /** The envelope a context-injection hook emits. */
-export type HookOutput = {
+type HookOutput = {
   hookSpecificOutput?: {
     hookEventName?: string;
     additionalContext?: string;
@@ -52,7 +55,7 @@ export type HookOutput = {
 };
 
 /** What one hook invocation produced. */
-export type HookRun = {
+type HookRun = {
   output: HookOutput;
   status: number | null;
   stdout: string;
@@ -80,7 +83,7 @@ export type HookRunner = {
  * @returns Absolute path to an empty directory
  */
 export function scratch(prefix: string): string {
-  return mkdtempSync(path.join(tmpdir(), `lisa-vintage-${prefix}-`));
+  return ownedDir(`lisa-vintage-${prefix}-`);
 }
 
 /**

@@ -1,0 +1,84 @@
+# Re-verification at f16e99bd5d (clean worktree; `git status` showed only this untracked evidence dir)
+
+## Validation Journey steps 2-3: every committed fixture
+$ node scripts/lisa-ci-rework-route.mjs --item 1 --payload tests/fixtures/ci-rework-route/<f>.json
+== claim-after-marker
+{"route":"ci-rework","item":"CodySwannGT/lisa#1","pr":101,"sha":"3db71f89a186d5dbeb78015aa5735fa9d8efda48","headRefName":"claude/1-example-branch","failingChecks":["🔍 Quality Checks / 🧪 Run Unit Tests","🧩 Plugin artifacts match source"],"markerCount":1}
+== cleared-marker
+{"route":"implement","reason":"cleared","detail":"the [lisa-ci-failed] marker is cleared: a later run passed every required check"}
+== closed-pr
+{"route":"implement","reason":"pull-request-not-open","detail":"the marker's pull request is CLOSED"}
+== fork-pr
+{"route":"implement","reason":"fork-pull-request","detail":"the marker's pull request comes from a fork"}
+== human-authored
+{"route":"implement","reason":"untrusted-author","detail":"the [lisa-ci-failed] marker was posted by CodySwannGT, not github-actions[bot]; ignored"}
+== loop-bound
+{"route":"blocked","reason":"ci-loop-bound","detail":"pull request #101 has failed its required checks 3 times; stop retrying and ask a person","item":"CodySwannGT/lisa#1","pr":101,"sha":"3db71f89a186d5dbeb78015aa5735fa9d8efda48","failingChecks":["🔍 Quality Checks / 🧪 Run Unit Tests","🧩 Plugin artifacts match source"],"markerCount":3}
+== merged-pr
+{"route":"implement","reason":"pull-request-not-open","detail":"the marker's pull request is MERGED"}
+== not-newest
+{"route":"implement","reason":"not-newest","detail":"a newer Lisa marker (not a claim) was posted after the [lisa-ci-failed] marker, so it no longer describes the item"}
+== other-item
+{"route":"implement","reason":"other-work-item","detail":"the marker's pull request is bound to CodySwannGT/lisa#2, not CodySwannGT/lisa#1"}
+== reclaim-twice
+{"route":"ci-rework","item":"CodySwannGT/lisa#1","pr":101,"sha":"3db71f89a186d5dbeb78015aa5735fa9d8efda48","headRefName":"claude/1-example-branch","failingChecks":["🔍 Quality Checks / 🧪 Run Unit Tests","🧩 Plugin artifacts match source"],"markerCount":1}
+== trusted-marker
+{"route":"ci-rework","item":"CodySwannGT/lisa#1","pr":101,"sha":"3db71f89a186d5dbeb78015aa5735fa9d8efda48","headRefName":"claude/1-example-branch","failingChecks":["🔍 Quality Checks / 🧪 Run Unit Tests","🧩 Plugin artifacts match source"],"markerCount":1}
+== unbound-pr
+{"route":"implement","reason":"unbound-pull-request","detail":"No Work-Item trailer anywhere in the pull-request body"}
+(all exit=0)
+
+## Verifier probes (fixtures in /tmp/claude-verify-4677, not committed)
+== forged-newer (newer human-typed forged marker after the bot's) -> ci-rework pr=101  [expected ci-rework]
+{"route":"ci-rework","item":"CodySwannGT/lisa#1","pr":101,...,"markerCount":1}
+== claim-after-marker (prior run's AC4 blocker: [claude-build-intake], bot marker, first [lisa-tracker-claim]) [expected ci-rework; was implement/not-newest at 99ab5bafef]
+{"route":"ci-rework","item":"CodySwannGT/lisa#1","pr":101,...,"markerCount":1}
+== pr-read-fails -> {"route":"implement","reason":"read-failed",...}   [expected fail-safe implement]
+== merged-pr -> {"route":"implement","reason":"pull-request-not-open","detail":"the marker's pull request is MERGED"}
+
+## Step 2: #4521-shaped history with the claim re-posted twice after the marker
+== live-shape-reclaim (claim, [lisa-session-manager] Released, claim, [lisa-pr-link], bot marker pr=4693, claim, claim)
+{"route":"ci-rework","item":"CodySwannGT/lisa#1","pr":4693,"sha":"7aaeca4f1afee2e0800512adeb172455434d3dc6","headRefName":"claude/4521-path-scoped-audit-exclusions","failingChecks":["🔍 Quality Checks / 🧪 Run Integration Tests"],"markerCount":1}
+  -> PASS (expected ci-rework)
+## Bite controls (MUST report not-newest, proving the exemption is scoped to claim-only comments)
+== control-failed-after (bot marker, claim, then [lisa-session-manager] Worker failed)
+{"route":"implement","reason":"not-newest","detail":"a newer Lisa marker (not a claim) was posted after the [lisa-ci-failed] marker, so it no longer describes the item"}
+== control-mixed-claim (bot marker, then one comment with [lisa-tracker-claim] AND [lisa-rejection-candidate])
+{"route":"implement","reason":"not-newest","detail":"a newer Lisa marker (not a claim) was posted after the [lisa-ci-failed] marker, so it no longer describes the item"}
+
+## Step 3: live gh, read-only
+$ node scripts/lisa-ci-rework-route.mjs --item 4677
+{"route":"implement","reason":"no-marker","detail":"the item carries no [lisa-ci-failed] marker"}
+$ node scripts/lisa-ci-rework-route.mjs --item 4598
+{"route":"ci-rework","item":"CodySwannGT/lisa#4598","pr":4674,"sha":"50d60a8c6eca239d6a31042d13c756e89c0ccd9c","headRefName":"codex/4598-shard-unit-ci","failingChecks":["🔍 Quality Checks / 🧪 Run Integration Tests"],"markerCount":1}
+$ node scripts/lisa-ci-rework-route.mjs --item 4521
+{"route":"ci-rework","item":"CodySwannGT/lisa#4521","pr":4693,"sha":"7aaeca4f1afee2e0800512adeb172455434d3dc6","headRefName":"claude/4521-path-scoped-audit-exclusions","failingChecks":["🔍 Quality Checks / 🧪 Run Integration Tests"],"markerCount":1}
+
+## Falsification of the new claim-comment exemption
+Mutation (scripts/lisa-ci-rework-route.mjs, isNewestCountedMarker):
+-    comments.filter(c => c === marker || !claimOnly(c)),
++    comments.filter(c => c === marker || true),
+$ node scripts/lisa-ci-rework-route.mjs --item 1 --payload /tmp/claude-verify-4677/live-shape-reclaim.json
+{"route":"implement","reason":"not-newest",...}          -> probe bites
+$ npx vitest run tests/unit/scripts/lisa-ci-rework-route.test.ts tests/unit/scripts/lisa-ci-rework-route-cli.test.ts
+ FAIL ... CLI > prints the ci-rework route for claim-after-marker
+ FAIL ... CLI > prints the ci-rework route for reclaim-twice
+ FAIL ... claim comments never supersede a failure marker > claim-after-marker ... -> ci-rework
+ FAIL ... claim comments never supersede a failure marker > reclaim-twice ... -> ci-rework
+ Tests  4 failed | 39 passed (43)                        -> tests bite, naming the right cases
+Restored by reversing the sed; `git status --short` afterwards shows only `?? evidence/CodySwannGT-lisa-4677/`.
+
+## Parity grep (lisa-ci-rework-route.mjs | route: ci-rework | lisa-drive-pr-to-merge pr=<n> | Why claim comments are ignored)
+plugins/lisa/skills/lisa-track/SKILL.md:4
+plugins/lisa/.codex-plugin/skills/lisa-track/SKILL.md:4
+plugins/lisa-cursor/skills/lisa-track/SKILL.md:4
+plugins/lisa-agy/skills/lisa-track/SKILL.md:4
+plugins/lisa-copilot/skills/lisa-track/SKILL.md:4
+plugins/lisa-devin/skills/lisa-track/SKILL.md:4
+plugins/lisa/skills/lisa-implement/SKILL.md:3
+plugins/lisa/.codex-plugin/skills/lisa-implement/SKILL.md:3
+plugins/lisa-cursor/skills/lisa-implement/SKILL.md:3
+plugins/lisa-agy/skills/lisa-implement/SKILL.md:3
+plugins/lisa-copilot/skills/lisa-implement/SKILL.md:3
+plugins/lisa-devin/skills/lisa-implement/SKILL.md:3
+plugins/lisa-agy/skills/lisa-session-manager/SKILL.md:0   (bite control: grep reports absence)

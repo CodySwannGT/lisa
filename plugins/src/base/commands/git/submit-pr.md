@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Push changes and create or update a pull request"
 allowed-tools: ["Skill"]
 argument-hint: "[pr-title-or-description-hint]"

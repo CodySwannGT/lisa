@@ -1,8 +1,8 @@
 /**
  * Enforcement must survive a container that has no Lisa plugin.
  *
- * Every `PreToolUse` guard — `block-no-verify`, `parity-safety-net`,
- * `block-shell-json-parsing` — is declared in the Lisa plugin. A cloud session
+ * Every `PreToolUse` guard — `block-no-verify`, `block-shell-json-parsing`,
+ * `block-instruction-file-edits` and the rest — is declared in the Lisa plugin. A cloud session
  * installs plugins at session start from the marketplace the repository
  * declares, and when that does not happen the container runs with
  * `installed_plugins.json` empty and no enforcement whatsoever.
@@ -84,12 +84,10 @@ describe("enforcement fallback when no plugin is installed", () => {
     expect(output).toMatch(/bypasses pre-commit/i);
   });
 
-  it("blocks a destructive command the safety net owns", () => {
-    // Not only the commit guard: a container with no plugin also had nothing
-    // standing between an agent and a forced recursive delete.
+  it("leaves the retired native safety net inactive", () => {
     const { status } = runFallback("rm -rf $UNSET_VAR/data", NO_PLUGIN);
 
-    expect(status).toBe(BLOCKED);
+    expect(status).toBe(0);
   });
 
   it("lets an ordinary command through", () => {

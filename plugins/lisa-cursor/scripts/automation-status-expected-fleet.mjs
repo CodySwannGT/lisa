@@ -343,7 +343,7 @@ export function resolveExpectedAutomationFleet(input = {}) {
       createUnsupportedEntry(
         identity,
         "learnings-audit",
-        "The weekly gardener loop is opt-in and this project has not opted in, so nobody is auditing its knowledge surfaces. Run /lisa:setup-automations learnings-audit=true to enable it.",
+        "The weekly gardener loop is not registered for this project (it was set up with learnings-audit=false, or before the gardener ran by default), so nobody is auditing its knowledge surfaces. Run /lisa:setup-automations learnings-audit=true to enable it.",
         "opt-in"
       )
     );

@@ -6,22 +6,18 @@
  * ## The defect this exists for
  *
  * The `type-correctness` gate spawns the compiler by PATH:
- * `node node_modules/typescript/bin/tsc`. With an empty `node_modules` the
+ * `node node_modules/@typescript/native-preview/bin/tsgo`. With an empty `node_modules` the
  * SPAWN still succeeds — node starts, and it is node that then cannot find the
  * module — so the gate's `if (tsc.error)` guard does not fire. node's
  * "Cannot find module" goes to stderr and does not match the gate's
  * `file(line,col): error TSxxxx:` pattern, so the parsed-diagnostics map comes
- * back EMPTY. Every quarantined file then satisfies "has no errors", and the
- * gate reports:
- *
- * ```
- * ❌ 370 quarantined file(s) now type-check and must leave the list:
- * Remove them from typecheck-quarantine.json.
- * ```
- *
- * Following that deletes 370 live quarantine entries on the word of a checker
- * that compiled nothing. The comparison was not wrong — it was correct about an
- * input it was never entitled to accept.
+ * back EMPTY. The gate then held a file-level quarantine of known-failing files
+ * (since deleted, CodySwannGT/lisa#4923), and every one of them satisfied "has
+ * no errors": the gate reported all 370 as fixed and instructed their removal
+ * — a destructive edit ordered on the word of a checker that compiled nothing.
+ * The comparison was not wrong; it was correct about an input it was never
+ * entitled to accept. Without the quarantine the same emptiness would read as
+ * a clean run, which is the same defect pointed the other way.
  *
  * ## Why "cannot measure" is a THIRD outcome, not a failure message
  *

@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process";
 import {
   cpSync,
   existsSync,
@@ -16,13 +15,10 @@ import {
   resolveBunExecutable,
   runCheckWithBun,
   runCheckerDirectWithBun,
+  spawnCompleted,
   stagePackageWithFreshDist,
 } from "./check-learnings-budget-helpers.js";
-import {
-  assertChildCompleted,
-  ioLatencyBudgetMs,
-  useIoLatencyBudget,
-} from "../../helpers/io-latency-budget.js";
+import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import {
   LEARNINGS_CONTRACT,
   type LearningEntry,
@@ -220,15 +216,13 @@ describe("check:learnings-budget", () => {
     const root = createTemporaryDirectory();
     stageSourceChecker(root);
 
-    const staged = spawnSync(
-      BUN_EXECUTABLE,
-      [NO_INSTALL, path.join(root, SOURCE_CHECKER)],
-      { cwd: root, encoding: "utf8", timeout: ioLatencyBudgetMs(10_000) }
-    );
-    assertChildCompleted(
-      staged,
-      "staged source-tree check-learnings-budget.ts"
-    );
+    const staged = spawnCompleted({
+      label: "staged source-tree check-learnings-budget.ts",
+      command: BUN_EXECUTABLE,
+      args: [NO_INSTALL, path.join(root, SOURCE_CHECKER)],
+      cwd: root,
+      baseMs: 10_000,
+    });
     const output = `${staged.stdout}${staged.stderr}`;
 
     expect(staged.status).toBe(1);
@@ -359,7 +353,9 @@ describe("check:learnings-budget", () => {
     // below proves one byte more fails. This exercises the ceiling itself,
     // closing the earlier ~2.7 KB-of-slack gap.
     const pad = LEARNINGS_CONTRACT.maxTokens - measured;
-    entries[0] = { ...entries[0], why: `${entries[0].why}${"x".repeat(pad)}` };
+    const [first] = entries;
+    if (!first) throw new Error("the budget fixture needs at least one entry");
+    entries[0] = { ...first, why: `${first.why}${"x".repeat(pad)}` };
     const atLimit = renderLearningsFile(entries);
     expect(Buffer.byteLength(atLimit, "utf8")).toBe(
       LEARNINGS_CONTRACT.maxTokens
@@ -434,11 +430,12 @@ describe("check:learnings-budget", () => {
 
   it("rejects a FIFO without blocking or reading from it", () => {
     const fixture = path.join(createTemporaryDirectory(), "learnings.fifo");
-    const created = spawnSync(MKFIFO_EXECUTABLE, [fixture], {
-      encoding: "utf8",
-      timeout: ioLatencyBudgetMs(2_000),
+    const created = spawnCompleted({
+      label: "mkfifo",
+      command: MKFIFO_EXECUTABLE,
+      args: [fixture],
+      baseMs: 2_000,
     });
-    assertChildCompleted(created, "mkfifo");
     expect(created.status).toBe(0);
 
     const result = runCheck(fixture);
@@ -455,27 +452,31 @@ describe("check:learnings-budget", () => {
     expect(compiled.output).toBe("");
     expect(compiled.status).toBe(0);
     const archive = path.join(temporary, "lisa-packed.tgz");
-    const packed = spawnSync(
-      BUN_EXECUTABLE,
-      ["pm", "pack", "--ignore-scripts", "--filename", archive, "--quiet"],
-      {
-        cwd: staging,
-        encoding: "utf8",
-        timeout: ioLatencyBudgetMs(30_000),
-      }
-    );
-    assertChildCompleted(packed, "bun pm pack");
+    const packed = spawnCompleted({
+      label: "bun pm pack",
+      command: BUN_EXECUTABLE,
+      args: [
+        "pm",
+        "pack",
+        "--ignore-scripts",
+        "--filename",
+        archive,
+        "--quiet",
+      ],
+      cwd: staging,
+      baseMs: 30_000,
+    });
     expect(`${packed.stdout}${packed.stderr}`).toBeTruthy();
     expect(packed.status).toBe(0);
 
     const extracted = path.join(temporary, "extracted");
     mkdirSync(extracted);
-    const extraction = spawnSync(
-      TAR_EXECUTABLE,
-      ["-xzf", archive, "-C", extracted],
-      { encoding: "utf8", timeout: ioLatencyBudgetMs(30_000) }
-    );
-    assertChildCompleted(extraction, "tar -xzf");
+    const extraction = spawnCompleted({
+      label: "tar -xzf",
+      command: TAR_EXECUTABLE,
+      args: ["-xzf", archive, "-C", extracted],
+      baseMs: 30_000,
+    });
     expect(`${extraction.stdout}${extraction.stderr}`).toBe("");
     expect(extraction.status).toBe(0);
 
@@ -499,33 +500,26 @@ describe("check:learnings-budget", () => {
     expect(existsSync(path.join(packageRoot, "dist", "core", "lisa.js"))).toBe(
       false
     );
-    const result = spawnSync(
-      BUN_EXECUTABLE,
-      [NO_INSTALL, path.join(packageRoot, SOURCE_CHECKER)],
-      {
-        cwd: packageRoot,
-        encoding: "utf8",
-        timeout: ioLatencyBudgetMs(10_000),
-      }
-    );
-
     // The assertion below reads the child's stdout, so a killed child makes it
     // lie: 12 of 12 concurrent runs reported "expected '' to contain 'learnings
     // budget passed'" when the cause was this child's own fixed 10s budget.
-    assertChildCompleted(result, "packed check-learnings-budget.ts");
+    const result = spawnCompleted({
+      label: "packed check-learnings-budget.ts",
+      command: BUN_EXECUTABLE,
+      args: [NO_INSTALL, path.join(packageRoot, SOURCE_CHECKER)],
+      cwd: packageRoot,
+      baseMs: 10_000,
+    });
     expect(`${result.stdout}${result.stderr}`).toContain(PASSED_VERDICT);
     expect(result.status).toBe(0);
 
-    const overflow = spawnSync(
-      BUN_EXECUTABLE,
-      [NO_INSTALL, path.join(packageRoot, SOURCE_CHECKER), OVERFLOW_FLAG],
-      {
-        cwd: packageRoot,
-        encoding: "utf8",
-        timeout: ioLatencyBudgetMs(10_000),
-      }
-    );
-    assertChildCompleted(overflow, "packed overflow check");
+    const overflow = spawnCompleted({
+      label: "packed overflow check",
+      command: BUN_EXECUTABLE,
+      args: [NO_INSTALL, path.join(packageRoot, SOURCE_CHECKER), OVERFLOW_FLAG],
+      cwd: packageRoot,
+      baseMs: 10_000,
+    });
     expect(overflow.stdout).toContain("no learnings overflow file");
     expect(overflow.stderr).toBe("");
     expect(overflow.status).toBe(0);
@@ -556,14 +550,14 @@ function stageSourceChecker(root: string): void {
 function runStagedSourceChecker(
   root: string,
   ...arguments_: readonly string[]
-): ReturnType<typeof spawnSync> {
-  const result = spawnSync(
-    BUN_EXECUTABLE,
-    [NO_INSTALL, path.join(root, SOURCE_CHECKER), ...arguments_],
-    { cwd: root, encoding: "utf8", timeout: ioLatencyBudgetMs(10_000) }
-  );
-  assertChildCompleted(result, "staged source check-learnings-budget.ts");
-  return result;
+): ReturnType<typeof spawnCompleted> {
+  return spawnCompleted({
+    label: "staged source check-learnings-budget.ts",
+    command: BUN_EXECUTABLE,
+    args: [NO_INSTALL, path.join(root, SOURCE_CHECKER), ...arguments_],
+    cwd: root,
+    baseMs: 10_000,
+  });
 }
 
 /**

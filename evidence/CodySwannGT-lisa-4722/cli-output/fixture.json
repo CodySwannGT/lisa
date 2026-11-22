@@ -1,0 +1,122 @@
+{
+  "complete": true,
+  "items": [
+    {
+      "ref": "example-org/demo-repo#1",
+      "role": "claimed",
+      "labels": [
+        "status:in-progress"
+      ],
+      "body": "Do it.",
+      "comments": [],
+      "assignees": [],
+      "updatedAt": "2026-11-01T00:00:00Z",
+      "pr": {
+        "state": "MERGED",
+        "url": "https://github.com/example-org/demo-repo/pull/101"
+      }
+    },
+    {
+      "ref": "example-org/demo-repo#2",
+      "role": "claimed",
+      "labels": [
+        "status:in-progress"
+      ],
+      "body": "Do it.",
+      "comments": [],
+      "assignees": [],
+      "updatedAt": "2026-11-01T00:00:00Z",
+      "pr": null
+    },
+    {
+      "ref": "example-org/demo-repo#3",
+      "role": "claimed",
+      "labels": [
+        "status:in-progress"
+      ],
+      "body": "Do it.",
+      "comments": [],
+      "assignees": [],
+      "updatedAt": "2026-11-01T00:00:00Z",
+      "pr": {
+        "state": "OPEN",
+        "url": "https://github.com/example-org/demo-repo/pull/103"
+      }
+    },
+    {
+      "ref": "example-org/demo-repo#4",
+      "role": "claimed",
+      "labels": [
+        "status:in-progress"
+      ],
+      "body": "Do it.",
+      "comments": [],
+      "assignees": [],
+      "updatedAt": "2026-11-01T00:00:00Z",
+      "pr": null
+    },
+    {
+      "ref": "example-org/demo-repo#5",
+      "role": "claimed",
+      "labels": [
+        "status:in-progress"
+      ],
+      "body": "Do it.",
+      "comments": [],
+      "assignees": [],
+      "updatedAt": "2026-11-13T11:20:37Z",
+      "pr": null
+    },
+    {
+      "ref": "example-org/demo-repo#6",
+      "role": "claimed",
+      "labels": [
+        "status:in-progress"
+      ],
+      "body": "Do it.",
+      "comments": [],
+      "assignees": [
+        {
+          "login": "someone-else"
+        }
+      ],
+      "updatedAt": "2026-11-01T00:00:00Z",
+      "pr": null
+    }
+  ],
+  "holds": [
+    {
+      "assignees": [],
+      "updatedAt": "2026-11-01T00:00:00Z",
+      "ref": "example-org/demo-repo#10",
+      "labels": [
+        "status:ready",
+        "human-needed"
+      ],
+      "body": "Held for a human product call: tenancy audit triage.\n<!-- [lisa-human-gate] reason=tenancy-audit-triage -->",
+      "comments": []
+    },
+    {
+      "assignees": [],
+      "updatedAt": "2026-11-01T00:00:00Z",
+      "ref": "example-org/demo-repo#11",
+      "labels": [
+        "status:ready",
+        "human-needed"
+      ],
+      "body": "Needs a key.\n<!-- [lisa-human-gate] reason=stripe-api-key -->",
+      "comments": []
+    },
+    {
+      "assignees": [],
+      "updatedAt": "2026-11-01T00:00:00Z",
+      "ref": "example-org/demo-repo#12",
+      "labels": [
+        "status:ready",
+        "human-needed"
+      ],
+      "body": "Needs spend approval.\n<!-- [lisa-human-gate] reason=payment-approval -->",
+      "comments": []
+    }
+  ]
+}

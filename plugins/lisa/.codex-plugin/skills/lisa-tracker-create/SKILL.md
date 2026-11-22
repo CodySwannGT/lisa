@@ -1,9 +1,9 @@
 ---
 name: lisa-tracker-create
-description: "Vendor-neutral wrapper for…"
+description: "Create tickets from code files…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
-Vendor-neutral wrapper for creating tickets/issues from code files or descriptions. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-create, lisa-github-create, or lisa-linear-create. Plans hierarchy structure (epic / story / sub-task), then delegates each individual write through the tracker-write shim.
+Create tickets from code files or a description in whichever tracker the project uses, planning the epic / story / sub-task structure and writing each one through lisa-tracker-write.
 
 
 # Tracker Create: $ARGUMENTS
@@ -15,6 +15,7 @@ See the `config-resolution` rule for configuration and dispatch table.
 ## Workflow
 
 1. Resolve tracker config (same logic as `lisa-tracker-write`).
+   Then, when an installed stack plugin ships a `journey-guidance` skill (the Expo and Rails plugins do), invoke it and carry its guidance — which planned tickets need a Validation Journey and how to draft it, plus stack reuse expectations — into the vendor skill below. It is tracker-neutral, so it applies to `jira`, `github`, and `linear` alike. When no stack plugin ships one, continue with the base behaviour; that is not an error.
 2. Dispatch:
    - Missing / empty → stop and report `"No tracker configured in .lisa.config.json. Run /lisa:setup:jira, /lisa:setup:github, or /lisa:setup:linear first."`
    - `jira` → invoke `lisa-jira-create` with `$ARGUMENTS` verbatim.
@@ -26,5 +27,5 @@ See the `config-resolution` rule for configuration and dispatch table.
 ## Rules
 
 - All vendor skills delegate every individual ticket write through `lisa-tracker-write`. They never call vendor-specific write tools directly.
-- **Declare readiness on every leaf write.** Per the `ready-role-filing` rule an omitted `build_ready` is **not build-ready** on any tracker, so pass `build_ready: true` on each Sub-task (the leaf work units this skill plans) and never on the Epic or Stories, which are containers per `leaf-only-lifecycle`. A leaf that is deliberately held instead passes `human_gate: "<why a human must judge this first>"`. Filing a leaf with neither is an incomplete handoff and `lisa-tracker-write` rejects it.
+- **Declare readiness on every leaf write.** Per the `ready-role-filing` rule an omitted `build_ready` is **not build-ready** on any tracker, so pass `build_ready: true` on each Sub-task (the leaf work units this skill plans) and never on the Epic or Stories, which are containers per `leaf-only-lifecycle`. A leaf that is deliberately held instead passes `human_gate: "<the act a person must perform>"`. Filing a leaf with neither is an incomplete handoff and `lisa-tracker-write` rejects it.
 - This shim is for ad-hoc creation from code files / descriptions. PRD-driven creation goes through the `*-to-tracker` skills (notion / confluence / linear / github).

@@ -95,9 +95,7 @@ describe("the on-edit entries name the moment their script fires at", () => {
     // The pair is the whole guard: `moment` is the registry's vocabulary and
     // `hookEvent` is the harness's, and they must never be able to disagree.
     for (const entry of onEdit()) {
-      expect((entry as { hookEvent?: string }).hookEvent, entry.artifact).toBe(
-        "PostToolUse"
-      );
+      expect(entry.hookEvent, entry.artifact).toBe("PostToolUse");
     }
   });
 });

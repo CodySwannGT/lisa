@@ -1,0 +1,2 @@
+772:**Never start a detached or background watcher as the way to wait on CI** — no
+773:trailing `&`, no `nohup`, no harness background task, no scheduled re-check, no

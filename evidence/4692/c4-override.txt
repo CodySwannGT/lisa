@@ -1,0 +1,28 @@
+### C4: LISA_EVIDENCE_RELEASE one-run override with the repo's own config (real GitHub, CodySwannGT/lisa)
+### date: 2026-11-08T18:59:10Z  HEAD: b590df4c25815538d0d3e9a6c084c7aaca00212c
+### configured: "pr-assets-{YYYY-MM}"   (no LISA_TRACKING_CONFIG_FILE)
+### pre-state pr-assets asset count:
+1000
+
+### $ LISA_EVIDENCE_RELEASE=pr-assets node scripts/lisa-work-item.mjs evidence-release
+pr-assets
+exit=0
+### $ LISA_EVIDENCE_RELEASE=pr-assets node scripts/lisa-work-item.mjs evidence-release --ensure   (override must reach the capacity check)
+work-item proof write-error: The evidence release `pr-assets` in CodySwannGT/lisa holds 1000 of GitHub's 1000-file limit, so new proof can't be uploaded. Set `verification.completion.evidenceRelease` in .lisa.config.json to a rotating name such as `pr-assets-{YYYY-MM}` (older proof keeps validating), or prune old evidence (CodySwannGT/lisa#4720).
+exit=1
+
+### $ LISA_EVIDENCE_RELEASE=v4.97.5 node scripts/lisa-work-item.mjs evidence-release   (outside the accepted set)
+work-item proof invalid-config: LISA_EVIDENCE_RELEASE is "v4.97.5", which is not one of this project's evidence releases (pr-assets, pr-assets-{YYYY-MM}). Unset it, or set it to the name `node scripts/lisa-work-item.mjs evidence-release` prints.
+exit=1
+### $ LISA_EVIDENCE_RELEASE=v4.97.5 node scripts/lisa-work-item.mjs evidence-release --ensure
+work-item proof invalid-config: LISA_EVIDENCE_RELEASE is "v4.97.5", which is not one of this project's evidence releases (pr-assets, pr-assets-{YYYY-MM}). Unset it, or set it to the name `node scripts/lisa-work-item.mjs evidence-release` prints.
+exit=1
+
+### control: LISA_EVIDENCE_RELEASE=pr-assets-2026-11 (accepted, has room) --ensure must succeed
+pr-assets-2026-11
+exit=0
+
+### post-state pr-assets asset count (unchanged):
+1000
+### post-state v4.97.5 asset count (unchanged):
+0

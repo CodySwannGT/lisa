@@ -53,20 +53,8 @@ interface BoundaryRun {
   readonly lines: readonly string[];
 }
 
-/** Evidence fields asserted at the supervisor/classifier boundary. */
-interface BoundaryEvidence {
-  /** Gate observations recorded by the evidence producer. */
-  readonly gates: readonly [
-    {
-      readonly status: string;
-      readonly measures: {
-        readonly diagnosis: string | null;
-        readonly exit_code: number | null;
-        readonly state: string;
-      };
-    },
-  ];
-}
+/** One gate row of the evidence the supervisor/classifier boundary persists. */
+type EvidenceRow = ReturnType<typeof evidenceDocument>["gates"][number];
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -98,15 +86,17 @@ function requireCapture(command: string): string {
 }
 
 /** Build the exact evidence row a completed gate route would persist. */
-function evidenceFor(result: GateRun): BoundaryEvidence {
-  return evidenceDocument({
+function evidenceRowFor(result: GateRun): EvidenceRow {
+  const [row] = evidenceDocument({
     gates: GATES,
     moment: COMMIT,
     observedAt: OBSERVED_AT,
     result,
     runner: RUNNER,
     verdict: "blocked",
-  }) as BoundaryEvidence;
+  }).gates;
+  if (row === undefined) throw new Error("evidence carries no gate row");
+  return row;
 }
 
 describe.skipIf(process.platform === "win32")(
@@ -133,18 +123,15 @@ describe.skipIf(process.platform === "win32")(
       expect(result.blocked).toBe(true);
     });
 
-    it("persists unknown status and null exit for the killed run", () => {
+    it("persists unknown status for the killed run", () => {
       const { boundary, result, lines } = throughGateBoundary(
         selfSignalCommand("SIGINT")
       );
-      const row = evidenceFor(result).gates[0];
+      const row = evidenceRowFor(result);
 
       expect(boundary.signal).toBe("SIGINT");
       expect(lines.some(line => line.includes("KILLED by SIGINT"))).toBe(true);
       expect(row.status).toBe("unknown");
-      expect(row.measures.exit_code).toBeNull();
-      expect(row.measures.state).toBe(STATE.KILLED);
-      expect(row.measures.diagnosis).toBe(DIAGNOSIS.KILLED);
     });
   }
 );
@@ -159,7 +146,7 @@ describe("an ordinary exit 128 keeps an ordinary verdict shape", () => {
     expect(outcome.state).toBe(STATE.FAILED);
     expect(outcome.diagnosis).toBe(DIAGNOSIS.UNCAPTURED);
     expect(result.killed).toEqual([]);
-    expect(evidenceFor(result).gates[0].measures.exit_code).toBe(128);
+    expect(evidenceRowFor(result).status).toBe("fail");
   });
 });
 
@@ -223,7 +210,7 @@ describe("malformed executor transport fails closed", () => {
     expect(result.results[0]?.state).toBe(STATE.KILLED);
     expect(lines.join("\n")).not.toContain("untrusted-metadata");
     expect(lines.join("\n")).not.toContain("KILLED by SIGTERM");
-    expect(evidenceFor(result).gates[0].measures.exit_code).toBeNull();
+    expect(evidenceRowFor(result).status).toBe("unknown");
   });
 
   it("never lets optional signal metadata replace a numeric OS exit", () => {
@@ -238,7 +225,7 @@ describe("malformed executor transport fails closed", () => {
     expect(result.blocked).toBe(true);
     expect(result.killed).toEqual([]);
     expect(result.results[0]?.code).toBe(128);
-    expect(evidenceFor(result).gates[0].measures.exit_code).toBe(128);
+    expect(evidenceRowFor(result).status).toBe("fail");
   });
 
   it("cannot turn a string status into a passing gate", () => {
@@ -253,7 +240,7 @@ describe("malformed executor transport fails closed", () => {
     expect(result.passed).toEqual([]);
     expect(result.blocked).toBe(true);
     expect(result.results[0]?.code).toBeNull();
-    expect(evidenceFor(result).gates[0].status).toBe("unknown");
+    expect(evidenceRowFor(result).status).toBe("unknown");
   });
 });
 

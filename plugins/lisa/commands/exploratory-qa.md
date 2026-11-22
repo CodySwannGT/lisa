@@ -1,5 +1,5 @@
 ---
-description: "Run a first-time-user exploratory QA pass on any product type (DOM web app, HTTP/API backend, canvas game, CLI/library, IaC/CDK): experience the product the way a brand-new end user would by driving its real consumer-facing interface via the use-the-product core (which detects the product type, resolves the per-environment mutation policy from .lisa.config.json so production is never mutated by accident, and explores through the project's personas when defined), finding anything confusing, broken, or hard to use, and filing each worthwhile finding (bug or usability issue) as a tracked work item via lisa-tracker-write. Static scans, HTTP fetches, screenshots alone, or console/network checks alone are not sufficient. The optional ready flag marks tickets build-ready (auto-picked-up by lisa-intake) or leaves them in the backlog for human triage (default). For gaps in the automated test suite, use the e2e-coverage-gaps skill if your stack provides one."
+description: "Use the product like a brand-new user would — any product type — to find what's confusing, broken, or hard to use, and file each finding as a ticket (backlog by default; ready=true makes them build-ready)."
 allowed-tools: ["Skill"]
 argument-hint: "[target-url | env] [ready=true|false]"
 ---

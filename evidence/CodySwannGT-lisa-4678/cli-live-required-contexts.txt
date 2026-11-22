@@ -1,0 +1,4 @@
+$ gh api repos/CodySwannGT/lisa/rules/branches/main --paginate --slurp | jq '[.[][] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context]'
+# worktree head_sha=68ca1b31795ba5f0de17b1b40488bb29bfe7e02d captured_at=2026-11-08T09:50:21Z
+["CodeRabbit","GitGuardian Security Checks","🔍 Quality Checks / 🧹 Lint","🔍 Quality Checks / 🔍 Type Check","🔍 Quality Checks / 🏗️ Build","🔍 Quality Checks / 📐 Check Formatting","🔍 Quality Checks / 🔒 Security Scan","🔍 Quality Checks / 🧪 Run Unit Tests","🔍 Quality Checks / 🧪 Run Integration Tests","🔍 Quality Checks / 🔗 Work-Item Traceability","🔍 Quality Checks / 🐢 Slow Lint Rules","🔍 Quality Checks / 🗑️ Dead Code Detection","🧩 Plugin artifacts match source","🔍 Quality Checks / 🔎 Structural Rules","🔍 Quality Checks / 📚 Learnings Budget"]
+exit=0

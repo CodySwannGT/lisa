@@ -1,0 +1,82 @@
+$ node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*' tests/unit/strategies/drive-pr
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run "--exclude=**/integration/**" "--exclude=**/*.integration.*" tests/unit/strategies/drive-pr
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.91.0)
+Built plugins/lisa-typescript (v4.91.0)
+Built plugins/lisa-expo (v4.91.0)
+Built plugins/lisa-nestjs (v4.91.0)
+Built plugins/lisa-cdk (v4.91.0)
+Built plugins/lisa-harper-fabric (v4.91.0)
+Built plugins/lisa-phaser (v4.91.0)
+Built plugins/lisa-rails (v4.91.0)
+Built plugins/lisa-wiki (v4.91.0)
+Built plugins/lisa-openclaw (v4.91.0)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-cursor (v4.91.0)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-typescript-cursor (v4.91.0)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-expo-cursor (v4.91.0)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-nestjs-cursor (v4.91.0)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-cdk-cursor (v4.91.0)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-harper-fabric-cursor (v4.91.0)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-phaser-cursor (v4.91.0)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-rails-cursor (v4.91.0)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-wiki-cursor (v4.91.0)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-openclaw-cursor (v4.91.0)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-agy (v4.91.0)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-typescript-agy (v4.91.0)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-expo-agy (v4.91.0)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-nestjs-agy (v4.91.0)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-cdk-agy (v4.91.0)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-harper-fabric-agy (v4.91.0)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-phaser-agy (v4.91.0)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-rails-agy (v4.91.0)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-wiki-agy (v4.91.0)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-openclaw-agy (v4.91.0)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-copilot (v4.91.0)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-typescript-copilot (v4.91.0)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-expo-copilot (v4.91.0)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-nestjs-copilot (v4.91.0)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-cdk-copilot (v4.91.0)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-harper-fabric-copilot (v4.91.0)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-phaser-copilot (v4.91.0)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-rails-copilot (v4.91.0)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-wiki-copilot (v4.91.0)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-openclaw-copilot (v4.91.0)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-devin (v4.91.0)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-typescript-devin (v4.91.0)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-expo-devin (v4.91.0)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-nestjs-devin (v4.91.0)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-cdk-devin (v4.91.0)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-harper-fabric-devin (v4.91.0)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-phaser-devin (v4.91.0)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-rails-devin (v4.91.0)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-wiki-devin (v4.91.0)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch/plugins/lisa-openclaw-devin (v4.91.0)
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.12 /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch
+
+lisa fleet admission: waiting for a worker slot — 5 run(s) live, this run is #5, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
+lisa fleet admission: starting OVER CAPACITY after 120s — 5 run(s) live, this run is #5, 3 may execute at once. The machine is oversubscribed; expect timeouts rather than failures.
+lisa fleet admission: waiting for a worker slot — 5 run(s) live, this run is #5, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
+lisa fleet admission: starting OVER CAPACITY after 120s — 5 run(s) live, this run is #4, 3 may execute at once. The machine is oversubscribed; expect timeouts rather than failures.
+
+ Test Files  9 passed (9)
+      Tests  627 passed (627)
+   Start at  20:11:50
+   Duration  246.24s (transform 248ms, setup 615ms, import 193ms, tests 5.55s, environment 0ms)
+
+exit=0

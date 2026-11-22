@@ -1,4 +1,4 @@
 display_name: "Eas Update Insights"
-short_description: "Check the health of published EAS Updates: crash rates, install/launch counts, unique users, payload size, and the split between embedded…"
+short_description: "Check how published EAS Updates are doing: crash rates, installs and launches, users, payload size, and embedded vs OTA split per channel"
 default_prompt:
-  - "Use $eas-update-insights: Check the health of published EAS Updates: crash rates, install/launch counts, unique users, payload size, and the split between embedded…."
+  - "Use $eas-update-insights: Check how published EAS Updates are doing: crash rates, installs and launches, users, payload size, and embedded vs OTA split per channel."

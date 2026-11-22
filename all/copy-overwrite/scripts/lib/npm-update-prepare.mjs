@@ -22,7 +22,6 @@ import {
   validateHost,
   validateLock,
   proposalFrom,
-  proposalFileNames,
 } from "./npm-update-contract.mjs";
 import {
   runProcess,
@@ -34,7 +33,9 @@ import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { qualifyLisaOwner } from "./npm-update-owner.mjs";
 export { qualifyLisaOwner } from "./npm-update-owner.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
-import { committedBun, qualifiedBun, frozenBun } from "./npm-update-bun.mjs";
+import { directoryBun, qualifiedBun, frozenBun } from "./npm-update-bun.mjs";
+import { npmPath } from "./automation-provenance-contract.mjs";
+import { seedPrivateRoot, validCacheSeed } from "./npm-update-cache-seed.mjs";
 
 const NPM_FLAGS = ["--ignore-scripts", "--no-audit", "--no-fund"];
 
@@ -53,8 +54,16 @@ function installedVersions(directory, selections) {
   );
 }
 
-/** Re-read the committed source; an unstaged manifest cannot become the baseline. */
-export async function baseline(cwd, env, proposal) {
+/**
+ * Re-read the committed source; an unstaged manifest cannot become the baseline.
+ * Files are keyed by name inside the selected directory, never by repository path.
+ */
+export async function baseline(
+  cwd,
+  env,
+  proposal,
+  directory = proposal?.directory ?? "."
+) {
   const command = args =>
     runProcess("git", args, { cwd, env, maximum: 1_048_576 });
   const parent = (await command(["rev-parse", "HEAD"])).stdout
@@ -62,18 +71,19 @@ export async function baseline(cwd, env, proposal) {
     .trim();
   const files = {};
   for (const file of FILES) {
+    const path = npmPath({ directory }, file);
     const entry = (
-      await command(["ls-tree", "HEAD", "--", file])
+      await command(["ls-tree", "HEAD", "--", path])
     ).stdout.toString();
     required(
       entry.startsWith("100644 blob ") && entry.trim().split("\n").length === 1,
       "regular committed npm files required"
     );
-    files[file] = (await command(["show", `HEAD:${file}`])).stdout.toString(
+    files[file] = (await command(["show", `HEAD:${path}`])).stdout.toString(
       "utf8"
     );
   }
-  const bun = await committedBun(cwd, command, proposal);
+  const bun = await directoryBun(cwd, command, directory, proposal);
   if (bun !== undefined) files["bun.lock"] = bun;
   if (proposal)
     required(
@@ -85,7 +95,7 @@ export async function baseline(cwd, env, proposal) {
   return { parent, files };
 }
 
-/** Installed evidence and genuine selected registry metadata define the update set. */
+/** Installed evidence and selected registry metadata define the update set; under a cache seed that metadata is the seed's. */
 async function findUpdates(
   before,
   policy,
@@ -178,7 +188,10 @@ async function preparedProposal({
       { cwd: app }
     );
   const files = Object.fromEntries(
-    names.map(file => [file, readFileSync(join(app, file), "utf8")])
+    names.map(file => [
+      npmPath(policy, file),
+      readFileSync(join(app, file), "utf8"),
+    ])
   );
   const proposal = proposalFrom(
     policy,
@@ -189,10 +202,7 @@ async function preparedProposal({
     bun ? sha256(original.files["bun.lock"]) : undefined
   );
   const hashes = Object.fromEntries(
-    proposalFileNames(proposal).map(file => [
-      file,
-      sha256(readFileSync(join(app, file))),
-    ])
+    names.map(file => [file, sha256(readFileSync(join(app, file)))])
   );
   await npm(["ci", ...npmFlags]);
   if (bun) await frozenBun(bun, app, names);
@@ -218,14 +228,24 @@ async function preparedProposal({
   };
 }
 
-/** The private resource lifecycle remains outside the prepared proposal's npm checks. */
-export async function prepareUpdate({ cwd, policy: input, config }) {
-  const engineStrict = await effectiveEngineStrict(cwd);
-  const npmFlags = [...NPM_FLAGS, ...(engineStrict ? ["--engine-strict"] : [])];
+/**
+ * The private resource lifecycle remains outside the prepared proposal's npm checks; the baseline proves the directory before npm reads its config.
+ *
+ * `cacheSeed` is an explicit option, never read from the environment: it
+ * pre-fills the private root's npm (and Bun) cache and puts npm and every Bun
+ * install offline, for a caller that serves recorded registry data (see
+ * `./npm-update-cache-seed.mjs`). A seed without a Bun folder is refused for
+ * a host that commits bun.lock, before any install runs.
+ * The production caller passes none, and a seeded proposal is marked so no
+ * later phase accepts it.
+ */
+export async function prepareUpdate({ cwd, policy: input, config, cacheSeed }) {
   const policy = validatePolicy(input, config);
+  const seed = validCacheSeed(cacheSeed);
   let privatePath;
-  const result = await withPrivateRoot(async (root, env) => {
+  const result = await withPrivateRoot(async (root, privateEnv) => {
     privatePath = root;
+    const env = seedPrivateRoot(root, privateEnv, seed);
     const app = join(root, "app");
     mkdirSync(app, { mode: 0o700 });
     required(process.versions.node === "22.23.3", "Node22.23.3 is required");
@@ -236,7 +256,17 @@ export async function prepareUpdate({ cwd, policy: input, config }) {
       ["10.9.9", "11.21.0"].includes(version),
       "supported npm10.9.9 or11.21.0 is required"
     );
-    const original = await baseline(cwd, env);
+    const original = await baseline(cwd, env, undefined, policy.directory);
+    // A seed puts Bun offline too, so a Bun host needs Bun's cache in it: say
+    // so here, before any install, rather than as a cache miss later.
+    required(
+      seed === undefined ||
+        seed.bun !== undefined ||
+        original.files["bun.lock"] === undefined,
+      "cache seed has no Bun folder, and this host commits bun.lock"
+    );
+    const strict = await effectiveEngineStrict(join(cwd, policy.directory));
+    const npmFlags = [...NPM_FLAGS, ...(strict ? ["--engine-strict"] : [])];
     const before = JSON.parse(original.files["package.json"]);
     validateHost(before);
     required(
@@ -244,14 +274,14 @@ export async function prepareUpdate({ cwd, policy: input, config }) {
         (!before.packageManager || before.packageManager === `npm@${version}`),
       "unsupported workspace or npm declaration"
     );
-    await qualifyLisaOwner(cwd, before, policy, config, engineStrict);
+    await qualifyLisaOwner(cwd, before, policy, config, strict);
     validateLock(JSON.parse(original.files["package-lock.json"]), before, []);
     for (const file of Object.keys(original.files))
       writeFileSync(join(app, file), original.files[file], { mode: 0o600 });
     const bun =
       original.files["bun.lock"] === undefined
         ? undefined
-        : await qualifiedBun(env);
+        : await qualifiedBun(env, { offline: seed !== undefined });
     const npm = (args, allowed = [0]) =>
       runNpm(args, { cwd: app, env, timeout: 120_000, allowed });
     await npm(["ci", ...npmFlags]);
@@ -287,5 +317,12 @@ export async function prepareUpdate({ cwd, policy: input, config }) {
     });
   });
   required(!existsSync(privatePath), "private npm resources remain");
-  return { ...result, cleanup: { absent: true } };
+  // A seed decides the registry metadata, and so the lock integrity, of every
+  // package the host's lock does not already pin. `validateProposal` accepts
+  // only its exact fields, so every phase after prepare refuses this mark.
+  const marked =
+    seed !== undefined && "proposal" in result
+      ? { ...result, proposal: { ...result.proposal, seeded: true } }
+      : result;
+  return { ...marked, cleanup: { absent: true } };
 }

@@ -1,0 +1,11 @@
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4634-shard-rerun-merge
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+
+ Test Files  2 passed (2)
+      Tests  79 passed (79)
+   Start at  09:48:08
+   Duration  401ms (transform 157ms, setup 243ms, import 44ms, tests 124ms, environment 0ms)
+

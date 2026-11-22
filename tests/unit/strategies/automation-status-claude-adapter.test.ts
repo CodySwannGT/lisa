@@ -294,7 +294,7 @@ Status: ACTIVE
       })
     ).resolves.toBeDefined();
 
-    expect(scheduleListing.routines[0].status).toBe("ACTIVE");
+    expect(scheduleListing.routines[0]?.status).toBe("ACTIVE");
     expect(scheduleListing.routines).toHaveLength(1);
   });
 });

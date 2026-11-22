@@ -4,9 +4,10 @@
  *
  * WHAT THIS SUITE EXECUTES. The shipped scripts, unmodified, in a temporary
  * project, once onto the refusal path and once onto the allow path. Not greps:
- * `blocking-hook-exit.test.ts` asserts that certain hooks CONTAIN `exit 2`,
- * which is a fact about the text and survives the guard being rewired so the
- * line is unreachable. Only a run can answer whether it fires.
+ * `tests/phrase-manifest/required-phrases.json` (checked by
+ * `tests/unit/docs/required-phrases.test.ts`) asserts that certain hooks
+ * CONTAIN `exit 2`, which is a fact about the text and survives the guard
+ * being rewired so the line is unreachable. Only a run can answer whether it fires.
  *
  * EVERY REFUSAL CASE ASSERTS THE STATUS EXACTLY. `expect(status).not.toBe(0)`
  * would pass on a guard that crashed — which is the failure CodySwannGT/lisa#3188
@@ -47,7 +48,7 @@ const SH = "/bin/sh";
  * by `source` from every on-edit hook and never appears as a child process.
  * That is exactly why it had no refusal case: it is invisible to a control that
  * watches what gets executed. Sourcing it from a one-line driver puts its own
- * refusal path — `$_lisa_command || exit 2` inside `lisa_edit_gate_run` — under
+ * refusal path — `"${_lisa_words[@]}" || exit 2` inside `lisa_edit_gate_run` — under
  * a status assertion, and puts the copy on the argv so the run is attributable.
  */
 const EDIT_GATE_DRIVER = '. "$1"; lisa_edit_gate_run edited.ts "$2"';

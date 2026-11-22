@@ -1,9 +1,9 @@
 ---
 name: lisa-linear-write-issue
-description: "Creates or updates a Linear…"
+description: "Create or update a Linear…"
 allowed-tools: ["Bash", "Skill"]
 ---
-Creates or updates a Linear work item — Project (Epic), Issue (Story), or sub-Issue (Sub-task) — following organizational best practices. Polymorphic: dispatches internally on issue_type to save_project (Epic) or save_issue (Story / Sub-task). Enforces description quality (three audiences), Gherkin acceptance criteria, project-as-parent for Stories, parentId for Sub-tasks, explicit relationship discovery (blocks / is blocked by / relates to / duplicates), labels, components-as-labels, project milestones for fix versions, native priority and estimate fields, and Validation Journey. Rejects thin items — use this skill any time a Linear work item is created or significantly edited.
+Create or update a Linear project, issue, or sub-issue to the organization's standards: description, Gherkin criteria, parent, relations, labels, estimates, and Validation Journey. Use whenever a Linear item is created or significantly edited.
 
 
 # Write Linear Work Item: $ARGUMENTS
@@ -68,7 +68,7 @@ Resolve the team ID for `linear.teamKey` via `lisa-linear-access operation: list
 
 ## Phase 2 — Gather Required Inputs
 
-Required fields (stop and ask if missing — never invent values):
+Required fields. Derive a missing one from config, the caller's spec and the evidence, and record any default you choose; never invent a value nothing grounds. If one still cannot be grounded, refuse the write naming the field, so the caller's blocked exit carries it — do not stop to ask a person:
 
 | Field | Required For | Notes |
 |-------|--------------|-------|
@@ -141,7 +141,11 @@ Linear descriptions are markdown (NOT Jira wiki markup — no `h2.` headings, us
  `runtime_behavior_change` is persisted, and an absent section reads as
  *underivable*, not exempt. Work that changes no runtime behavior declares the
  exemption in place of an environment: `None — no runtime behavior change:
- doc-only` (or `config-only` / `type-only`). A Project/container declares
+ <reason>`, where `<reason>` is exactly one of the closed set
+ `doc-only | config-only | type-only | test-only`, as plain text, and is the
+ entire section content — nothing follows it in the section (the set
+ is shared with `NO_RUNTIME_REASONS` in `scripts/lib/completion-proof-shape.mjs`;
+ any other reason fails S8 and would be refused at completion). A Project/container declares
  `None — container: state rolls up from children`. Visible prose, not an HTML
  comment, for the same reason the Branch Plan provenance line is: a marker that
  survives in only one representation cannot be a vendor-neutral discriminator,
@@ -152,7 +156,7 @@ Linear descriptions are markdown (NOT Jira wiki markup — no `h2.` headings, us
 ## Branch Plan
 [GENERATED, never hand-authored. Render only when the item has a Target
  Backend Environment; omit entirely when `runtime_behavior_change = false`
- (doc-only / config-only / type-only) or for a Project/container — absence is
+ (doc-only / config-only / type-only / test-only) or for a Project/container — absence is
  correct there. Derive per the `derived-branch-plan` rule: resolve the
  environment, map it forward through `.lisa.config.json` `deploy.branches`,
  and prove the branch exists on the remote. Do not accept caller-supplied
@@ -177,7 +181,7 @@ Linear descriptions are markdown (NOT Jira wiki markup — no `h2.` headings, us
 
 ## Validation Journey
 [Delegate to /linear-add-journey if the item changes runtime behavior.
- Skip only for doc-only, config-only, or type-only items. Cross-work-item
+ Skip only for doc-only, config-only, type-only, or test-only items. Cross-work-item
  evidence pointers use `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]`;
  they never replace this item's local S14 marker.]
 ```
@@ -208,7 +212,7 @@ If the parent is explicitly provided, use it. Otherwise:
    lisa-linear-access operation: list-projects({team: <teamKey>, state: ["backlog", "planned", "started"]})
    ```
    Match on keywords from the summary and description.
-2. If no matching Project exists, stop and ask the human to create or pick one. Do NOT orphan the item.
+2. If no Project matches exactly, pick or create it yourself from the evidence: use the active Project the summary, description and linked work fit best, or, when none fits, create a new Project (this skill, `issue_type: Epic`) scoped to the work. Record the choice and why in the Issue description so a person can re-parent it later. Do NOT orphan the item.
 
 ### 4b. Related Items
 
@@ -255,7 +259,7 @@ Linear native relations are set on the Issue via `save_issue`'s `relations` fiel
 
 **Adding a relation to an already-linked pair may be a REPLACE, not an add.** Reported measured twice against the raw `issueRelationCreate` mutation: creating a `blocks` edge between two issues already carrying a `related` edge converted that edge in place — the source issue's outgoing relation count did not grow (CodySwannGT/lisa#3605). Relationship discovery is mandatory on the UPDATE path as well as creation, so this skill's own contract routinely points it at pairs that already have edges.
 
-So on an update, read the pair's existing relations before writing one. Where an edge already exists and differs in type, surface it and let a human decide rather than writing over it — **an inherited relation is not a verified one**, and rewriting it silently removes the only moment anyone would check what it meant.
+So on an update, read the pair's existing relations before writing one. Where an edge already exists and differs in type, decide from the evidence (both issues' bodies, history and linked work) which type is right, and record a `Decision:` line on the issue before changing it (under `humanGate.mode: "strict"`, surface it and let a human decide) — **an inherited relation is not a verified one**, and rewriting it silently removes the only moment anyone would check what it meant.
 
 **The true undo is delete plus re-create with the original type.** A single delete removes the link entirely and does not restore what was there before, so any runbook recording "undo = delete relation X" has written down a plan that loses the prior relationship.
 
@@ -305,10 +309,18 @@ For Bug / Task / Sub-task, ensure the summary is prefixed with `[<repo-name>]`.
 - **`build_ready: false`** → create the leaf **without** the `ready` state, leaving it in the team's default backlog state so it waits for a human to review and promote it into the queue.
 - **`build_ready: true`** → declare `lifecycle_role: ready` so the access layer resolves `.linear.workflow.ready` and places the leaf there, and `lisa-intake` / `lisa-linear-build-intake` auto-picks it up. Best-effort **for the lane, never for the guard**: an access-layer refusal (`ready` unbound, absent from the team, ambiguous) is fail-closed and is never worked around here — surface its message verbatim, do not fail the write, leave the Issue in its default state and record the reason. The Issue is still created; what is refused is the unproven lane placement, which is the safe half to lose.
 
-**A filing with neither is an incomplete handoff.** A leaf that is not build-ready must carry an explicit `human_gate: "<why a human must judge this first>"`; nothing in the ready lane means nothing ever claims it. When `human_gate` is supplied, stamp the hold on the Issue so it is auditable — a visible line plus the verbatim marker:
+**A filing with neither is an incomplete handoff.** A leaf that is not build-ready must carry an explicit `human_gate: "<the act a person must perform>"`; nothing in the ready lane means nothing ever claims it. When `human_gate` is supplied, stamp the hold on the Issue so it is auditable — after the check below.
+
+**Validate the gate before stamping it.** A `human_gate` is for an act an agent cannot perform — an access act: `credential` (complete a login or supply a credential only a person holds), `spend`, `external-account`, `legal-signoff` (sign a legal agreement on the company's behalf), `person-only-account` (a protected deployment, a required reviewer, an account only a person holds), `unreachable-system`, or `operator-hold` (a hold the operator explicitly asked for); `human-authored-surface` (an edit to a surface declared human-authored, which no agent writes: an authorship rule, valid in both modes); `own-dependency-copy` (approve maintaining our own fork, patch or vendored copy of an open-source library, the last rung of the `lisa-security-audit-handling` ladder, valid in both modes); or a decision class the project declared human-only (`humanGate.humanOnly`). Under `humanGate.mode: "strict"` the strict-only acts `compliance-signoff`, `accountable-person` and `lisa-policy` also count. A choice with a reasonable default is a decision, not a gate (`ready-role-filing`, "What a human gate is"). Run the check on the reason:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT:-node_modules/@codyswann/lisa/plugins/lisa}/scripts/human-gate-act.mjs" check --reason "<the human_gate reason>"
+```
+
+Exit `1` refuses the gate: do **not** file the leaf held. Report the refusal with the verdict's `remedy` — **decide and record**: pick the reasonable default, write a `Decision:` line on the item, and file it `build_ready: true`. Exit `2` is a usage or config error: stop and report. On exit `0`, stamp the hold with the verdict's `label` naming the act — a visible line plus the verbatim marker:
 
 ```text
-Held for a human product call: <reason>.
+Held for a person to <label>: <reason>.
 <!-- [lisa-human-gate] reason=<short-slug> -->
 ```
 
@@ -323,7 +335,7 @@ person scanning a board and to any path that has not yet been routed through the
 If the label does not exist in the tracker, create it, or record that it could not be applied and
 proceed — the marker still holds. Never file the label *instead of* the marker.
 
-**Every marker reader must consult comments.** Use `classifyReadyCandidate` with labels, body, comments and the configured human-needed label, then `planHumanGateRelease` for any release actions. A historical body marker alone is not an active hold after its matching release; unreadable comments leave a hold in place.
+**Every marker reader must consult comments.** Use `classifyReadyCandidate` with labels, body, comments, the configured human-needed label, `humanOnly` and `humanGateMode` (from `humanGate.mode`), then `planHumanGateRelease` for any release actions. A historical body marker alone is not an active hold after its matching release; unreadable comments leave a hold in place.
 
 **Write a `reason=` the release can name.** The hold's reason is not decoration: a hold ends when a
 `[lisa-human-gate-release]` comment repeating that same `reason=` is recorded on the item by an authorized human, and the
@@ -346,7 +358,7 @@ The validator is the **single source of truth** for what makes a valid Linear wo
 
 If the validator reports `FAIL`:
 - Surface the failure list and the per-gate remediation to the user.
-- Do NOT proceed to Phase 6. Fix the spec (or stop and ask the human) and re-run validation.
+- Do NOT proceed to Phase 6. Fix the spec yourself from the evidence and re-run validation; stop only when a fix needs access you lack, and name that access.
 - Never call `lisa-linear-access operation: save-project` or `lisa-linear-access operation: save-issue` while the validator's verdict is FAIL.
 
 If the validator reports `PASS`, continue to Phase 6.
@@ -441,7 +453,7 @@ searching the repository you happen to be standing in is the wrong search.
 - Never skip relationship discovery — both the git history search AND the Linear MCP search must run, and their outcomes must be recorded on the item. "None found" is acceptable only when it's documented.
 - Never create a Bug, Task, or Sub-task that spans multiple repos. Split it before creating.
 - Never include a runtime-behavior item without a target backend environment, and never include an authenticated-surface item without sign-in credentials in the description.
-- Never invent custom field values. If the team requires a field you don't have, stop and ask.
+- Never invent custom field values. If the team requires a field you don't have, use its configured default or the value the item's evidence grounds; otherwise refuse the write naming the field.
 - Never overwrite a description without reading the current version first.
 - Preserve an existing canonical `## Lisa Usage` section on update; never append a second usage
   section or silently drop ledger rows.

@@ -28,7 +28,7 @@ export type GhResult = {
 };
 
 /** One recorded call, with the body piped to stdin when there was one. */
-export type GhCall = { args: string[]; input?: string };
+export type GhCall = { args: string[]; input?: string | undefined };
 
 /** Canned responses, keyed by the call each one answers. */
 export type GhState = {
@@ -139,7 +139,7 @@ export const gitHub = (state: GhState) => {
       if (joined.includes("-X PUT") || joined.includes("-X PATCH")) {
         return state.write ?? ok({});
       }
-      if (joined === `api repos/${REPO}/rulesets`) {
+      if (joined === `api repos/${REPO}/rulesets?per_page=100`) {
         return state.index ?? ok(rulesets.map(entry => ({ ...entry })));
       }
       if (detail) {

@@ -1,12 +1,11 @@
 /**
- * Jest configuration factory functions for all Lisa-supported stacks.
+ * Jest configuration factory functions.
  *
- * Re-exports config factories and utilities from each stack module,
- * allowing downstream projects to import from a single entry point.
+ * Expo is the only Lisa stack that runs Jest; every other stack runs Vitest
+ * (`@codyswann/lisa/vitest/*`). The TypeScript, NestJS and CDK Jest factories
+ * were removed because no stack used them: Lisa deletes those stacks'
+ * jest.config.ts on apply (CodySwannGT/lisa#4927).
  * @module configs/jest
  */
 export * from "./base.js";
-export * from "./typescript.js";
-export * from "./nestjs.js";
 export * from "./expo.js";
-export * from "./cdk.js";

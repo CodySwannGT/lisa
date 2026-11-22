@@ -10,9 +10,12 @@
  * own `name` is `@codyswann/lisa` is restricted to security pins, so the
  * self-pin phase never runs. That exemption is right — a package should not
  * acquire a dependency on a published copy of itself as a side effect of
- * applying to itself — and it has a consequence nobody wrote down: **the one
- * repository whose pin no automation will ever correct is the one that ships
- * the automation.**
+ * applying to itself — and it had a consequence nobody wrote down: **the one
+ * repository whose pin no automation corrected was the one that ships the
+ * automation.** The correction now lives on the release path instead:
+ * `scripts/raise-self-dependency-pin.mjs`, run by the self-pin-raise
+ * workflow's `prepare_self_pin_raise` and `push_self_pin_raise` jobs after
+ * every publish and hourly (#4951). This check is what proves those jobs did their work.
  *
  * The result was measured twice. #2279 (2026-08-04) moved the floor to
  * `^2.328.0` because it was 130 releases behind. #3662 (2026-09-03) moved it
@@ -98,6 +101,30 @@ const VERDICT_PREFIX = "self-dependency-pin:";
  */
 const MAX_CANDIDATES = 5;
 
+/**
+ * Deadline for one packument read, body included.
+ *
+ * A packument read had none, and in a real pre-push one held an ESTABLISHED
+ * registry connection for about 74 minutes before failing "network:
+ * terminated" (CodySwannGT/lisa#5094). A read that runs out of time is a
+ * transport failure like any other: it is retried within the existing
+ * attempts and then reported. Sixty seconds clears the slowest whole read
+ * measured, 17.5s for the abbreviated document on 2026-11-19, by more than
+ * three times, and turns that 74-minute wait into at most three minutes.
+ */
+export const PACKUMENT_ATTEMPT_TIMEOUT_MS = 60_000;
+
+/**
+ * The packument shape this check reads: the abbreviated install document.
+ *
+ * The check reads only the keys of `versions`, and the abbreviated document
+ * lists exactly the same versions as the full one (2187 of 2187, compared on
+ * 2026-11-19) at a quarter of the size: 6.0 MB rather than 23.5 MB, 487 KB
+ * rather than 830 KB compressed. Each candidate it picks is still confirmed
+ * through the exact-version prover before it is used.
+ */
+const ABBREVIATED = "application/vnd.npm.install-v1+json";
+
 /** Specs naming a LOCATION rather than a registry version. */
 const NON_REGISTRY_SPEC =
   /^(?:file|link|portal|workspace|git|git\+[a-z]+|github|https?|npm):/i;
@@ -159,28 +186,69 @@ export function compareSpec(spec, newest) {
 }
 
 /**
- * One packument read.
+ * The deadline seams one packument read takes, with their defaults.
+ *
+ * The same shape `verifyPublish` takes in check-npm-publish-landed.mjs, so a
+ * test injects one controller factory and one timer for every read.
+ * @param {object} options - Any seams a caller passed.
+ * @returns {{attemptTimeoutMs: number, createAbortController: () => AbortController, setAttemptTimer: (callback: () => void, ms: number) => unknown, clearAttemptTimer: (timer: unknown) => void}} The seams.
+ */
+function deadlineSeams({
+  attemptTimeoutMs = PACKUMENT_ATTEMPT_TIMEOUT_MS,
+  createAbortController = () => new AbortController(),
+  setAttemptTimer = setTimeout,
+  clearAttemptTimer = clearTimeout,
+} = {}) {
+  return {
+    attemptTimeoutMs,
+    createAbortController,
+    setAttemptTimer,
+    clearAttemptTimer,
+  };
+}
+
+/**
+ * One packument read in one shape, bounded by a deadline that also covers the
+ * body: the timer is cleared only once `response.json()` has settled.
  * @param {string} url - The packument URL.
+ * @param {string} accept - The shape's media type.
  * @param {typeof fetch} fetchImpl - Injected for tests.
+ * @param {ReturnType<typeof deadlineSeams>} deadline - Per-attempt deadline seams.
  * @returns {Promise<{packument: object | null, detail: string}>} The outcome.
  */
-async function readPackumentOnce(url, fetchImpl) {
+async function readShapeOnce(url, accept, fetchImpl, deadline) {
+  const controller = deadline.createAbortController();
+  const timer = deadline.setAttemptTimer(
+    () => controller.abort(),
+    deadline.attemptTimeoutMs
+  );
   try {
     const response = await fetchImpl(url, {
-      headers: { accept: "application/json" },
+      headers: { accept },
+      signal: controller.signal,
     });
     if (!response.ok) {
+      // An unread body keeps its socket, and with it the process, alive after
+      // the verdict; the deadline is cleared below, so nothing else ends it.
+      await response.body?.cancel().catch(() => {});
       return { packument: null, detail: `HTTP ${response.status} from ${url}` };
     }
     return { packument: await response.json(), detail: "ok" };
   } catch (error) {
-    return { packument: null, detail: `network: ${error.message} (${url})` };
+    return {
+      packument: null,
+      detail: controller.signal.aborted
+        ? `network: attempt exceeded ${String(deadline.attemptTimeoutMs)}ms deadline (${url})`
+        : `network: ${error.message} (${url})`,
+    };
+  } finally {
+    deadline.clearAttemptTimer(timer);
   }
 }
 
 /**
  * Ask the registry for the packument, retrying transport failures.
- * @param {object} options - Registry, package, fetch seam and retry budget.
+ * @param {object} options - Registry, package, fetch seam, retry budget and per-attempt deadline seams.
  * @returns {Promise<{packument: object | null, detail: string}>} The document.
  */
 async function fetchPackument({
@@ -189,6 +257,7 @@ async function fetchPackument({
   fetchImpl,
   attempts,
   sleep,
+  deadline,
 }) {
   const url = `${registry}/${packageName}`;
   const tries = Array.from({ length: attempts }, (_unused, index) => index);
@@ -197,7 +266,7 @@ async function fetchPackument({
       const settled = await previous;
       if (settled.packument !== null) return settled;
       if (index > 0) await sleep();
-      return readPackumentOnce(url, fetchImpl);
+      return readShapeOnce(url, ABBREVIATED, fetchImpl, deadline);
     },
     Promise.resolve({ packument: null, detail: "no attempt was made" })
   );
@@ -272,6 +341,7 @@ export async function checkSelfPin({
   attempts = 3,
   sleep = () => new Promise(resolve => setTimeout(resolve, 2000)),
   injected = {},
+  ...seams
 }) {
   const declared = locateSelfPin(manifest);
   if (declared === null) {
@@ -288,6 +358,7 @@ export async function checkSelfPin({
     fetchImpl,
     attempts,
     sleep,
+    deadline: deadlineSeams(seams),
   });
   if (packument === null) {
     return { verdict: "unprovable", detail, newest: null, spec: declared.spec };
@@ -310,6 +381,125 @@ export async function checkSelfPin({
     newest: found.version,
     spec: declared.spec,
   };
+}
+
+/**
+ * The two packument shapes a registry serves. The abbreviated install document
+ * is what this check and Bun's resolver read; the full document is what npm's
+ * own commands such as `npm view` read. They are cached separately, so one can
+ * list a release the other does not, and the raise waits for both.
+ */
+const PACKUMENT_SHAPES = [
+  { name: "full", accept: "application/json" },
+  { name: "abbreviated", accept: ABBREVIATED },
+];
+
+/** How many times the packument is read before the release is given up on. */
+const LISTED_POLLS = 40;
+
+/** Delay between packument reads: 40 polls span ten minutes. */
+const LISTED_POLL_DELAY_MS = 15_000;
+
+/**
+ * Whether one packument shape lists a version, within one read's deadline.
+ * @param {string} url - The packument URL.
+ * @param {string} accept - The shape's media type.
+ * @param {string} version - The release to look for.
+ * @param {typeof fetch} fetchImpl - Injected for tests.
+ * @param {ReturnType<typeof deadlineSeams>} deadline - Per-read deadline seams.
+ * @returns {Promise<{listed: boolean, detail: string}>} The answer.
+ */
+async function shapeLists(url, accept, version, fetchImpl, deadline) {
+  const { packument, detail } = await readShapeOnce(
+    url,
+    accept,
+    fetchImpl,
+    deadline
+  );
+  if (packument === null) return { listed: false, detail };
+  return packument?.versions?.[version] === undefined
+    ? { listed: false, detail: `the packument does not list ${version} yet` }
+    : { listed: true, detail: `the packument lists ${version}` };
+}
+
+/**
+ * Wait, with a bound, until both packument shapes list a release.
+ *
+ * The exact-version endpoint can serve a release before the packument lists
+ * it. `check:self-pin` (newest listed version) and Bun's resolver read the
+ * abbreviated packument and npm reads the full one, so a raise proved before it
+ * lists the release would compare `^7.0.0` against 6.x and fail for a reason
+ * that is only propagation lag.
+ *
+ * Each read ends at the same per-attempt deadline as {@link checkSelfPin}'s, so
+ * the wait is bounded by its poll budget alone.
+ * @param {object} options - Version, registry, fetch seam, poll budget, sleep seam and per-read deadline seams.
+ * @returns {Promise<{listed: boolean, detail: string}>} Whether both shapes list it.
+ */
+export async function awaitListed({
+  version,
+  registry = DEFAULT_REGISTRY,
+  fetchImpl = fetch,
+  polls = LISTED_POLLS,
+  sleep = () =>
+    new Promise(resolve => setTimeout(resolve, LISTED_POLL_DELAY_MS)),
+  ...seams
+}) {
+  const url = `${registry}/${SELF_PACKAGE}`;
+  const deadline = deadlineSeams(seams);
+  const poll = async number => {
+    const answers = await Promise.all(
+      PACKUMENT_SHAPES.map(shape =>
+        shapeLists(url, shape.accept, version, fetchImpl, deadline)
+      )
+    );
+    const missing = answers.flatMap((answer, index) =>
+      answer.listed ? [] : [`${PACKUMENT_SHAPES[index].name}: ${answer.detail}`]
+    );
+    if (missing.length === 0) {
+      return { listed: true, detail: `both packument shapes list ${version}` };
+    }
+    if (number >= polls) {
+      return {
+        listed: false,
+        detail: `after ${polls} reads, ${missing.join("; ")}`,
+      };
+    }
+    await sleep();
+    return poll(number + 1);
+  };
+  return poll(1);
+}
+
+/**
+ * The newest version the registry will actually serve, for a caller that
+ * needs a version to raise to rather than a verdict on a manifest.
+ * @param {object} options - Registry and the same seams as {@link checkSelfPin}.
+ * @returns {Promise<{version: string | null, detail: string}>} The newest installable release.
+ */
+export async function newestInstallableVersion({
+  registry = DEFAULT_REGISTRY,
+  fetchImpl = fetch,
+  attempts = 3,
+  sleep = () => new Promise(resolve => setTimeout(resolve, 2000)),
+  injected = {},
+  ...seams
+}) {
+  const { packument, detail } = await fetchPackument({
+    registry,
+    packageName: SELF_PACKAGE,
+    fetchImpl,
+    attempts,
+    sleep,
+    deadline: deadlineSeams(seams),
+  });
+  if (packument === null) return { version: null, detail };
+  const found = await newestInstallable({
+    candidates: publishedVersionsDescending(packument),
+    registry,
+    injected: { fetchImpl, ...injected },
+  });
+  return { version: found.version, detail: found.detail };
 }
 
 /** Exit code for each verdict. `unprovable` blocks: nothing was proved. */
@@ -349,8 +539,12 @@ function failureReport(outcome, registry) {
       `❌ ${SELF_PACKAGE} is pinned at "${outcome.spec}" and ${outcome.detail}.\n` +
       `   Compared against ${registry} — NOT the session plugin cache and NOT\n` +
       `   the marketplace clone, both of which can name a different version.\n` +
-      `   Nothing corrects this pin automatically: apply skips the self-pin\n` +
-      `   phase on Lisa's own manifest (#3768). Raise the floor by hand.\n`
+      `   The release raises this pin itself: the self-pin-raise workflow's\n` +
+      `   prepare_self_pin_raise job runs scripts/raise-self-dependency-pin.mjs\n` +
+      `   right after the publish lands and again every hour, and\n` +
+      `   push_self_pin_raise pushes the raise to main (#4951). Red here means\n` +
+      `   those jobs have not landed for ${outcome.newest} yet, or the last run\n` +
+      `   failed — that run is where the cause is. Rebase once it lands.\n`
     );
   }
   return (
@@ -368,6 +562,12 @@ function failureReport(outcome, registry) {
  */
 export async function main(argv, injected = {}) {
   const registry = option(argv, "--registry", DEFAULT_REGISTRY);
+  if (argv.includes("--await-listed")) {
+    return mainAwaitListed(argv, registry, injected);
+  }
+  if (argv.includes("--newest-installable")) {
+    return mainNewestInstallable(registry, injected);
+  }
   const manifestPath = option(argv, "--manifest", defaultManifestPath());
   const outcome = await checkSelfPin({
     manifest: JSON.parse(readFileSync(manifestPath, "utf8")),
@@ -387,7 +587,48 @@ export async function main(argv, injected = {}) {
   return 1;
 }
 
-/* c8 ignore start -- CLI wiring, exercised through main() in tests */
+/**
+ * `--await-listed <version>`: exit 0 once both packument shapes list it.
+ * @param {string[]} argv - Arguments after the script path.
+ * @param {string} registry - The registry origin.
+ * @param {object} injected - Test seams forwarded to {@link awaitListed}.
+ * @returns {Promise<number>} Process exit code.
+ */
+async function mainAwaitListed(argv, registry, injected) {
+  const version = option(argv, "--await-listed", "");
+  if (!semver.valid(version) || semver.prerelease(version) !== null) {
+    process.stderr.write(
+      `❌ --await-listed needs a release version, not "${version}"\n`
+    );
+    return 1;
+  }
+  const outcome = await awaitListed({ version, registry, ...injected });
+  process.stdout.write(
+    `${VERDICT_PREFIX} ${outcome.listed ? "listed" : "not-listed"} ` +
+      `package=${SELF_PACKAGE} version=${version} — ${outcome.detail}\n`
+  );
+  return outcome.listed ? 0 : 1;
+}
+
+/**
+ * `--newest-installable`: print only the newest installable release, so a
+ * workflow step can capture it.
+ * @param {string} registry - The registry origin.
+ * @param {object} injected - Test seams forwarded to {@link newestInstallableVersion}.
+ * @returns {Promise<number>} Process exit code: 1 when nothing was proved.
+ */
+async function mainNewestInstallable(registry, injected) {
+  const found = await newestInstallableVersion({ registry, ...injected });
+  if (found.version === null) {
+    process.stderr.write(
+      `❌ Could not prove which ${SELF_PACKAGE} release is newest: ${found.detail}\n`
+    );
+    return 1;
+  }
+  process.stdout.write(`${found.version}\n`);
+  return 0;
+}
+
 if (invokedAsScript(import.meta.url)) {
   main(process.argv.slice(2))
     .then(code => {
@@ -398,4 +639,3 @@ if (invokedAsScript(import.meta.url)) {
       process.exitCode = 1;
     });
 }
-/* c8 ignore stop */

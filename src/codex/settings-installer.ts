@@ -38,7 +38,7 @@ export const LISA_REQUIRED_SETTINGS: Readonly<Record<string, unknown>> = {
 };
 
 /** Lisa-required feature flags under `[features]` */
-export const LISA_REQUIRED_FEATURES: Readonly<Record<string, boolean>> = {
+const LISA_REQUIRED_FEATURES: Readonly<Record<string, boolean>> = {
   hooks: true,
 };
 

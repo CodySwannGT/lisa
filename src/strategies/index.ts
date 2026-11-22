@@ -8,12 +8,6 @@ import { TaggedMergeStrategy } from "./tagged-merge.js";
 import { PackageLisaStrategy } from "./package-lisa.js";
 
 export type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
-export { CopyOverwriteStrategy } from "./copy-overwrite.js";
-export { CopyContentsStrategy } from "./copy-contents.js";
-export { CreateOnlyStrategy } from "./create-only.js";
-export { MergeStrategy } from "./merge.js";
-export { TaggedMergeStrategy } from "./tagged-merge.js";
-export { PackageLisaStrategy } from "./package-lisa.js";
 
 /**
  * Registry for copy strategies
@@ -67,12 +61,4 @@ export class StrategyRegistry {
   getAll(): readonly ICopyStrategy[] {
     return Array.from(this.strategies.values());
   }
-}
-
-/**
- * Create default strategy registry
- * @returns New StrategyRegistry instance with all default strategies
- */
-export function createStrategyRegistry(): StrategyRegistry {
-  return new StrategyRegistry();
 }

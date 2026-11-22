@@ -1,4 +1,4 @@
 display_name: "Tracker Journey"
-short_description: "Vendor-neutral wrapper for executing a ticket/issue's Validation Journey end-to-end"
+short_description: "Run a ticket's Validation Journey end to end in whichever tracker the project uses: satisfy prerequisites, perform the steps, capture…"
 default_prompt:
-  - "Use $lisa-tracker-journey: Vendor-neutral wrapper for executing a ticket/issue's Validation Journey end-to-end."
+  - "Use $lisa-tracker-journey: Run a ticket's Validation Journey end to end in whichever tracker the project uses: satisfy prerequisites, perform the steps, capture…."

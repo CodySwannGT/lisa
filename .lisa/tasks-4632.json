@@ -1,0 +1,575 @@
+[
+  {
+    "id": "R1",
+    "title": "Orient the existing baseline reproduction harness",
+    "owner": "native-research-01a1a140-b22a-7f63-9152-003e34488d57",
+    "status": "complete",
+    "blockedBy": [],
+    "description": "Read the complete work-item context before acting. Comment 6587899188: owner-approved standalone filing and related-only scope (decision|constraint). Comment 6602879963: canonical authenticated claim/ownership (decision).",
+    "metadata": {
+      "owner": "native-research-01a1a140-b22a-7f63-9152-003e34488d57",
+      "plan": ".lisa/plan-4632.md",
+      "type": "bug",
+      "work_item_ref": "CodySwannGT/lisa#4632",
+      "work_item_context": "/Users/codysai/.codex/worktrees/b549/lisa/.lisa/work-item-context.md",
+      "work_item_context_sha256": "2a830497fe6c1d43c7660898442e4ce989551501333097c34d9b02751b433f9b",
+      "acceptance_criteria": [
+        "Startup installs four executable Lefthook wrappers without an interactive shell.",
+        "Linked worktrees use Git's actual shared hooks directory, and the primary clone can run the wrappers.",
+        "Installed wrappers remain unchanged and are not reinstalled.",
+        "Failed, unavailable or timed-out install remains bounded, prints one actionable line and does not block startup.",
+        "Doctor fails missing/non-executable Rails hooks and names them plus the install command.",
+        "Doctor/health correctly inspect linked worktrees and configured core.hooksPath.",
+        "Actual Rails apply installs the hooks; equivalent agent startup surfaces and Rails setup docs agree."
+      ],
+      "relevant_documentation": [
+        ".lisa/plan-4632.md",
+        ".lisa/roster/CodySwannGT-lisa-4632.md",
+        "plugins/src/base/hooks/install-pkgs.sh",
+        "plugins/src/base/.claude-plugin/plugin.json",
+        "src/health/hook-inspection.ts",
+        "src/health/governance-probes.ts",
+        "rails/copy-overwrite/lefthook.yml",
+        "tests/helpers/rails-hook-install-fixture.ts",
+        "tests/unit/hooks/install-rails-hooks.test.ts",
+        "tests/unit/health/rails-hook-installation.test.ts",
+        "tests/unit/cli/doctor.test.ts",
+        "tests/integration/rails-hook-apply.test.ts",
+        "src/cli/doctor.ts",
+        "src/core/lisa.ts",
+        "src/health/read-only-fs.ts"
+      ],
+      "testing_requirements": [
+        "Observe meaningful baseline RED before causal investigation/fix, then GREEN in the owning suites.",
+        "Exercise actual startup/installer/doctor/health/apply in isolated Rails Git/Ruby fixtures; include clone/worktree/custom paths, no reinstall, unavailable/failure/timeout controls.",
+        "Retain all three typed evidence markers, actual commands/exits/source identity, and named hosted execution of new regressions.",
+        "No quality gate, source-text property or hypothetical script execution is runtime acceptance proof."
+      ],
+      "skills": [
+        "lisa-implement"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "configured Bitwarden",
+          "probe": "live Lisa secrets-access configured-provider read; bitwarden-access-v3.json",
+          "status": "pass"
+        },
+        {
+          "tool": "GitHub actor/repository and specific Actions/release reads",
+          "probe": "same authenticated gh path; required-run/artifact/download/job-log/release-v3 captures",
+          "status": "pass"
+        },
+        {
+          "tool": "official registry/package access",
+          "probe": "official-package-proof-v3.json integrity/source identity",
+          "status": "pass"
+        },
+        {
+          "tool": "qualified local runtimes and Bundler Lefthook",
+          "probe": "Node24.21.0/Bun1.4.4/Ruby4.0.1/Bundler4.0.3/isolated Lefthook2.1.16 native executions",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "documentation",
+        "command": "cat /Users/codysai/.codex/artifacts/lisa-4632-research-2026-11-03-v1/research-handoff-v1.json",
+        "expected": "Observed source identities, callable baseline entrypoints and existing test homes; no reproduced/PASS claim."
+      },
+      "evidence_status": "read-only harness handoff observed; no runtime claim",
+      "target_environment": "production",
+      "target_branch": "main",
+      "baseline": "ac24c08818268db5a05bcebfeac35eec601bd320",
+      "research_handoff": {
+        "path": "/Users/codysai/.codex/artifacts/lisa-4632-research-2026-11-03-v1/research-handoff-v1.json",
+        "sha256": "17f98d168c1e6e98a87ac41c0abbb5656504b914664d6203eb043932bcf69b9f"
+      }
+    }
+  },
+  {
+    "id": "R2",
+    "title": "Reproduce the missing startup/doctor/apply behavior before fixing",
+    "owner": "parent-root",
+    "status": "complete",
+    "blockedBy": [
+      "R1"
+    ],
+    "description": "Read the complete work-item context before acting. Comment 6587899188: owner-approved standalone filing and related-only scope (decision|constraint). Comment 6602879963: canonical authenticated claim/ownership (decision).",
+    "metadata": {
+      "owner": "parent-root",
+      "plan": ".lisa/plan-4632.md",
+      "type": "bug",
+      "work_item_ref": "CodySwannGT/lisa#4632",
+      "work_item_context": "/Users/codysai/.codex/worktrees/b549/lisa/.lisa/work-item-context.md",
+      "work_item_context_sha256": "2a830497fe6c1d43c7660898442e4ce989551501333097c34d9b02751b433f9b",
+      "acceptance_criteria": [
+        "Startup installs four executable Lefthook wrappers without an interactive shell.",
+        "Linked worktrees use Git's actual shared hooks directory, and the primary clone can run the wrappers.",
+        "Installed wrappers remain unchanged and are not reinstalled.",
+        "Failed, unavailable or timed-out install remains bounded, prints one actionable line and does not block startup.",
+        "Doctor fails missing/non-executable Rails hooks and names them plus the install command.",
+        "Doctor/health correctly inspect linked worktrees and configured core.hooksPath.",
+        "Actual Rails apply installs the hooks; equivalent agent startup surfaces and Rails setup docs agree."
+      ],
+      "relevant_documentation": [
+        ".lisa/plan-4632.md",
+        ".lisa/roster/CodySwannGT-lisa-4632.md",
+        "plugins/src/base/hooks/install-pkgs.sh",
+        "plugins/src/base/.claude-plugin/plugin.json",
+        "src/health/hook-inspection.ts",
+        "src/health/governance-probes.ts",
+        "rails/copy-overwrite/lefthook.yml",
+        "tests/helpers/rails-hook-install-fixture.ts",
+        "tests/unit/hooks/install-rails-hooks.test.ts",
+        "tests/unit/health/rails-hook-installation.test.ts",
+        "tests/unit/cli/doctor.test.ts",
+        "tests/integration/rails-hook-apply.test.ts",
+        "src/cli/doctor.ts",
+        "src/core/lisa.ts",
+        "src/health/read-only-fs.ts"
+      ],
+      "testing_requirements": [
+        "Observe meaningful baseline RED before causal investigation/fix, then GREEN in the owning suites.",
+        "Exercise actual startup/installer/doctor/health/apply in isolated Rails Git/Ruby fixtures; include clone/worktree/custom paths, no reinstall, unavailable/failure/timeout controls.",
+        "Retain all three typed evidence markers, actual commands/exits/source identity, and named hosted execution of new regressions.",
+        "No quality gate, source-text property or hypothetical script execution is runtime acceptance proof."
+      ],
+      "skills": [
+        "lisa-implement"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "configured Bitwarden",
+          "probe": "live Lisa secrets-access configured-provider read; bitwarden-access-v3.json",
+          "status": "pass"
+        },
+        {
+          "tool": "GitHub actor/repository and specific Actions/release reads",
+          "probe": "same authenticated gh path; required-run/artifact/download/job-log/release-v3 captures",
+          "status": "pass"
+        },
+        {
+          "tool": "official registry/package access",
+          "probe": "official-package-proof-v3.json integrity/source identity",
+          "status": "pass"
+        },
+        {
+          "tool": "qualified local runtimes and Bundler Lefthook",
+          "probe": "Node24.21.0/Bun1.4.4/Ruby4.0.1/Bundler4.0.3/isolated Lefthook2.1.16 native executions",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": [
+          "mise",
+          "exec",
+          "node@24.21.0",
+          "bun@1.4.4",
+          "ruby@4.0.1",
+          "--",
+          "bun",
+          "run",
+          "lisa-test-run",
+          "--",
+          "--adapter",
+          "vitest",
+          "--",
+          "vitest",
+          "run",
+          "tests/unit/hooks/install-rails-hooks.test.ts",
+          "tests/unit/health/rails-hook-installation.test.ts",
+          "tests/unit/cli/doctor.test.ts",
+          "tests/integration/rails-hook-apply.test.ts"
+        ],
+        "expected": "Observed baseline startup/apply missing wrappers, absent doctor hook check and incorrect linked/custom-path inspection; actual new assertions fail."
+      },
+      "evidence_status": "actual baseline RED: 9 assertion failures / 13 passing controls, no production-source changes",
+      "target_environment": "production",
+      "target_branch": "main",
+      "baseline": "ac24c08818268db5a05bcebfeac35eec601bd320",
+      "actual_receipt": {
+        "command": [
+          "mise",
+          "exec",
+          "node@24.21.0",
+          "bun@1.4.4",
+          "ruby@4.0.1",
+          "--",
+          "bun",
+          "run",
+          "lisa-test-run",
+          "--",
+          "--adapter",
+          "vitest",
+          "--",
+          "vitest",
+          "run",
+          "tests/unit/hooks/install-rails-hooks.test.ts",
+          "tests/unit/health/rails-hook-installation.test.ts",
+          "tests/unit/cli/doctor.test.ts",
+          "tests/integration/rails-hook-apply.test.ts"
+        ],
+        "cwd": "/Users/codysai/.codex/worktrees/b549/lisa",
+        "head": "ac24c08818268db5a05bcebfeac35eec601bd320",
+        "tree": "d55dfb6a931bd314c12904f97b09b981a2ca4fcb",
+        "started_at": "2026-11-03T12:08:03.739037+00:00",
+        "finished_at": "2026-11-03T12:08:15.145685+00:00",
+        "exit_code": 1,
+        "log": "/Users/codysai/.codex/artifacts/lisa-4632-repro-2026-11-03-v1/red-v1.log",
+        "log_sha256": "33456d0337f96477ccb06934bdf066f9f78fbd26f8d91b0beaccc552470fe62f",
+        "uncommitted_regression_hashes": {
+          "tests/unit/hooks/install-rails-hooks.test.ts": "4e166f9b6f47f9a09af4bdbfa1513659e7d7375147a1f505b7bd6e3f0ec03ae9",
+          "tests/unit/health/rails-hook-installation.test.ts": "c0dff3e6e7bb81c056eae75d59e4628a693aa125e618a471aa7e09f9f70e4167",
+          "tests/unit/cli/doctor.test.ts": "c5da394c125dadf42d8fb68a6720f1959ce68af5d7b1389a3e9a85bd82843a1c",
+          "tests/integration/rails-hook-apply.test.ts": "736d6088380be343a3cbd39a5197a4127cba7eda054c1eb32fa7c5a7627bd248",
+          "tests/helpers/rails-hook-install-fixture.ts": "ba933b4e8d0f22320dfc4cd81faeb7200ae8c0ee9f055f6c97c357894001e8a8"
+        },
+        "production_source_unchanged": true,
+        "result_requires_assertion_review": true
+      }
+    }
+  },
+  {
+    "id": "R3",
+    "title": "Research after RED, implement shared installation/inspection and regenerate parity",
+    "owner": "parent-root",
+    "status": "complete",
+    "blockedBy": [
+      "R2"
+    ],
+    "description": "Read the complete work-item context before acting. Comment 6587899188: owner-approved standalone filing and related-only scope (decision|constraint). Comment 6602879963: canonical authenticated claim/ownership (decision).",
+    "metadata": {
+      "owner": "parent-root",
+      "plan": ".lisa/plan-4632.md",
+      "type": "bug",
+      "work_item_ref": "CodySwannGT/lisa#4632",
+      "work_item_context": "/Users/codysai/.codex/worktrees/b549/lisa/.lisa/work-item-context.md",
+      "work_item_context_sha256": "2a830497fe6c1d43c7660898442e4ce989551501333097c34d9b02751b433f9b",
+      "acceptance_criteria": [
+        "Startup installs four executable Lefthook wrappers without an interactive shell.",
+        "Linked worktrees use Git's actual shared hooks directory, and the primary clone can run the wrappers.",
+        "Installed wrappers remain unchanged and are not reinstalled.",
+        "Failed, unavailable or timed-out install remains bounded, prints one actionable line and does not block startup.",
+        "Doctor fails missing/non-executable Rails hooks and names them plus the install command.",
+        "Doctor/health correctly inspect linked worktrees and configured core.hooksPath.",
+        "Actual Rails apply installs the hooks; equivalent agent startup surfaces and Rails setup docs agree."
+      ],
+      "relevant_documentation": [
+        ".lisa/plan-4632.md",
+        ".lisa/roster/CodySwannGT-lisa-4632.md",
+        "plugins/src/base/hooks/install-pkgs.sh",
+        "plugins/src/base/.claude-plugin/plugin.json",
+        "src/health/hook-inspection.ts",
+        "src/health/governance-probes.ts",
+        "rails/copy-overwrite/lefthook.yml",
+        "tests/helpers/rails-hook-install-fixture.ts",
+        "tests/unit/hooks/install-rails-hooks.test.ts",
+        "tests/unit/health/rails-hook-installation.test.ts",
+        "tests/unit/cli/doctor.test.ts",
+        "tests/integration/rails-hook-apply.test.ts",
+        "src/cli/doctor.ts",
+        "src/core/lisa.ts",
+        "src/health/read-only-fs.ts"
+      ],
+      "testing_requirements": [
+        "Observe meaningful baseline RED before causal investigation/fix, then GREEN in the owning suites.",
+        "Exercise actual startup/installer/doctor/health/apply in isolated Rails Git/Ruby fixtures; include clone/worktree/custom paths, no reinstall, unavailable/failure/timeout controls.",
+        "Retain all three typed evidence markers, actual commands/exits/source identity, and named hosted execution of new regressions.",
+        "No quality gate, source-text property or hypothetical script execution is runtime acceptance proof."
+      ],
+      "skills": [
+        "lisa-implement"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "configured Bitwarden",
+          "probe": "live Lisa secrets-access configured-provider read; bitwarden-access-v3.json",
+          "status": "pass"
+        },
+        {
+          "tool": "GitHub actor/repository and specific Actions/release reads",
+          "probe": "same authenticated gh path; required-run/artifact/download/job-log/release-v3 captures",
+          "status": "pass"
+        },
+        {
+          "tool": "official registry/package access",
+          "probe": "official-package-proof-v3.json integrity/source identity",
+          "status": "pass"
+        },
+        {
+          "tool": "qualified local runtimes and Bundler Lefthook",
+          "probe": "Node24.21.0/Bun1.4.4/Ruby4.0.1/Bundler4.0.3/isolated Lefthook2.1.16 native executions",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "TMPDIR=/private/tmp mise exec node@24.21.0 bun@1.4.4 ruby@4.0.1 -- node /Users/codysai/.codex/artifacts/lisa-4632-runtime-proof-2026-11-03-v1/native-rails-hook-proof.mjs --mode candidate",
+        "expected": "Candidate runtime produces four correct executable wrappers across clone/worktree/custom path, preserves repeats, handles failure nonblockingly, and exposes truthful doctor/health/apply outcomes."
+      },
+      "evidence_status": "Candidate implementation and component controls complete: 103 tests in 13 files passed through normal managed runner, candidate-v5.log SHA256 81148ce5e3c1a0784c2eb2ff304a9c68597e13bdb92501edd5fac6bcd294f124. Parent Ruby4/Bundler4 startup and doctor candidate proof passed separately using actual Lefthook2.2.0; the prior 2.1.16 label was wrong and is corrected here (candidate-runtime-v2.json SHA256 f6ca545866d04ae86f1013c550c74c3161bedb44e8191d62ab4447c5281e9c39). Not committed, pushed, independently verified or shipped yet. Follow-up candidate-v6: 131 tests in 16 suites passed, including the extracted doctor cases and existing deterministic health/Husky controls. Log SHA256 5e3d66134c3bda714fc6a4694a78c357409eaed0325a3265d2eb80ac9fe76d1a.",
+      "target_environment": "production",
+      "target_branch": "main",
+      "baseline": "ac24c08818268db5a05bcebfeac35eec601bd320"
+    }
+  },
+  {
+    "id": "R4",
+    "title": "Personally review the committed candidate and normal quality gates",
+    "owner": "parent-root",
+    "status": "in-progress",
+    "blockedBy": [
+      "R3"
+    ],
+    "description": "Read the complete work-item context before acting. Comment 6587899188: owner-approved standalone filing and related-only scope (decision|constraint). Comment 6602879963: canonical authenticated claim/ownership (decision).",
+    "metadata": {
+      "owner": "parent-root",
+      "plan": ".lisa/plan-4632.md",
+      "type": "bug",
+      "work_item_ref": "CodySwannGT/lisa#4632",
+      "work_item_context": "/Users/codysai/.codex/worktrees/b549/lisa/.lisa/work-item-context.md",
+      "work_item_context_sha256": "2a830497fe6c1d43c7660898442e4ce989551501333097c34d9b02751b433f9b",
+      "acceptance_criteria": [
+        "Startup installs four executable Lefthook wrappers without an interactive shell.",
+        "Linked worktrees use Git's actual shared hooks directory, and the primary clone can run the wrappers.",
+        "Installed wrappers remain unchanged and are not reinstalled.",
+        "Failed, unavailable or timed-out install remains bounded, prints one actionable line and does not block startup.",
+        "Doctor fails missing/non-executable Rails hooks and names them plus the install command.",
+        "Doctor/health correctly inspect linked worktrees and configured core.hooksPath.",
+        "Actual Rails apply installs the hooks; equivalent agent startup surfaces and Rails setup docs agree."
+      ],
+      "relevant_documentation": [
+        ".lisa/plan-4632.md",
+        ".lisa/roster/CodySwannGT-lisa-4632.md",
+        "plugins/src/base/hooks/install-pkgs.sh",
+        "plugins/src/base/.claude-plugin/plugin.json",
+        "src/health/hook-inspection.ts",
+        "src/health/governance-probes.ts",
+        "rails/copy-overwrite/lefthook.yml",
+        "tests/helpers/rails-hook-install-fixture.ts",
+        "tests/unit/hooks/install-rails-hooks.test.ts",
+        "tests/unit/health/rails-hook-installation.test.ts",
+        "tests/unit/cli/doctor.test.ts",
+        "tests/integration/rails-hook-apply.test.ts",
+        "src/cli/doctor.ts",
+        "src/core/lisa.ts",
+        "src/health/read-only-fs.ts"
+      ],
+      "testing_requirements": [
+        "Observe meaningful baseline RED before causal investigation/fix, then GREEN in the owning suites.",
+        "Exercise actual startup/installer/doctor/health/apply in isolated Rails Git/Ruby fixtures; include clone/worktree/custom paths, no reinstall, unavailable/failure/timeout controls.",
+        "Retain all three typed evidence markers, actual commands/exits/source identity, and named hosted execution of new regressions.",
+        "No quality gate, source-text property or hypothetical script execution is runtime acceptance proof."
+      ],
+      "skills": [
+        "lisa-implement"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "configured Bitwarden",
+          "probe": "live Lisa secrets-access configured-provider read; bitwarden-access-v3.json",
+          "status": "pass"
+        },
+        {
+          "tool": "GitHub actor/repository and specific Actions/release reads",
+          "probe": "same authenticated gh path; required-run/artifact/download/job-log/release-v3 captures",
+          "status": "pass"
+        },
+        {
+          "tool": "official registry/package access",
+          "probe": "official-package-proof-v3.json integrity/source identity",
+          "status": "pass"
+        },
+        {
+          "tool": "qualified local runtimes and Bundler Lefthook",
+          "probe": "Node24.21.0/Bun1.4.4/Ruby4.0.1/Bundler4.0.3/isolated Lefthook2.1.16 native executions",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "documentation",
+        "command": "git diff ac24c08818268db5a05bcebfeac35eec601bd320 HEAD",
+        "expected": "Parent personally reviews every changed path and generated surface; no concrete blocking finding remains; all configured normal checks are actually observed."
+      },
+      "evidence_status": "Parent personally reviewed all candidate source and generated parity, recorded in claude-review.md. No remaining blocking code finding. Focused ESLint and git diff --check passed. Full normal commit/push gates and committed-head review identity remain pending.",
+      "target_environment": "production",
+      "target_branch": "main",
+      "baseline": "ac24c08818268db5a05bcebfeac35eec601bd320"
+    }
+  },
+  {
+    "id": "R5",
+    "title": "Independently verify actual fixtures and judge scoped schema2 evidence",
+    "owner": "native-verifier-01a1a18d-f568-7d40-99fa-06c9869fc515",
+    "status": "in-progress",
+    "blockedBy": [
+      "R3"
+    ],
+    "description": "Read the complete work-item context before acting. Comment 6587899188: owner-approved standalone filing and related-only scope (decision|constraint). Comment 6602879963: canonical authenticated claim/ownership (decision).",
+    "metadata": {
+      "owner": "native-verifier-01a1a18d-f568-7d40-99fa-06c9869fc515",
+      "plan": ".lisa/plan-4632.md",
+      "type": "bug",
+      "work_item_ref": "CodySwannGT/lisa#4632",
+      "work_item_context": "/Users/codysai/.codex/worktrees/b549/lisa/.lisa/work-item-context.md",
+      "work_item_context_sha256": "2a830497fe6c1d43c7660898442e4ce989551501333097c34d9b02751b433f9b",
+      "acceptance_criteria": [
+        "Startup installs four executable Lefthook wrappers without an interactive shell.",
+        "Linked worktrees use Git's actual shared hooks directory, and the primary clone can run the wrappers.",
+        "Installed wrappers remain unchanged and are not reinstalled.",
+        "Failed, unavailable or timed-out install remains bounded, prints one actionable line and does not block startup.",
+        "Doctor fails missing/non-executable Rails hooks and names them plus the install command.",
+        "Doctor/health correctly inspect linked worktrees and configured core.hooksPath.",
+        "Actual Rails apply installs the hooks; equivalent agent startup surfaces and Rails setup docs agree."
+      ],
+      "relevant_documentation": [
+        ".lisa/plan-4632.md",
+        ".lisa/roster/CodySwannGT-lisa-4632.md",
+        "plugins/src/base/hooks/install-pkgs.sh",
+        "plugins/src/base/.claude-plugin/plugin.json",
+        "src/health/hook-inspection.ts",
+        "src/health/governance-probes.ts",
+        "rails/copy-overwrite/lefthook.yml",
+        "tests/helpers/rails-hook-install-fixture.ts",
+        "tests/unit/hooks/install-rails-hooks.test.ts",
+        "tests/unit/health/rails-hook-installation.test.ts",
+        "tests/unit/cli/doctor.test.ts",
+        "tests/integration/rails-hook-apply.test.ts",
+        "src/cli/doctor.ts",
+        "src/core/lisa.ts",
+        "src/health/read-only-fs.ts"
+      ],
+      "testing_requirements": [
+        "Observe meaningful baseline RED before causal investigation/fix, then GREEN in the owning suites.",
+        "Exercise actual startup/installer/doctor/health/apply in isolated Rails Git/Ruby fixtures; include clone/worktree/custom paths, no reinstall, unavailable/failure/timeout controls.",
+        "Retain all three typed evidence markers, actual commands/exits/source identity, and named hosted execution of new regressions.",
+        "No quality gate, source-text property or hypothetical script execution is runtime acceptance proof."
+      ],
+      "skills": [
+        "lisa-implement"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "configured Bitwarden",
+          "probe": "live Lisa secrets-access configured-provider read; bitwarden-access-v3.json",
+          "status": "pass"
+        },
+        {
+          "tool": "GitHub actor/repository and specific Actions/release reads",
+          "probe": "same authenticated gh path; required-run/artifact/download/job-log/release-v3 captures",
+          "status": "pass"
+        },
+        {
+          "tool": "official registry/package access",
+          "probe": "official-package-proof-v3.json integrity/source identity",
+          "status": "pass"
+        },
+        {
+          "tool": "qualified local runtimes and Bundler Lefthook",
+          "probe": "Node24.21.0/Bun1.4.4/Ruby4.0.1/Bundler4.0.3/isolated Lefthook2.1.16 native executions",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "TMPDIR=/private/tmp mise exec node@24.21.0 bun@1.4.4 ruby@4.0.1 -- node /Users/codysai/.codex/artifacts/lisa-4632-runtime-proof-2026-11-03-v1/native-rails-hook-proof.mjs --mode candidate",
+        "expected": "Independent nonimplementer observes actual native behavior, judges reaching typed evidence for all requirements, and records explicit limits plus learnings (empty is valid)."
+      },
+      "evidence_status": "Independent candidate pass at d6bfed7f0e88b4aaccec52c7b4e4db7ca584baba: seven ACs at explicit CLI/code-unit boundaries, actual Lefthook2.1.16 identity asserted with checksum-verified private gem, 37 managed targeted tests passed. Handoff SHA256 e5c80d9eef65d235f6cf2605071e5c9b029b325fff3aab1e14a94c563e3bfad6. Earlier parent 2.2.0 identity discrepancy and negative-fixture failures are preserved. The later CI/report-only commit needs final-head refresh; delivery is not established.",
+      "target_environment": "production",
+      "target_branch": "main",
+      "baseline": "ac24c08818268db5a05bcebfeac35eec601bd320"
+    }
+  },
+  {
+    "id": "R6",
+    "title": "Deliver, replay the official package, publish accepted proof and verify canonical closure",
+    "owner": "parent-root",
+    "status": "pending",
+    "blockedBy": [
+      "R4",
+      "R5"
+    ],
+    "description": "Read the complete work-item context before acting. Comment 6587899188: owner-approved standalone filing and related-only scope (decision|constraint). Comment 6602879963: canonical authenticated claim/ownership (decision).",
+    "metadata": {
+      "owner": "parent-root",
+      "plan": ".lisa/plan-4632.md",
+      "type": "bug",
+      "work_item_ref": "CodySwannGT/lisa#4632",
+      "work_item_context": "/Users/codysai/.codex/worktrees/b549/lisa/.lisa/work-item-context.md",
+      "work_item_context_sha256": "2a830497fe6c1d43c7660898442e4ce989551501333097c34d9b02751b433f9b",
+      "acceptance_criteria": [
+        "Startup installs four executable Lefthook wrappers without an interactive shell.",
+        "Linked worktrees use Git's actual shared hooks directory, and the primary clone can run the wrappers.",
+        "Installed wrappers remain unchanged and are not reinstalled.",
+        "Failed, unavailable or timed-out install remains bounded, prints one actionable line and does not block startup.",
+        "Doctor fails missing/non-executable Rails hooks and names them plus the install command.",
+        "Doctor/health correctly inspect linked worktrees and configured core.hooksPath.",
+        "Actual Rails apply installs the hooks; equivalent agent startup surfaces and Rails setup docs agree."
+      ],
+      "relevant_documentation": [
+        ".lisa/plan-4632.md",
+        ".lisa/roster/CodySwannGT-lisa-4632.md",
+        "plugins/src/base/hooks/install-pkgs.sh",
+        "plugins/src/base/.claude-plugin/plugin.json",
+        "src/health/hook-inspection.ts",
+        "src/health/governance-probes.ts",
+        "rails/copy-overwrite/lefthook.yml",
+        "tests/helpers/rails-hook-install-fixture.ts",
+        "tests/unit/hooks/install-rails-hooks.test.ts",
+        "tests/unit/health/rails-hook-installation.test.ts",
+        "tests/unit/cli/doctor.test.ts",
+        "tests/integration/rails-hook-apply.test.ts",
+        "src/cli/doctor.ts",
+        "src/core/lisa.ts",
+        "src/health/read-only-fs.ts"
+      ],
+      "testing_requirements": [
+        "Observe meaningful baseline RED before causal investigation/fix, then GREEN in the owning suites.",
+        "Exercise actual startup/installer/doctor/health/apply in isolated Rails Git/Ruby fixtures; include clone/worktree/custom paths, no reinstall, unavailable/failure/timeout controls.",
+        "Retain all three typed evidence markers, actual commands/exits/source identity, and named hosted execution of new regressions.",
+        "No quality gate, source-text property or hypothetical script execution is runtime acceptance proof."
+      ],
+      "skills": [
+        "lisa-implement"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "configured Bitwarden",
+          "probe": "live Lisa secrets-access configured-provider read; bitwarden-access-v3.json",
+          "status": "pass"
+        },
+        {
+          "tool": "GitHub actor/repository and specific Actions/release reads",
+          "probe": "same authenticated gh path; required-run/artifact/download/job-log/release-v3 captures",
+          "status": "pass"
+        },
+        {
+          "tool": "official registry/package access",
+          "probe": "official-package-proof-v3.json integrity/source identity",
+          "status": "pass"
+        },
+        {
+          "tool": "qualified local runtimes and Bundler Lefthook",
+          "probe": "Node24.21.0/Bun1.4.4/Ruby4.0.1/Bundler4.0.3/isolated Lefthook2.1.16 native executions",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "gh issue view 4632 --repo CodySwannGT/lisa --json state,stateReason,closedAt,labels",
+        "expected": "Native CLOSED/completed and configured production done role, with no claimed/blocked role, after actual merged-source/delivery/package proof, public hash readbacks and canonical accepted completion."
+      },
+      "evidence_status": "pending; planned commands are not observed proof",
+      "target_environment": "production",
+      "target_branch": "main",
+      "baseline": "ac24c08818268db5a05bcebfeac35eec601bd320"
+    }
+  }
+]

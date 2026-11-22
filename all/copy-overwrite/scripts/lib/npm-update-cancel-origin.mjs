@@ -9,7 +9,7 @@ import {
   required,
   keys,
   OBJECT,
-  validatePolicy,
+  selectPolicy,
   validateProposal,
 } from "./npm-update-contract.mjs";
 import {
@@ -26,15 +26,19 @@ import {
   qualityGates,
 } from "./npm-update-leaf.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
-import { verifyStaleOriginProvider } from "./github-attestation-provider.mjs";
+import {
+  verifyStaleOriginProvider,
+  verifyStaleOriginRun,
+} from "./github-attestation-provider.mjs";
+import { managedActor, allocationWorkItem } from "./npm-update-tracker.mjs";
 import {
   observedRunChronology,
   verifyHistoricalDescriptor,
 } from "./github-attestation-recovery.mjs";
 import {
   DESCRIPTOR_KEYS,
-  optionalLockFields,
-  optionalRuntimeFields,
+  npmPath,
+  signedProposalFields,
 } from "./automation-provenance-contract.mjs";
 
 /** Only complete, digest-checked transport is considered; incomplete chunks grant nothing. */
@@ -58,7 +62,7 @@ export function completeCheckpoints(comments) {
 }
 
 /** Named committed objects, never ignored config or candidate paths, select historical authority. */
-export async function committedCancellationConfig(cwd, parent) {
+export async function committedCancellationConfig(cwd, parent, directory) {
   required(
     typeof parent === "string" && OBJECT.test(parent),
     "invalid committed cancellation parent"
@@ -81,9 +85,9 @@ export async function committedCancellationConfig(cwd, parent) {
     config.automationProvenance?.enabled === true,
     "original committed authority is disabled"
   );
-  validatePolicy(config.npmUpdater, config);
+  const { repository } = selectPolicy(config, directory);
   required(
-    config.automationProvenance.repository === config.npmUpdater.repository,
+    config.automationProvenance.repository === repository,
     "original committed authority repository differs"
   );
   return config;
@@ -107,7 +111,9 @@ export function assertOriginTransport(
   digest,
   policy,
   run,
-  now = Date.now()
+  now = Date.now(),
+  managed = user =>
+    user?.type === "Bot" && String(user.id) === policy.claimActorId
 ) {
   const chronology = observedRunChronology(run, now);
   required(chronology, "invalid original transport chronology");
@@ -121,8 +127,8 @@ export function assertOriginTransport(
   for (const comment of selected) {
     const posted = Date.parse(comment.created_at);
     required(
-      comment.user?.type === "Bot" &&
-        String(comment.user.id) === policy.claimActorId &&
+      // GitHub: the configured Bot. Jira/Linear: the declared automation account (#4873).
+      managed(comment.user) &&
         comment.updated_at === comment.created_at &&
         Number.isFinite(posted) &&
         posted >= start - 60_000 &&
@@ -132,9 +138,9 @@ export function assertOriginTransport(
   }
 }
 
-/** Original claim, body, policy and proposal are checked separately from current authority. */
-async function inspectOrigin(api, issue, payload, oldConfig, currentConfig) {
-  const policy = validatePolicy(oldConfig.npmUpdater, oldConfig);
+/** Original claim, body, policy and proposal are checked separately from current authority; the authenticated current directory selects the old entry. */
+async function inspectOrigin(api, issue, payload, oldConfig, current) {
+  const policy = selectPolicy(oldConfig, current.directory);
   const proposal = validateProposal(payload.proposal, policy);
   const allocation = payload.allocation;
   keys(allocation, [
@@ -152,21 +158,26 @@ async function inspectOrigin(api, issue, payload, oldConfig, currentConfig) {
     canonicalJson(allocation.evidence) === canonicalJson(evidence) &&
       canonicalJson(allocation.draft) === canonicalJson(draft) &&
       allocation.number === issue.number &&
-      allocation.workItem === `${policy.repository}#${issue.number}`,
+      allocation.workItem ===
+        allocationWorkItem(
+          api,
+          current.config,
+          policy.repository,
+          issue.number
+        ),
     "original allocation differs"
   );
   // The current qualified classifier checks present holds; historical config only supplies the original draft.
   const state = await (
     issue.state === "open" ? inspectLeaf : inspectCancelledLeaf
-  )(issue, draft, policy, currentConfig);
+  )(issue, draft, policy, current.config);
   required(
     state.claimed &&
       !state.unassigned &&
       state.claims.length === 1 &&
       String(state.claims[0].id) === allocation.claimCommentId &&
       sha256(state.claims[0].body) === allocation.claimSha256 &&
-      String(state.claims[0].user?.id) === api.policy.claimActorId &&
-      state.claims[0].user?.type === "Bot",
+      (await managedActor(api))(state.claims[0].user),
     "original managed claim changed"
   );
   qualityGates(
@@ -184,11 +195,8 @@ export function originalDescriptor(checkpoint, old, allocation, authority) {
   const preview = checkpoint.payload.preview;
   keys(preview, ["descriptor", "message", "epoch"]);
   const d = preview.descriptor;
-  keys(d, [
-    ...DESCRIPTOR_KEYS,
-    ...optionalLockFields(old),
-    ...optionalRuntimeFields(old),
-  ]);
+  const signed = signedProposalFields(old);
+  keys(d, [...DESCRIPTOR_KEYS, ...Object.keys(signed)]);
   required(
     d.version === 1 &&
       d.parent === old.parent &&
@@ -199,8 +207,7 @@ export function originalDescriptor(checkpoint, old, allocation, authority) {
       d.proposalKey === old.bindingKey &&
       d.policySha256 === sha256(canonicalJson(authority)) &&
       canonicalJson(d.files) === canonicalJson(old.hashes) &&
-      d.bunLockSha256 === old.bunLockSha256 &&
-      d.runtimeSha256 === old.runtimeSha256 &&
+      canonicalJson(signedProposalFields(d)) === canonicalJson(signed) &&
       canonicalJson(d.updates) === canonicalJson(old.updates) &&
       typeof preview.message === "string" &&
       sha256(preview.message) === d.messageSha256 &&
@@ -211,7 +218,15 @@ export function originalDescriptor(checkpoint, old, allocation, authority) {
 }
 
 /** The original fixed signing purpose and native transport chronology remain mandatory. */
-async function verifyOriginalSubject(checkpoint, authority, d, issue, parent) {
+async function verifyOriginalSubject(
+  api,
+  checkpoint,
+  authority,
+  d,
+  issue,
+  parent
+) {
+  const managed = await managedActor(api);
   await withPrivateRoot(async root => {
     const paths = {
       descriptor: join(root, "descriptor.json"),
@@ -226,12 +241,20 @@ async function verifyOriginalSubject(checkpoint, authority, d, issue, parent) {
       mode: 0o600,
       flag: "wx",
     });
-    const observed = verifyStaleOriginProvider(authority, d, parent);
+    // A Jira/Linear claim is re-proved by its adapter; GitHub keeps its comment read.
+    const observed = api.tracker
+      ? {
+          run: verifyStaleOriginRun(authority, d, parent),
+          claim: await api.tracker.proveClaim(d),
+        }
+      : verifyStaleOriginProvider(authority, d, parent);
     assertOriginTransport(
       issue.comments,
       checkpoint.digest,
       authority,
-      observed.run
+      observed.run,
+      Date.now(),
+      managed
     );
     verifyHistoricalDescriptor(
       authority,
@@ -252,7 +275,7 @@ export async function authenticateStaleOrigin({
   proposal,
   config,
 }) {
-  await api.main(proposal.parent);
+  await api.main(proposal.parent, proposal.target);
   const checkpoint = originCheckpoint(issue);
   const old = checkpoint.payload.proposal;
   required(
@@ -260,7 +283,11 @@ export async function authenticateStaleOrigin({
       old.selectionKey === proposal.selectionKey,
     "origin is not this stale selection"
   );
-  const oldConfig = await committedCancellationConfig(cwd, old.parent);
+  const oldConfig = await committedCancellationConfig(
+    cwd,
+    old.parent,
+    proposal.directory
+  );
   const authority = oldConfig.automationProvenance;
   required(
     [
@@ -278,11 +305,11 @@ export async function authenticateStaleOrigin({
     issue,
     checkpoint.payload,
     oldConfig,
-    config
+    { config, directory: proposal.directory }
   );
   const manifest = await runProcess(
     "git",
-    ["show", `${old.parent}:package.json`],
+    ["show", `${old.parent}:${npmPath(old, "package.json")}`],
     {
       cwd,
       env: {
@@ -304,6 +331,13 @@ export async function authenticateStaleOrigin({
     inspected.allocation,
     authority
   );
-  await verifyOriginalSubject(checkpoint, authority, d, issue, proposal.parent);
+  await verifyOriginalSubject(
+    api,
+    checkpoint,
+    authority,
+    d,
+    issue,
+    proposal.parent
+  );
   return { ...inspected, checkpoint, oldConfig, descriptor: d };
 }

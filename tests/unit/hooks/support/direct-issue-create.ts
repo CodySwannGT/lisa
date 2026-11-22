@@ -9,14 +9,14 @@
  * Not named `*.test.ts`, so vitest collects nothing from it.
  * @module tests/unit/hooks/support/direct-issue-create
  */
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { boundedSpawnSync } from "../../../helpers/io-latency-budget.js";
+import { useOwnedTempDirs } from "../../../helpers/owned-temp-dirs.js";
 
 /** The guard under test, as it lives in the plugin source. */
-export const SCRIPT_PATH = path.resolve(
+const SCRIPT_PATH = path.resolve(
   "plugins/src/base/hooks/block-direct-issue-create.sh"
 );
 export const BASH_PATH = "/bin/bash";
@@ -43,8 +43,15 @@ export const CUSTOM_ROLE = "state:queued";
 export const CONTAINER_DECLARATION =
   "None — container: state rolls up from children";
 
+/**
+ * Project folders made for the importing test file, removed when it finishes.
+ * Every call made one and nothing removed them: 13,701 were left in
+ * `/private/tmp` on one machine (CodySwannGT/lisa#5095).
+ */
+const ownedDir = useOwnedTempDirs();
+
 /** The default config: a GitHub tracker with the stock build-ready label. */
-export const DEFAULT_CONFIG: Record<string, unknown> = {
+const DEFAULT_CONFIG: Record<string, unknown> = {
   tracker: "github",
   github: { labels: { build: { ready: "status:ready" } } },
 };
@@ -57,7 +64,7 @@ export const DEFAULT_CONFIG: Record<string, unknown> = {
 export const projectWithTracker = (
   config: Record<string, unknown> = DEFAULT_CONFIG
 ): string => {
-  const dir = mkdtempSync(path.join(tmpdir(), "lisa-issue-guard-"));
+  const dir = ownedDir("lisa-issue-guard-");
   writeFileSync(
     path.join(dir, ".lisa.config.json"),
     JSON.stringify(config),
@@ -71,7 +78,7 @@ export const projectWithTracker = (
  * @returns The directory path.
  */
 export const projectWithoutTracker = (): string =>
-  mkdtempSync(path.join(tmpdir(), "lisa-issue-guard-bare-"));
+  ownedDir("lisa-issue-guard-bare-");
 
 /**
  * Run the guard against a PreToolUse payload.

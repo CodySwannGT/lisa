@@ -38,7 +38,7 @@
 export type JobResult = "success" | "failure" | "cancelled" | "skipped";
 
 /** One upstream job as a dependent job sees it. */
-export interface NeedsEntry {
+interface NeedsEntry {
   readonly result: JobResult;
   readonly outputs?: Readonly<Record<string, string>>;
 }
@@ -348,10 +348,7 @@ function expression(
  * @param scenario - The run state
  * @returns Whether the condition holds
  */
-export function evaluateCondition(
-  condition: string,
-  scenario: RunScenario
-): boolean {
+function evaluateCondition(condition: string, scenario: RunScenario): boolean {
   const stripped = condition
     .trim()
     .replace(/^\$\{\{/, "")

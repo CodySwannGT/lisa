@@ -95,7 +95,9 @@ function scratchHome(): string {
  */
 function profileSections(home: string): string[] {
   const text = readFileSync(path.join(home, CONFIG), "utf8");
-  return [...text.matchAll(/^\[profile ([^\]\n]+)\]/gm)].map(m => m[1].trim());
+  return [...text.matchAll(/^\[profile ([^\]\n]+)\]/gm)].map(m =>
+    (m[1] ?? "").trim()
+  );
 }
 
 /**

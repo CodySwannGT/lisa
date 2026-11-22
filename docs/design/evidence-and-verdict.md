@@ -1,0 +1,614 @@
+# Evidence and verdict
+
+The [paired proof](paired-proof.md) says whether each control works. This
+note covers what is written down afterwards, and what an operator can show to
+someone else: one evidence file, and one verdict computed from it.
+
+```
+lisa controls attest [path]           # prove, then write three files
+lisa controls attest [path] --check   # write nothing: is the verdict still right?
+```
+
+Only a run that proves each check through a real commit or push in the
+command's own copy writes them. `lisa controls attest --workspace <folder>`
+starts each check's command directly in a folder the operator made, which
+shows that a check works and not that anything runs it. That run is a report:
+it prints its results and writes no evidence, no register and no verdict. See
+"A folder the operator names" in [paired proof](paired-proof.md).
+
+| file | what it is | who writes it |
+| --- | --- | --- |
+| `.lisa/controls/evidence.json` | Every result the attest step recorded, one record per result per requirement. | `lisa controls attest` |
+| `.lisa/controls/register.json` | The control register. Generated from the gates declaration and the evidence file. | `lisa controls register`, and `lisa controls attest` after it writes evidence |
+| `.lisa/controls/verdict.json` | One word per Level 1 requirement, one overall result, and a digest of the other two files. | `lisa controls attest` |
+
+All three are generated. None is edited by hand. No model is asked anything
+at any step, so the same inputs always give the same files.
+
+## The evidence file
+
+`{ "schema_version": 1, "checks": {...}, "records": [...] }`, records
+ordered by `id`, keys in a fixed order, two-space indent. The published
+contract is `schemas/control-evidence.schema.json`. `checks` says what
+defined the checks when the records were made; see "What the records are
+bound to" below.
+
+### One record per result per requirement
+
+A result is about a register entry. Everything that reads evidence looks a
+record up by its requirement (`criterion`). A register entry can serve
+several requirements, so a result is written once for each requirement its
+entry serves. A paired proof of an entry that serves two requirements is four
+records: two halves, twice. An entry that serves no requirement gets no
+record, because there is no requirement for it to be evidence of.
+
+### The fields
+
+| field | meaning |
+| --- | --- |
+| `id` | See "The identifier" below. |
+| `criterion` | The requirement the record is evidence for. |
+| `entry_id` | The register entry it is about, or `null` on a record of an audit finding. |
+| `scope` | The folder it is about; `.` is the whole repository. |
+| `rung` | How strongly it is known: `asserted`, `observed` or `exercised`. |
+| `half` | `violation` or `clean`. Present exactly when `rung` is `exercised`. |
+| `moment` | `commit`, `push` or `pull-request`; `null` on a record of an audit finding. |
+| `result` | `held`, `failed`, `unknown`, or (audit findings only) `not-applicable`. |
+| `reason` | A short fixed word: the proof's reason, or the audit finding's state. |
+| `detail` | The same as a sentence. On a `not-applicable` record it is the fact. |
+| `commit` | The commit the run's disposable copy was cloned from. A record written when nothing was cloned names the commit the repository was at. `null` with no commit or no git. It is information for a reader. Nothing is decided by it. |
+| `checks_digest` | The digest of what defined the checks when the record was made: the `digest` of the file's `checks` at the run that wrote it. |
+| `command` | What was started, one item per argument, or `null`. |
+| `exit_status` | Its exit status, or `null`. |
+| `started_at`, `completed_at` | UTC, `YYYY-MM-DDTHH:mm:ss.sssZ`. |
+| `freshness_seconds` | How long after `completed_at` the record states it may be relied on. It is relied on for 30 days at most, whatever it states. |
+| `output_excerpt`, `output_truncated` | The last 1000 characters of what the check printed, cut at a line start. |
+
+### What the records are bound to
+
+A verdict is about the checks as they were proved. So the file says what
+defined them. `checks` holds:
+
+| key | meaning |
+| --- | --- |
+| `covered` | One entry per file that defines the checks: its `path` from the repository root and the `sha256` of its content. Ordered by `path`. |
+| `digest` | The SHA-256 digest of `covered`, written as canonical JSON. One value that changes when anything in the list does. |
+
+What is covered (`src/controls/checks-binding.ts`):
+
+- the `gates` block of `.lisa.config.json`, in canonical form. The entry's
+  `path` is the file and its digest is of that block alone, so a change to
+  another setting in the file, or to its layout, is not a change to a check;
+- every file under `.lisa/controls/proofs/`, the changes the proofs plant;
+- `.lisa/controls/carriers.json`, every file it lists, and every file under
+  `.lisa/hooks/`;
+- the gate runner under `scripts/` and every file it loads;
+- the repository's own hook files that hold Lisa's marked call, where
+  something else owns the hooks: `.husky/pre-commit`, a hooks folder the
+  repository commits, a hook manager's configuration. They are the files the
+  read-only carrier check (`lisa controls install-carriers --check`) names.
+
+**Each file is read in the copy the proofs ran in**, before the first proof,
+so the digest is of what was proved. Which files are covered is decided by
+the repository: a file the copy holds only because the run installed its
+carriers there, in a repository that has none of its own, is the run's
+equipment and is left out. The repository's own hook files are the one
+exception and are read in the repository, because they are what starts the
+checks there and not in the copy: git copies no hook setting into a clone,
+so the copy is wired by its own install.
+
+Every record carries the digest as `checks_digest`. A record that carries
+another one was not written by the run that wrote the file.
+
+Not covered, and why:
+
+- **The checked tool's own configuration**: a linter's rule file, a test
+  runner's settings, the scripts in `package.json`. They belong to the
+  project and there is no list of them. A rule switched off there after the
+  proofs ran is not seen by `--check`. Running the proofs again sees it.
+- **A hook in git's own folder, and the `core.hooksPath` setting.** Neither
+  is committed and no clone has either, so a digest that covered them could
+  match nowhere else. `lisa controls install-carriers --check` and
+  `lisa controls reconcile` say whether a checkout is wired.
+- **A file's permission to be started.** Only content is read.
+- **A file the operating system drops into a folder**: `.DS_Store`,
+  `Thumbs.db` and `desktop.ini`, by exactly those names, in any folder. A
+  file manager writes one into every folder a person opens, most machines
+  tell git to ignore them, and no clone has one. The check starts no git, so
+  it cannot ask what is ignored. Covered, a `.DS_Store` in `.lisa/hooks/`
+  failed `--check` straight after the run that recorded the digest, and one
+  beside the proofs passed where it was recorded and failed in every clone.
+  So none is covered, neither when a run records the digest nor when the
+  check takes it again. A file by any other name in those folders is covered
+  as before.
+
+### The three rungs
+
+| rung | means | written from |
+| --- | --- | --- |
+| `asserted` | It was said, and nothing checked it. | A person's answer to the audit's question; an audit finding nothing confirmed. |
+| `observed` | Something was looked at where it is. Nothing was planted. | A step that reads the hosting platform's settings; an audit finding whose file and line the attest step found. |
+| `exercised` | A change was planted and the control's answer recorded. | One half of a paired proof. |
+
+An exercised record is one half of a pair, so it always names its `half`. A
+record at any other rung never does.
+
+### What `result` says
+
+`result` is what the record shows about the requirement, not what the check
+printed. For a half of a paired proof:
+
+| half | check's answer | `result` |
+| --- | --- | --- |
+| `violation` | rejected, in the declared failure text | `held` |
+| `violation` | accepted | `failed` |
+| `clean` | accepted | `held` |
+| `clean` | rejected | `failed` |
+| either | no answer that can be relied on | `unknown` |
+
+The control register reads the same field. An entry whose pull-request check
+runs from a file Lisa did not write reads `unproved` until both halves of its
+proof at that moment are on record **and each says `held`**. A half that was
+run and failed does not clear the mark.
+
+### The identifier
+
+`<entry id>/<moment>/<half or rung>/<criterion>`, for example
+`code-style@api/commit/violation/SI7` and
+`code-style@api/pull-request/observed/SI7`. A record of an audit finding is
+`audit-finding/<criterion>@<scope>`, for example `audit-finding/AC1.4@.`.
+
+Nothing else goes in: no time, no counter. The same proof of the same control
+has the same identifier on every run, so a later run replaces the record
+instead of adding one beside it. An audit finding cites a record by this
+identifier in its `evidence_id`.
+
+### The latest run replaces, it does not add
+
+A run speaks for every entry it covers at every moment it covers. Every
+earlier record of those entries at those moments is removed, whether or not
+the run has a result to put in its place. An entry whose proof could not be
+run this time is left with no record, and its requirement reads `unknown`,
+rather than with last month's pass.
+
+A paired-proof run covers every register entry at `commit` and `push`, and
+takes only the halves run at those two moments. The step that settles the
+pull-request moment hands over its own batch for `pull-request`
+(`pull-request-evidence.ts`): one `observed` result per entry from what the
+hosting platform's merge-protection settings said (`held` when every check
+of the entry is required, `failed` when one is not, `unknown` when they
+could not be read, nothing when the platform was not asked), and the two
+`exercised` halves of an entry whose canary pull requests were run. So a
+canary half is written from one place, once per requirement.
+
+That batch names every pull-request entry when canaries were asked for. When
+the run only read the settings, it leaves out an entry for which a canary's
+answer is on record, still within its lifetime and recorded under this
+run's digest of what defines the checks, unless the settings now say the
+entry's check is not required: an observation plants nothing, so it does not
+remove a current exercised proof of the same checks, and the earlier records
+stay to age. A register with no pull-request entry gets no such batch, and
+those records, if any, are left in place too.
+
+Records are also removed when the register no longer holds their entry, or
+the entry no longer serves their requirement. Records of audit findings are
+replaced as one set on every run.
+
+### What is kept from before was written by a run, about these checks
+
+The file is on disk between runs, and anyone can type into it. A record a
+run did not speak for is therefore kept only when a run could have written
+it, about the checks as this run found them
+(`src/controls/evidence-standing.ts`):
+
+- its `moment` is one a run writes records for: `commit`, `push` or
+  `pull-request`;
+- its entry is enforced at that moment, according to the register now;
+- its `checks_digest` is the digest this run took of what defines the
+  checks.
+
+Every other earlier record is removed, whatever it says. A pair typed in at
+`nightly`, or at `pull-request` for a check that does not run on pull
+requests, does not survive the next run.
+
+The third rule is what keeps a plain run from carrying an earlier canary
+proof across a change to the checks. Without it, a verdict written after
+the declaration or a proof file changed still rested on canary results from
+before, failed its own `--check`, and running attest again did not clear
+it. Now those results are dropped, and one line on standard error says how
+many and that `lisa controls attest --pull-request-canaries` produces them
+again. An evidence file written before records carried a digest holds
+nothing that can be kept, and is counted the same way.
+
+A record that is kept is relied on for the default lifetime at most. If the
+file gives it a longer one, the run writes it back with the default.
+
+**The same rules are applied when a record is read**, not only when one is
+kept. A record typed into the file after the last run has been through no
+writer, so the verdict asks the three questions above of every record about
+a control, and asks the third of every record of an audit finding
+(`src/controls/verdict-answers.ts`). A record that does not pass is not
+read: it cannot make a requirement conforming and it cannot fail one. The
+requirement's sentence says a record is on file and why it does not count.
+
+### What the audit report contributes
+
+Most requirements are served by no control, so no proof can be run for them.
+What is known about them is what the audit found. When
+`.lisa/audit/report.json` passes its check, each finding is copied into the
+evidence file as one record, dated when the attest step read the report.
+
+What a finding that says "this is there" (`exists-not-enforced`) is worth
+depends on what kind of thing answers the requirement, which the catalogue
+says:
+
+| requirement's `kind` | the attest step | record |
+| --- | --- | --- |
+| `artifact` (a record that exists) | opens every file the finding points at and looks for the line, itself, at that moment. It does not rely on the report's own check having run. A file in `.lisa/audit/`, in `.lisa/controls/` (other than the control register) or in `.git` (other than a hook installed in `.git/hooks/`) is not looked at: it is there whatever the repository does, so a line in it shows nothing. | Every line found: `observed`, `held`, reason `artifact-located`. The finding points nowhere, or a line is not there: `asserted`, `unknown`, reason `artifact-not-found`. |
+| `human-attested` (a person vouches for it) | looks for an answer to the question `<criterion>@<scope>` in two places that have to agree: an entry of the report's `answers` **and** the same words on that question's answer line in `.lisa/audit/report.md` or `wiki/gaps.md`, read again at that moment. A placeholder such as `TBD` is not an answer. That the two agree, at that moment, is all that is checked. Who typed the answer line is not checked: the skills tell the agent never to type there, and no code can tell a line an agent typed from one a person typed. | The two agree: `asserted`, `held`, reason `person-attested`, with the question's id and the answer quoted in `detail`. No answer, or the two do not agree: `asserted`, `unknown`, reason `no-attestation`. |
+| `gate` (a check) | does nothing more. | `asserted`, `held`, with the finding's state as the reason. It never makes the requirement conforming. |
+
+A finding in any other state is written the same way for every kind, at the
+`asserted` rung, with the state as the reason and the finding's `what` as
+the detail:
+
+| finding's state | record's `result` |
+| --- | --- |
+| `missing` | `failed` |
+| `unknown`, `question` | `unknown` |
+| `not-applicable` | `not-applicable`, with the finding's `what` as the fact |
+| `proved` | no record: the finding only repeats a record already on file |
+
+They are copied, and not read at verdict time, so that the verdict rests on
+the register and the evidence and nothing else, and its digest covers all of
+it. When there is no report, or it does not pass its check, no finding is
+recorded and the command says so.
+
+A record of an audit finding cannot back a `proved` finding in a later
+audit: `lisa controls report-check` turns away a record whose `entry_id` is
+`null`, and any record whose `result` is not `held`. An audit that cited
+them would be citing itself, or citing a failure as proof.
+
+A record that can back a `proved` finding still backs only what it is a
+record of. The check also turns away a record about another folder (a record
+for the whole repository speaks for every folder, as it does in the verdict),
+and one half of a paired proof whose other half is not on record, held and
+current, for the same control at the same moment. It turns away a record
+that is weaker than the requirement asks for: the record's rung has to reach
+the requirement's `minimum_rung`, as it has to in the verdict. So a merge
+setting that was only read (`observed`) cannot stand as proof of a
+requirement that needs a planted change (`exercised`), and a record that
+does not say its rung proves nothing. A finding in any other state may not
+cite a record at all.
+
+### Freshness
+
+Every record carries `freshness_seconds`. A run stamps **30 days**
+(2 592 000 seconds), and that is also the longest a record is relied on. A
+check wired into a repository changes whenever its configuration does, so a
+month is long enough that an attest run on a monthly schedule keeps a
+verdict current, and short enough that a control nobody has run since last
+quarter stops counting.
+
+The gates declaration cannot change the lifetime. The code that calls the
+writer can make it shorter (`freshnessSeconds` on `recordAttestation`), and
+is refused a longer one; the command does not offer a flag for it.
+
+A record is current from `completed_at` up to, and not including,
+`completed_at + freshness_seconds`, or `completed_at` + 30 days when the
+record states more. The format lets a record state up to twelve months, the
+specification's ceiling, and every reader holds it to 30 days all the same
+(`evidenceExpiry` in `src/controls/evidence.ts`): a year typed into the file
+buys nothing, in the verdict or anywhere else a record is relied on. The
+current time is a parameter everywhere it is used: the command reads the
+machine's clock, and everything below it is handed the time.
+
+### Output and secrets
+
+A record keeps the end of what a check printed, and a check can print
+anything, including a token it was given. The output is cut twice on its way
+into a record, and each time every value shaped like a credential is taken
+out first and the cut is made afterwards, so a cut can never leave half of
+one behind:
+
+1. The step that ran the check takes the values out of everything the check
+   printed and keeps the last 4000 characters (`proof-half-run.ts`).
+2. `prepareEvidenceExcerpt` in `src/controls/evidence-write.ts`, the one
+   place that text enters a record, takes values out again and keeps the
+   last 1000.
+
+In the other order the first cut could fall inside a value: a private key
+would keep its body with the line that marks its start gone, and a token
+would keep its end with the prefix that makes it recognisable gone. A private
+key that reaches the scan with its first line already missing is still found
+by its last line. The arguments a check was started with, and the sentence
+and reason of a result, have their values taken out the same way. A placeholder such as `[REDACTED:GITHUB_TOKEN]`
+stands where a value was, and the attest step tells the operator which
+results it was taken out of. Nothing is refused: a run keeps its result.
+
+This happens before the evidence file is written, so the digest below is
+computed from the text with the placeholder in it. `detail` on a record of
+an audit finding is the finding's `what`, word for word; the audit report's
+own check refuses a finding that holds a value, and the same step takes one
+out here. The whole of it, for every file the control commands write, is in
+[secret values](secret-values.md).
+
+## The verdict
+
+The published contract is `schemas/control-verdict.schema.json`.
+
+```json
+{
+  "schema_version": 1,
+  "requirements": { "specification": "…", "specification_version": "…", "level": 1, "sha256": "…" },
+  "result": "non-conforming",
+  "prevented_by": ["AC1.1", "…"],
+  "counts": { "conforming": 1, "non-conforming": 0, "unknown": 76, "not-applicable": 0 },
+  "criteria": [
+    {
+      "criterion": "SI7",
+      "verdict": "conforming",
+      "reason": "control-proved",
+      "detail": "Every control that serves this requirement held when it was checked: …",
+      "kind": "gate",
+      "minimum_rung": "exercised",
+      "rung": "exercised",
+      "entries": ["code-style@."],
+      "evidence": ["code-style@./commit/clean/SI7", "code-style@./commit/violation/SI7"],
+      "fact": null
+    }
+  ],
+  "evidence_as_of": "…",
+  "current_until": "…",
+  "digest": { "algorithm": "sha256", "register": "…", "evidence": "…", "value": "…" }
+}
+```
+
+Nothing in it depends on when it was written. `evidence_as_of` is the newest
+record's `completed_at`, and `current_until` is the first instant a record
+the verdict rests on stops being current. Both are read from the evidence.
+
+### How a requirement is judged
+
+A requirement is judged on **answers**. Each register entry that lists the
+requirement is one answer. Each record of an audit finding for the
+requirement is one answer too, unless a control already covers its folder: a
+control that serves the requirement covers its own folder, a control for the
+whole repository covers every folder, and the audit's finding for the whole
+repository is set aside as soon as any control serves the requirement.
+
+Only records that count are read; see "What is kept from before was
+written by a run, about these checks" above. One control's answer, first row
+that applies:
+
+| the evidence on record for this control and this requirement | answer | `reason` |
+| --- | --- | --- |
+| There is none that counts. | `unknown` | `no-evidence` |
+| A current record says `failed`. | `non-conforming` | `control-failed` |
+| A record is past its lifetime. | `unknown` | `stale-evidence` |
+| A record is dated later than now. | `unknown` | `evidence-dated-later` |
+| Nothing held. Exercised evidence holds only as a pair: both halves, for the same moment, each `held`. | `unknown` | `proof-incomplete` |
+| What held is weaker than the requirement's `minimum_rung`. | `unknown` | `rung-too-low` |
+| Otherwise. | `conforming`, at the strongest rung that held | `control-proved` |
+
+One audit finding's answer, first row that applies:
+
+| the record written from the finding | answer | `reason` |
+| --- | --- | --- |
+| It is not current. | `unknown` | `stale-evidence` or `evidence-dated-later` |
+| `failed` (the audit found nothing). | `non-conforming` | `nothing-found` |
+| `unknown`, because the record was not where the audit pointed. | `unknown` | `artifact-not-found` |
+| `unknown`, because no person's answer is on record. | `unknown` | `no-attestation` |
+| `unknown` for any other reason (an outside system holds the answer, or a question is open). | `unknown` | `audit-unknown` |
+| `not-applicable`. | `not-applicable`, citing the record's `detail` as the fact | `not-applicable` |
+| `held`, the requirement is `human-attested`, and the record says a person's answer is on record. | `conforming`, rung `asserted` | `person-attested` |
+| `held`, the requirement is `human-attested`, and the record does not say so. | `unknown` | `no-attestation` |
+| `held`, the requirement is `artifact`, and the record's rung is at least its `minimum_rung`. | `conforming`, rung `observed` | `artifact-located` |
+| `held`, the requirement is `artifact`, and the record's rung is below its `minimum_rung`. | `unknown` | `rung-too-low` |
+| `held`, the requirement is a `gate` (or of a kind the catalogue does not name). | `unknown` | `rung-too-low` |
+
+The requirement's verdict:
+
+| its answers | verdict |
+| --- | --- |
+| None at all. | `unknown` (`no-evidence`) |
+| Any `non-conforming`. | `non-conforming` |
+| Otherwise, any `unknown`. | `unknown` |
+| Otherwise, any `conforming`. | `conforming` |
+| Every one `not-applicable`. | `not-applicable`, citing each fact |
+
+So a failure in one folder makes the requirement non-conforming, one control
+without a proof makes it unknown, and it is not applicable only when it
+applies nowhere. `not-applicable` is never a default: it exists only where a
+record carries the fact.
+
+What this means for each kind of requirement in the catalogue:
+
+| `kind` | `minimum_rung` | how it becomes conforming | `rung` the verdict shows |
+| --- | --- | --- | --- |
+| `gate` | `exercised` | A register entry serves it and its paired proof held. | `exercised` |
+| `gate` | `observed` | A register entry serves it, and either its paired proof held or a setting read from the platform held. | `exercised` or `observed` |
+| `artifact` | `exercised` | A register entry serves it and its paired proof held. A located file is not enough. | `exercised` |
+| `artifact` | `observed` | The audit points at where it is recorded and the attest step finds every line; or a register entry serves it. | `observed`, or the entry's rung |
+| `human-attested` | `asserted` | The audit found it written down and a person answered the audit's question for it; or a register entry serves it. | `asserted`, or the entry's rung |
+
+A requirement that is conforming always carries the weakest rung it rests
+on, so a reader can see which answers rest on a proof and which on something
+weaker. The three rungs do not mean the same thing, and each has a limit:
+
+- `exercised` is a proof: a change that breaks the rule was planted and
+  turned away, and a clean one was let through.
+- `observed`, on a requirement of kind `artifact`, is a located file. Code
+  confirmed that the file and line the audit pointed at exist. That the file
+  is the record the requirement asks for, and that it says what it should,
+  is the judgement of the agent that ran the audit. Nobody and nothing
+  checked that judgement.
+- `asserted`, on a requirement of kind `human-attested`, is a person's word.
+  It is as good as the person who gave it. An agent's finding alone never
+  produces it: with no answer on record the requirement is `unknown`.
+
+A finding never makes a `gate` requirement conforming, and never makes an
+`artifact` requirement that needs exercised evidence conforming. Those are
+met only by a control declared in the gates block, with a change that breaks
+its rule and one that does not.
+
+### The Level 1 result
+
+`conforming` only when every in-scope requirement is `conforming` or
+`not-applicable`. Unknown is never conforming. `prevented_by` names every
+requirement that stands in the way, in the catalogue's order.
+
+### The digest
+
+```
+register = sha256(canonical(register.json))
+evidence = sha256(canonical(evidence.json))
+value    = sha256(canonical({ "evidence": <evidence.json>, "register": <register.json> }))
+```
+
+`canonical` is the JSON value written with object keys in code-unit order at
+every depth, no spaces, and lists in their own order
+(`canonicalText` in `src/controls/canonical-json.ts`). That holds whatever a
+key looks like: the text is written key by key, so a key such as `"10"`
+comes before `"9"`, as code units order them, and not after it as a
+JavaScript object would list them. Two files that hold the same values give
+the same digest however they are indented. The evidence file and the verdict
+are written with their keys in the same order (`canonicalFileText`). `requirements.sha256` is the same
+digest of the requirements catalogue the verdict was computed against.
+
+### The order of writing
+
+1. The evidence.
+2. The register. It is generated from the declaration and the evidence, so
+   new evidence can change it: an entry stops reading `unproved` once both
+   halves of its proof held.
+3. The verdict, from that register and that evidence.
+
+In any other order the digest would cover a register that
+`lisa controls register --check` then calls out of date.
+
+## The check
+
+`lisa controls attest --check` runs no proof and writes nothing.
+
+| it compares | with | and says, for example |
+| --- | --- | --- |
+| The committed register | The register generated now from the declaration and the evidence. This is the comparison `lisa controls register --check` makes. | `The entry "code-style@api" in .lisa/controls/register.json does not match the gates declaration: tier differs.` |
+| The committed evidence file | The exact shape the attest step writes: every object closed, every value in its word list, every identifier the one its record's fields give. | `.lisa/controls/evidence.json: Record 3 ("by-hand"): "entry_id" is missing.` |
+| The digests in the verdict | The digests of the register and the evidence now. | `.lisa/controls/evidence.json is not the evidence this verdict was computed from: …` |
+| The Level 1 result | The result computed now. | `.lisa/controls/verdict.json says the Level 1 result is "conforming"; the register and the evidence give non-conforming.` |
+| Each requirement's verdict | The verdict computed now, at the current time. | `SI7: .lisa/controls/verdict.json says "conforming"; the register and the evidence give unknown. Evidence record "…" is too old to rely on: it stopped being current at …` |
+| Everything else in the verdict | The same value computed now. | `.lisa/controls/verdict.json says "current_until" is …; the register and the evidence give ….` |
+| The digest of what defined the checks, in the evidence file | The same digest, taken from the repository as it is. | `What defines the checks is not what the proofs ran against. Changed since: .lisa/controls/proofs/lint.violation.patch. …` |
+
+| exit | means |
+| --- | --- |
+| 0 | The committed verdict is what the register and the evidence give, and what defines the checks is what the proofs ran against. This says the verdict is authentic and current, not that the result is conforming; the line it prints says which. |
+| 1 | Something differs. Each difference was named. That includes an evidence file written before evidence was bound to what defines the checks. |
+| 2 | Nothing could be compared: the path is not a folder, the gates declaration was refused, or the check could not finish. |
+
+### What defines the checks, compared by content
+
+A verdict says the checks worked when they were proved. The evidence file
+holds a digest of what defined them where the proofs ran, and the list of
+what that digest covers; see "What the records are bound to". The check
+takes the same digest from the repository as it is
+(`src/controls/checks-binding.ts`): it reads every path the list names
+again, and every path that defines the checks now. Then it compares.
+
+| the repository, against the list | the check says |
+| --- | --- |
+| holds every listed file with the same content, and no other file that defines the checks | nothing: this part passes |
+| holds a listed file with other content | `Changed since:` and the files |
+| no longer holds a listed file | `No longer here:` and the files |
+| holds a file that defines the checks and is not in the list | `Here now and not there then:` and the files |
+
+Any of the last three fails the check with exit 1.
+
+**It reads content and never history.** Git is not started. So the answer
+is the same:
+
+- in a shallow clone, which is what many pipelines check out;
+- after a squash or rebase merge has replaced the commit the proofs ran on;
+- in a checkout another user owns, where git refuses to answer;
+- whatever order the operator commits in.
+
+An earlier version compared the commit the evidence named with the commit
+the repository was at, and failed in each of those four places. The commit
+is still in every record, as the commit the run's copy was cloned from. The
+check prints it for the reader and decides nothing by it.
+
+**No order of committing is required.** The copy the proofs run in takes
+the declaration, the proof files and the files the carrier record lists
+from the working copy as they are, committed or not. So those are read as
+the repository holds them, and committing them before the results, with
+them or after them changes nothing the check compares.
+
+**A file that is not here as it was where the proofs ran fails the check,
+and the run that wrote the evidence already said so.** Two things make a
+file differ:
+
+- A hook script or the gate runner that is older in the repository than the
+  one the run installed in its copy. `lisa controls install-carriers` brings
+  the repository's copy up to date.
+- A file the copy took from the last commit that has since been changed in
+  the working copy and is not one the copy carries over: the gate runner in
+  a repository that has no carrier record, for one. Committing the change,
+  or undoing it, and running attest again puts it right.
+
+`lisa controls attest` names every such file on standard error when it
+writes its results (`attest: note. What defines the checks in this
+repository is not what the proofs ran against …`).
+
+**Evidence from before the binding is not called current.** An evidence
+file with no `checks` was written before evidence was bound to what defines
+the checks, so nothing in it says which checks its records are about. The
+check says the evidence predates the binding and exits 1. Running
+`lisa controls attest` writes it anew.
+
+What this comparison does not see is what the digest does not cover: the
+checked tool's own configuration, a hook in git's own folder, the
+`core.hooksPath` setting, a file's permission to be started, and the files
+an operating system drops into a folder (`.DS_Store`, `Thumbs.db`,
+`desktop.ini`). "What the records are bound to" says why for each.
+
+### What each kind of edit runs into
+
+| someone | the check |
+| --- | --- |
+| edits the verdict to read conforming | computes it again and names the result and each requirement that differs |
+| edits an evidence record to flip a result | finds the evidence digest no longer matches, and that the verdict differs from what the edited evidence gives |
+| edits an evidence record and the digest in the verdict to match | still computes the verdict again from the edited evidence, and names every requirement whose word differs |
+| removes a record of a failure | finds the evidence digest no longer matches |
+| lengthens a record's lifetime, or moves its time | finds the evidence digest no longer matches |
+| edits the register | finds the register differs from what the declaration and the evidence produce |
+| waits until a record's lifetime is over | finds the requirement is now `unknown` |
+| rewrites a proof's patch file, a hook script, the gate runner or the `gates` block, committed or not, leaving the verdict as it was | finds that what defines the checks is not what the proofs ran against, and names the file |
+| takes Lisa's call out of `.husky/pre-commit`, or puts an `exit 0` above it | finds that file changed, when the run that wrote the evidence found the call in it |
+| edits `checks` in the evidence file so that it lists what is here now | finds the evidence digest in the verdict no longer matches; and when the list was edited without its digest, that the two do not add up |
+| types a pair of records into the evidence file, at a moment no run covers or under another digest, and edits the verdict's digests to match | nothing changes in what the verdict says: such a record is not read (see "What is kept from before was written by a run, about these checks") |
+| adds a pair of records at a moment no run covers, and then runs attest so the digest is fresh | nothing: the attest run itself removes those records before it writes |
+
+### What a local check cannot show
+
+The check shows that the three files agree with each other, with the gates
+declaration, with the clock, and that what defines the checks is what the
+proofs ran against. It cannot show that the evidence records are what a run
+really produced. Someone who rewrites the evidence, the register and the
+verdict together, consistently, leaves three files that agree, and nothing
+checked on the same machine with no secret can tell that from a real run. A
+pair of records typed in at a moment the entry is enforced at, under the
+file's own digest, is read like any other for up to 30 days. A clock set
+back makes old evidence current again in the same way.
+
+What can tell the difference lies outside this command: running
+`lisa controls attest` again and comparing; the history of the three files
+in version control, where a change to the evidence with no attest run
+behind it is visible; or a signature made somewhere the author of the
+change cannot reach.
+
+`commit` on a record is the commit the run's disposable copy was cloned
+from. It is read when the copy is made and not again, so a commit the
+operator makes while the proofs are running does not change it. It does not
+say the working tree was clean, and it is not what the verdict is held to:
+that is the digest in `checks`.

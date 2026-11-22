@@ -37,7 +37,7 @@ export interface YamlApi {
 }
 
 /** Human-readable statement of what Lisa can drive. */
-export const SUPPORTED_JS_YAML_DESCRIPTION =
+const SUPPORTED_JS_YAML_DESCRIPTION =
   "js-yaml 3.x, 4.x and 5.x (any build exposing a load() function)";
 
 /**

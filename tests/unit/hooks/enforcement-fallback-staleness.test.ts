@@ -28,7 +28,7 @@ import {
   CURRENT,
   GUARDS,
   HOST_TREE,
-  PARITY_SAFETY_NET,
+  BLOCK_SHELL_JSON,
   PLUGIN_TREE,
   REPO_ROOT,
   bash,
@@ -127,11 +127,11 @@ describe("the repair a stale tree is told to run", () => {
 
     installRealGuards(
       path.join(root, HOST_TREE),
-      GUARDS.filter(guard => guard !== PARITY_SAFETY_NET)
+      GUARDS.filter(guard => guard !== BLOCK_SHELL_JSON)
     );
     dateHostTree(root, CURRENT);
     installCurrentTemplates(root);
-    installRealGuards(path.join(root, PLUGIN_TREE), [PARITY_SAFETY_NET]);
+    installRealGuards(path.join(root, PLUGIN_TREE), [BLOCK_SHELL_JSON]);
     datePluginTree(root, BEHIND);
 
     const { output } = runFallback(HARMLESS, root);
@@ -271,7 +271,7 @@ describe("a partially resolved guard set", () => {
 
     installRealGuards(
       path.join(root, HOST_TREE),
-      GUARDS.filter(guard => guard !== PARITY_SAFETY_NET)
+      GUARDS.filter(guard => guard !== BLOCK_SHELL_JSON)
     );
     dateHostTree(root, CURRENT);
 
@@ -279,7 +279,7 @@ describe("a partially resolved guard set", () => {
 
     expect(status).toBe(0);
     expect(output).toContain("unresolved guards");
-    expect(output).toContain(PARITY_SAFETY_NET);
+    expect(output).toContain(BLOCK_SHELL_JSON);
   });
 });
 

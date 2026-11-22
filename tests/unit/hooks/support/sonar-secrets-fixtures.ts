@@ -98,7 +98,24 @@ export const INACTIVE_MARKER = "secret scanning is inactive";
  * widen the shipped ten seconds, never tighten it, and on a quiet box it IS ten
  * seconds — a genuine hang still surfaces in about the time it always did.
  */
-export const RESOLVER_DEADLINE_S = Math.ceil(ioLatencyBudgetMs(10_000) / 1_000);
+const RESOLVER_DEADLINE_S = Math.ceil(ioLatencyBudgetMs(10_000) / 1_000);
+
+/**
+ * Every ceiling the hook enforces on itself, scaled the same way.
+ *
+ * CodySwannGT/lisa#5038 bounded the hook's other two waits — the stdin drain and
+ * `sonar hook` — with the same shipped ten seconds the resolver gets, for the
+ * same reason: a session must not hang on them. In this suite the drain is a
+ * byte-at-a-time builtin `read` of up to 1MB and the "scanner" is a `bash`
+ * stub, both of whose costs grow with load exactly as the resolver's `node`
+ * spawn does, so they get the same scaled deadline. A case that stages one of
+ * these waits expiring overrides its own variable after this spread.
+ */
+export const HOOK_DEADLINE_ENV: Readonly<Record<string, string>> = {
+  LISA_SONAR_RESOLVER_TIMEOUT_S: String(RESOLVER_DEADLINE_S),
+  LISA_SONAR_SCAN_TIMEOUT_S: String(RESOLVER_DEADLINE_S),
+  LISA_SONAR_STDIN_TIMEOUT_S: String(RESOLVER_DEADLINE_S),
+};
 
 /**
  * Budget for one whole hook run, quiet-box, in milliseconds.
@@ -113,6 +130,16 @@ export const RESOLVER_DEADLINE_S = Math.ceil(ioLatencyBudgetMs(10_000) / 1_000);
  * timeout.
  */
 export const HOOK_RUN_BUDGET_MS = 30_000;
+
+/**
+ * Quiet-box bound for the hook to close after SIGKILL to its group, in ms.
+ *
+ * A killed group closes in a few milliseconds (1-18ms measured at load ~40).
+ * Scaled by the same factor as the case, ten seconds stays far under the case's
+ * sixty, so a close that never arrives fails naming the hook's exit, signal and
+ * output rather than as an anonymous case timeout (CodySwannGT/lisa#5034).
+ */
+export const KILL_CLOSE_BASE_MS = 10_000;
 
 const temporaries: string[] = [];
 
@@ -254,7 +281,7 @@ export function stubSonar(whenAuthed: string): string {
  * Install a Linux-shaped `mktemp -d` beside the stub scanner.
  *
  * Linux honors TMPDIR while Darwin's native utility does not. Accepting only
- * the hook's explicit Lisa template and logging the result makes that Linux
+ * the hook's explicit Lisa templates and logging the resolver's makes that Linux
  * lifecycle visible on every platform without granting cleanup authority over
  * unrelated roots.
  * @param bin - Existing fixture bin directory prepended to PATH
@@ -268,6 +295,10 @@ export function stubLinuxMktemp(bin: string): () => readonly string[] {
     [
       "#!/bin/sh",
       'if [ "$#" -ne 2 ] || [ "$1" != "-d" ]; then exit 64; fi',
+      // The scanner's private FIFO directory is allocated too, before any
+      // resolver runs. It is created for real but not logged, so the log still
+      // names exactly the resolver roots these cases inspect.
+      'if [ "$2" = "${TMPDIR:-/tmp}/lisa-sonar-scan.XXXXXXXX" ]; then exec /usr/bin/mktemp -d "$2"; fi',
       'if [ "$2" != "${TMPDIR:-/tmp}/lisa-sonar-resolver.XXXXXXXX" ]; then exit 64; fi',
       'root=$(/usr/bin/mktemp -d "$2") || exit $?',
       `printf '%s\\n' "$root" >> ${JSON.stringify(log)}`,
@@ -398,7 +429,7 @@ export function run(options: {
       // Scaled, and overridable per case: the deadline is the whole subject of
       // CodySwannGT/lisa#2905, and one case deliberately shrinks it to stage a
       // hang. Placed before the spread so a case's own value still wins.
-      LISA_SONAR_RESOLVER_TIMEOUT_S: String(RESOLVER_DEADLINE_S),
+      ...HOOK_DEADLINE_ENV,
       ...(options.projectDir === undefined
         ? {}
         : { CLAUDE_PROJECT_DIR: options.projectDir }),

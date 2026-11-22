@@ -1,10 +1,14 @@
 /** Root CLI update-check hook registration. */
 import type { Command } from "commander";
+import { CONTROLS_COMMAND } from "./controls-cmd.js";
 import { GATE_COMMAND_NAMES } from "./gate-commands.js";
 import type { printUpdateWarning } from "./print-update-warning.js";
 import type { runUpdateCheck } from "./update-check.js";
 
 const UPDATE_CHECK_EXEMPT_COMMANDS = Object.freeze([
+  // Runs inside `git push` around heavy gates; a registry round-trip there is
+  // latency on every gate and noise in the gate transcript.
+  "admit",
   "doctor",
   "health",
   "standards-proof",
@@ -48,6 +52,10 @@ function isUpdateCheckExempt(actionCommand: Command): boolean {
   return (
     actionCommand.parent?.name() === "kane" ||
     actionCommand.parent?.name() === "effectiveness" ||
+    // Called by the audit, configure, enforce and attest steps, often several
+    // times in one run; a registry round-trip before each is latency and noise
+    // in output those steps read.
+    actionCommand.parent?.name() === CONTROLS_COMMAND ||
     UPDATE_CHECK_EXEMPT_COMMANDS.includes(actionCommand.name()) ||
     (GATE_COMMAND_NAMES as readonly string[]).includes(actionCommand.name())
   );

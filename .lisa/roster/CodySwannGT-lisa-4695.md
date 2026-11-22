@@ -1,0 +1,41 @@
+# Roster Decision — CodySwannGT/lisa#4695
+
+Plan: `4695-tsgo-typecheck` · Flow: Implement / Improve (tooling, config-only, no runtime behavior change) · Base: `main` (Target Backend Environment: `None — no runtime behavior change: config-only`; no Branch Plan required).
+
+- INCLUDE - Explore - Mandatory read-only research: locate the TSC constants, JSDoc sites, tests and tsconfig notes named in the item.
+- INCLUDE - general-purpose - Team-lead session tasks (plan name, base branch, completion condition, tool-access preflight); no more specific specialist owns these.
+- INCLUDE - lisa:builder - Implements the dependency, script, gate-constant, test-assertion and JSDoc changes against the Gherkin criteria.
+- INCLUDE - lisa:verification-specialist - Independent empirical verification (typecheck run, quarantine gate under both compilers, engine-floor fixture, dist byte-identity) and the v2 verdict.
+- INCLUDE - lisa:quality-specialist - Reviews the diff for correctness and scope (JSDoc-only template edits, build:dist untouched).
+- INCLUDE - lisa:learner - Captures task MLD to the learnings ledger.
+- EXCLUDE - claude - Catch-all; general-purpose already covers lead tasks.
+- EXCLUDE - claude-code-guide - No Claude Code / API product question involved.
+- EXCLUDE - code-simplifier:code-simplifier - Change is a small constant/JSDoc swap; nothing to simplify.
+- EXCLUDE - hookify:conversation-analyzer - No hook authoring.
+- EXCLUDE - lisa:architecture-specialist - Approach fully specified by Spike #4614; no design decision remains.
+- EXCLUDE - lisa:bug-fixer - Not a bug fix.
+- EXCLUDE - lisa:confluence-prd-intake - No PRD intake.
+- EXCLUDE - lisa:debug-specialist - No defect to root-cause; JSDoc diagnostics already identified by the spike.
+- EXCLUDE - lisa:eval-specialist - Not measuring the factory.
+- EXCLUDE - lisa:git-history-analyzer - Spike already captured the relevant history; Explore covers residual lookups.
+- EXCLUDE - lisa:github-agent - Lifecycle is driven by this lead flow; the agent was used only as the bounded input-resolver.
+- EXCLUDE - lisa:github-build-intake - Not an intake cycle.
+- EXCLUDE - lisa:github-prd-intake - Not a PRD.
+- EXCLUDE - lisa:jira-agent - Tracker is GitHub.
+- EXCLUDE - lisa:jira-build-intake - Tracker is GitHub.
+- EXCLUDE - lisa:learnings-synthesizer - Debrief-only.
+- EXCLUDE - lisa:learning-judge - Invoked inside lisa-persist-learning only if a candidate arises.
+- EXCLUDE - lisa:linear-agent - Tracker is GitHub.
+- EXCLUDE - lisa:linear-build-intake - Tracker is GitHub.
+- EXCLUDE - lisa:linear-prd-intake - Tracker is GitHub.
+- EXCLUDE - lisa:notion-prd-intake - No Notion PRD.
+- EXCLUDE - lisa:performance-specialist - Speedup measured by the spike; the item does not require a new benchmark.
+- EXCLUDE - lisa:pr-mining-specialist - Debrief-only.
+- EXCLUDE - lisa:product-specialist - No user-visible behavior or UX.
+- EXCLUDE - lisa:security-specialist - Adds a pinned devDependency only; no auth/input/secret surface. Supply-chain check (exact pin, lockfile integrity) is covered by quality review.
+- EXCLUDE - lisa:skill-evaluator - No learning routing.
+- EXCLUDE - lisa:spec-conformance-specialist - Four Gherkin criteria are checked directly by the verification-specialist.
+- EXCLUDE - lisa:test-specialist - Test changes are limited to two path assertions; no new test strategy.
+- EXCLUDE - lisa:tracker-mining-specialist - Debrief-only.
+- EXCLUDE - Plan - Approach is prescribed by the work item.
+- EXCLUDE - statusline-setup - Unrelated.

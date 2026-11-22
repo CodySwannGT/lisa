@@ -172,6 +172,24 @@ const REASONS = {
 };
 
 /**
+ * One condition that stops a work item, as reported to the caller.
+ * @typedef {object} BlockEntry
+ * @property {string} condition A member of {@link BLOCK_CONDITIONS}.
+ * @property {string} owner Who must resolve it: `design` or `us`.
+ * @property {string | null} component The component it concerns, when known.
+ * @property {string | null} axis The design axis it concerns, when known.
+ * @property {string} reason The plain-language reason, for the escalation comment.
+ */
+
+/**
+ * A value measured in an axis with no variable system, recorded rather than blocked.
+ * @typedef {object} DerivedEntry
+ * @property {string} axis The design axis measured.
+ * @property {string | null} component The component it was measured on.
+ * @property {unknown} value The measured value, or null.
+ */
+
+/**
  * Build one block entry.
  *
  * Deliberately carries no resolved value. Where two sources disagree, choosing
@@ -179,7 +197,7 @@ const REASONS = {
  * guessing in exactly the situation the condition exists to catch.
  * @param {string} condition - A member of {@link BLOCK_CONDITIONS}.
  * @param {object} finding - The finding that produced it.
- * @returns {{ condition: string, component: string, axis: string | null, reason: string }} Block entry.
+ * @returns {BlockEntry} Block entry.
  */
 function blockFor(condition, finding) {
   return {
@@ -199,7 +217,7 @@ function blockFor(condition, finding) {
  * silent permission to copy numbers out of a picture.
  * @param {object} finding - Finding with an `axis`.
  * @param {Record<string, string>} regime - Observed regime per axis.
- * @returns {{ block: object | null, derived: object | null }} The outcome.
+ * @returns {{ block: BlockEntry | null, derived: DerivedEntry | null }} The outcome.
  */
 function classifyRegimeSensitive(finding, regime) {
   const state = regime?.[finding.axis];
@@ -233,7 +251,7 @@ function classifyRegimeSensitive(finding, regime) {
  * Classify one finding.
  * @param {object} finding - The finding.
  * @param {Record<string, string>} regime - Observed regime per axis.
- * @returns {{ block: object | null, derived: object | null }} The outcome.
+ * @returns {{ block: BlockEntry | null, derived: DerivedEntry | null }} The outcome.
  */
 function classifyFinding(finding, regime) {
   const kind = finding?.kind;
@@ -277,8 +295,8 @@ function configuredString(value) {
  *   owner: "design" | "us" | null,
  *   assignee: string | null,
  *   label: string | null,
- *   blocks: object[],
- *   derived: object[],
+ *   blocks: BlockEntry[],
+ *   derived: DerivedEntry[],
  *   comment: string | null
  * }} The verdict.
  */

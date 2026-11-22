@@ -25,32 +25,9 @@ function patchFile(file, replacements) {
 }
 
 const testPatches = [
-  // prd-verified-lifecycle-docs skill/agent paths
-  [
-    "tests/unit/strategies/prd-verified-lifecycle-docs.test.ts",
-    [
-      [
-        "`skills/${vendor}-prd-intake/SKILL.md`",
-        "`skills/lisa-${vendor}-prd-intake/SKILL.md`",
-      ],
-    ],
-  ],
-  // Skill invocation refs in tests (colon → hyphen for skills)
-  [
-    "tests/unit/strategies/prd-intake-s10-hard-gate.test.ts",
-    [
-      ["lisa:tracker-validate", "lisa-tracker-validate"],
-      ["lisa:task-decomposition", "lisa-task-decomposition"],
-    ],
-  ],
-  [
-    "tests/unit/strategies/github-linked-pr-project-membership.test.ts",
-    [["lisa:github-project-v2", "lisa-github-project-v2"]],
-  ],
-  [
-    "tests/unit/strategies/github-writer-project-membership.test.ts",
-    [["lisa:github-project-v2", "lisa-github-project-v2"]],
-  ],
+  // The phrase-only suites this also patched were folded into the phrase
+  // manifest (CodySwannGT/lisa#4609), and their wording pins were later
+  // culled (CodySwannGT/lisa#4867), so they no longer appear here.
   // agent-transformer output uses normalized skill names
   [
     "tests/unit/codex/agent-transformer.test.ts",
@@ -93,16 +70,6 @@ const testPatches = [
       [
         'const EXPLORATORY_QA = "lisa-exploratory-qa";',
         'const EXPLORATORY_QA = "exploratory-qa";',
-      ],
-    ],
-  ],
-  // prd-intake-verify-dispatch: rule cites /lisa:verify-prd command
-  [
-    "tests/unit/strategies/prd-intake-verify-dispatch.test.ts",
-    [
-      [
-        'const VERIFY = "lisa-verify-prd";',
-        'const VERIFY = "/lisa:verify-prd";',
       ],
     ],
   ],

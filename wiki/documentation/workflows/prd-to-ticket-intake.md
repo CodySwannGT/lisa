@@ -170,7 +170,7 @@ Examples:
 | JIRA JQL filter | `lisa:implement` per matching Ready ticket | `lisa:jira-build-intake` (internal) |
 | Linear / GitHub Issues | adapter not yet built; stops cleanly | — |
 
-**One team per cron cycle.** `/lisa:intake` creates the team (per its orchestration preamble); the per-item `/lisa:plan` and `/lisa:implement` invocations detect the existing team via the cascade-safe orchestration preamble and skip `TeamCreate`. The same team processes everything that's currently `Status = Ready`.
+**One item per cron cycle.** `/lisa:intake` claims the first eligible Ready item and invokes `/lisa:plan` or `/lisa:implement` for it in the same session; the next scheduled cycle takes the next item with fresh context.
 
 **What happens per cycle** when scanning a Notion PRD database (Notion side, internal `lisa:notion-prd-intake`):
 
@@ -214,7 +214,7 @@ When a `Blocked` PRD's comments are addressed, product flips it back to `Ready` 
 /schedule "every hour"        /lisa:intake "<JQL filter>"
 ```
 
-Each scheduled invocation creates one team (per `lisa:intake`'s orchestration preamble), processes everything currently `Status = Ready` in the queue within that single team, and tears the team down on completion. If two scheduled runs overlap, the cascade rule prevents double-`TeamCreate` — but you should serialize at the scheduling layer (don't fire a new cycle while one is still running against the same queue).
+Each scheduled invocation processes one eligible item and exits. Serialize at the scheduling layer: don't fire a new cycle while one is still running against the same queue.
 
 ## Architecture: composed skills
 

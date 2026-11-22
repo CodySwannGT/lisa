@@ -31,7 +31,7 @@ const FIELD = "\u001F";
 const STASH_LIST_FORMAT = "--format=%H%x1f%gs%x1f%ct";
 
 /** Namespace the preserved stash commits are anchored under. */
-export const PRESERVED_STASH_REF_PREFIX = "refs/lisa/pruned-stashes";
+const PRESERVED_STASH_REF_PREFIX = "refs/lisa/pruned-stashes";
 
 /** Command-line options for the stash prune verb. */
 export interface StashPruneOptions {
@@ -239,7 +239,7 @@ export async function planStashPrune(
  * @param sha - Commit id of the entry
  * @returns Current `stash@{n}` reference, or undefined when the entry is gone
  */
-export async function locateStash(
+async function locateStash(
   repoPath: string,
   sha: string
 ): Promise<string | undefined> {

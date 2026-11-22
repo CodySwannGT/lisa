@@ -61,6 +61,32 @@ describe("built Lisa CLI smoke", () => {
     expect(version).not.toBe("1.0.0");
   });
 
+  it.each([
+    { name: "root", args: [] },
+    { name: "apply", args: ["apply"] },
+  ])(
+    "documents bootstrap in genuine $name help without opt-in (#4759)",
+    ({ name, args }) => {
+      const environment = { ...process.env };
+      delete environment.LISA_BOOTSTRAP;
+      delete environment.LISA_SKIP_UPDATE_CHECK;
+      const help = boundedExecFileSync({
+        label: `built ${name} bootstrap help`,
+        command: process.execPath,
+        args: [DIST_CLI, ...args, "--help"],
+        baseMs: 30_000,
+        cwd: REPO_ROOT,
+        env: environment,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      expect(help).toContain("LISA_BOOTSTRAP=1");
+      expect(help).toContain("non-interactive");
+      expect(help).toContain("--full-apply");
+      expect(help).toContain("installation");
+    }
+  );
+
   it("documents setup-project types in the built command help", () => {
     const help = run("node", [DIST_CLI, "setup-project", "--help"]);
 

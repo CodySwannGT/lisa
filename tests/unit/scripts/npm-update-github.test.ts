@@ -1,5 +1,16 @@
 /** Fixed writer and provider controls are transport fixtures, never attestation proof. */
 import { describe, expect, it, vi } from "vitest";
+
+// Owner discovery is pinned to a committed hermetic owner, so the classifier's
+// real source authority never depends on this run being a Git checkout of Lisa
+// or on the live npm registry (CodySwannGT/lisa#4923).
+vi.mock(
+  "../../../all/copy-overwrite/scripts/lib/npm-update-npm.mjs",
+  async original =>
+    (
+      await import("../../support/npm-update-helper-owner.js")
+    ).withHermeticOwner(await original())
+);
 import { registryVersion } from "../../../all/copy-overwrite/scripts/lib/npm-update-npm.mjs";
 import {
   buildDraft,

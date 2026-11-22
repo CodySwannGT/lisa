@@ -28,7 +28,8 @@ import {
   messages,
   runGate,
   runReport,
-} from "./bdd/support";
+} from "./bdd/support.js";
+import { createSymlink } from "../../support/borrowed-node-modules.mjs";
 
 describe("scenario and mapping validation", () => {
   it("rejects duplicate scenario IDs", () => {
@@ -182,7 +183,7 @@ describe("path traversal and symlinks", () => {
     const root = healthyProject({
       mappings: [{ ...healthyMapping(), file: "e2e/link.spec.ts" }],
     });
-    fs.symlinkSync(
+    createSymlink(
       path.join(outside, "secret.txt"),
       path.join(root, "e2e", "link.spec.ts")
     );

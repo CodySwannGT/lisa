@@ -132,12 +132,27 @@ export const REVIEW_DEFAULTS = Object.freeze({
  */
 const EXTRA_APPROVAL = "require_extra_approval_for_unattributed_changes";
 
-/** Branch-protection defaults, matching the retired template. */
+/**
+ * Branch-protection defaults, matching the retired template except for one
+ * field.
+ *
+ * `dismiss_stale_reviews` is `true` (CodySwannGT/lisa#4574): an approval
+ * given on an older head no longer survives a push that changes the diff. The
+ * retired template had `false`. A project that declares
+ * `policy.protect.dismiss_stale_reviews` keeps its declared value.
+ *
+ * This does NOT clear a CHANGES_REQUESTED review. GitHub dismisses stale
+ * approvals only. Measured on a probe repository on 2026-11-01 with this
+ * parameter `true` and `required_approving_review_count: 0`: after a push that
+ * changed the diff, the review stayed CHANGES_REQUESTED on the old commit and
+ * the PR stayed BLOCKED. A stale change request still needs a fresh review from
+ * the same reviewer or a dismissal (see `lisa-drive-pr-to-merge`).
+ */
 export const PROTECT_DEFAULTS = Object.freeze({
   deletion: true,
   force_push: true,
   conversation_resolution: true,
-  dismiss_stale_reviews: false,
+  dismiss_stale_reviews: true,
   require_last_push_approval: false,
   up_to_date_before_merge: false,
 });
@@ -292,7 +307,7 @@ function pullRequestRule(policy) {
  * @param {object} [options.gates] The gates block.
  * @param {object} [options.policy] The policy block.
  * @param {string} [options.moment] Moment to derive awaited checks for.
- * @returns {object} A create/update payload for the `base` ruleset.
+ * @returns {{name: string, target: string, enforcement: unknown, conditions: {ref_name: {exclude: unknown[], include: unknown[]}}, bypass_actors: unknown[], rules: Array<{type: string, parameters?: Record<string, unknown>}>}} A create/update payload for the `base` ruleset.
  */
 export function buildRulesetPayload({
   gates = {},

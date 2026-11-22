@@ -1,4 +1,4 @@
 display_name: "Jira Build Intake"
-short_description: "Symmetric counterpart to notion-prd-intake on the JIRA side"
+short_description: "Run one cycle of the JIRA build queue: claim the first ready leaf ticket, build it with lisa-implement, and mark it done"
 default_prompt:
-  - "Use $lisa-jira-build-intake: Symmetric counterpart to notion-prd-intake on the JIRA side."
+  - "Use $lisa-jira-build-intake: Run one cycle of the JIRA build queue: claim the first ready leaf ticket, build it with lisa-implement, and mark it done."

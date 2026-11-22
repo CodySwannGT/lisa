@@ -70,7 +70,7 @@ export function isRecord(value: unknown): value is JsonRecord {
  * @param error - Thrown value
  * @returns True for ENOENT
  */
-export function isMissing(error: unknown): boolean {
+function isMissing(error: unknown): boolean {
   return (error as NodeJS.ErrnoException | undefined)?.code === "ENOENT";
 }
 

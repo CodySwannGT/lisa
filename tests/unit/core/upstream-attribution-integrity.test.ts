@@ -15,6 +15,13 @@ import { afterEach, describe, expect, it } from "vitest";
 
 const SURFACE = "plugins/src/base/skills/lisa-persist-learning/SKILL.md";
 const BODY_MODULE_PATH = "src/core/upstream-attribution-body.ts";
+/** The body module plus the sibling modules it imports. */
+const PROJECTION_MODULE_PATHS = [
+  BODY_MODULE_PATH,
+  "src/core/upstream-attribution-fields.ts",
+  "src/core/upstream-attribution-files.ts",
+  "src/core/upstream-attribution-guards.ts",
+] as const;
 const PUBLIC_SHA = "90549e6dae19aa5e53b86908d5050d303b724f55";
 const temporaryDirectories: string[] = [];
 
@@ -31,11 +38,15 @@ describe("upstream attribution evidence integrity", () => {
     mkdirSync(path.join(root, "src/core"), { recursive: true });
     mkdirSync(path.join(root, path.dirname(SURFACE)), { recursive: true });
     copyFileSync("package.json", path.join(root, "package.json"));
-    copyFileSync(BODY_MODULE_PATH, path.join(root, BODY_MODULE_PATH));
-    copyFileSync(
+    for (const modulePath of PROJECTION_MODULE_PATHS) {
+      copyFileSync(modulePath, path.join(root, modulePath));
+    }
+    for (const manifestPath of [
       "src/core/upstream-evidence-manifest.ts",
-      path.join(root, "src/core/upstream-evidence-manifest.ts")
-    );
+      "src/core/upstream-evidence-manifest.json",
+    ]) {
+      copyFileSync(manifestPath, path.join(root, manifestPath));
+    }
     const original = readFileSync(SURFACE, "utf8");
     writeFileSync(path.join(root, SURFACE), `${original}\nTAMPERED\n`, "utf8");
     const moduleUrl = `${

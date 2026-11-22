@@ -1,4 +1,4 @@
 display_name: "Improve Max Lines"
-short_description: "reducing the maximum class/module lines threshold and fixing all violations"
+short_description: "Lower the maximum class/module length limit in RuboCop and plan the refactors that bring oversized files under it"
 default_prompt:
-  - "Use $improve-max-lines: reducing the maximum class/module lines threshold and fixing all violations."
+  - "Use $improve-max-lines: Lower the maximum class/module length limit in RuboCop and plan the refactors that bring oversized files under it."

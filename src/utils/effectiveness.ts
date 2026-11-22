@@ -2,15 +2,9 @@ import {
   isEvidenceString,
   isEvidenceTime,
   parseEffectiveness,
-  parseEffectivenessTokens,
 } from "../../all/copy-overwrite/scripts/lib/usage-effectiveness.mjs";
 import type { EffectivenessObservation } from "../../all/copy-overwrite/scripts/lib/usage-effectiveness.mjs";
-export {
-  isEvidenceString,
-  isEvidenceTime,
-  parseEffectiveness,
-  parseEffectivenessTokens,
-};
+export { isEvidenceString, isEvidenceTime, parseEffectiveness };
 export type { EffectivenessObservation };
 /** Observations, not scores. Unknown clocks stay null and evidence stays explicit. */
 import { createHash } from "node:crypto";

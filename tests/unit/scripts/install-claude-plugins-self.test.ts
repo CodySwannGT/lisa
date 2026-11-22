@@ -48,6 +48,11 @@ const PLUGIN_SYNC_MARKER_FILE = ".lisa-plugins-synced";
 const FAKE_LISA_VERSION = "9.9.9";
 const SENTRY_PLUGIN = "sentry@claude-plugins-official";
 const SETTINGS_FILE_NAME = "settings.json";
+/** Plain-English pointer an operator sees when install registers no plugins (#4504). */
+const PLUGIN_REGISTRATION_NOTICE =
+  "Claude Code plugins are not registered by dependency install";
+const PLUGIN_REGISTRATION_REMEDY =
+  "Run `lisa apply .` in this project to register them";
 
 let tempRoots: string[] = [];
 
@@ -219,7 +224,11 @@ async function copyLisaScriptTo(
 ): Promise<string> {
   const scriptPath = path.join(root, ...segments, INSTALL_SCRIPT_NAME);
   await mkdir(path.dirname(scriptPath), { recursive: true });
-  await cp(SCRIPT_PATH, scriptPath);
+  // Stage the complete shipped lane; dependencies can grow without a frozen
+  // fixture list silently dropping a required module or data artifact.
+  await cp(path.dirname(SCRIPT_PATH), path.dirname(scriptPath), {
+    recursive: true,
+  });
   await chmod(scriptPath, 0o755);
   return scriptPath;
 }
@@ -407,9 +416,11 @@ describe("install-claude-plugins self postinstall path", () => {
         await Promise.all(preservedFiles.map(file => readFile(file)))
       ).toEqual(before);
       expect(result.stdout).toContain(
-        "installation leaves project templates unchanged"
+        "installation leaves unrelated project templates unchanged"
       );
       expect(result.stdout).toContain("lisa apply");
+      expect(result.stdout).toContain(PLUGIN_REGISTRATION_NOTICE);
+      expect(result.stdout).toContain(PLUGIN_REGISTRATION_REMEDY);
     }
   );
 
@@ -459,6 +470,8 @@ describe("install-claude-plugins self postinstall path", () => {
         originalPackage
       );
       expect(result.stdout).toContain("lisa apply");
+      expect(result.stdout).toContain(PLUGIN_REGISTRATION_NOTICE);
+      expect(result.stdout).toContain(PLUGIN_REGISTRATION_REMEDY);
     }
   );
 
@@ -949,14 +962,38 @@ describe("install-claude-plugins self postinstall path", () => {
     expect(log).toContain(
       "claude plugin uninstall sentry@claude-plugins-official --scope project"
     );
-    // The Lisa-native parity-safety-net.sh hook absorbed the upstream
-    // safety-net plugin's material guards, so the upstream plugin is retired
-    // on sync instead of installed (issue #1960).
+    // A Lisa-native hook absorbed the upstream safety-net plugin's material
+    // guards, so the upstream plugin is retired on sync instead of installed
+    // (issue #1960).
     expect(log).not.toContain(
       "claude plugin install safety-net@cc-marketplace"
     );
     expect(log).toContain(
       "claude plugin uninstall safety-net@cc-marketplace --scope project"
+    );
+    // #1960 pinned a name no plugin has; the real upstream plugin is
+    // `cc-safety-net`, and #4799 retires it together with impeccable and the
+    // code-review / code-simplifier plugins Claude Code now covers natively,
+    // and skill-creator, which the owner retired.
+    for (const retired of [
+      "cc-safety-net@cc-marketplace",
+      "impeccable@impeccable",
+      "code-review@claude-plugins-official",
+      "code-simplifier@claude-plugins-official",
+      "skill-creator@claude-plugins-official",
+    ]) {
+      expect(log).toContain(
+        `claude plugin uninstall ${retired} --scope project`
+      );
+    }
+    expect(log).not.toContain(
+      "claude plugin install code-review@claude-plugins-official"
+    );
+    expect(log).not.toContain(
+      "claude plugin install code-simplifier@claude-plugins-official"
+    );
+    expect(log).not.toContain(
+      "claude plugin install skill-creator@claude-plugins-official"
     );
     const marker = await readFile(
       path.join(projectRoot, CLAUDE_DIR, PLUGIN_SYNC_MARKER_FILE),

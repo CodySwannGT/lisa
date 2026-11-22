@@ -106,6 +106,18 @@ like the learnings ledger, whose entries are independent records that genuinely 
 ignore rule binds untracked paths only, `lisa doctor` also reports a checkout that still tracks a
 report committed before the rule shipped, naming `git rm --cached .lisa/readiness.json`.
 
+`lisa doctor` also reports a host CodeRabbit config that lets the review bot write Lisa's own
+labels (check "CodeRabbit kept off Lisa's lifecycle labels?"). From 2026-02-11 to 2026-03-01 Lisa
+shipped a `.coderabbit.yml` that turns `issue_enrichment.labeling.auto_apply_labels` on with no
+`labeling_instructions` allowlist, and `all/deletions.json` keeps that file, so the bot could put
+`status:ready` back onto claimed issues. The check fails when auto-apply is on and the allowlist is
+missing, empty, or names any `status:`, `type:` or `points:` label or the human-needed label. The
+host remedy is either `auto_apply_labels: false` or an allowlist naming none of those. `lisa apply`
+makes the first change itself, with an explanatory comment, but only to a copy whose bytes prove it
+is the unedited one Lisa wrote; an edited copy is left for the host to fix. The families are
+defined once in `src/core/coderabbit-labeling.ts`, shared with the test that guards Lisa's own
+`.coderabbit.yml`.
+
 Every normal command performs a timeout-bound npm latest-version check before it runs. The project-local cache lives under `node_modules/.cache`; the check is non-fatal when offline and can be skipped with `--no-update-check` or `LISA_SKIP_UPDATE_CHECK=1`. `lisa update --yes` updates this project's dependency and triggers the same automatic apply path.
 
 Lisa's Codex delivery is entirely project-scoped. `lisa apply` writes only the
@@ -228,7 +240,6 @@ and the pointer block names it during the transition.
 | Skill | Purpose |
 |-------|---------|
 | `jsdoc-best-practices` | Documentation standards ("why" over "what"), JSDoc ESLint rules |
-| `skill-creator` | Guide for creating effective new skills |
 
 **Workflow skills (31 total, organized by category):**
 
@@ -249,9 +260,6 @@ and the pointer block names it during the transition.
 ```
 .claude/skills/
 ├── jsdoc-best-practices/       # Foundational (auto-applied)
-│   ├── SKILL.md
-│   └── references/
-├── skill-creator/              # Foundational (auto-applied)
 │   ├── SKILL.md
 │   └── references/
 ├── plan-add-test-coverage/     # Workflow (invoked by /plan:add-test-coverage)
@@ -329,6 +337,12 @@ and the pointer block names it during the transition.
 | | `/lisa:review-implementation` | Compare against Lisa templates |
 | | `/lisa:review-project` | Compare templates against target project |
 | | `/lisa:integration-test` | Apply Lisa, verify project builds, fix upstream issues |
+| **Controls** | `/lisa:audit` | Report where each Level 1 requirement stands in a repository, on any stack; works where Lisa was never applied |
+| | `/lisa:configure` | Declare the checks that govern the repository and generate the control register |
+| | `/lisa:enforce` | Make the declared checks run, file a ticket for each missing capability, compare merge protection |
+| | `/lisa:attest` | Prove each check by trying to break it, and report the verdict that code computes |
+
+The four **Controls** commands are run in that order. On Codex they are started as `$lisa-audit` and so on, and on Devin as `/lisa:lisa-audit` and so on. See [Control Audit](workflows/control-audit.md).
 
 ---
 
@@ -522,16 +536,17 @@ Without local enforcement (hooks), agents waste cycles pushing artifacts that wi
 
 Lisa uses a two-file governance model to manage `package.json` in target projects:
 
-- **`package.lisa.json`** (source template) — Defines governance rules with `force`, `defaults`, and `merge` sections
+- **`package.lisa.json`** (source template) — Defines governance rules with `force`, `defaults`, `merge` and `minimums` sections
 - **`package.json`** (destination) — Remains clean with no governance markers
 
-### Three Semantic Behaviors
+### Four Semantic Behaviors
 
 | Behavior | What It Does | Use Case |
 |----------|--------------|----------|
 | **`force`** | Lisa's values completely replace project's values | Governance-critical configs (lint rules, mandatory dependencies, commit hooks) |
 | **`defaults`** | Project's values preserved; Lisa provides fallback | Helpful templates projects can override (Node.js version, TypeScript version) |
 | **`merge`** | Arrays are concatenated and deduplicated | Shared lists where both Lisa and project contribute (trusted dependencies) |
+| **`minimums`** | A direct range the project lists is raised inside its own major; nothing is added, a raise across a major is refused, and transitive copies and `peerDependencies` are never touched | Libraries Lisa no longer installs whose version line it keeps |
 
 ### Template Subdirectory Structure
 
@@ -786,11 +801,11 @@ Lisa enables several official and marketplace plugins:
 
 | Plugin | Purpose |
 |--------|---------|
-| **safety-net** | Block dangerous git commands |
 | **typescript-lsp** | TypeScript language server integration |
-| **code-simplifier** | Automated code refactoring and simplification |
-| **code-review** | AI-powered code review |
+| **coderabbit** | CodeRabbit AI code review |
 | **playwright** | Browser automation for E2E testing |
+
+Lisa no longer enables `code-review` (Claude Code's built-in `/code-review` replaces it), `code-simplifier` (replaced by the "Simplify before you finish" instruction in the coding-philosophy rule), `skill-creator`, the upstream safety-net plugin (Lisa's own hook covers it) or `impeccable` (CodySwannGT/lisa#4799).
 
 ### Push Notifications (ntfy.sh) — retired
 

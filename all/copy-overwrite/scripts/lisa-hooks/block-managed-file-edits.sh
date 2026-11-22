@@ -187,6 +187,186 @@ if [ -f "$project_root/package.json" ] &&
   exit 0
 fi
 
+# lisa_glob_ere <glob>
+#
+# Set `lisa_glob_ere_result` to an anchored ERE that matches exactly the
+# strings the shell's `case` matches with <glob>, so
+# `[[ $path =~ $lisa_glob_ere_result ]]` can stand in for an unquoted `case`
+# pattern: `*` is any run of characters (slashes included), `?` is one
+# character, `[...]` is a bracket expression (`!` or `^` negates it), a
+# backslash makes the next character literal, and an unterminated `[` is a
+# literal `[`. Every other character is literal, so an ERE metacharacter in a
+# glob is matched as itself rather than obeyed. Returns 1, matching nothing, for a trailing backslash: it escapes
+# nothing, and the shell's matcher then matches nothing either.
+#
+# A range compares code points, as bash 5 does by default (`globasciiranges`)
+# and as minimatch does. Measured against bash 3.2's `case` in the C locale:
+# no mismatch over 3,127 pattern/path pairs and over a second fuzz of 3,795.
+# Two differences remain, both in a bracket. Under a UTF-8 locale bash 3.2
+# orders a range by collation (`[]-a]`). And a bracket holding an unterminated
+# `[.` or `[=`, or an unterminated `[:` after other members (`[a[:]`), is read
+# by bash 3.2 with its earlier members dropped; this reads every member.
+#
+# No subshells: this runs on every agent edit, so each helper appends to a
+# variable instead of printing.
+lisa_glob_ere() {
+  local glob="$1" char
+  local -i i=0 n=${#1}
+  lisa_glob_ere_result=""
+  while [ "$i" -lt "$n" ]; do
+    char="${glob:i:1}"
+    case "$char" in
+      "*") lisa_glob_ere_result+=".*" ;;
+      "?") lisa_glob_ere_result+="." ;;
+      "\\")
+        [ "$((i + 1))" -lt "$n" ] || return 1
+        i+=1
+        lisa_glob_ere_literal "${glob:i:1}"
+        ;;
+      "[")
+        if lisa_glob_bracket_end "$glob" "$i"; then
+          lisa_glob_bracket_ere "${glob:i+1:lisa_glob_close-i-1}"
+          i=$lisa_glob_close
+        else
+          lisa_glob_ere_literal "["
+        fi
+        ;;
+      *) lisa_glob_ere_literal "$char" ;;
+    esac
+    i+=1
+  done
+  lisa_glob_ere_result="^${lisa_glob_ere_result}\$"
+}
+
+# lisa_glob_ere_literal <char>
+#
+# Append one character to `lisa_glob_ere_result`, written so an ERE matches
+# it literally.
+lisa_glob_ere_literal() {
+  case "$1" in
+    "^") lisa_glob_ere_result+="\\^" ;;
+    "\\") lisa_glob_ere_result+="[\\]" ;;
+    "[") lisa_glob_ere_result+="[[]" ;;
+    "." | "+" | "(" | ")" | "{" | "}" | "|" | "$" | "*" | "?") lisa_glob_ere_result+="[$1]" ;;
+    *) lisa_glob_ere_result+="$1" ;;
+  esac
+}
+
+# lisa_glob_bracket_end <glob> <open>
+#
+# Set `lisa_glob_close` to the index of the `]` closing the bracket opened
+# at <open>, or return 1 when it is never closed. A `]` straight after the
+# opening (or after its `!`/`^`) is a member, `[:name:]`, `[.x.]` and `[=x=]`
+# are single members, and a backslash escapes the next character, as in the
+# shell's own matcher.
+lisa_glob_bracket_end() {
+  local glob="$1" rest name mark
+  local -i i=$(($2 + 1)) n=${#1} start
+  case "${glob:i:1}" in "!" | "^") i+=1 ;; esac
+  start=$i
+  while [ "$i" -lt "$n" ]; do
+    case "${glob:i:1}" in
+      "]")
+        if [ "$i" -gt "$start" ]; then
+          lisa_glob_close=$i
+          return 0
+        fi
+        ;;
+      "\\") i+=1 ;;
+      "[")
+        mark="${glob:i+1:1}"
+        case "$mark" in
+          ":" | "." | "=")
+            rest="${glob:i+2}"
+            case "$rest" in
+              *"$mark]"*)
+                name="${rest%%"$mark]"*}"
+                i+=$((${#name} + 3))
+                ;;
+            esac
+            ;;
+        esac
+        ;;
+    esac
+    i+=1
+  done
+  return 1
+}
+
+# lisa_glob_bracket_ere <body>
+#
+# Append the ERE bracket expression for a glob bracket body to
+# `lisa_glob_ere_result`. An escaped member loses its backslash, and a literal
+# `]`, `^` or `-` is placed where an ERE bracket reads it literally: first, not
+# first, and last. A `[:name:]`, `[.x.]` or `[=x=]` is copied whole; any other
+# `[` is a literal member, placed after the others so it never opens a class
+# the ERE would reject (`[[:]`). A `-` straight after a range is literal, as
+# the shell reads `[a-c-e]`, rather than a second range the ERE would reject.
+lisa_glob_bracket_ere() {
+  local body="$1" negate="" members="" close="" open="" caret="" dash=""
+  local char next rest
+  local -i i=0 n=${#1} after_range=0
+  case "${body:0:1}" in "!" | "^") negate="^" i=1 ;; esac
+  if [ "${body:i:1}" = "]" ]; then
+    close="]"
+    i+=1
+  fi
+  while [ "$i" -lt "$n" ]; do
+    char="${body:i:1}"
+    next="${body:i+1:1}"
+    if [ "$char" = "\\" ] && [ "$((i + 1))" -lt "$n" ]; then
+      i+=1
+      case "$next" in
+        "]") close="]" ;;
+        "^") caret="^" ;;
+        "-") dash="-" ;;
+        *) members+="$next" ;;
+      esac
+      after_range=0
+    elif [ "$char" = "^" ] && [ -z "$members$close" ]; then
+      caret="^"
+      after_range=0
+    elif [ "$char" = "[" ]; then
+      rest="${body:i+2}"
+      case "$next" in
+        ":" | "." | "=")
+          case "$rest" in
+            *"$next]"*)
+              rest="${rest%%"$next]"*}"
+              members+="[${next}${rest}${next}]"
+              i+=$((${#rest} + 3))
+              ;;
+            # An unterminated `[:` opens nothing, and the shell drops its
+            # `[`; any other unterminated opener leaves a literal `[`.
+            *) if [ "$next" != ":" ]; then open="["; fi ;;
+          esac
+          ;;
+        *) open="[" ;;
+      esac
+      after_range=0
+    elif [ "$char" = "-" ] && [ "$after_range" -eq 1 ]; then
+      dash="-"
+      after_range=0
+    elif [ "$char" = "-" ] && [ -n "$members$close" ] && [ "$((i + 1))" -lt "$n" ]; then
+      members+="-${next}"
+      i+=1
+      after_range=1
+    elif [ "$char" = "-" ]; then
+      if [ -z "$members$close" ]; then members+="-"; else dash="-"; fi
+      after_range=0
+    else
+      members+="$char"
+      after_range=0
+    fi
+    i+=1
+  done
+  if [ -z "$close$members$open$dash" ]; then
+    members="$caret"
+    caret=""
+  fi
+  lisa_glob_ere_result+="[${negate}${close}${members}${open}${caret}${dash}]"
+}
+
 # Whether the project has claimed a path in `.lisaignore`.
 #
 # THIS IS THE OWNERSHIP QUESTION, and it decides whether blocking is right at
@@ -231,32 +411,26 @@ lisaignored() {
       # `\!x` is a literal leading `!`, not a negation.
       \\!*) pattern="${pattern#\\}" ;;
     esac
-    local selected=1
+    local selected=1 pattern_ere=""
+    # A trailing backslash leaves no ERE, and such a pattern selects nothing.
+    if lisa_glob_ere "$pattern"; then pattern_ere="$lisa_glob_ere_result"; fi
     case "$pattern" in
       */)
         case "$rel" in "${pattern%/}"/* | "${pattern%/}") selected=0 ;; esac
         ;;
     esac
-    if [ "$selected" -ne 0 ]; then
-      # The pattern is a glob on purpose, so it is deliberately unquoted.
-      #
-      # The reason sits on its own line because a shellcheck directive is
-      # `key=value` pairs and NOTHING else. Written as
-      # `disable=SC2254 -- <prose>`, the trailing words are read as more
-      # directive keys: the directive fails with SC1072/SC1073, shellcheck
-      # stops checking the rest of THIS FILE, and SC2254 is left unsuppressed
-      # as well. Measured with shellcheck 0.11.0. Do not rejoin these lines.
-      # shellcheck disable=SC2254
-      case "$rel" in $pattern) selected=0 ;; esac
+    # The pattern is a glob on purpose. It is matched through its ERE, which
+    # `lisa_glob_ere` builds to select exactly what an unquoted `case`
+    # pattern would, so no expansion is left unquoted.
+    if [ "$selected" -ne 0 ] && [ -n "$pattern_ere" ]; then
+      if [[ $rel =~ $pattern_ere ]]; then selected=0; fi
     fi
-    if [ "$selected" -ne 0 ]; then
+    if [ "$selected" -ne 0 ] && [ -n "$pattern_ere" ]; then
       case "$pattern" in
         */*) ;;
         *)
-          # Ditto, matched against the basename — and ditto about the reason
-          # living on its own line rather than after the directive.
-          # shellcheck disable=SC2254
-          case "${rel##*/}" in $pattern) selected=0 ;; esac
+          # Ditto, matched against the basename.
+          if [[ ${rel##*/} =~ $pattern_ere ]]; then selected=0; fi
           ;;
       esac
     fi
@@ -280,6 +454,86 @@ relative_path() {
   printf '%s' "${rel#./}"
 }
 
+# The host's dependency and devDependency names, one per line, read at most
+# once per classification. `managed_source` runs inside `$(...)`, so the cache
+# lives only as long as that subshell — one classification, not one hook run.
+# Unreadable or malformed `package.json` yields nothing, which makes every
+# dependency-keyed stack below read as absent — an allow, the safe direction.
+#
+# Loaded into a global rather than echoed, so callers match with a here-string
+# and no pipeline: under `pipefail` a `grep -q` that stops reading early can
+# fail the writer with SIGPIPE and turn a match into a miss.
+host_dependency_names=""
+host_dependency_names_pending=1
+load_host_dependency_names() {
+  [ "$host_dependency_names_pending" -eq 1 ] || return 0
+  host_dependency_names="$(jq -r \
+    '[(.dependencies // {}), (.devDependencies // {})] | add | keys[]' \
+    "$project_root/package.json" 2>/dev/null || true)"
+  host_dependency_names_pending=0
+}
+
+# Exact dependency name, or with `prefix` as the second argument, any name
+# starting with it (the NestJS detector's `@nestjs` test).
+host_has_dependency() {
+  load_host_dependency_names
+  local name
+  while IFS= read -r name; do
+    case "$name" in
+      "$1") return 0 ;;
+      "$1"*) [ "${2:-}" = prefix ] && return 0 ;;
+    esac
+  done <<<"$host_dependency_names"
+  return 1
+}
+
+# Whether the host is the given stack, so that stack's templates reach it.
+#
+# THE SAME PATH CAN BELONG TO DIFFERENT OWNERS IN DIFFERENT STACKS.
+# `.github/workflows/ci.yml` is create-only in typescript, nestjs, cdk, expo and
+# rails — the host owns it after the first apply — but copy-overwrite in
+# harper-fabric and phaser. Probing every stack's tree without asking which
+# stacks this host is made a NestJS host's own ci.yml read as managed via the
+# harper-fabric copy, and a project-owned one-line Node bump needed a human to
+# run the override (CodySwannGT/lisa#4511).
+#
+# `lisa apply` copies a stack's templates only into a host that stack's
+# detector recognises, so each arm mirrors `src/detection/detectors/<stack>.ts`.
+# `all`, `typescript`, and any stack without an arm here keep the pre-existing
+# answer — always managed — so this narrows only where a detector proves the
+# stack absent. Where a shell mirror cannot be exact it errs toward allowing,
+# the same direction `.lisaignore` handling above takes.
+stack_reaches_host() {
+  local stack="$1"
+  case "$stack" in
+    harper-fabric)
+      local config="$project_root/harper-app/config.yaml"
+      [ -f "$config" ] && [ -e "$project_root/harper-app/schema.graphql" ] ||
+        return 1
+      {
+        grep -qF 'graphqlSchema:' "$config" &&
+          grep -qF 'jsResource:' "$config" &&
+          grep -qF 'static:' "$config"
+      } || host_has_dependency harperdb
+      ;;
+    phaser) host_has_dependency phaser ;;
+    nestjs)
+      [ -e "$project_root/nest-cli.json" ] ||
+        host_has_dependency @nestjs prefix
+      ;;
+    expo)
+      [ -e "$project_root/app.json" ] || [ -e "$project_root/eas.json" ] ||
+        host_has_dependency expo
+      ;;
+    cdk) [ -e "$project_root/cdk.json" ] ;;
+    rails)
+      [ -e "$project_root/bin/rails" ] ||
+        [ -e "$project_root/config/application.rb" ]
+      ;;
+    *) return 0 ;;
+  esac
+}
+
 # Whether a host-relative path is shipped as a copy-overwrite template.
 #
 # A few stat calls rather than an enumeration: the same relative path is probed
@@ -299,6 +553,10 @@ managed_source() {
   for stack in "$package_root"/*/copy-overwrite; do
     [ -d "$stack" ] || continue
     if [ -e "$stack/$rel" ]; then
+      # Another stack's copy-overwrite twin is not this host's file. Keep
+      # looking: a stack this host IS may still manage the same path.
+      local stack_name="${stack%/copy-overwrite}"
+      stack_reaches_host "${stack_name##*/}" || continue
       printf '%s' "${stack#"$package_root"/}/$rel"
       return 0
     fi
@@ -355,9 +613,16 @@ generated_path() {
 # which side it is on.
 ledger_tracked() {
   local rel="$1"
-  local ledger="$package_root/dist/core/lisa-owned-hash-ledger.js"
-  [ -f "$ledger" ] || return 1
-  grep -q "\"$rel\"" "$ledger" 2>/dev/null
+  # The ledger's data is JSON since CodySwannGT/lisa#4929; an older package
+  # still carries it inside the compiled module, so read whichever exists.
+  local ledger
+  for ledger in "$package_root/dist/core/lisa-owned-hash-ledger.json" \
+    "$package_root/dist/core/lisa-owned-hash-ledger.js"; do
+    [ -f "$ledger" ] || continue
+    grep -q "\"$rel\"" "$ledger" 2>/dev/null
+    return
+  done
+  return 1
 }
 
 refuse() {

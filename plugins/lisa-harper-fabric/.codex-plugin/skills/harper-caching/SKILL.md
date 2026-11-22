@@ -1,8 +1,8 @@
 ---
 name: harper-caching
-description: "implementing Harper…"
+description: "Implement Harper…"
 ---
-This skill should be used when implementing Harper (HarperDB/Fabric) caching tables, external-source caches, TTL expiration, stale revalidation, invalidation, and cache verification. Use it when caching an upstream API, database, or expensive computation in Harper instead of hand-rolling in-memory maps. Pairs with harper-resources, harper-schema-graphql, harper-rest-queries, and harper-operations.
+Implement Harper (HarperDB/Fabric) caching tables: external-source caches, TTLs, stale revalidation, invalidation, and verification. Use when caching an upstream API or expensive computation.
 
 
 # Harper Caching

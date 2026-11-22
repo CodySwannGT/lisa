@@ -1,8 +1,14 @@
 #!/usr/bin/env node
 /**
  * Git merge driver for Lisa's two checked-in generated artifacts —
- * `src/core/upstream-evidence-manifest.ts` and
- * `src/core/lisa-owned-hash-ledger.ts` (issue CodySwannGT/lisa#3084).
+ * `src/core/upstream-evidence-manifest.json` and
+ * `src/core/lisa-owned-hash-ledger.json` (issue CodySwannGT/lisa#3084).
+ *
+ * Both were TypeScript modules until CodySwannGT/lisa#4929 moved their data to
+ * JSON. A JSON artifact is merged by `scripts/lib/merge-generated-json.mjs` on a
+ * parsed model with the same pointwise semantics described below; the
+ * line-based parser here still serves any TypeScript-shaped artifact and the
+ * coverage guard's tripwire.
  *
  * ## The problem this exists for
  *
@@ -77,7 +83,7 @@
  *
  * ## How it works
  *
- * The file is segmented into literal TEXT runs and ENTRIES blocks (a run of
+ * A TypeScript-shaped file is segmented into literal TEXT runs and ENTRIES blocks (a run of
  * `<key>: <value>` lines at one indent, each absorbing its own continuation
  * lines). Entry bodies are carried as **raw source text**, never re-rendered
  * from a parsed model, so this driver has no opinion about either generator's
@@ -117,6 +123,10 @@ import { readFileSync, writeFileSync } from "node:fs";
 import process from "node:process";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+import {
+  isJsonArtifact,
+  mergeJsonArtifact,
+} from "./lib/merge-generated-json.mjs";
 
 /**
  * Identity standing for "this side does not have this thing at all".
@@ -162,7 +172,7 @@ const ARRAY_OPEN = /Object\.freeze\(\[\s*$/u;
  *
  * ## Why NOT the hash ledger
  *
- * `src/core/lisa-owned-hash-ledger.ts` appears in **0 of 7** historical
+ * The hash ledger (then `src/core/lisa-owned-hash-ledger.ts`) appears in **0 of 7** historical
  * conflicts despite a 43% touch rate, and merged cleanly on both sides of two
  * live PRs the day #3822 was filed. Its entries are append-only arrays that
  * `unionArrayEntry` already merges exactly. It needs nothing, and a same-key
@@ -173,7 +183,7 @@ const ARRAY_OPEN = /Object\.freeze\(\[\s*$/u;
  * @type {ReadonlySet<string>}
  */
 export const DERIVED_ENTRY_RESOLUTION_PATHS = Object.freeze(
-  new Set(["src/core/upstream-evidence-manifest.ts"])
+  new Set(["src/core/upstream-evidence-manifest.json"])
 );
 
 /**
@@ -497,6 +507,8 @@ function mergeEntries(base, ours, theirs, resolveDerived) {
  */
 export function mergeGeneratedArtifact(base, ours, theirs, artifactPath) {
   const resolveDerived = resolvesDerivedEntries(artifactPath);
+  if (isJsonArtifact(ours))
+    return mergeJsonArtifact(base, ours, theirs, resolveDerived);
   const parsedOurs = parseArtifact(ours);
   const parsedTheirs = parseArtifact(theirs);
   if (!parsedOurs.ok)
@@ -664,9 +676,9 @@ export function runMergeGeneratedArtifact(
   );
   // The remedy is spelled with `git show` into a redirect, NOT `git checkout
   // --theirs --`, and that is load-bearing rather than stylistic
-  // (CodySwannGT/lisa#3692). `parity-safety-net` refuses every `git checkout`
-  // that discards worktree state, so the shape this driver used to print was
-  // one its own sibling guard blocked: an operator following the refusal
+  // (CodySwannGT/lisa#3692). A sibling guard of the time refused every
+  // `git checkout` that discards worktree state, so the shape this driver used
+  // to print was one Lisa itself blocked: an operator following the refusal
   // faithfully was stopped by a second control, mid-conflict, with the
   // guard's own suggestion at the time being `git stash` — repo-global, shared
   // by every worktree, and a race against concurrent agents' work.
@@ -690,7 +702,7 @@ export function runMergeGeneratedArtifact(
         `  git show ":3:${label}" > "${label}"\n` +
         `  bun run build:upstream-evidence-manifest\n` +
         `  bun run build:lisa-owned-hash-ledger\n` +
-        `  git add "${label}" src/core/upstream-evidence-manifest.ts src/core/lisa-owned-hash-ledger.ts\n` +
+        `  git add "${label}" src/core/upstream-evidence-manifest.json src/core/lisa-owned-hash-ledger.json\n` +
         `\n` +
         `Take the other side instead with \`git show ":2:${label}"\`. The redirect truncates\n` +
         `${label} before git writes, so a failed first command leaves it empty — re-run it,\n` +

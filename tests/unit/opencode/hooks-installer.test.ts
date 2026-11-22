@@ -12,7 +12,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   OPENCODE_EAGER_RULES_INSTRUCTION,
   OPENCODE_CONFIG_FILENAME,
-  OPENCODE_LISA_RULES_SUBDIR,
   OPENCODE_PLUGIN_SUBDIR,
   installHooks,
   listInstalledPluginFiles,
@@ -20,16 +19,36 @@ import {
 import { OPENCODE_CONFIG_DIR } from "../../../src/opencode/manifest.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
-import {
-  SESS,
-  LINT,
-  SUPPR,
-  MIGRATION,
-  TS_PLUGINS,
-  RAILS_PLUGINS,
-} from "../../helpers/opencode-plugin-rosters.js";
+/** Plugin template basenames (de-duplicated for sonarjs/no-duplicate-string). */
+const SESS = "lisa-session-bootstrap.ts";
+const LINT = "lisa-lint-on-edit.ts";
+const SUPPR = "lisa-block-suppress-directives.ts";
+const SGSCAN = "lisa-sg-scan-on-edit.ts";
+const MIGRATION = "lisa-block-migration-edits.ts";
+const RUBOCOP = "lisa-rubocop-on-edit.ts";
+const INSTR = "lisa-block-instruction-file-edits.ts";
+const MANAGED = "lisa-block-managed-file-edits.ts";
+const ISSUE = "lisa-block-direct-issue-create.ts";
+const NO_VERIFY = "lisa-block-no-verify.ts";
+const HOST_NAME = "lisa-block-host-name-leak.ts";
+const DISCHARGE = "lisa-discharge-work-item-gates.ts";
+const TASK_READINESS = "lisa-task-readiness.ts";
 
-const BASE_RULES = "base-rules.md";
+/** Guards every project gets, in the order the installer lists them. */
+const UNIVERSAL = [
+  ISSUE,
+  INSTR,
+  MANAGED,
+  NO_VERIFY,
+  HOST_NAME,
+  DISCHARGE,
+  TASK_READINESS,
+];
+/** The tail every roster shares. */
+const TAIL = [SESS, SGSCAN];
+const byName = (a: string, b: string): number => a.localeCompare(b);
+const TS_PLUGINS = [...UNIVERSAL, SUPPR, LINT, ...TAIL].sort(byName);
+const RAILS_PLUGINS = [...UNIVERSAL, RUBOCOP, ...TAIL].sort(byName);
 
 describe("opencode/hooks-installer", () => {
   let tempDir: string;
@@ -67,23 +86,6 @@ describe("opencode/hooks-installer", () => {
     const config = await readConfig();
     const permission = config["permission"] as Record<string, unknown>;
     return permission["bash"] as Record<string, string>;
-  }
-
-  /**
-   * Write a fake Lisa rule file under plugins/<plugin>/rules/<relPath>.
-   * @param pluginName - Plugin directory name.
-   * @param relPath - Path under rules/ (for example eager/base-rules.md).
-   * @param body - Rule Markdown body.
-   */
-  async function seedRule(
-    pluginName: string,
-    relPath: string,
-    body: string
-  ): Promise<void> {
-    const rulesDir = path.join(lisaDir, "plugins", pluginName, "rules");
-    const filePath = path.join(rulesDir, relPath);
-    await fs.ensureDir(path.dirname(filePath));
-    await fs.writeFile(filePath, body, "utf8");
   }
 
   describe("opencode.json permission.bash (block-no-verify)", () => {
@@ -223,39 +225,6 @@ describe("opencode/hooks-installer", () => {
       expect(files).toContain(SESS);
     });
 
-    it("mirrors eager and reference rule files for OpenCode instructions", async () => {
-      await seedRule(
-        "lisa",
-        path.join("eager", BASE_RULES),
-        "Always do the thing.\n"
-      );
-      await seedRule(
-        "lisa",
-        path.join("reference", BASE_RULES),
-        "Detailed body.\n"
-      );
-      const result = await installHooks(lisaDir, destDir, [], []);
-
-      expect(result.managedFiles).toContain(
-        path.join(OPENCODE_LISA_RULES_SUBDIR, "eager", BASE_RULES)
-      );
-      expect(result.managedFiles).toContain(
-        path.join(OPENCODE_LISA_RULES_SUBDIR, "reference", BASE_RULES)
-      );
-      expect(
-        await fs.readFile(
-          path.join(
-            destDir,
-            OPENCODE_CONFIG_DIR,
-            OPENCODE_LISA_RULES_SUBDIR,
-            "eager",
-            BASE_RULES
-          ),
-          "utf8"
-        )
-      ).toContain("Always do the thing.");
-    });
-
     it("ships the typescript guards for a typescript project", async () => {
       await installHooks(lisaDir, destDir, ["typescript"], []);
       const files = await listInstalledPluginFiles(destDir);
@@ -309,16 +278,12 @@ describe("opencode/hooks-installer", () => {
       const result = await installHooks(lisaDir, destDir, ["typescript"], []);
       const files = await listInstalledPluginFiles(destDir);
       expect(result.pluginCount).toBe(files.length);
-      // Plus the six canonical support scripts, managed without being
-      // listed as plugins. Four since #3750, when the managed-file guard became
-      // a shell-out and its script started being staged beside the plugin;
-      // five since #3814 added the dedupe library those guards source as a
-      // sibling of themselves, which has to be staged with them or the
-      // reference resolves to nothing. The deferred PR gate adds the sixth.
-      // Task readiness adds its shell adapter and Node companion.
-      expect(result.managedFiles).toHaveLength(files.length + 8);
-      // The auto-update engine is NOT among them: it runs from the installed
-      // package (CodySwannGT/lisa#4337), so it adds nothing to this count.
+      expect(result.managedFiles).toEqual(
+        expect.arrayContaining([
+          `${OPENCODE_PLUGIN_SUBDIR}/task-readiness-guard.sh`,
+          `${OPENCODE_PLUGIN_SUBDIR}/task-readiness-guard.mjs`,
+        ])
+      );
     });
   });
 

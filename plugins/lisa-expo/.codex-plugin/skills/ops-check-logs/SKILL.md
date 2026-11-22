@@ -23,7 +23,7 @@ View and search logs across all platforms and environments.
 
 1. Read backend `package.json` to discover `logs:*`, `logs:watch:*`, and `aws:signin:*` scripts
 2. Extract function names from `logs:{env}` scripts (typically set via `FUNCTION_NAME` env var)
-3. Read `.env.{environment}` to find Sentry DSN for error correlation
+3. When `observability.errorTracking.provider` is `sentry` (the default), read `.env.{environment}` to find the Sentry DSN for error correlation. With `other`, look for the tracker the project wires instead; with `none`, skip error correlation
 
 ## Local Process Logs
 

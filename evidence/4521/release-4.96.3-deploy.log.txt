@@ -1,0 +1,12 @@
+2026-11-08T14:42:05.9619792Z   release_commit: 4c5547de18a6a3332ea9116d85cd67a12f823430
+2026-11-08T14:42:07.3368376Z   release_commit: 4c5547de18a6a3332ea9116d85cd67a12f823430
+2026-11-08T14:42:07.4267449Z echo "✅ Inputs validated: tag=$RELEASE_TAG, version=$RELEASE_VERSION, release_commit=$RELEASE_COMMIT"
+2026-11-08T14:42:07.4485459Z ✅ Inputs validated: tag=v4.96.3, version=4.96.3, release_commit=4c5547de18a6a3332ea9116d85cd67a12f823430
+2026-11-08T14:43:24.0587137Z npm notice name: @codyswann/lisa
+2026-11-08T14:43:24.0587248Z npm notice version: 4.96.3
+2026-11-08T14:43:24.0587896Z npm notice shasum: 526203df9b1b2e8c75f06301ba953b0ed4cd1ba7
+2026-11-08T14:43:24.0588122Z npm notice integrity: sha512-rxoS4I5Cin4b2[...]cxIsbC7mVqDOA==
+2026-11-08T14:43:24.0588243Z npm notice total files: 8932
+2026-11-08T14:43:25.1355058Z npm notice Publishing to https://registry.npmjs.org with tag latest and public access
+2026-11-08T14:43:30.5055024Z + @codyswann/lisa@4.96.3
+run 42490840830 Release and Deploy: conclusion=success event=push head=3d45307ef4e4bf8e115901c5e388aef14c570bc8

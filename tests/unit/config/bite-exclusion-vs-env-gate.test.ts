@@ -12,6 +12,7 @@ import {
   readGates,
   resolveMoment,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import { NIGHTLY_SLOW_SUITES } from "../../../scripts/lib/nightly-slow-suites.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../..");
@@ -53,15 +54,58 @@ describe("mutation control scheduling", () => {
     const task = taskAt("push");
     expect(task).toBe("test:integration:push");
     const command = script(task as string);
-    expect(command).toContain("--exclude='**/mutation-gate-bite.test.ts'");
+    // `mutation-gate-bite` is on the nightly-only list, which the shared
+    // Vitest config excludes from every run (CodySwannGT/lisa#4896).
+    expect(NIGHTLY_SLOW_SUITES).toContain(
+      "tests/integration/mutation-gate-bite.test.ts"
+    );
     expect(command).toContain("--exclude='**/mutation-gate-diff-bite.test.ts'");
   });
 
   it("collects the integration controls in pull-request CI", () => {
     const task = taskAt("pull-request");
     expect(task).toBe("test:integration");
+    // The script's one exclusion is the packed-host journey, which owner
+    // decision 4 of CodySwannGT/lisa#4587 took off the PR path
+    // (CodySwannGT/lisa#4606). `mutation-gate-bite` is excluded from every run
+    // by the shared Vitest config and runs nightly (CodySwannGT/lisa#4896).
     expect(script(task as string)).toBe(
-      "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration"
+      "node scripts/lib/worktree-dependencies.mjs && LISA_TEST_TIMINGS_SCOPE=integration $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration --exclude='**/shared-runtime-packed-hosts.test.ts'"
     );
+  });
+});
+
+/** The journey owner decision 4 of CodySwannGT/lisa#4587 took off the PR path. */
+const PACKED_HOST_JOURNEY =
+  "tests/integration/shared-runtime-packed-hosts.test.ts";
+
+describe("packed-host journey scheduling (CodySwannGT/lisa#4606)", () => {
+  it("runs at neither the pull-request nor the push moment", () => {
+    for (const moment of ["pull-request", "push"]) {
+      const task = taskAt(moment);
+      expect(task, moment).not.toBeNull();
+      expect(script(task as string), moment).toContain(
+        "--exclude='**/shared-runtime-packed-hosts.test.ts'"
+      );
+    }
+  });
+
+  it("stays runnable by hand through its own script", () => {
+    expect(script("test:integration:packed-hosts")).toBe(
+      `node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run ${PACKED_HOST_JOURNEY}`
+    );
+  });
+
+  it("tells a deferred run to use the hand-run script, not the excluding one", () => {
+    // The journey defers off the reviewed CI Node and prints a remedy. A remedy
+    // naming `test:integration` would now run a pass that excludes the journey.
+    const journey = readFileSync(
+      path.join(REPO_ROOT, PACKED_HOST_JOURNEY),
+      "utf8"
+    );
+    expect(journey).toContain(
+      "mise exec node@${CI_NODE} -- bun run test:integration:packed-hosts"
+    );
+    expect(journey).not.toContain("bun run test:integration`");
   });
 });

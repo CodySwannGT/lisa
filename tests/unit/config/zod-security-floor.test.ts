@@ -1,21 +1,24 @@
 /**
- * GHSA-mrhx-c7xc-m3w5 reaches exactly one zod, and only where the maintainer
- * accepted it (CodySwannGT/lisa#4507).
+ * GHSA-mrhx-c7xc-m3w5 reaches no zod in Lisa's tree (CodySwannGT/lisa#4931).
  *
  * Immutable GitHub advisory data captured 2026-10-24 from
  * https://github.com/advisories/GHSA-mrhx-c7xc-m3w5: high severity, npm `zod`
- * below 4.6.6, first patched 4.6.6, with no patched 3.x. Every zod 4 in the
- * tree moves to 4.6.7. The one zod 3 left is the copy
- * `eslint-plugin-react-compiler` requires: on 2026-10-24 the maintainer chose
- * to keep that plugin, whose React Compiler rule runs in Expo's lint:slow, and
- * accept the advisory for that lint-time copy alone. The pre-push audit filters
- * by advisory id only, so this suite is what keeps the exception scoped. It
- * fails if any other zod drops below 4.6.6, if a second package starts to need
- * zod 3, or if the exception spreads into a template Lisa ships.
+ * below 4.6.6, first patched 4.6.6, with no patched 3.x. The last zod 3 came
+ * from eslint-plugin-react-compiler, whose final release requires zod ^3.22.4;
+ * #4507 kept it behind an audit exception. #4931 replaced that plugin with the
+ * React Compiler rules eslint-plugin-react-hooks 7 ships (which accepts zod 4)
+ * and floors every zod with a root override, so the exception is gone. The
+ * override stays load-bearing until the dev-only self-pin reaches a published
+ * Lisa without that plugin: @codyswann/lisa 6.0.0 still depends on it. This
+ * suite fails if any lockfile entry, under any key or alias, resolves a zod
+ * below 4.6.6, if a direct dependency needs zod 3 again, if the override goes
+ * while something still requires zod 3, or if any audit exclusion list
+ * excuses the advisory again.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
+import { core as zodCore } from "zod";
 
 import {
   collectFloors,
@@ -26,8 +29,12 @@ import {
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const ADVISORY = "GHSA-mrhx-c7xc-m3w5";
 const VULNERABLE = "< 4.6.6";
-const ACCEPTED_PATH = "eslint-plugin-react-compiler/zod";
-const SHIPPED_IGNORE = "typescript/copy-overwrite/audit.ignore.config.json";
+const MANIFEST = "package.json";
+const AUDIT_LISTS = [
+  "audit.ignore.config.json",
+  "audit.ignore.local.json",
+  "typescript/copy-overwrite/audit.ignore.config.json",
+] as const;
 
 /**
  * Read a repository file.
@@ -52,9 +59,9 @@ function parts(version: string): number[] {
  * @returns Lockfile key and resolved version, one entry per resolution
  */
 function lockedZods(): { key: string; version: string }[] {
-  return [...read("bun.lock").matchAll(/"([^"]+)": \["zod@(\d+\.\d+\.\d+)"/g)]
-    .map(([, key = "", version = ""]) => ({ key, version }))
-    .filter(({ key }) => key === "zod" || key.endsWith("/zod"));
+  return [
+    ...read("bun.lock").matchAll(/"([^"]+)": \["zod@(\d+\.\d+\.\d+)"/g),
+  ].map(([, key = "", version = ""]) => ({ key, version }));
 }
 
 /**
@@ -75,40 +82,79 @@ function zodThreeRequirers(): string[] {
     .map(([, name = ""]) => name);
 }
 
-/** Lisa's own audit exclusions, by id. */
+/** An audit exclusion document. */
 interface AuditIgnore {
-  readonly exclusions: readonly {
-    readonly id: string;
-    readonly package?: string;
-    readonly tracking?: string;
-    readonly reason?: string;
-  }[];
+  readonly exclusions: readonly { readonly id: string }[];
 }
 
 describe(`zod security floor (${ADVISORY})`, () => {
-  it("leaves only the accepted plugin copy inside the advisory's range", () => {
-    const vulnerable = lockedZods().filter(({ version }) =>
-      withinRange(parts(version), VULNERABLE)
-    );
-    expect(vulnerable.map(({ key }) => key)).toEqual([ACCEPTED_PATH]);
-  });
-
-  it("resolves every other zod to a patched 4.x", () => {
-    const others = lockedZods().filter(({ key }) => key !== ACCEPTED_PATH);
-    expect(others.length).toBeGreaterThan(0);
-    for (const { key, version } of others)
+  it("resolves every zod to a patched 4.x", () => {
+    const locked = lockedZods();
+    expect(locked.length).toBeGreaterThan(0);
+    for (const { key, version } of locked)
       expect(
         withinRange(parts(version), VULNERABLE),
         `bun.lock ${key} resolves zod@${version}`
       ).toBe(false);
   });
 
-  it("has exactly one package that still needs zod 3", () => {
-    expect(zodThreeRequirers()).toEqual(["eslint-plugin-react-compiler"]);
+  it("depends directly on no package that needs zod 3", () => {
+    // The dev-only self-pin (a published @codyswann/lisa from before #4931)
+    // still declares eslint-plugin-react-compiler; the override above gives
+    // it zod 4, and the first case proves no zod 3 resolves anywhere.
+    const manifest = JSON.parse(read(MANIFEST)) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+    const direct = new Set([
+      ...Object.keys(manifest.dependencies ?? {}),
+      ...Object.keys(manifest.devDependencies ?? {}),
+    ]);
+    expect(zodThreeRequirers().filter(name => direct.has(name))).toEqual([]);
+  });
+
+  it("keeps the zod override while any locked package still requires zod 3", () => {
+    const manifest = JSON.parse(read(MANIFEST)) as {
+      overrides?: Record<string, string>;
+    };
+    if (zodThreeRequirers().length > 0)
+      expect(manifest.overrides?.zod, "overrides.zod").toBeDefined();
+  });
+
+  it("forces every transitive zod past the advisory", () => {
+    const manifest = JSON.parse(read(MANIFEST)) as {
+      overrides?: Record<string, string>;
+      resolutions?: Record<string, string>;
+    };
+    for (const field of ["overrides", "resolutions"] as const) {
+      const spec = manifest[field]?.zod;
+      expect(spec, `package.json ${field}.zod`).toBeDefined();
+      const lowest = lowestPermitted(spec!);
+      expect(lowest).not.toBeNull();
+      expect(withinRange(lowest!, VULNERABLE), `${field} zod ${spec}`).toBe(
+        false
+      );
+    }
+  });
+
+  it("carries the same zod floor in the root package.lisa.json template", () => {
+    const template = JSON.parse(read("package.lisa.json")) as {
+      force?: {
+        overrides?: Record<string, string>;
+        resolutions?: Record<string, string>;
+      };
+    };
+    const manifest = JSON.parse(read(MANIFEST)) as {
+      overrides?: Record<string, string>;
+    };
+    for (const field of ["overrides", "resolutions"] as const)
+      expect(template.force?.[field]?.zod, `force.${field}.zod`).toBe(
+        manifest.overrides?.zod
+      );
   });
 
   it("floors the root zod past the advisory", () => {
-    const manifest = JSON.parse(read("package.json")) as {
+    const manifest = JSON.parse(read(MANIFEST)) as {
       devDependencies?: Record<string, string>;
     };
     const spec = manifest.devDependencies?.zod;
@@ -116,6 +162,24 @@ describe(`zod security floor (${ADVISORY})`, () => {
     const lowest = lowestPermitted(spec!);
     expect(lowest).not.toBeNull();
     expect(withinRange(lowest!, VULNERABLE), `zod ${spec}`).toBe(false);
+  });
+
+  it("hoists the patched zod, keeping the accepted zod 3 nested under its plugin", () => {
+    // Why the root devDependency exists at all. Without it the lockfile hoists
+    // the plugin's zod 3.25.76 to the top level (measured: `bun install` with
+    // the entry removed resolves key "zod" to 3.25.76), the audit exception —
+    // scoped to the nested `eslint-plugin-react-compiler/zod` path — no longer
+    // matches, and the pre-push audit refuses every push. A bare `zod` import
+    // resolves to exactly that hoisted copy, so this is the dependency's real
+    // use, and it fails the moment the anchor stops anchoring.
+    expect(zodCore.version.major).toBe(4);
+    expect(
+      withinRange(
+        [zodCore.version.major, zodCore.version.minor, zodCore.version.patch],
+        VULNERABLE
+      ),
+      `hoisted zod ${zodCore.version.major}.${zodCore.version.minor}.${zodCore.version.patch}`
+    ).toBe(false);
   });
 
   it("ships no zod floor that admits the advisory", () => {
@@ -136,21 +200,10 @@ describe(`zod security floor (${ADVISORY})`, () => {
     expect(withinRange(parts("4.6.6"), VULNERABLE)).toBe(false);
   });
 
-  it("records the exception for Lisa's own tree, with its tracking and reason", () => {
-    const local = JSON.parse(read("audit.ignore.local.json")) as AuditIgnore;
-    const entry = local.exclusions.find(({ id }) => id === ADVISORY);
-    expect(entry?.package).toBe("zod");
-    expect(entry?.tracking).toBe("CodySwannGT/lisa#4507");
-    expect(entry?.reason).toContain("eslint-plugin-react-compiler");
+  it.each(AUDIT_LISTS)("keeps the advisory out of %s", file => {
+    const ids = (JSON.parse(read(file)) as AuditIgnore).exclusions.map(
+      ({ id }) => id
+    );
+    expect(ids).not.toContain(ADVISORY);
   });
-
-  it.each(["audit.ignore.config.json", SHIPPED_IGNORE])(
-    "keeps the exception out of the managed %s",
-    file => {
-      const ids = (JSON.parse(read(file)) as AuditIgnore).exclusions.map(
-        ({ id }) => id
-      );
-      expect(ids).not.toContain(ADVISORY);
-    }
-  );
 });

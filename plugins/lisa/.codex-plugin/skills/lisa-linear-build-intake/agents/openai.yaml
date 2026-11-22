@@ -1,4 +1,4 @@
 display_name: "Linear Build Intake"
-short_description: "Symmetric counterpart to…"
+short_description: "Run one cycle of the Linear…"
 default_prompt:
-  - "Use $lisa-linear-build-intake: Symmetric counterpart to…."
+  - "Use $lisa-linear-build-intake: Run one cycle of the Linear…."

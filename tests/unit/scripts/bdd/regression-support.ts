@@ -12,7 +12,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import type { CommittedProject } from "./support";
+import type { CommittedProject } from "./support.js";
 import {
   HOME_ID,
   HOME_SPEC,
@@ -24,18 +24,18 @@ import {
   healthyProject,
   readMap,
   writeMap,
-} from "./support";
+} from "./support.js";
 
 export type { CommittedProject };
 
 export const EXTRA_ID = "BDD-EXTRA-001";
 export const EXTRA_FEATURE_FILE = "extra.feature";
 export const EXTRA_SPEC = "e2e/extra.spec.ts";
-export const EXTRA_EVIDENCE = "renders the extra page";
+const EXTRA_EVIDENCE = "renders the extra page";
 export const EXTRA_KEY = `${EXTRA_ID}:${WEB}`;
 
 /** Cache key for the two-scenario base revision. */
-export const TWO_SCENARIO_BASE = "two-scenario";
+const TWO_SCENARIO_BASE = "two-scenario";
 export const HOME_KEY = `${HOME_ID}:${WEB}`;
 
 /** The extra scenario's feature source. */

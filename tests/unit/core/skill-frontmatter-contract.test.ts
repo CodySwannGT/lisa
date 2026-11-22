@@ -219,12 +219,8 @@ describe("skill, command, and agent frontmatter contract", () => {
       file => file.kind === AGENT_TEMPLATE_KIND
     );
     expect(agents).toHaveLength(306);
-    expect(agentTemplates).toHaveLength(6);
-    expect(
-      agentTemplates.every(file =>
-        file.relativePath.endsWith("/templates/agents/role-agent.claude.md")
-      )
-    ).toBe(true);
+    // The wiki's digital-staff role-agent templates were removed with the roles.
+    expect(agentTemplates).toHaveLength(0);
     expect(agents.some(file => file.relativePath.endsWith(".agent.md"))).toBe(
       true
     );

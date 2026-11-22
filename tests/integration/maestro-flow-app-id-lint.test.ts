@@ -23,6 +23,7 @@ import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
+import { jobOf } from "../helpers/workflow-job-graph.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -94,7 +95,7 @@ describe("maestro-native-e2e per-flow appId lint (executed)", () => {
     workflow = yaml.load(
       await fs.readFile(REUSABLE_YML, "utf-8")
     ) as ReusableWorkflow;
-    const step = (workflow.jobs.preflight.steps ?? []).find(candidate =>
+    const step = (jobOf(workflow, "preflight").steps ?? []).find(candidate =>
       candidate.name?.includes("Lint per-flow appId")
     );
     if (!step?.run) {
@@ -248,7 +249,7 @@ describe("maestro-native-e2e per-flow appId lint contract", () => {
   });
 
   it("runs only when opted in AND the prerequisites held", () => {
-    const step = (workflow.jobs.preflight.steps ?? []).find(candidate =>
+    const step = (jobOf(workflow, "preflight").steps ?? []).find(candidate =>
       candidate.name?.includes("Lint per-flow appId")
     );
     // The second clause matters: an unwired adopter has no flows directory,

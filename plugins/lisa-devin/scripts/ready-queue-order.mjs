@@ -27,6 +27,16 @@
  * {@link assertPagedToCompletion} refuses to order a half-read queue, because
  * a truncated sweep silently reorders by omission (#3529, #4105).
  *
+ * Operator and trusted-author entries may be kind-keyed (#4623): `login:<v>`
+ * matches only a GitHub login, `id:<v>` only an account id, and a plain entry
+ * is compared exactly as before (with the normalized assignee id, or the
+ * normalized author id). Each normalizer therefore also carries the login and
+ * the account id of the assignee and the login of the author, where its
+ * tracker has them, so the kinds never have to be guessed. A trusted-author
+ * entry may also be `integration:<service>` (#4895): it matches an item no
+ * person authored, by the integration the tracker records as its filer
+ * (`authorIntegration`, today only Linear's `botActor`).
+ *
  * Held items are judged by {@link isHumanGated}, the one shared answer to "is
  * a person holding this?", rather than by a local label check (#3805).
  *
@@ -42,6 +52,13 @@ import {
   DEFAULT_HUMAN_NEEDED_LABEL,
   isHumanGated,
 } from "./intake-blocker-reprobe.mjs";
+import { entryMatches, parseIdEntries } from "./operator-id-kinds.mjs";
+import {
+  countUnresolvedBlockers,
+  githubBlockerEdges,
+  jiraBlockerEdges,
+  linearBlockerEdges,
+} from "./stale-blocker-edges.mjs";
 
 /** Rank for GitHub `priority:<value>` labels; no label ranks 4. */
 const GITHUB_PRIORITY_RANKS = Object.freeze({
@@ -72,9 +89,6 @@ const LINEAR_NO_PRIORITY = 4;
 
 /** Linear workflow state types that leave a child finished. */
 const LINEAR_FINISHED_STATE_TYPES = new Set(["completed", "canceled"]);
-
-/** Jira link types whose inward side reads as "this item is blocked by". */
-const JIRA_BLOCKED_BY = /blocked by/i;
 
 /**
  * @param {unknown} value
@@ -122,7 +136,7 @@ function nodesOf(list) {
  * @param {unknown} labels
  * @returns {string[]}
  */
-function labelNames(labels) {
+export function labelNames(labels) {
   const list = Array.isArray(labels)
     ? labels
     : Array.isArray(labels?.nodes)
@@ -148,10 +162,11 @@ function repoLabelsOf(labels) {
 /**
  * Flatten an Atlassian Document Format node to plain text, one line per block.
  * A string description (the Markdown some access paths return) passes through.
+ * Also reads Jira comment bodies for the stale-link marker dedupe (#5065).
  * @param {unknown} node
  * @returns {string}
  */
-function adfText(node) {
+export function adfText(node) {
   if (typeof node === "string") return node;
   if (!node || typeof node !== "object") return "";
   if (node.type === "text") return text(node.text);
@@ -162,11 +177,44 @@ function adfText(node) {
 }
 
 /**
+ * How many blockers still hold a GitHub issue.
+ *
+ * When the fetch attached the blockers (`nativeBlockers`, `bodyBlockers`, as
+ * the session manager's queue does), the shared stale-link rule decides
+ * (#5065): native dependencies AND `Blocked by` body lines, a blocker in the
+ * configured terminal done label counting as finished, as intake judges it.
+ * A row fetched without them falls back to GitHub's own summary, whose
+ * `blocked_by` counts open native blockers only.
+ * @param {Record<string, any>} issue - REST issue, optionally with blockers
+ * @param {string} repo - `owner/repo`
+ * @param {{ doneRoles?: readonly string[], landedRoles?: readonly string[] }} options - Configured terminal and non-terminal done labels
+ * @returns {number}
+ */
+function githubOpenBlockers(issue, repo, options) {
+  // Blockers that could not be read hold the item: at least one.
+  if (issue.blockersUnreadable === true) {
+    return Math.max(1, count(issue.issue_dependencies_summary?.blocked_by));
+  }
+  if (!Array.isArray(issue.nativeBlockers) && !issue.bodyBlockers) {
+    return count(issue.issue_dependencies_summary?.blocked_by);
+  }
+  return countUnresolvedBlockers(
+    githubBlockerEdges({ ...issue, repo }),
+    options.doneRoles ?? [],
+    repo,
+    options.landedRoles
+  );
+}
+
+/**
  * Normalize one GitHub REST issue row. Returns null for a pull-request row,
  * which the issues endpoint returns alongside issues and which is never a
  * dispatchable leaf.
  * @param {Record<string, any>} issue - REST `issues` list row
- * @param {{ repo?: string }} [options] - `owner/repo`, else read from repository_url
+ * @param {{ repo?: string, doneRoles?: readonly string[], landedRoles?: readonly string[] }} [options] -
+ *   `owner/repo`, else read from repository_url; the configured terminal done
+ *   labels (`terminalDoneRoles`) for the blocker rule, and the intermediate
+ *   ones (`landedDoneRoles`), which hold nothing
  * @returns {ReturnType<typeof shape> | null}
  */
 export function normalizeGithubIssue(issue, options = {}) {
@@ -187,16 +235,24 @@ export function normalizeGithubIssue(issue, options = {}) {
     title: text(issue.title),
     // GitHub "me" is the login (`gh api user --jq .login`), so match on it.
     assigneeId: idOrNull(assignee?.login),
+    assigneeLogin: idOrNull(assignee?.login),
+    assigneeAccountId: idOrNull(assignee?.id),
     priorityRank: ranks.length > 0 ? Math.min(...ranks) : GITHUB_NO_PRIORITY,
     createdAt: text(issue.created_at),
     updatedAt: text(issue.updated_at),
     labels,
     body: text(issue.body),
-    // Authors are trusted by stable id, never by login (ready-role-filing).
+    // Plain and `id:` trusted-author entries trust by stable id (ready-role-
+    // filing); a `login:` entry trusts a login the operator opted into
+    // explicitly, knowing a freed login can be re-registered (#4623).
     authorId: idOrNull(issue.user?.id),
+    authorLogin: idOrNull(issue.user?.login),
+    // A GitHub App files as its own bot user, which has an id: trust it with
+    // `id:` like any author. No integration-only authorship exists here.
+    authorIntegration: null,
     isContainer: Number(summary?.total ?? 0) > Number(summary?.completed ?? 0),
-    // `blocked_by` in the dependency summary counts only OPEN blockers.
-    openBlockers: count(issue.issue_dependencies_summary?.blocked_by),
+    openBlockers: githubOpenBlockers(issue, repo, options),
+    blockersUnreadable: issue.blockersUnreadable === true,
   });
 }
 
@@ -204,9 +260,12 @@ export function normalizeGithubIssue(issue, options = {}) {
  * Normalize one Jira REST/MCP issue. An epic (hierarchy level above 0) or an
  * issue with any subtask not yet in the done category is a container.
  * @param {Record<string, any>} issue - Issue with `key` and `fields`
+ * @param {{ doneRoles?: readonly string[], landedRoles?: readonly string[] }} [options] - Configured terminal
+ *   done names (`terminalDoneRoles`), so a blocker there is finished, and
+ *   the intermediate ones (`landedDoneRoles`), so a blocker there holds nothing
  * @returns {ReturnType<typeof shape>}
  */
-export function normalizeJiraIssue(issue) {
+export function normalizeJiraIssue(issue, options = {}) {
   const fields = issue?.fields ?? {};
   const labels = labelNames(fields.labels);
   const priority = text(fields.priority?.name).trim().toLowerCase();
@@ -214,23 +273,32 @@ export function normalizeJiraIssue(issue) {
   const openSubtasks = (Array.isArray(fields.subtasks) ? fields.subtasks : [])
     .map(sub => sub?.fields?.status?.statusCategory?.key)
     .filter(category => category !== "done");
-  const openBlockers = nodesOf(fields.issuelinks).filter(
-    link =>
-      link?.inwardIssue &&
-      JIRA_BLOCKED_BY.test(text(link.type?.inward)) &&
-      link.inwardIssue.fields?.status?.statusCategory?.key !== "done"
-  ).length;
+  // One rule with the stale-link sweep (#5065): a blocker in the configured
+  // done status is finished even where its status category is not `done`,
+  // but only in this item's own project, which is the one that declares it.
+  const openBlockers = countUnresolvedBlockers(
+    jiraBlockerEdges(issue),
+    options.doneRoles ?? [],
+    text(issue?.key).split("-")[0],
+    options.landedRoles
+  );
 
   return shape({
     ref: text(issue?.key),
     title: text(fields.summary),
     assigneeId: idOrNull(fields.assignee?.accountId),
+    assigneeLogin: null,
+    assigneeAccountId: idOrNull(fields.assignee?.accountId),
     priorityRank: JIRA_PRIORITY_RANKS[priority] ?? JIRA_UNKNOWN_PRIORITY,
     createdAt: text(fields.created),
     updatedAt: text(fields.updated),
     labels,
     body: adfText(fields.description),
     authorId: idOrNull(fields.reporter?.accountId ?? fields.creator?.accountId),
+    authorLogin: null,
+    // Jira automation and integrations file as an account (the reporter), so
+    // they are trusted by accountId; no integration-only authorship exists.
+    authorIntegration: null,
     isContainer:
       Number(type.hierarchyLevel ?? 0) > 0 ||
       text(type.name).toLowerCase() === "epic" ||
@@ -240,12 +308,46 @@ export function normalizeJiraIssue(issue) {
 }
 
 /**
+ * The integration that filed a Linear issue no person authored, or null
+ * (CodySwannGT/lisa#4895).
+ *
+ * Linear leaves `creator` null for an issue an integration or OAuth app
+ * created, and records the filer on `botActor`: `subType` names the
+ * integration service (`sentry`, `github`), set by Linear itself. With no
+ * service, the bot's `id` identifies its source record instead. The bot's
+ * `name` is never used: an app's display name is chosen by whoever registers
+ * it, so trusting it would let any app installed in the workspace take over an
+ * entry by naming itself after a trusted integration (the risk #4715 recorded
+ * for `login:`). `creator` is also null for a deleted account, and an
+ * integration can file on behalf of a non-Linear user (`externalUserCreator`,
+ * set by Slack or Intercom intake). Neither of those is the integration's own
+ * authorship, so both yield null. The fetch must have asked for
+ * `externalUserCreator`: when the key is missing, whether an outside person
+ * filed the item is unknown, and unknown is never trusted.
+ * @param {Record<string, any>} issue - Issue node
+ * @returns {string | null} The integration's service, else its bot id
+ */
+function linearIntegrationAuthor(issue) {
+  // Both author fields must be read and explicitly null: a missing key, or a
+  // creator object without an id, says nothing about who filed the item.
+  if (!issue || !Object.hasOwn(issue, "creator")) return null;
+  if (issue.creator !== null) return null;
+  if (!Object.hasOwn(issue, "externalUserCreator")) return null;
+  if (issue.externalUserCreator !== null) return null;
+  const bot = issue.botActor;
+  return idOrNull(bot?.subType) ?? idOrNull(bot?.id);
+}
+
+/**
  * Normalize one Linear GraphQL issue. An issue with any child not completed
  * or canceled is a container.
  * @param {Record<string, any>} issue - Issue node
+ * @param {{ doneRoles?: readonly string[], landedRoles?: readonly string[] }} [options] - Configured terminal
+ *   done names (`terminalDoneRoles`), so a blocker there is finished, and
+ *   the intermediate ones (`landedDoneRoles`), so a blocker there holds nothing
  * @returns {ReturnType<typeof shape>}
  */
-export function normalizeLinearIssue(issue) {
+export function normalizeLinearIssue(issue, options = {}) {
   const native = Number(issue?.priority ?? 0);
   const children = Array.isArray(issue?.children?.nodes)
     ? issue.children.nodes
@@ -254,17 +356,23 @@ export function normalizeLinearIssue(issue) {
       : [];
   const labels = labelNames(issue?.labels);
   // Linear has no "blocked by" relation type: B blocked by A is A's `blocks`
-  // relation, read from B as an inverse relation.
-  const openBlockers = nodesOf(issue?.inverseRelations).filter(
-    relation =>
-      relation?.type === "blocks" &&
-      !LINEAR_FINISHED_STATE_TYPES.has(relation.issue?.state?.type)
-  ).length;
+  // relation, read from B as an inverse
+  // relation. One rule with the stale-link sweep (#5065): a promotion
+  // workflow can type its configured done state `started`, so the configured
+  // name also counts as finished, in this item's own team only.
+  const openBlockers = countUnresolvedBlockers(
+    linearBlockerEdges(issue),
+    options.doneRoles ?? [],
+    text(issue?.team?.key) || text(issue?.identifier).split("-")[0],
+    options.landedRoles
+  );
 
   return shape({
     ref: text(issue?.identifier),
     title: text(issue?.title),
     assigneeId: idOrNull(issue?.assignee?.id),
+    assigneeLogin: null,
+    assigneeAccountId: idOrNull(issue?.assignee?.id),
     priorityRank:
       Number.isInteger(native) && native >= 1 && native <= 4
         ? native - 1
@@ -274,6 +382,8 @@ export function normalizeLinearIssue(issue) {
     labels,
     body: text(issue?.description),
     authorId: idOrNull(issue?.creator?.id),
+    authorLogin: null,
+    authorIntegration: linearIntegrationAuthor(issue),
     isContainer: children.some(
       child => !LINEAR_FINISHED_STATE_TYPES.has(child?.state?.type)
     ),
@@ -285,23 +395,73 @@ export function normalizeLinearIssue(issue) {
  * The one item shape every normalizer returns, in a fixed key order.
  * `updatedAt` keys the backlog tier's validation cache; `openBlockers` counts
  * dependencies whose blocker is not finished. The Ready tier ignores both.
- * @param {{ ref: string, title: string, assigneeId: string | null, priorityRank: number, createdAt: string, updatedAt: string, labels: string[], body: string, authorId: string | null, isContainer: boolean, openBlockers: number }} input
+ * `assigneeLogin` / `authorLogin` are GitHub logins (null on trackers with
+ * none) and `assigneeAccountId` the assignee's account id, for kind-keyed
+ * entries (#4623). `authorIntegration` names the integration that filed an
+ * item no person authored, for `integration:` entries (#4895).
+ * @param {{ ref: string, title: string, assigneeId: string | null, assigneeLogin: string | null, assigneeAccountId: string | null, priorityRank: number, createdAt: string, updatedAt: string, labels: string[], body: string, authorId: string | null, authorLogin: string | null, authorIntegration: string | null, isContainer: boolean, openBlockers: number, blockersUnreadable?: boolean }} input
  */
 function shape(input) {
   return {
     ref: input.ref,
     title: input.title,
     assigneeId: input.assigneeId,
+    assigneeLogin: input.assigneeLogin,
+    assigneeAccountId: input.assigneeAccountId,
     priorityRank: input.priorityRank,
     createdAt: input.createdAt,
     updatedAt: input.updatedAt,
     labels: input.labels,
     body: input.body,
     authorId: input.authorId,
+    authorLogin: input.authorLogin,
+    authorIntegration: input.authorIntegration,
     isContainer: input.isContainer,
     openBlockers: input.openBlockers,
+    // The item's blocker list could not be read this fetch (GitHub only;
+    // Jira and Linear fetch blockers with the item, or the envelope fails).
+    blockersUnreadable: input.blockersUnreadable === true,
     repoLabels: repoLabelsOf(input.labels),
   };
+}
+
+/**
+ * Whether an operator entry names the item's assignee: a plain entry by the
+ * normalized assignee id, as before; `login:` by the assignee's GitHub login;
+ * `id:` by the assignee's account id.
+ * @param {Record<string, any>} item
+ * @param {ReturnType<typeof orderingContext>} context
+ * @returns {boolean}
+ */
+function isOperatorItem(item, context) {
+  const fields = {
+    plain: idOrNull(item.assigneeId),
+    login: idOrNull(item.assigneeLogin),
+    id: idOrNull(item.assigneeAccountId),
+  };
+  return context.operators.some(entry => entryMatches(entry, fields));
+}
+
+/**
+ * Whether a trusted-author entry names the item's author: a plain entry by
+ * the normalized author id, as before; `login:` by the author's GitHub login;
+ * `id:` by the author id (a GitHub numeric id, Jira accountId, Linear id);
+ * `integration:` by the integration that filed an item with no person author
+ * (#4895). An item a person authored has no integration to match, so an
+ * `integration:` entry can never vouch for a person.
+ * @param {Record<string, any>} item
+ * @param {ReturnType<typeof orderingContext>} context
+ * @returns {boolean}
+ */
+function isTrustedAuthor(item, context) {
+  const author = idOrNull(item.authorId);
+  const fields = {
+    plain: author,
+    login: idOrNull(item.authorLogin),
+    id: author,
+    integration: author === null ? idOrNull(item.authorIntegration) : null,
+  };
+  return context.trusted.some(entry => entryMatches(entry, fields));
 }
 
 /**
@@ -310,7 +470,7 @@ function shape(input) {
  * Order matters only for the reason reported: an item can fail several rules,
  * and "someone else owns it" is the most useful thing to say about it.
  * @param {Record<string, any>} item
- * @param {{ me: string | null, operators: ReadonlySet<string>, trusted: ReadonlySet<string>, humanNeededLabel: string }} context
+ * @param {ReturnType<typeof orderingContext>} context
  * @returns {string | null}
  */
 function exclusionReason(item, context) {
@@ -318,7 +478,7 @@ function exclusionReason(item, context) {
   if (
     assignee !== null &&
     assignee !== context.me &&
-    !context.operators.has(assignee)
+    !isOperatorItem(item, context)
   ) {
     return "assigned-to-other";
   }
@@ -330,14 +490,15 @@ function exclusionReason(item, context) {
       comments: item.comments,
       trustedHumanActorIds: item.trustedHumanActorIds,
       humanNeededLabel: context.humanNeededLabel,
+      // The project's policy decides whether a lifted hold is valid again
+      // (CodySwannGT/lisa#4687): omitted, strict holds read as access-only.
+      humanOnly: context.humanOnly,
+      humanGateMode: context.humanGateMode,
     })
   ) {
     return "human-gated";
   }
-  if (
-    context.trusted.size > 0 &&
-    !context.trusted.has(idOrNull(item.authorId))
-  ) {
+  if (context.trusted.length > 0 && !isTrustedAuthor(item, context)) {
     return "untrusted-author";
   }
   return null;
@@ -366,15 +527,38 @@ function compareWithinGroup(left, right) {
  * `me` and no operators, every assigned item is someone else's — the safe
  * direction, since claiming assigned work steals it.
  *
- * `operators` match the way `me` does, against the normalized assignee id:
- * GitHub login, Jira accountId, Linear user id.
+ * A plain `operators` entry matches the way `me` does, against the
+ * normalized assignee id: GitHub login, Jira accountId, Linear user id. A
+ * `login:` entry matches only a GitHub assignee login, an `id:` entry only
+ * the assignee's account id (#4623).
+ *
+ * An item whose blocker list could not be read is excluded with reason
+ * `blockers-unreadable` (CodySwannGT/lisa#5065); every other item is still
+ * offered.
  * @param {readonly Record<string, any>[]} items - Normalized items
- * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string }} [options]
+ * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string, humanOnly?: unknown, humanGateMode?: unknown }} [options]
  * @returns {{ ordered: Record<string, any>[], excluded: { ref: string, reason: string }[] }}
  */
 export function orderReadyQueue(items, options = {}) {
   const context = orderingContext(options);
-  return rank(items, item => exclusionReason(item, context), context);
+  return rank(
+    items,
+    item => exclusionReason(item, context) ?? unreadableBlockers(item),
+    context
+  );
+}
+
+/**
+ * An item whose blocker list could not be read is held in both tiers: it
+ * might be blocked by open work, so dispatching it is not known safe. Only
+ * that item waits; the next fetch reads it again.
+ * @param {Record<string, any>} item - Normalized item
+ * @returns {"blockers-unreadable" | null}
+ */
+function unreadableBlockers(item) {
+  // probe-direction: fail-closed — an unread blocker list never reads as
+  // "nothing blocks this".
+  return item.blockersUnreadable === true ? "blockers-unreadable" : null;
 }
 
 /**
@@ -388,7 +572,7 @@ export function orderReadyQueue(items, options = {}) {
  * again, so it waits until someone edits it. Grouping and ordering match
  * {@link orderReadyQueue}.
  * @param {readonly Record<string, any>[]} items - Normalized items
- * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string, validationFailures?: Readonly<Record<string, { updatedAt?: string }>> }} [options]
+ * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string, humanOnly?: unknown, humanGateMode?: unknown, validationFailures?: Readonly<Record<string, { updatedAt?: string }>> }} [options]
  * @returns {{ ordered: Record<string, any>[], excluded: { ref: string, reason: string }[] }}
  */
 export function orderBacklogQueue(items, options = {}) {
@@ -397,7 +581,7 @@ export function orderBacklogQueue(items, options = {}) {
   return rank(
     items,
     item => {
-      const reason = exclusionReason(item, context);
+      const reason = exclusionReason(item, context) ?? unreadableBlockers(item);
       if (reason !== null) return reason;
       if (count(item.openBlockers) > 0) return "blocked-by-open-item";
       const failed = Object.hasOwn(failures, item.ref)
@@ -412,17 +596,34 @@ export function orderBacklogQueue(items, options = {}) {
 }
 
 /**
+ * Parsed operator or trusted-author entries. A plain entry is trimmed and a
+ * blank one dropped, as before; an invalid kind-keyed entry is kept so it
+ * still counts as a configured filter while matching nobody.
+ * @param {readonly unknown[] | undefined} entries
+ * @returns {import("./operator-id-kinds.mjs").IdEntry[]}
+ */
+function configuredEntries(entries) {
+  return parseIdEntries(entries)
+    .map(entry =>
+      entry.kind === "plain"
+        ? { ...entry, value: idOrNull(entry.value) }
+        : entry
+    )
+    .filter(entry => entry.kind !== "plain" || entry.value !== null);
+}
+
+/**
  * The identities and policy every ordering judges against.
- * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string }} options
+ * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string, humanOnly?: unknown, humanGateMode?: unknown }} options
  */
 function orderingContext(options) {
   return {
     me: idOrNull(options.me),
-    operators: new Set((options.operators ?? []).map(idOrNull).filter(Boolean)),
-    trusted: new Set(
-      (options.trustedAuthorIds ?? []).map(idOrNull).filter(Boolean)
-    ),
+    operators: configuredEntries(options.operators),
+    trusted: configuredEntries(options.trustedAuthorIds),
     humanNeededLabel: options.humanNeededLabel ?? DEFAULT_HUMAN_NEEDED_LABEL,
+    humanOnly: options.humanOnly,
+    humanGateMode: options.humanGateMode,
   };
 }
 
@@ -441,7 +642,7 @@ function rank(items, judge, context) {
   const group = item => {
     const assignee = idOrNull(item.assigneeId);
     if (assignee === null) return 2;
-    return context.operators.has(assignee) ? 0 : 1;
+    return isOperatorItem(item, context) ? 0 : 1;
   };
 
   return {
@@ -451,7 +652,17 @@ function rank(items, judge, context) {
     ),
     excluded: judged
       .filter(one => one.reason !== null)
-      .map(one => ({ ref: one.item.ref, reason: one.reason })),
+      .map(one => ({
+        ref: one.item.ref,
+        reason: one.reason,
+        // The value an `integration:` entry would need, so the operator can
+        // read it off the queue instead of the tracker's API (#4895).
+        ...(one.reason === "untrusted-author" &&
+        idOrNull(one.item.authorId) === null &&
+        idOrNull(one.item.authorIntegration) !== null
+          ? { authorIntegration: one.item.authorIntegration }
+          : {}),
+      })),
   };
 }
 

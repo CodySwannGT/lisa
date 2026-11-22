@@ -22,6 +22,11 @@ import {
   verifyExpandedCommandArgv,
 } from "./lib/host-name-expanded-command-cases.mjs";
 import { hostNameFieldOccurrenceCases } from "./lib/host-name-field-occurrence-cases.mjs";
+import {
+  hostNameLauncherCases,
+  hostNameLauncherBoundaryCases,
+  verifyLauncherScriptSlot,
+} from "./lib/host-name-launcher-cases.mjs";
 
 const root = process.cwd();
 const DETECTOR_RELATIVE = "dist/core/downstream-references.js";
@@ -128,6 +133,7 @@ try {
       "host-name-review-cases.mjs",
       "host-name-expanded-command-cases.mjs",
       "host-name-field-occurrence-cases.mjs",
+      "host-name-launcher-cases.mjs",
     ].map(file => ({
       file,
       sha256: digest(new URL(`./lib/${file}`, import.meta.url)),
@@ -315,8 +321,11 @@ try {
     ...hostNameReviewCases(context),
     ...hostNameExpandedCommandCases(context),
     ...hostNameFieldOccurrenceCases(context),
+    ...hostNameLauncherCases(context),
+    ...hostNameLauncherBoundaryCases(context),
   ];
   verifyExpandedCommandArgv(context, fixtureEnv);
+  verifyLauncherScriptSlot(context, fixtureEnv);
   for (const [
     name,
     cwd,

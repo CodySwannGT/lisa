@@ -1,4 +1,4 @@
 display_name: "Harper Resources"
-short_description: "writing or editing Harper (HarperDB/Fabric) resources — the classes in resources.js (built from TypeScript under src/) that expose custom…"
+short_description: "Write or edit Harper (HarperDB/Fabric) resources — the classes that expose custom data logic over REST and GraphQL"
 default_prompt:
-  - "Use $harper-resources: writing or editing Harper (HarperDB/Fabric) resources — the classes in resources.js (built from TypeScript under src/) that expose custom…."
+  - "Use $harper-resources: Write or edit Harper (HarperDB/Fabric) resources — the classes that expose custom data logic over REST and GraphQL."
