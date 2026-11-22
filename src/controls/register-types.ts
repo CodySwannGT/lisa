@@ -196,6 +196,8 @@ export interface ControlProof {
   readonly external_effects: readonly string[] | null;
   /** Omit the work item only from the disposable violation commit. */
   readonly violation_commit?: "omit-work-item";
+  /** Stage an exact registry dependency in the disposable Bun lockfile. */
+  readonly dependency_fixture?: "bun-production-advisory";
 }
 
 /** A place the audit found a check: the audit report's own locator. */

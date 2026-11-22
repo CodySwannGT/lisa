@@ -123,6 +123,9 @@ async function triggered(
       mechanism,
       timeoutMs: timeLimitSeconds * 1000,
       ...(omitFixtureWorkItem ? { omitFixtureWorkItem: true } : {}),
+      ...(entry.proof.dependency_fixture === "bun-production-advisory"
+        ? { auditFixture: half }
+        : {}),
     });
   } catch (error) {
     return {
