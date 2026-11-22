@@ -232,17 +232,16 @@ linear_graphql() {  # $1=query [$2=variables JSON, default {}]
 
 # The identity probe. Prints `{viewer, organization, teamVisible}` as JSON.
 _linear_identity() {  # $1=key [$2=team key]
-  local probe
+  local probe query variables='{}' status=0
+  query='query{viewer{id name organization{urlKey name}}}'
   if [ -n "${2:-}" ]; then
     # GraphQL expands $team, using the separately encoded variables object.
-    probe=$(_linear_post "$1" \
-      "query(\$team:String!){viewer{id name organization{urlKey name}} teams(filter:{key:{eq:\$team}}){nodes{key}}}" \
-      "$(jq -cn --arg team "$2" '{team:$team}')") || return 1
-  else
-    probe=$(_linear_post "$1" \
-      'query{viewer{id name organization{urlKey name}}}' '{}') || return 1
+    query="query(\$team:String!){viewer{id name organization{urlKey name}} teams(filter:{key:{eq:\$team}}){nodes{key}}}"
+    variables=$(jq -cn --arg team "$2" '{team:$team}') || return 1
   fi
-  printf '%s' "$probe" | jq -ce --arg team "${2:-}" '
+  probe=$(_linear_post "$1" "$query" "$variables") || status=$?
+  if [ "$status" -eq 0 ] && printf '%s' "$probe" | jq -cse --arg team "${2:-}" '
+    (if length == 1 then .[0] else error("identity probe failed") end) |
     if (.errors != null and .errors != []) or (.data.viewer.organization.urlKey | type) != "string"
     then error("identity probe failed")
     else {
@@ -250,10 +249,12 @@ _linear_identity() {  # $1=key [$2=team key]
       organization: .data.viewer.organization,
       teamVisible: (if $team == "" then null
                     else ([.data.teams.nodes[]?.key] | index($team) != null) end)
-    } end' 2>/dev/null || {
-    echo "Error: the Linear identity probe failed; nothing else was sent." >&2
-    return 1
-  }
+    } end' 2>/dev/null; then
+    return 0
+  fi
+  if [ -n "$probe" ]; then printf '%s\n' "$probe" >&2; fi
+  echo "Error: the Linear identity probe failed; nothing else was sent." >&2
+  return 1
 }
 
 # Identity-match, per credential-substrate-precedence: a key for a different

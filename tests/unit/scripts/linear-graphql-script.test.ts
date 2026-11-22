@@ -75,9 +75,15 @@ printf '%s\\n' "$body" >> "$STUB_DIR/bodies.log"
 http_status=200
 case "$body" in
   *'viewer{id name organization'*)
-    teams=$(jq -cn --arg t "\${STUB_TEAMS:-}" '$t | split(",") | map(select(. != "") | {key: .})')
-    jq -cn --arg org "\${STUB_ORG:-acme}" --argjson teams "$teams" \\
-      '{data:{viewer:{id:"u1",name:"Agent",organization:{urlKey:$org,name:"Acme"}},teams:{nodes:$teams}}}'
+    http_status="\${STUB_IDENTITY_HTTP_STATUS:-200}"
+    identity_response="\${STUB_IDENTITY_RESPONSE:-}"
+    if [ -n "$identity_response" ]; then
+      printf '%s' "$identity_response"
+    else
+      teams=$(jq -cn --arg t "\${STUB_TEAMS:-}" '$t | split(",") | map(select(. != "") | {key: .})')
+      jq -cn --arg org "\${STUB_ORG:-acme}" --argjson teams "$teams" \\
+        '{data:{viewer:{id:"u1",name:"Agent",organization:{urlKey:$org,name:"Acme"}},teams:{nodes:$teams}}}'
+    fi
     ;;
   *)
     http_status="\${STUB_HTTP_STATUS:-200}"
@@ -380,6 +386,35 @@ describe("linear-graphql.sh sends a request without exposing the key", () => {
 });
 
 describe("linear-graphql.sh keeps identity-match mandatory", () => {
+  it.each(["200", "403"])(
+    "retains safe identity probe diagnostics on stderr (HTTP %s)",
+    status => {
+      const response = '{"message":"The token cannot read this workspace"}';
+      const environment = {
+        STUB_IDENTITY_HTTP_STATUS: status,
+        STUB_IDENTITY_RESPONSE: response,
+      };
+      const cliTree = buildTree();
+      const cli = run(cliTree, [QUERY_FLAG, writeQuery(cliTree, QUERY)], {
+        env: { ...environment, LINEAR_API_KEY: SENTINEL },
+      });
+      const libraryTree = buildTree();
+      const library = sourced(libraryTree, SOURCED_QUERY_COMMAND, environment);
+
+      for (const result of [cli, library]) {
+        expect(result.status).toBe(1);
+        expect(result.stdout).toBe("");
+        expect(result.stderr).toContain(response);
+        expect(result.stderr).not.toContain(SENTINEL);
+      }
+      expect(cli.bodies).toHaveLength(1);
+      expect(
+        readLines(path.join(libraryTree.stubDir, BODIES_LOG))
+      ).toHaveLength(1);
+      expectKeyNeverPrinted(cli);
+    }
+  );
+
   it("refuses a key for a different organization and sends only the probe", () => {
     const tree = buildTree();
     const query = writeQuery(tree, QUERY);
