@@ -147,7 +147,7 @@ describe("realizable fresh native intake", () => {
       })),
     });
     const header = requirementsContext(
-      readConfig(f.root),
+      readConfig(f.root, f.env),
       REF,
       "github",
       [
@@ -165,6 +165,7 @@ describe("realizable fresh native intake", () => {
     const r = nativeWrite(f, header);
     expect(r.guard.status).toBe(2);
     expect(r.rawWrites).toBe(0);
+    expect(String(r.guard.stderr)).toContain("Context prepared");
     const bytes = readFileSync(path.join(f.root, CONTEXT), "utf8");
     expect(bytes.slice(bytes.indexOf("\n-->\n") + 5)).toBe(body);
     const continuation = f.run();

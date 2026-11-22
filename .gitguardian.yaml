@@ -1,8 +1,7 @@
 # GitGuardian / ggshield configuration.
 #
-# This file exists to exclude ONE generated artifact, and should stay that way.
-# Every other path in the repository is scanned normally; adding a broad
-# exclusion here would quietly disable the gate rather than inform it.
+# The only path exclusion is the current generated checksum manifest.
+# Historical false positives require the exact scanner match fingerprint.
 
 version: 2
 
@@ -29,3 +28,9 @@ secret:
     # wrong trade, and pinning individual secret SHAs would need a new entry every
     # time any of those files changed.
     - src/core/upstream-evidence-manifest.json
+
+  ignored_matches:
+    # One checksum in the legacy generated TypeScript manifest at 9f99f575b8.
+    # Recomputed from plugins/src/base/hooks/secrets-preflight.agy.sh.
+    - name: Historical Antigravity hook SHA-256 checksum
+      match: 4cb7c6f59cc5024cb8da1a559012838a2945feeb4e90c3e68b0e98d86bde0baa

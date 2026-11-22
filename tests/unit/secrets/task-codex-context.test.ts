@@ -67,7 +67,7 @@ describe("documented Codex private metadata command envelope", () => {
     content = `<!-- lisa-required-access:v1\n${JSON.stringify(header)}${content.slice(at)}`;
     if (mode === BODY_REPLACEMENT)
       content = requirementsContext(
-        readConfig(f.root),
+        readConfig(f.root, f.env),
         "fixture/project#1",
         "github",
         header.required_access,
@@ -137,7 +137,7 @@ describe("documented Codex private metadata command envelope", () => {
     const body =
       "Whole private body\r\nUnicode Ω and literal $(touch source.ts)\nPRIVATE_CONTEXT_CANARY\n\n";
     const content = requirementsContext(
-        readConfig(f.root),
+        readConfig(f.root, f.env),
         "fixture/project#1",
         "github",
         header.required_access,
