@@ -605,6 +605,10 @@ const TRACEABILITY_PROOF_FIELDS = Object.freeze([
   ...PROOF_FIELDS,
   "violation_commit",
 ]);
+const AUDIT_PROOF_FIELDS = Object.freeze([
+  ...PROOF_FIELDS,
+  "dependency_fixture",
+]);
 
 /**
  * The keys one named parameter of a part may carry.
@@ -1198,7 +1202,6 @@ export const REGISTRY = Object.freeze({
     label: "🔗 Work-Item Traceability",
     summary: "Every change is bound to a live tracker item.",
     task: "check:work-item",
-    failureShape: ["No Work-Item trailer anywhere in the commit"],
     // Both provers are `lisa-work-item.mjs`, which imports `node:fs`,
     // `node:path`, Node's own process-spawning builtin, and one shipped
     // sibling. It shells out to `gh`, which the runner image carries.
@@ -5655,10 +5658,10 @@ function validateExternalEffects(where, effects) {
  * Validate a part's paired proof.
  * @param {string} where The key being validated.
  * @param {*} proof The declared value, if any.
- * @param {boolean} [traceabilityPush] Whether this is the task-level traceability push proof.
+ * @param {string} [pushGate] Registry gate for a task's push proof.
  * @returns {string[]} Problems.
  */
-function validateProof(where, proof, traceabilityPush = false) {
+function validateProof(where, proof, pushGate) {
   if (proof === undefined) return [];
   if (!isKeyed(proof)) {
     return [
@@ -5666,12 +5669,13 @@ function validateProof(where, proof, traceabilityPush = false) {
         `two halves of the proof, "violation" and "clean".`,
     ];
   }
+  const traceabilityPush = pushGate === "traceability";
+  const auditPush = pushGate === DEPENDENCY_VULNERABILITY;
+  let fields = PROOF_FIELDS;
+  if (traceabilityPush) fields = TRACEABILITY_PROOF_FIELDS;
+  if (auditPush) fields = AUDIT_PROOF_FIELDS;
   const problems = [
-    ...unknownKeyProblems(
-      where,
-      proof,
-      traceabilityPush ? TRACEABILITY_PROOF_FIELDS : PROOF_FIELDS
-    ),
+    ...unknownKeyProblems(where, proof, fields),
     ...validateProofFile(`${where}.violation`, proof.violation),
     ...validateProofFile(`${where}.clean`, proof.clean),
   ];
@@ -5689,6 +5693,25 @@ function validateProof(where, proof, traceabilityPush = false) {
   ) {
     problems.push(
       `${where}.violation_commit accepts "omit-work-item" on the traceability push proof.`
+    );
+  }
+  if (
+    auditPush &&
+    proof.dependency_fixture !== undefined &&
+    proof.dependency_fixture !== "bun-production-advisory"
+  ) {
+    problems.push(
+      `${where}.dependency_fixture accepts "bun-production-advisory" on the dependency audit push proof.`
+    );
+  }
+  if (
+    auditPush &&
+    proof.dependency_fixture === "bun-production-advisory" &&
+    (!Array.isArray(proof.external_effects) ||
+      proof.external_effects.length === 0)
+  ) {
+    problems.push(
+      `${where}.external_effects must describe the registry and advisory reads for the dependency audit fixture.`
     );
   }
   return [
@@ -5722,11 +5745,7 @@ function validateTaskProofs(id, gate) {
     if (gate.parts !== undefined) {
       return [`${where} belongs on each part when the gate declares parts.`];
     }
-    return validateProof(
-      where,
-      value.proof,
-      id === "traceability" && moment === PUSH
-    );
+    return validateProof(where, value.proof, moment === PUSH ? id : undefined);
   });
 }
 

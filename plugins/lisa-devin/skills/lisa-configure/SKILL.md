@@ -354,6 +354,11 @@ disposable copy. Its clean case reads the live work item from the baseline commi
 proof with `--acknowledge-external-effects` after confirming tracker read access. A check without
 an applicable pair reads unproved.
 
+The production dependency pair uses a Bun text lockfile. It changes the version of an existing
+transitive dependency to a version with a public advisory and a patched version in separate
+disposable lockfiles. Dependency installation and lifecycle scripts are disabled. The pair reads
+registry metadata and the live advisory service when external effects are acknowledged.
+
 Take the parts you declared in this run one at a time.
 
 **1. Decide the two changes.**

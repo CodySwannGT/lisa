@@ -74,10 +74,8 @@ import type { ProofCopy } from "./proof-copy.js";
 import { restorePreparedCopy } from "./proof-copy-prepared-state.js";
 import {
   contradictionDetail,
-  notCommittedDetail,
   optionalDetail,
   proofCommitMessage,
-  proofPushCommitMessage,
   PROOF_REMOTE_PLACEHOLDER,
   unattributedDetail,
   unwiredDetail,
@@ -87,6 +85,7 @@ import {
   applyProofPatch,
   isolatedGit,
 } from "./proof-patch.js";
+import { preparePushProof } from "./proof-push-fixture.js";
 import type { ProofTools } from "./proof-tools.js";
 import type {
   PatchOutcome,
@@ -316,7 +315,6 @@ function triggered(
   byGit: boolean
 ): ProofAnswer {
   const { entry, moment, timeoutMs } = request;
-  const inClone = copyGit(copy.clone);
   const unstarted = (
     command: readonly string[],
     notStarted: string
@@ -337,19 +335,8 @@ function triggered(
   const blocked = byGit ? null : notThroughHook(copy, entry, moment);
   if (blocked !== null) return unstarted(command, blocked);
   if (moment === "push") {
-    // The push is the moment under proof. The commit that carries the change
-    // there is set-up, so no hook judges it.
-    const committed = inClone([
-      "-c",
-      `core.hooksPath=${copy.noHooks}`,
-      "commit",
-      "--quiet",
-      "-m",
-      proofPushCommitMessage(request, copy.source.commitTrailers),
-    ]);
-    if (committed.code !== 0) {
-      return unstarted(command, notCommittedDetail(gitSaid(committed)));
-    }
+    const preparation = preparePushProof(copy, tools, request);
+    if (preparation !== null) return unstarted(command, preparation);
   }
   const [, ...args] = command;
   const answer = tools.start([...isolatedGit(copy.clone), ...args], {

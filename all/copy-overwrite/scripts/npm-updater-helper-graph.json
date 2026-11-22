@@ -1580,7 +1580,7 @@
       "children": []
     },
     "lisa-gates.mjs": {
-      "sha256": "41f8dd2a643dac8ec9fe8d2c65e86f49c149a1a1017c3274bad8854e54904f0e",
+      "sha256": "36c505b6932f41f3f9192e67273fe483e3d260c6ab91cac1420a53d04a198903",
       "staticImports": [
         "lib/gate-pass-cache.mjs",
         "lib/invoked-as-script.mjs",

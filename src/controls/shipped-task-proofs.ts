@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { lstat, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { canPlantBunAuditFixture } from "./proof-push-fixture.js";
 
 const PROOF_DIRECTORY = ".lisa/controls/proofs";
 const CLI_PROOF_INPUT = "src/cli.ts";
@@ -91,7 +92,28 @@ const TYPESCRIPT_PROOFS = [
     script: "node scripts/lisa-work-item.mjs validate-push",
     inputs: ["docs/lisa-proof-traceability.md"],
     failure: "No Work-Item trailer anywhere in the commit",
-    violationCommit: "omit-work-item",
+    fixture: {
+      violation_commit: "omit-work-item",
+      external_effects: [
+        "Reads the work item in the configured tracker for the clean push fixture.",
+      ],
+    },
+  },
+  {
+    gate: "dependency-vulnerability",
+    moment: "push",
+    task: "security:audit",
+    script: "$npm_execpath run security:audit:lisa",
+    inputs: ["docs/lisa-proof-dependency-audit.md"],
+    failure:
+      "High or critical vulnerabilities found in production dependencies",
+    applicable: canPlantBunAuditFixture,
+    fixture: {
+      dependency_fixture: "bun-production-advisory",
+      external_effects: [
+        "Reads npm registry package metadata and public advisories for the disposable dependency fixture.",
+      ],
+    },
   },
 ] as const;
 
@@ -105,8 +127,37 @@ export interface ShippedTaskProof {
     readonly clean: string;
     readonly failure_shape: string[];
     readonly violation_commit?: "omit-work-item";
-    readonly external_effects?: string[];
+    readonly dependency_fixture?: "bun-production-advisory";
+    readonly external_effects?: readonly string[];
   };
+}
+
+/** Check whether an installed patch is an unchanged copy of the template.
+ * @param projectDir - The installed host.
+ * @param lisaDir - The Lisa package root.
+ * @param patch - The relative patch path.
+ * @returns True when the patch is present, regular and byte-identical.
+ */
+async function matchesShippedPatch(
+  projectDir: string,
+  lisaDir: string,
+  patch: string
+): Promise<boolean> {
+  try {
+    const template = await readFile(
+      path.join(lisaDir, "typescript", "create-only", patch)
+    );
+    const installed = path.join(projectDir, patch);
+    const info = await lstat(installed);
+    return (
+      info.isFile() &&
+      info.size === template.length &&
+      template.equals(await readFile(installed))
+    );
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw error;
+  }
 }
 
 /**
@@ -129,27 +180,17 @@ export async function installedShippedTaskProofs(
       const { gate, moment, task, script, inputs, failure } = definition;
       if (
         scripts[task] !== script ||
-        inputs.some(input => existsSync(path.join(projectDir, input)))
+        inputs.some(input => existsSync(path.join(projectDir, input))) ||
+        ("applicable" in definition && !definition.applicable(projectDir))
       ) {
         return undefined;
       }
       const base = `${PROOF_DIRECTORY}/lisa-typescript-${gate}`;
       const violation = `${base}.violation.patch`;
       const clean = `${base}.clean.patch`;
-      try {
-        for (const patch of [violation, clean]) {
-          const template = await readFile(
-            path.join(lisaDir, "typescript", "create-only", patch)
-          );
-          const installed = path.join(projectDir, patch);
-          const info = await lstat(installed);
-          if (!info.isFile() || info.size !== template.length) return undefined;
-          if (!template.equals(await readFile(installed))) return undefined;
-        }
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === "ENOENT")
+      for (const patch of [violation, clean]) {
+        if (!(await matchesShippedPatch(projectDir, lisaDir, patch)))
           return undefined;
-        throw error;
       }
       return {
         gate,
@@ -159,14 +200,7 @@ export async function installedShippedTaskProofs(
           violation,
           clean,
           failure_shape: [failure],
-          ...("violationCommit" in definition
-            ? {
-                violation_commit: definition.violationCommit,
-                external_effects: [
-                  "Reads the work item in the configured tracker for the clean push fixture.",
-                ],
-              }
-            : {}),
+          ...("fixture" in definition ? definition.fixture : {}),
         },
       };
     })

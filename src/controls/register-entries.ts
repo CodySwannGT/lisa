@@ -34,6 +34,7 @@ interface DeclaredProof {
   readonly timeout_seconds?: number;
   readonly external_effects?: readonly string[];
   readonly violation_commit?: ControlProof["violation_commit"];
+  readonly dependency_fixture?: ControlProof["dependency_fixture"];
 }
 
 /**
@@ -145,6 +146,7 @@ function proofOf(proof: DeclaredProof = {}): ControlProof {
     timeout_seconds: timeout = null,
     external_effects: effects,
     violation_commit: violationCommit,
+    dependency_fixture: dependencyFixture,
   } = proof;
   return {
     violation,
@@ -155,6 +157,9 @@ function proofOf(proof: DeclaredProof = {}): ControlProof {
     ...(violationCommit === undefined
       ? {}
       : { violation_commit: violationCommit }),
+    ...(dependencyFixture === undefined
+      ? {}
+      : { dependency_fixture: dependencyFixture }),
   };
 }
 
