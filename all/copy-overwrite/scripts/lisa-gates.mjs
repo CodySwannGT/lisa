@@ -1198,7 +1198,6 @@ export const REGISTRY = Object.freeze({
     label: "🔗 Work-Item Traceability",
     summary: "Every change is bound to a live tracker item.",
     task: "check:work-item",
-    failureShape: ["No Work-Item trailer anywhere in the commit"],
     // Both provers are `lisa-work-item.mjs`, which imports `node:fs`,
     // `node:path`, Node's own process-spawning builtin, and one shipped
     // sibling. It shells out to `gh`, which the runner image carries.
