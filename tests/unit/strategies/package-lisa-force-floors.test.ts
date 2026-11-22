@@ -213,11 +213,7 @@ describe("PackageLisaStrategy", () => {
       expect(satisfies("7.5.21", content.dependencies.tar)).toBe(true);
     });
 
-    // A host ahead of the template is only decidable when one range contains the
-    // other. When neither does, both sides carry a constraint the other drops,
-    // and picking either silently is how a lowered floor got shipped in the
-    // first place — so the apply refuses and names both.
-    it("refuses to merge a dependency pin when neither range contains the other", async () => {
+    it("refuses disjoint dependency ranges and leaves the host manifest alone", async () => {
       await createPackageLisaTemplate("typescript", {
         force: { dependencies: { tar: "~7.5.19" } },
       });
@@ -232,7 +228,7 @@ describe("PackageLisaStrategy", () => {
       await createTypeScriptProject(projectDir);
       await fs.writeJson(destPath, {
         name: HOST_PROJECT,
-        dependencies: { tar: ">=7.5.21" },
+        dependencies: { tar: ">=7.6.0" },
       });
 
       const error = await strategy
@@ -244,11 +240,11 @@ describe("PackageLisaStrategy", () => {
 
       expect(error).not.toBeNull();
       expect(error?.message).toContain("dependencies.tar");
-      expect(error?.message).toContain(">=7.5.21");
+      expect(error?.message).toContain(">=7.6.0");
       expect(error?.message).toContain("~7.5.19");
       // Refusing means refusing: the host manifest is left as it was.
       const content = await fs.readJson(destPath);
-      expect(content.dependencies.tar).toBe(">=7.5.21");
+      expect(content.dependencies.tar).toBe(">=7.6.0");
     });
 
     it("reports the host pin it kept and why", async () => {

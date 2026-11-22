@@ -151,10 +151,11 @@ It prints one JSON document. Read these fields:
 | `seeded` | The checks it declared just now, each with the moment it runs at. |
 | `declared_gates` | How many checks the declaration holds now. |
 
-- **`paved`.** The whole repository is one piece of software on a project type Lisa ships checks
-  for. The command has already declared every one of those checks that the repository has a task
-  for, and it never changes a check that was already declared, so running it again changes
-  nothing. Nothing is discovered and nothing is asked on this road. **Go straight to step 7, and
+- **`paved`.** Lisa ships checks for the whole repository's project type or for every folder
+  the audit named. The command declares the available shipped checks using each project's own
+  tasks. A folder check runs in that folder with its task runner. Already declared gates keep
+  their settings, and running the command again leaves the declarations unchanged.
+  **Go straight to step 7, and
   skip step 8.** If
   `declared_gates` is `0`, nothing could be declared because the repository does not yet have the
   tasks those checks run: say so in your closing message, and that setting Lisa up for this
@@ -319,14 +320,14 @@ exist. Keep everything else in the file as it is.
 
 ### Step 7: Have the declaration checked against the audit
 
-**Needs:** the declaration. **Hands on:** a declaration every part of which the audit supports.
+**Needs:** the declaration. **Hands on:** a declaration supported by shipped checks or audit evidence.
 
 ```bash
 lisa controls declaration-check
 ```
 
-- **Exit 0.** Every declared part is supported. On the paved road it passes at once, because
-  nothing was declared from a finding.
+- **Exit 0.** Lisa reproduced the shipped folder checks from the local task manifests and
+  confirmed audit support for any parts declared from findings.
 - **Any other exit.** Each line printed is one problem, naming the gate and the part. A part that
   names a place the audit did not report, rests on a question nobody answered or on an answer
   about something else, or serves a requirement the audit still asks about is refused. Correct the
@@ -432,13 +433,26 @@ is written, remove the scratch folder. Nothing of it is left in the repository.
 
 **4. Have the pairs tried.**
 
+If a fresh clone needs dependencies, generated output or a hook manager, propose
+the argument lists for `controls.proof_copy.prepare` in `.lisa.config.json`. Use
+the repository's lockfile, declared package manager and hook configuration to
+identify the commands. For example, a Bun project with Lefthook may need
+`[["bun", "install", "--frozen-lockfile"], ["./node_modules/.bin/lefthook", "install"]]`.
+Record the approved commands in the committed config before trying the pairs.
+
+Before the first run that uses those commands, show their exact arguments and
+ask the operator once. For example, “May I run these setup commands in the
+temporary copy? They can use this machine's network and credentials.” Carry
+the answer into the attest handoff for the same repository and command list.
+Ask again only if the command list changes.
+
 ```bash
 lisa controls proof-check
 ```
 
 It puts each change on the last commit in a temporary copy, runs the check's own command on it
-there, and removes the copy. It changes nothing in the repository, it installs nothing, and it
-works with uncommitted work in place. It prints one JSON document; read `parts`, one entry per
+there, and removes the copy. The configured preparation runs once in that copy before the
+checks. It works with uncommitted work in place and leaves the repository files alone. It prints one JSON document; read `parts`, one entry per
 declared part:
 
 | `result` | Meaning | What you do |
@@ -456,10 +470,10 @@ declared part:
 Repeat until every part that declares a pair reads `ready`. Ground rule 9 holds throughout: you
 change the test changes, never the check.
 
-The temporary copy holds the last commit and nothing git ignores. A tool that only runs with files
-the working copy has and the commit does not (installed dependencies, built output) cannot run
-there, and reads as not started, or as failing on the clean change without its failure text. Do not
-install anything and do not commit anything to get around that.
+The temporary copy starts from the last commit. If a check needs dependencies or generated files,
+configure and obtain approval for `controls.proof_copy.prepare` as described above, then rerun
+`proof-check`. Without suitable preparation, the check may fail to start or fail on the clean
+change. Keep installed dependencies and generated output out of the commit.
 
 When a pair cannot be made ready honestly (the tool is not installed on this machine, it cannot run
 in a copy of the last commit, or the check does not catch what it was assumed to catch), delete its

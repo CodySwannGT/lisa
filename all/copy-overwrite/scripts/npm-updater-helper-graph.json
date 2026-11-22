@@ -1415,7 +1415,7 @@
       "children": []
     },
     "lib/push-timing.mjs": {
-      "sha256": "486f67d83f1dd2a78cf3d63a5253a4d9a380833e201574d845bd9bb542ff1b78",
+      "sha256": "14df8a7b9ebd0d69e72ee0b02e4801ff72b9b3000e80a6a23324e556efbbcdbb",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "node:fs",
@@ -1580,7 +1580,7 @@
       "children": []
     },
     "lisa-gates.mjs": {
-      "sha256": "5c44bf2bb003249a62c443ef594509f7b6828be12157c9aa90f90d3acad13636",
+      "sha256": "42beca1ca7830cd56f617102c61644c877a232d10a37811b8357bdb1a9c6cc29",
       "staticImports": [
         "lib/gate-pass-cache.mjs",
         "lib/invoked-as-script.mjs",
@@ -1665,7 +1665,7 @@
       "children": []
     },
     "lisa-run-gates.mjs": {
-      "sha256": "c8d581ffa7c7a34b1d4d5c7ac8618f47af9a705fe14cae6b8ce3bba158a1405a",
+      "sha256": "32d9ba926ee0c7f8a5f4ab80c9377b6693d01438990667e85be2e33997af42e6",
       "staticImports": [
         "lib/affected-tests.mjs",
         "lib/bounded-spawn.mjs",
@@ -1705,7 +1705,7 @@
       "children": []
     },
     "lisa-work-item.mjs": {
-      "sha256": "46fb0606ccee999a75479ee479f92ac60f4fd62bbf5808e574380ff8df606e6f",
+      "sha256": "ddca51ff886326ba2bcaef21afa3f4d8fa418d52d997159579e4c0b3a8b30144",
       "staticImports": [
         "lib/completion-authorization.mjs",
         "lib/completion-proof-adapters.mjs",

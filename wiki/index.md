@@ -25,7 +25,8 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 - [Workflow Documentation](documentation/workflows/)
   - [Wiki Ingestion Safety](documentation/workflows/wiki-ingestion-safety.md)
   - [Control Audit: Audit, Configure, Enforce, Attest](documentation/workflows/control-audit.md)
-    - The four commands that find, declare, wire and prove the controls of any repository, whatever its stack: what each asks and writes, how to start one on each of the seven coding agents, the control register and the other files under `.lisa/`, the vocabulary, what the Level 1 verdict means and does not, and the limits an operator will meet.
+    - Find, declare, wire and prove repository controls across seven coding agents. Includes the control register, the Level 1 verdict and checks for missing edit-time registrations and undeclared hook commands.
+    - Run declared checks through a host-owned GitHub pull-request workflow when the repository has no Lisa stack workflow.
 - [Specifications](documentation/specs/)
 
 ## Architecture
@@ -46,6 +47,7 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 
 ## Decisions
 
+- [2026-11-21 — Level 1 evidence for controls Lisa cannot yet exercise](decisions/2026-11-21-level-1-proof-reachability.md)
 - [2026-09-05 — File Age Is Asked in Minutes, Never in Days](decisions/2026-09-05-find-age-predicates.md)
   - Why `find -mtime +N` means "older than N+1 days", the measured 49h-71h disagreement band, the correction to the "broken instrument" reading, and the `-mmin` / `! -newermt` equivalences the shipped ast-grep rule enforces.
 - [2026-09-04 — An Absence Shaped Like a Verdict](decisions/2026-09-04-absence-shaped-like-a-verdict.md)

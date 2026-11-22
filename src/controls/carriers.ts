@@ -42,10 +42,13 @@ import {
   isWritable,
   notWritable,
 } from "./carrier-edits.js";
+import { AGENT_CARRIER_PATH } from "./carrier-agent-script.js";
 import { AGENT_PLACED_PATHS, planAgentCarriers } from "./carrier-agents.js";
+import { credentialProblemIn, withoutCredentials } from "./secret-scan-json.js";
 import { createCarrierGit, type CarrierGit } from "./carrier-git.js";
 import { planGitHookCarriers } from "./carrier-git-hooks.js";
 import { planIgnore } from "./carrier-ignore.js";
+import { isAgentPlan } from "./carrier-outcome.js";
 import {
   carrierRecordText,
   EACH_CHECKOUT,
@@ -56,6 +59,7 @@ import { describeCarrierRun } from "./carrier-result.js";
 import { runnerFiles } from "./carrier-runner-files.js";
 import { resolveRoster, type AgentSelection } from "./carrier-roster.js";
 import {
+  AGENT_CONFIG,
   CARRIER_RECORD_PATH,
   CARRIER_RUNNER_PATH,
   CARRIER_SCHEMA_VERSION,
@@ -149,11 +153,13 @@ type SharedPlan =
  * Plan the record of what a run places.
  * @param root - Real path of the repository
  * @param files - Every file the run places, from the repository root
+ * @param agents - Coding agents with an edit-time registration
  * @returns The write, that none is needed, or what is in the way
  */
 async function planRecord(
   root: string,
-  files: readonly string[]
+  files: readonly string[],
+  agents: readonly CodingAgent[]
 ): Promise<SharedPlan> {
   const folder = await blockedFolder(root, CARRIER_RECORD_PATH);
   if (folder !== null) {
@@ -162,10 +168,13 @@ async function planRecord(
     };
   }
   const absolute = path.join(root, CARRIER_RECORD_PATH);
+  const content = carrierRecordText(files, agents);
+  const problem = credentialProblemIn(CARRIER_RECORD_PATH, content);
+  if (problem !== null) return { problem };
   const edit = fileEdit(
     {
       absolute,
-      content: carrierRecordText(files),
+      content,
       executable: false,
       path: CARRIER_RECORD_PATH,
     },
@@ -180,13 +189,15 @@ async function planRecord(
  * @param root - Real path of the repository
  * @param git - Git
  * @param files - The runner's files and the carrier scripts
+ * @param plans - The carrier plans, after checking their registration files
  * @returns The writes in order, or one sentence saying why nothing may be
  *   written
  */
 async function planShared(
   root: string,
   git: CarrierGit,
-  files: readonly PlacedFile[]
+  files: readonly PlacedFile[],
+  plans: readonly KindPlan[]
 ): Promise<SharedPlan> {
   const recorded = await readRecordedFiles(root);
   if (recorded.problem !== null) return recorded;
@@ -197,9 +208,21 @@ async function planShared(
   const kept = recorded.files.filter(
     file => AGENT_PLACED_PATHS.includes(file) && !placed.includes(file)
   );
+  const agents = plans.flatMap(plan =>
+    plan.points.flatMap(point =>
+      isAgentPlan(point) &&
+      point.through === AGENT_CONFIG &&
+      point.call !== "absent"
+        ? [point.agent]
+        : []
+    )
+  );
+  const retainedAgents = recorded.files.includes(AGENT_CARRIER_PATH)
+    ? recorded.agents
+    : [];
   const [owned, record, ignore] = await Promise.all([
     planOwnedFiles(root, files, recorded.files),
-    planRecord(root, [...placed, ...kept]),
+    planRecord(root, [...placed, ...kept], [...retainedAgents, ...agents]),
     planIgnore(root, git),
   ]);
   if (owned.problem !== null) return owned;
@@ -358,7 +381,7 @@ export async function installCarriers(
   const shared: SharedPlan =
     scripts.length === 0
       ? { edits: [], problem: null }
-      : await planShared(root, git, [...runner, ...scripts]);
+      : await planShared(root, git, [...runner, ...scripts], plans);
   const edits =
     shared.problem === null
       ? [...shared.edits, ...plans.flatMap(plan => plan.edits)]
@@ -380,7 +403,7 @@ export async function installCarriers(
       schema_version: CARRIER_SCHEMA_VERSION,
       ...described,
       runner: {
-        files: runner.map(file => file.path),
+        files: withoutCredentials(runner.map(file => file.path)),
         path: CARRIER_RUNNER_PATH,
         ...described.runner,
       },

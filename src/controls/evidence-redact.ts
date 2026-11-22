@@ -29,7 +29,11 @@ import type {
   EvidenceResultInput,
 } from "./evidence-types.js";
 import { redactArguments, redactCredentials } from "./secret-scan.js";
-import { describeCredentialKind, placeholderKinds } from "./secret-shapes.js";
+import {
+  credentialPlaceholder,
+  describeCredentialKind,
+  placeholderKinds,
+} from "./secret-shapes.js";
 
 /**
  * Take every credential-shaped value out of what a check printed.
@@ -107,13 +111,15 @@ export function echoedCredentialNote(
   const echoed = batches
     .flatMap(batch => batch.results)
     .flatMap(result => {
-      const shapes = kindsIn(result)
-        .map(kind => describeCredentialKind(kind))
-        .join(", ");
+      const kinds = kindsIn(result);
+      const shapes = kinds.map(describeCredentialKind).join(", ");
       return shapes === ""
         ? []
         : [
-            `the ${result.half ?? result.rung} result for ${result.entry_id} at ${result.moment} (${shapes})`,
+            {
+              message: `the ${result.half ?? result.rung} result for ${result.entry_id} at ${result.moment} (${shapes})`,
+              kinds,
+            },
           ];
     });
   if (echoed.length === 0) return null;
@@ -121,5 +127,8 @@ export function echoedCredentialNote(
     echoed.length > 1
       ? [`${echoed.length} checks`, "were"]
       : ["a check", "was"];
-  return `Something shaped like a credential was in what ${checks} printed or ${were} started with: ${echoed.join("; ")}. Each value was taken out before anything was written and is not kept anywhere; a placeholder marks where it was. Find out why the check shows it, and replace the credential if it is a real one.`;
+  const markers = [...new Set(echoed.flatMap(result => result.kinds))]
+    .map(credentialPlaceholder)
+    .join(" ");
+  return `Something shaped like a credential was in what ${checks} printed or ${were} started with: ${echoed.map(result => result.message).join("; ")}. Each value was taken out before anything was written and is not kept anywhere; a placeholder marks where it was. Find out why the check shows it, and replace the credential if it is a real one. ${markers}`;
 }

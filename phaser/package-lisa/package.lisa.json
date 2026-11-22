@@ -21,7 +21,7 @@
       "test:node:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile phaser --adapter direct -- node scripts/lisa-test-node.mjs",
       "test:unit:lisa": "node scripts/lib/worktree-dependencies.mjs && node scripts/lisa-affected-tests.mjs --push-only --fetch scripts/fetch-test-access-map.mjs -- lisa-test-run --profile phaser --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",
       "test:watch:lisa": "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile phaser --adapter vitest -- vitest",
-      "typecheck:lisa": "node scripts/lib/worktree-dependencies.mjs && tsc --noEmit"
+      "typecheck:lisa": "node scripts/lib/worktree-dependencies.mjs && node scripts/lisa-typecheck.mjs"
     },
     "devDependencies": {
       "@ast-grep/cli": "^0.40.4",
@@ -149,7 +149,8 @@
         "lisa-test-run -- vitest"
       ],
       "typecheck": [
-        "tsc --noEmit"
+        "tsc --noEmit",
+        "node scripts/lisa-typecheck.mjs"
       ]
     },
     "devDependencies": {

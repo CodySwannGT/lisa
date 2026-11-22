@@ -28,7 +28,12 @@ import path from "node:path";
 
 import { pathKind, type PathKind } from "./audit-report-file.js";
 import type { CarrierGit } from "./carrier-git.js";
-import type { CarrierEdit, FileEdit } from "./carrier-types.js";
+import {
+  CARRIER_RECORD_PATH,
+  type CarrierEdit,
+  type FileEdit,
+} from "./carrier-types.js";
+import { writeControlFile } from "./control-files.js";
 
 /** The permissions of a file git must be able to start. */
 const EXECUTABLE_MODE = 0o755;
@@ -194,19 +199,29 @@ function failureOf(edit: CarrierEdit, error: unknown): string {
  * @param root - Real path of the repository
  * @param edit - The write
  * @param git - Git, for a setting
+ * @returns The refusal when a managed control file cannot be written
  */
 async function apply(
   root: string,
   edit: CarrierEdit,
   git: CarrierGit
-): Promise<void> {
+): Promise<string | null> {
   if (edit.kind === "setting") {
     await git.setHooksPath(root, edit.value);
-    return;
+    return null;
+  }
+  if (edit.path === CARRIER_RECORD_PATH) {
+    const written = await writeControlFile(
+      root,
+      edit.path,
+      edit.content.toString("utf8")
+    );
+    return written.problem;
   }
   await mkdir(path.dirname(edit.absolute), { recursive: true });
   await writeFile(edit.absolute, edit.content);
   if (edit.executable) await chmod(edit.absolute, EXECUTABLE_MODE);
+  return null;
 }
 
 /**
@@ -235,8 +250,10 @@ export function applyCarrierEdits(
       const done = await earlier;
       if (done.failed !== null) return done;
       try {
-        await apply(root, edit, git);
-        return { failed: null, written: [...done.written, edit] };
+        const problem = await apply(root, edit, git);
+        return problem === null
+          ? { failed: null, written: [...done.written, edit] }
+          : { ...done, failed: { edit, why: problem } };
       } catch (error) {
         return { ...done, failed: { edit, why: failureOf(edit, error) } };
       }

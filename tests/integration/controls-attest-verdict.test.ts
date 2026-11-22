@@ -142,6 +142,23 @@ describe("built lisa controls attest in a repository without Lisa", () => {
 
     expect(run.status).toBe(0);
     expect(run.stdout).toContain("attest: Level 1 result: non-conforming.");
+    const reportedGaps = Array.from(
+      run.stdout.matchAll(
+        /^attest: (\S+) needs evidence\. .*The minimum evidence rung is \w+\.$/gmu
+      ),
+      match => match[1]
+    );
+    expect(reportedGaps).toEqual([
+      "AC5.1",
+      "AC5.2",
+      "AC8.2",
+      "AC8.5",
+      "AC8.6",
+      "AC8.8",
+      "SI10",
+      "UX2",
+      "UX4",
+    ]);
     expect(
       jsonOf<EvidenceDocument>(where, EVIDENCE_PATH).records.map(record => [
         record.id,

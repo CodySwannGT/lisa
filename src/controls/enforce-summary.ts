@@ -246,7 +246,9 @@ function registerLimits(register: ControlRegister): readonly string[] {
     ...(executor === undefined
       ? []
       : [
-          `The checks on a proposed change run from ${executor.path} on ${platformLabel(executor.platform)}, a file Lisa did not write. Nothing in this release can prove a check there, so those entries stay marked unproved.`,
+          executor.platform === "github"
+            ? `The changes proposed on GitHub run their checks through ${executor.path}. Attest must record both proof halves before those checks are proved.`
+            : `The checks on a proposed change run from ${executor.path} on ${platformLabel(executor.platform)}, a file Lisa did not write. Nothing in this release can prove a check there, so those entries stay marked unproved.`,
         ]),
     ...(thresholds > 0 && !guarded
       ? [

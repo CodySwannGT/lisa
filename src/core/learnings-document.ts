@@ -88,9 +88,8 @@ export interface LearningsReadOptions {
   /**
    * Accept a document above `maxTokens` (up to
    * {@link LEARNINGS_OVER_BUDGET_READ_CEILING}) and skip the document budget.
-   * Only shrink-only writers — retire, and supersede on an over-cap ledger —
-   * pass this; conflict markers, format, entry schema, and identity uniqueness
-   * are still enforced.
+   * Overflow inspection and shrink-only writes can use this. Conflict markers,
+   * format, entry schema, and identity uniqueness are still enforced.
    */
   readonly allowOverBudget?: boolean;
 }

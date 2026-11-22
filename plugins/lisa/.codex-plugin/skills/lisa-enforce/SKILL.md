@@ -227,19 +227,17 @@ Never edit the saved file, and never save the result of the `--check` run as `ca
 check installs nothing, and every change it lists is one it did not make. The command of step 8
 refuses the result of a `--check` run, so only `carriers.json` can be named to it.
 
-### Step 4: Write the pipeline file, on a platform other than GitHub
+### Step 4: Write the pull-request workflow where the repository needs one
 
 **Needs:** the carriers. **Hands on:** the file that runs the checks on a proposed change, where
 Lisa ships none.
 
-Only when the repository is hosted somewhere other than GitHub and a check is declared to run on a
-proposed change (`pull-request`). Follow `references/pull-request-executor.md` from start to
-finish. It is the one place in this skill where you write a file by hand, and it says exactly
-what that file must do. Tell the operator plainly what it means: Lisa did not write that file and
-nothing in this release can prove a check on that platform, so every rule it runs stays marked
-unproved.
-
-On GitHub, and when nothing is declared for a proposed change, skip this step.
+When a check is declared at `pull-request`, find the workflow that runs it. Skip this step if a
+Lisa workflow already runs those declared checks. Otherwise follow
+`references/pull-request-executor.md` from start to finish, including its GitHub instructions for
+repositories that need their own workflow. Tell the operator that the new workflow's checks stay
+`unproved` until attest records both halves of their proof. Skip this step when nothing runs on
+pull requests.
 
 ### Step 5: Bring the control register up to date
 

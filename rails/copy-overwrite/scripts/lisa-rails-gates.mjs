@@ -100,6 +100,11 @@ export const RAILS_GATES = Object.freeze({
     cacheable: true,
     admitted: false,
   }),
+  "ast-grep": Object.freeze({
+    command: ["node", "scripts/lisa-rails-ast-grep.mjs"],
+    cacheable: true,
+    admitted: false,
+  }),
   mutation: Object.freeze({
     command: ["bash", "scripts/lisa-mutation.sh"],
     cacheable: false,

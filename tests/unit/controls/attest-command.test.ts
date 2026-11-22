@@ -31,7 +31,11 @@ import {
   provedGates,
   REJECTS_EVERYTHING,
 } from "../../helpers/control-proofs.js";
-import { attest, attestAndRecord } from "./support/attest-run.js";
+import {
+  attest,
+  attestAndRecord,
+  UNMAPPED_EVIDENCE_NOTES,
+} from "./support/attest-run.js";
 import { removeCopies, setting } from "./support/proof-run.js";
 import { keep, removeFixtures } from "./support/report-check-run.js";
 import { createSymlink } from "../../support/borrowed-node-modules.mjs";
@@ -54,6 +58,7 @@ const WRITTEN_DOWN = [
     /^attest: Wrote \.lisa\/controls\/register\.json again /u
   ),
   expect.stringMatching(/^attest: Level 1 result: non-conforming\. /u),
+  ...UNMAPPED_EVIDENCE_NOTES,
 ] as const;
 
 afterEach(() => {

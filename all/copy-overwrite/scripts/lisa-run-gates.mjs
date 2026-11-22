@@ -1527,6 +1527,7 @@ function verdictFor(
  *   True by default, which is every hook a stack template ships. False for a
  *   caller with none (`--builtins=none`): a gate resolved to `builtin` is then
  *   reported as not proved, because nothing is left to prove it.
+ * @param {boolean} [options.completeParts] Keep running costly parts after a required part fails.
  * @param {() => ({paths: string[]|null, note: string|null})} [options.change]
  *   Says which paths the change touches (CodySwannGT/lisa#4988), as
  *   `changeAt` in `lib/changed-paths` answers it. `paths: null` means "not
@@ -1551,6 +1552,7 @@ export function runGates({
   cache = null,
   selection = null,
   builtins = true,
+  completeParts = false,
   change = () => ({ paths: null, note: null }),
 }) {
   const resolved = resolveMoment({ gates, moment, runner, scripts });
@@ -1645,7 +1647,7 @@ export function runGates({
     const start = isPart(gate) ? partStart(gate, root) : null;
     const verdict = verdictFor(gate, {
       proved,
-      blockedBy: blocker,
+      blockedBy: completeParts && isPart(gate) ? null : blocker,
       exec,
       execArgv,
       start,
@@ -2299,12 +2301,13 @@ function isRunnableFile(path) {
  * supervisor and blocks there. Neither is a pass.
  * @param {string} program The first item of a part's argument list.
  * @param {string} cwd The folder the command starts in.
+ * @param {string} [searchPath] The command environment’s executable search path.
  * @returns {string|null} Why the program cannot be started, finishing
  *   `NOTHING_RAN`, or null when a runnable file answers to that name.
  */
-function programProblem(program, cwd) {
+function programProblem(program, cwd, searchPath = DEFAULT_SEARCH_PATH) {
   if (!program.includes("/")) {
-    const found = (process.env.PATH ?? DEFAULT_SEARCH_PATH)
+    const found = searchPath
       .split(delimiter)
       .some(folder => isRunnableFile(resolve(cwd, folder, program)));
     return found ? null : programMissing(program);
@@ -2347,12 +2350,10 @@ function programMissing(program) {
  * supervisor's own messages still reach this process's error output.
  * @param {readonly string[]} argv The program and its arguments.
  * @param {string} cwd The folder to start in.
- * @param {{capture: boolean, quiet: boolean, budgetMs: number}} how Whether to
- *   keep a diagnostic tail of the output, whether to show nothing while the
- *   command runs, and the deadline.
+ * @param {{capture: boolean, quiet: boolean, budgetMs: number, env?: NodeJS.ProcessEnv}} how How to supervise and capture the command.
  * @returns {import("node:child_process").SpawnSyncReturns<string>} Result.
  */
-function superviseArgv(argv, cwd, { capture, quiet, budgetMs }) {
+function superviseArgv(argv, cwd, { capture, quiet, budgetMs, env }) {
   const watch = isWatchablePid(LAUNCH_PARENT_PID)
     ? [`--watch-pid=${LAUNCH_PARENT_PID}`]
     : [];
@@ -2373,6 +2374,7 @@ function superviseArgv(argv, cwd, { capture, quiet, budgetMs }) {
       shell: false,
       stdio: capture ? [shown, shown, "inherit", "pipe"] : "inherit",
       timeout: budgetMs + PROCESS_TREE_REAP_BUDGET_MS,
+      ...(env === undefined ? {} : { env }),
     }
   );
 }
@@ -2422,19 +2424,20 @@ function partBudget(timeoutMs) {
  * reads from nothing and what it prints is collected instead of shown.
  * @param {readonly string[]} argv The program and its arguments.
  * @param {string} cwd The folder to start in.
- * @param {{quiet: boolean, budgetMs: number}} how Whether to collect the
+ * @param {{quiet: boolean, budgetMs: number, env?: NodeJS.ProcessEnv}} how Whether to collect the
  *   output instead of showing it, and the deadline.
  * @returns {{code: number|null, output: string|null, signal?: string, notStarted?: string}}
  *   Exit code; null with `notStarted` when the program could not be started.
  * @throws {Error} When the program was killed at its deadline.
  */
-function startArgv(argv, cwd, { quiet, budgetMs }) {
+function startArgv(argv, cwd, { quiet, budgetMs, env }) {
   const [program, ...rest] = argv;
   const child = boundedSpawnSync(program, rest, {
     cwd,
     shell: false,
     stdio: quiet ? ["ignore", "pipe", "pipe"] : "inherit",
     timeout: budgetMs,
+    ...(env === undefined ? {} : { env }),
     // Only a quiet start collects anything, and a check that prints a great
     // deal must still be read rather than cut off as if it could not start.
     ...(quiet ? { maxBuffer: QUIET_OUTPUT_BYTES } : {}),
@@ -2470,8 +2473,8 @@ function startArgv(argv, cwd, { quiet, budgetMs }) {
  * It starts in `cwd` and nowhere else, so `cwd` is required: a part's command
  * must never run in whatever folder the runner happened to be started in.
  *
- * The program gets this process's environment unchanged, as every gate
- * command does.
+ * Gate commands inherit this process's environment. Proof preparation can
+ * supply a copy without repository-selection variables from Git hooks.
  *
  * ## What it refuses, and how
  *
@@ -2510,6 +2513,7 @@ function startArgv(argv, cwd, { quiet, budgetMs }) {
  *   from 1 to thirty minutes. Thirty minutes when left out.
  * @param {boolean} [options.quiet] Show nothing while the command runs, and
  *   always keep what it printed.
+ * @param {NodeJS.ProcessEnv} [options.env] Environment for this start.
  * @returns {{code: number|null, output: string|null, signal?: string, notStarted?: string, timedOut?: true}}
  *   OS status and diagnostic tail, or why nothing started.
  * @throws {TypeError} When `argv` is not a list of text naming a program,
@@ -2517,7 +2521,7 @@ function startArgv(argv, cwd, { quiet, budgetMs }) {
  */
 export function spawnArgv(
   argv,
-  { cwd, platform = process.platform, timeoutMs, quiet = false } = {}
+  { cwd, platform = process.platform, timeoutMs, quiet = false, env } = {}
 ) {
   const problem = argvProblem(argv);
   if (problem !== null) {
@@ -2555,7 +2559,7 @@ export function spawnArgv(
       : answer;
   if (platform === "win32") {
     try {
-      return startArgv(argv, cwd, { quiet, budgetMs });
+      return startArgv(argv, cwd, { quiet, budgetMs, env });
     } catch (error) {
       // A gate keeps what it always had here. Only a start that was given a
       // limit of its own is answered instead.
@@ -2563,11 +2567,12 @@ export function spawnArgv(
       return atDeadline(killedOrRethrow(error));
     }
   }
-  const notStarted = programProblem(argv[0], cwd);
+  const searchPath = env === undefined ? process.env.PATH : env.PATH;
+  const notStarted = programProblem(argv[0], cwd, searchPath);
   if (notStarted !== null) return { code: null, output: null, notStarted };
   const capture = quiet || process.env.LISA_GATES_CAPTURE !== "0";
   try {
-    const child = superviseArgv(argv, cwd, { capture, quiet, budgetMs });
+    const child = superviseArgv(argv, cwd, { capture, quiet, budgetMs, env });
     // A non-timeout `spawnSync` failure arrives on the result, and it means
     // the supervisor itself never ran: nothing checked this part.
     if (child.error) return { code: null, output: null };
@@ -2793,7 +2798,10 @@ function readFlag(argv, name) {
 /** How the command line is written. */
 const USAGE =
   "usage: lisa-run-gates.mjs --moment=<moment> [--coverage=<file>] " +
-  "[--evidence=<file>] [--builtins=none] [--push-refs=<file>|-] [--parts=all]";
+  "[--evidence=<file>] [--builtins=none] [--push-refs=<file>|-] [--parts=all] [--gate=<id>]";
+
+/** The gate id a standalone pull-request job is responsible for. */
+const GATE_FLAG = "gate";
 
 /**
  * The flag a push hook uses to hand over what git told it is being pushed.
@@ -2974,16 +2982,25 @@ export function main(argv = process.argv.slice(2)) {
   const partsFlag = argv.includes(`--${PARTS_FLAG}`)
     ? ""
     : readFlag(argv, PARTS_FLAG);
+  const onlyGate = argv.includes(`--${GATE_FLAG}`)
+    ? ""
+    : readFlag(argv, GATE_FLAG);
+  const standalone = builtinsFlag === NO_BUILTINS;
+  const gateFlagProblem =
+    onlyGate !== null &&
+    (onlyGate === "" || !standalone || moment !== "pull-request")
+      ? "Use --gate=<id> with --moment=pull-request and --builtins=none."
+      : null;
   const flagProblem =
     builtinsFlagProblem(builtinsFlag, coveragePath) ??
-    partsFlagProblem(partsFlag);
+    partsFlagProblem(partsFlag) ??
+    gateFlagProblem;
   if (flagProblem) {
     console.error(`⚠️  ${flagProblem}`);
     console.error(USAGE);
     console.error("   Nothing ran, so nothing was proved. This is NOT a pass.");
     return EXIT.RUNNER_FAILED;
   }
-  const standalone = builtinsFlag === NO_BUILTINS;
   // Standard input is read NOW, before anything else is started. Every gate
   // command inherits it, and git writes the pushed refs there exactly once:
   // read lazily, whichever of the runner and a gate got there first would
@@ -3063,6 +3080,14 @@ export function main(argv = process.argv.slice(2)) {
   // has not adopted the registry, so the caller must run its hardcoded steps.
   if (!config.gates || Object.keys(config.gates).length === 0) {
     if (coveragePath) writeCoverage(coveragePath, []);
+    if (onlyGate !== null) {
+      reportRefusal(
+        moment,
+        [`No gate ${JSON.stringify(onlyGate)} is declared.`],
+        line => console.error(line)
+      );
+      return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.REFUSED);
+    }
     // A caller with no built-in checks has no hardcoded steps to run instead,
     // so 78 would be an instruction it cannot follow. What is true is that
     // nothing is declared and so nothing was checked: the same answer a gates
@@ -3126,6 +3151,31 @@ export function main(argv = process.argv.slice(2)) {
         `They will be refused where they DO apply — run \`${validateCommand()}\` ` +
         `to see them.`
     );
+  }
+  const gatesToRun =
+    onlyGate === null ? config.gates : { [onlyGate]: config.gates[onlyGate] };
+  if (
+    onlyGate !== null &&
+    (!Object.hasOwn(config.gates, onlyGate) ||
+      !resolveMoment({
+        gates: gatesToRun,
+        moment,
+        runner: config.runner,
+        scripts,
+      }).some(gate => gate.mode === "run"))
+  ) {
+    reportRefusal(
+      moment,
+      [
+        `Gate ${JSON.stringify(onlyGate)} has no runnable declaration at this moment.`,
+      ],
+      line => console.error(line)
+    );
+    return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.REFUSED, {
+      gates: config.gates,
+      runner: config.runner,
+      scripts,
+    });
   }
 
   // The stack's push-gate defaults (CodySwannGT/lisa#4611): a TypeScript host
@@ -3272,7 +3322,7 @@ export function main(argv = process.argv.slice(2)) {
   // (CodySwannGT/lisa#4600) and says so through this channel.
   const selection = moment === "push" ? openSelectionReports() : null;
   const result = runGates({
-    gates: config.gates,
+    gates: gatesToRun,
     moment,
     runner: config.runner,
     // Selection reporting wraps the admission-aware `exec`, so a narrowed
@@ -3286,6 +3336,7 @@ export function main(argv = process.argv.slice(2)) {
     cache,
     selection,
     builtins: !standalone,
+    completeParts: onlyGate !== null,
     // What the change touches is read HERE and handed down, for the reason
     // the manifest is: `runGates` stays a function of its inputs. It is asked
     // only if this moment has a part for a folder, so a gates block with no
@@ -3378,7 +3429,7 @@ export function main(argv = process.argv.slice(2)) {
   return settle(
     result.blocked ? EXIT.BLOCKED : EXIT.PROVED,
     result.blocked ? EVIDENCE_VERDICT.BLOCKED : EVIDENCE_VERDICT.PROVED,
-    { gates: config.gates, result, runner: config.runner, scripts }
+    { gates: gatesToRun, result, runner: config.runner, scripts }
   );
 }
 

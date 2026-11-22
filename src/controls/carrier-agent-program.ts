@@ -3,8 +3,8 @@
  *
  * The program is a Node module placed in the repository beside the commit
  * and push carriers. Whatever agent started it, it does four things in
- * order: reads the event the agent handed its hook, works out which file was
- * written, runs the gate runner at the `post-tool` moment with
+ * order: reads the event the agent handed its hook, finds the written file's
+ * checkout, runs the gate runner there at the `post-tool` moment with
  * `--builtins=none`, and, when a required check is not proved, tells the
  * agent in the one way that agent's hook contract passes on.
  *
@@ -14,6 +14,7 @@
  * `package.json`.
  * @module controls/carrier-agent-program
  */
+import { checkoutSelection } from "./carrier-agent-checkout.js";
 import {
   AGENT_SURFACES,
   type AgentHookSurface,
@@ -89,7 +90,7 @@ function programAgents(): Readonly<
 function preamble(): readonly string[] {
   return [
     'import { spawnSync } from "node:child_process";',
-    'import { existsSync } from "node:fs";',
+    'import { existsSync, lstatSync, realpathSync } from "node:fs";',
     'import path from "node:path";',
     'import { fileURLToPath } from "node:url";',
     "",
@@ -103,11 +104,8 @@ function preamble(): readonly string[] {
     "const PATCH_HEADER =",
     "  /^\\*\\*\\* (?:Add File|Update File|Delete File|Move to): (.+)$/;",
     "",
-    "const root = path.resolve(",
-    "  path.dirname(fileURLToPath(import.meta.url)),",
-    '  "..",',
-    '  ".."',
-    ");",
+    "const program = fileURLToPath(import.meta.url);",
+    'const root = path.resolve(path.dirname(program), "..", "..");',
     `const runner = path.join(root, ${JSON.stringify(CARRIER_RUNNER_PATH)});`,
     'const agent = process.argv[2] ?? "";',
     "const known = Object.hasOwn(AGENTS, agent) ? AGENTS[agent] : null;",
@@ -173,7 +171,7 @@ function eventReading(): readonly string[] {
     "// says. An event that cannot be read names neither, and is checked.",
     "function writeEvent(text) {",
     "  const event = parsed(text);",
-    "  if (!keyed(event)) return { tool: null, paths: [] };",
+    "  if (!keyed(event)) return { tool: null, paths: [], cwd: process.cwd() };",
     "  const call = keyed(event.toolCall) ? event.toolCall : {};",
     "  const tool =",
     "    [event.tool_name, event.toolName, event.tool, call.name].find(",
@@ -196,7 +194,8 @@ function eventReading(): readonly string[] {
     "        return header === null ? [] : [header[1]];",
     "      })",
     "    );",
-    "  return { tool, paths: [...new Set([...named, ...patched])] };",
+    '  const cwd = typeof event.cwd === "string" ? path.resolve(event.cwd) : process.cwd();',
+    "  return { tool, cwd, paths: [...new Set([...named, ...patched])] };",
     "}",
     "",
   ];
@@ -266,7 +265,8 @@ function body(): readonly string[] {
     `${CARRIER_RUNNER_PATH} is missing, so ${CARRIER_CHECKS} cannot run. Run "${INSTALL_CARRIERS_INVOCATION}" to put it back.`
   );
   return [
-    "const event = writeEvent(await standardInput());",
+    "const raw = await standardInput();",
+    "const event = writeEvent(raw);",
     "if (known === null) {",
     "  refuse(",
     '    "this carrier was started for " +',
@@ -279,10 +279,12 @@ function body(): readonly string[] {
     "  !known.tools.includes(event.tool.toLowerCase())",
     ") {",
     "  // Not a file write: this agent runs its hook after every tool.",
-    "} else if (!existsSync(runner)) {",
-    `  refuse(${missingRunner});`,
     "} else {",
-    "  runChecks(event.paths);",
+    "  const paths = pathsHere(event, raw);",
+    "  if (paths !== null) {",
+    `    if (!existsSync(runner)) refuse(${missingRunner});`,
+    "    else runChecks(paths);",
+    "  }",
     "}",
   ];
 }
@@ -303,6 +305,7 @@ export function agentCarrierProgram(): string {
     ...preamble(),
     ...refusal(),
     ...eventReading(),
+    ...checkoutSelection(),
     ...checking(),
     ...body(),
     `// ${end.slice(2)}`,

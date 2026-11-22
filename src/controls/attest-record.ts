@@ -71,7 +71,7 @@ import {
 } from "./register.js";
 import { CONTROL_REGISTER_PATH } from "./register-types.js";
 import { computeVerdict, serializeVerdict } from "./verdict.js";
-import { levelSummary } from "./verdict-summary.js";
+import { levelSummary, unmappedEvidenceLines } from "./verdict-summary.js";
 import { VERDICT_PATH, type Verdict } from "./verdict-types.js";
 
 /** What an attest run hands over to be written down. */
@@ -233,7 +233,11 @@ async function writeInOrder(
   now: Date,
   dependencies: RecordAttestationDependencies
 ): Promise<
-  | { readonly problems: null; readonly verdict: Verdict }
+  | {
+      readonly problems: null;
+      readonly verdict: Verdict;
+      readonly evidenceGaps: readonly string[];
+    }
   | { readonly problems: readonly string[] }
 > {
   const generate = dependencies.generate ?? generateControlRegister;
@@ -248,15 +252,20 @@ async function writeInOrder(
   const second = await write(root, CONTROL_REGISTER_PATH, register.text);
   if (second.problem !== null) return { problems: [second.problem] };
   // 3. The verdict, from that register and that evidence.
+  const catalogue = (dependencies.loadCatalogue ?? loadCriterionCatalogue)();
   const verdict = computeVerdict({
-    catalogue: (dependencies.loadCatalogue ?? loadCriterionCatalogue)(),
+    catalogue,
     register: register.register,
     evidence,
     now,
   });
   const last = await write(root, VERDICT_PATH, serializeVerdict(verdict));
   return last.problem === null
-    ? { problems: null, verdict }
+    ? {
+        problems: null,
+        verdict,
+        evidenceGaps: unmappedEvidenceLines(catalogue, verdict),
+      }
     : { problems: [last.problem] };
 }
 
@@ -312,6 +321,7 @@ async function recorded(
       ...gathered.notes,
       `Wrote ${CONTROL_REGISTER_PATH} again from the gates declaration and the evidence, then the verdict in ${VERDICT_PATH}.`,
       levelSummary(written.verdict),
+      ...written.evidenceGaps,
     ],
     evidence,
     verdict: written.verdict,

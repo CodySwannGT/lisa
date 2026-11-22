@@ -48,6 +48,13 @@ describe("the runner files placed from the Lisa package", () => {
 
     expect(paths).toContain(RUNNER);
     expect(paths).toContain("scripts/lisa-gates.mjs");
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        "scripts/check-threshold-ratchet.mjs",
+        "scripts/threshold-ratchet-compare.mjs",
+        "scripts/threshold-ratchet-families.mjs",
+      ])
+    );
     expect(paths.some(file => file.startsWith("scripts/lib/"))).toBe(true);
     expect(paths.every(file => file.startsWith("scripts/"))).toBe(true);
     expect(paths).toEqual([...paths].sort(compareCodeUnits));
@@ -80,6 +87,7 @@ describe("the runner files placed from the Lisa package", () => {
 
   it("follow imports, re-exports and files read from beside a module", async () => {
     const folder = scriptsFolder({
+      "check-threshold-ratchet.mjs": "// threshold fixture\n",
       "lib/a.mjs": 'export { b } from "./b.mjs";\n',
       "lib/b.mjs":
         'export const b = new URL("./helper.ps1", import.meta.url);\n',
@@ -95,6 +103,7 @@ describe("the runner files placed from the Lisa package", () => {
     const paths = (await runnerFiles(folder)).map(file => file.path);
 
     expect(paths).toEqual([
+      "scripts/check-threshold-ratchet.mjs",
       "scripts/lib/a.mjs",
       "scripts/lib/b.mjs",
       "scripts/lib/helper.cs",
@@ -106,6 +115,7 @@ describe("the runner files placed from the Lisa package", () => {
 
   it("refuse a runner that reaches outside its own folder", async () => {
     const folder = scriptsFolder({
+      "check-threshold-ratchet.mjs": "// threshold fixture\n",
       "lisa-run-gates.mjs": 'import "../elsewhere.mjs";\n',
     });
 

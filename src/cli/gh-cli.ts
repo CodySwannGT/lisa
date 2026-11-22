@@ -16,13 +16,15 @@ import { spawnTarget } from "../utils/resolve-executable.js";
  * @param cwd - Working directory
  * @param timeoutMs - Child-process timeout
  * @param signal - Probe cancellation signal
+ * @param maxBuffer - Optional output bound for paginated reads.
  * @returns Trimmed stdout
  */
 export function runGh(
   args: readonly string[],
   cwd: string,
   timeoutMs: number,
-  signal: AbortSignal
+  signal: AbortSignal,
+  maxBuffer?: number
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     // Throws ExecutableNotFoundError (code ENOENT) when gh is not installed;
@@ -35,12 +37,13 @@ export function runGh(
         cwd,
         signal,
         timeout: timeoutMs,
+        ...(maxBuffer === undefined ? {} : { maxBuffer }),
         encoding: "utf8",
         windowsVerbatimArguments: gh.windowsVerbatimArguments,
       },
-      (error, stdout) => {
+      (error, stdout, stderr) => {
         if (error !== null) {
-          reject(error);
+          reject(Object.assign(error, { stderr }));
           return;
         }
         resolve(stdout.trim());

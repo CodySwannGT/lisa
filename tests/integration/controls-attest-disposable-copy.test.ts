@@ -19,15 +19,22 @@ import { spawn } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
+  readFileSync,
   readdirSync,
   realpathSync,
+  renameSync,
   rmSync,
+  writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import {
+  PROOF_SCRATCH_LIFETIME_MS,
+  PROOF_SCRATCH_OWNER,
+} from "../../src/controls/proof-scratch.js";
 import type { ProofRun } from "../../src/controls/proof-types.js";
 import {
   buildProofFixture,
@@ -261,6 +268,47 @@ describe("built lisa controls attest with no --workspace", () => {
       ".lisa/controls/verdict.json": "untracked",
     });
     expect(readdirSync(where.tmp)).toEqual([]);
+  });
+
+  it("removes the expired copy left by a run stopped with SIGKILL", async () => {
+    const started = { file: "" };
+    const where = setting(outside => {
+      started.file = path.join(outside, "killed-check-started");
+      return provedGates([{ command: slowCheck(started.file) }]);
+    });
+
+    const stopped = await interrupt(where, started.file, "SIGKILL");
+    expect(stopped.signal).toBe("SIGKILL");
+    expect(stopped.foldersAtSignal).toHaveLength(1);
+    expect(runFolders(where)).toEqual(stopped.foldersAtSignal);
+    const [left] = stopped.foldersAtSignal;
+    const directory = path.join(where.tmp, left!);
+    const record = path.join(directory, PROOF_SCRATCH_OWNER);
+    const owner = JSON.parse(readFileSync(record, "utf8")) as {
+      folder: string;
+    };
+    expect(owner.folder).toBe(left);
+    // Advance the fixture's recorded age rather than waiting two real hours.
+    owner.folder = left!.replace(
+      /\d{13}/u,
+      String(Date.now() - PROOF_SCRATCH_LIFETIME_MS - 1_000)
+    );
+    const expired = path.join(where.tmp, owner.folder);
+    writeFileSync(record, JSON.stringify(owner));
+    renameSync(directory, expired);
+
+    const successor = boundedSpawnSync({
+      label: "lisa controls attest after a killed proof",
+      command: NODE,
+      args: [DIST_CLI, "controls", "attest", "--json"],
+      baseMs: 30_000,
+      cwd: where.repoPath,
+      env: where.env,
+    });
+    expect(successor.status, successor.stderr).toBe(0);
+    expect(successor.stderr).toContain("Removed 1 abandoned proof copies");
+    expect(existsSync(expired)).toBe(false);
+    expect(runFolders(where)).toEqual([]);
   });
 
   it.each(["SIGTERM", "SIGINT"] as const)(

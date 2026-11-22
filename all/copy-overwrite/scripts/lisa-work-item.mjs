@@ -6261,6 +6261,35 @@ function sweepBranches(args, contract, since) {
   );
 }
 
+/**
+ * Report one declared issue through the read-only, canonical proof decision.
+ * Only authorization calls the issue drift. A proof still being collected
+ * remains visible without misleading a reader into attempting completion.
+ * @param {string} ref Native issue reference.
+ * @param {object} contract Resolved work-item contract.
+ * @param {object} issue Issue selected by the configured lifecycle roles.
+ * @param {string[]} shas Commits that declared the issue.
+ * @returns {"drift"|"pending"|"failed"} The reported outcome.
+ */
+function reportSweptIssue(ref, contract, issue, shas) {
+  const declaration = `${ref}  declared by: ${describeDeclarations(shas)}  [${issue.roles.join(", ")}]  ${issue.title}`;
+  const decision = authorizeCompletion(proofContext(ref, contract));
+  if (decision.category === "authorized") {
+    console.log(`DRIFT  ${declaration}`);
+    return "drift";
+  }
+  if (decision.category === "pending-proof") {
+    console.log(
+      `PENDING VERIFICATION  ${declaration}  [${decision.category}]\n${decision.reason}`
+    );
+    return "pending";
+  }
+  console.log(
+    `VERIFICATION FAILED  ${declaration}  [${decision.category}]\n${decision.reason}`
+  );
+  return "failed";
+}
+
 function sweep(args) {
   const contract = trackerContract();
   if (contract.provider !== "github") {
@@ -6295,18 +6324,25 @@ function sweep(args) {
   // its reader was asking. An instrument that reports an absence has to say
   // what it looked at.
   const examined = roles.map(role => `"${role}"`).join(" and ");
-  let drifted = 0;
+  let declared = 0;
+  const report = { drift: 0, pending: 0, failed: 0 };
   for (const issue of [...subjects.values()].sort(
     (left, right) => right.number - left.number
   )) {
     const shas = declarations.get(issue.number) ?? [];
     if (shas.length === 0) continue;
-    drifted += 1;
+    declared += 1;
     const ref = `${repository}#${issue.number}`;
     if (!apply) {
-      console.log(
-        `DRIFT  ${ref}  declared by: ${describeDeclarations(shas)}  [${issue.roles.join(", ")}]  ${issue.title}`
-      );
+      try {
+        const outcome = reportSweptIssue(ref, contract, issue, shas);
+        report[outcome] += 1;
+      } catch (error) {
+        report.failed += 1;
+        console.log(
+          `VERIFICATION FAILED  ${ref}  [${COMPLETION_READ_ERROR}]\n${error instanceof Error ? error.message : String(error)}. Restore access and rerun the sweep.`
+        );
+      }
       continue;
     }
     // A sweep must not abort on an item the applying arm refuses — whether it
@@ -6321,17 +6357,20 @@ function sweep(args) {
       );
     }
   }
-  if (drifted === 0) {
-    const examinedSummary = `Examined ${subjects.size} item(s) across ${roles.length} lifecycle role(s); no role outside ${examined} was queried.`;
+  const scope =
+    describeSinceBound(since, branches) +
+    describeUnresolvedBranches(unresolved);
+  const examinedSummary = `Examined ${subjects.size} item(s) across ${roles.length} lifecycle role(s); no role outside ${examined} was queried.`;
+  if (!apply && (declared > 0 || unresolved.length > 0)) {
     console.log(
-      `No drift: every open item carrying ${examined} is genuinely in flight.\n${examinedSummary}${describeSinceBound(since, branches)}${describeUnresolvedBranches(unresolved)}`
+      `\n${examinedSummary} ${report.drift} authorized drift, ${report.pending} pending verification, ${report.failed} verification failed.${scope}`
     );
+    if (report.failed > 0 || unresolved.length > 0) process.exitCode = 1;
     return;
   }
-  if (!apply) {
-    const driftHeadline = `${drifted} open item(s) carrying ${examined} are declared by a commit on a deploy branch.`;
+  if (declared === 0) {
     console.log(
-      `\n${driftHeadline} Re-run with --apply to complete them.${describeSinceBound(since, branches)}${describeUnresolvedBranches(unresolved)}`
+      `No drift: every open item carrying ${examined} is genuinely in flight.\n${examinedSummary}${scope}`
     );
   }
 }

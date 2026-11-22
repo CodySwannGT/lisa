@@ -9,16 +9,17 @@
  *
  * - **Direction one** (`./reconcile-points.ts`): for every enforcement point
  *   the register claims, is something real there that runs the gate runner?
- * - **Direction two** (`./reconcile-hooks.ts`): for every command the commit
- *   and push hooks run, does a register entry declare it?
+ * - **Direction two** (`./reconcile-hooks.ts`, `./reconcile-agent-hooks.ts`):
+ *   for each command found in a Git or edit-time hook, does the register
+ *   declare it at that moment?
  *
  * ## What is read
  *
  * The register is the one the declaration generates, the same register
  * every other control command works from; whether the committed file still
  * matches it is reported beside the result. The carriers are read through
- * `installCarriers` in check mode, which writes nothing. The hooks are read
- * as text. The hosting platform is read only when the run asks for it, so a
+ * `installCarriers` in check mode, with the agents named in the carrier record.
+ * The hooks are read as text. The hosting platform is read only when the run asks for it, so a
  * plain run never leaves the machine.
  *
  * ## What comes back
@@ -33,8 +34,11 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
+import { AGENT_CARRIER_PATH } from "./carrier-agent-script.js";
+import { AGENT_SURFACES } from "./carrier-agent-surfaces.js";
 import { createCarrierGit, type CarrierGit } from "./carrier-git.js";
 import { detectHookOwner } from "./carrier-owner.js";
+import { readRecordedFiles } from "./carrier-owned-files.js";
 import type { CarrierResult } from "./carrier-types.js";
 import { installCarriers, type CarrierRun } from "./carriers.js";
 import {
@@ -42,8 +46,10 @@ import {
   loadCriterionCatalogue,
   type InScopeCriterion,
 } from "./catalogue.js";
+import type { CodingAgent } from "./coding-agents.js";
 import { GATES_DECLARATION_PATH } from "./gates-declaration.js";
 import type { MergeProtectionDependencies } from "./merge-protection-read.js";
+import { readEditTimeHooks } from "./reconcile-agent-hooks.js";
 import { auditFindings } from "./reconcile-audit-findings.js";
 import { commandFindings, pointFindings } from "./reconcile-findings.js";
 import { readHookCommands } from "./reconcile-hooks.js";
@@ -120,19 +126,30 @@ function messageOf(error: unknown): string {
  * Run the carrier check of a checkout.
  * @param root - Real path of the repository
  * @param git - Git
+ * @param agents - Agents with recorded edit-time registrations
  * @param dependencies - Replaceable collaborators
  * @returns The check's result, or why there is none
  */
 async function carrierCheck(
   root: string,
   git: CarrierGit,
+  agents: readonly CodingAgent[],
   dependencies: ReconcileDependencies
 ): Promise<CarrierRun> {
   try {
     return await (
       dependencies.checkCarriers ??
       ((repository, using) =>
-        installCarriers(repository, { check: true }, { git: using }))
+        installCarriers(
+          repository,
+          {
+            check: true,
+            ...(agents.length === 0
+              ? {}
+              : { agents: { from: "named", names: agents } }),
+          },
+          { git: using }
+        ))
     )(root, git);
   } catch (error) {
     return { problems: [messageOf(error)] };
@@ -186,6 +203,8 @@ interface Compared {
   readonly generated: Extract<ControlRegisterGeneration, { problems: null }>;
   /** The result of the carrier check of this checkout. */
   readonly carriers: CarrierResult;
+  readonly agentCarrier: boolean;
+  readonly agents: readonly CodingAgent[];
   readonly options: ReconcileOptions;
   readonly dependencies: ReconcileDependencies;
 }
@@ -198,22 +217,32 @@ interface Compared {
 async function compare(compared: Compared): Promise<ReconcileResult> {
   const { dependencies, generated, git, root } = compared;
   const { register } = generated;
-  const [facts, platform, committed, declaration] = await Promise.all([
-    detectHookOwner(root, git),
-    platformRead(root, generated, compared.options, dependencies),
-    textOf(path.join(root, CONTROL_REGISTER_PATH)),
-    textOf(path.join(root, GATES_DECLARATION_PATH)),
-  ]);
-  const [points, hooks] = await Promise.all([
+  const [facts, platform, committed, declaration, editTime] = await Promise.all(
+    [
+      detectHookOwner(root, git),
+      platformRead(root, generated, compared.options, dependencies),
+      textOf(path.join(root, CONTROL_REGISTER_PATH)),
+      textOf(path.join(root, GATES_DECLARATION_PATH)),
+      readEditTimeHooks(root, compared.agentCarrier, compared.agents, register),
+    ]
+  );
+  const [points, gitHooks] = await Promise.all([
     reconcilePoints(register, {
+      agentCarrier: compared.agentCarrier,
       carriers: compared.carriers,
       platform,
       read: shown =>
         textOf(path.isAbsolute(shown) ? shown : path.join(root, shown)),
       root,
+      registrations: editTime.registrations,
     }),
     readHookCommands(root, facts, register),
   ]);
+  const hooks = {
+    commands: [...gitHooks.commands, ...editTime.commands],
+    files: [...gitHooks.files, ...editTime.files],
+    problems: [...gitHooks.problems, ...editTime.problems],
+  };
   const findings = [
     ...pointFindings(register, points),
     ...commandFindings(hooks.commands),
@@ -277,7 +306,13 @@ export async function reconcileRepository(
       ],
     };
   }
-  const carriers = await carrierCheck(root, git, dependencies);
+  const record = await readRecordedFiles(root);
+  if (record.problem !== null) return { problems: [record.problem] };
+  const agentCarrier = record.files.includes(AGENT_CARRIER_PATH);
+  const agents = agentCarrier
+    ? record.agents.filter(agent => AGENT_SURFACES[agent].refuses)
+    : [];
+  const carriers = await carrierCheck(root, git, agents, dependencies);
   if (carriers.problems !== null) {
     return {
       problems: [
@@ -289,6 +324,8 @@ export async function reconcileRepository(
   return {
     problems: null,
     result: await compare({
+      agentCarrier,
+      agents,
       carriers: carriers.result,
       dependencies,
       generated,

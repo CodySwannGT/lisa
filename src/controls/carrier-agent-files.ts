@@ -56,7 +56,8 @@ function copilotHooksFile(agent: CodingAgent, event: string): string {
  *
  * It is plain JavaScript with no template literal, so it can be held here as
  * lines, and it needs nothing but Node's own modules, which OpenCode's
- * runtime provides.
+ * runtime provides. The shared carrier checks which checkout owns the files
+ * named in the event before it runs the gate.
  * @param agent - The agent the plugin starts the carrier for
  * @param event - The agent's name for the hook that runs after a tool
  * @param tools - The tools that write a file, as the agent names them

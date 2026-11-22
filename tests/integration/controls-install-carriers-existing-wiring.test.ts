@@ -14,6 +14,7 @@
  * @module tests/integration/controls-install-carriers-existing-wiring
  */
 import {
+  copyFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -54,6 +55,8 @@ const SHIPPED_LEFTHOOK = path.join(
   REPO_ROOT,
   "rails/copy-overwrite/lefthook.yml"
 );
+const RAILS_GATE_WRAPPER = "scripts/lisa-rails-registry-gates.sh";
+const GATE_RUNNER = "scripts/lisa-run-gates.mjs";
 const COMMIT_HOOK = "pre-commit";
 const HOOKS = [COMMIT_HOOK, "pre-push"] as const;
 const LEFTHOOK_CONFIG = "lefthook.yml";
@@ -132,6 +135,37 @@ describe("install-carriers where a Lisa project type already calls the runner", 
       /Husky is not switched on in this checkout \(core\.hooksPath is not set\)/u
     );
     expect(run.result?.changes).toEqual([]);
+  });
+
+  it("reports both shipped Rails hooks wired after Lefthook is installed", async () => {
+    const { root } = owned();
+    const config = path.join(root, LEFTHOOK_CONFIG);
+    const shipped = readFileSync(SHIPPED_LEFTHOOK, "utf8");
+    writeFileSync(config, shipped);
+    mkdirSync(path.join(root, "scripts"), { recursive: true });
+    copyFileSync(
+      path.join(REPO_ROOT, "rails/copy-overwrite", RAILS_GATE_WRAPPER),
+      path.join(root, RAILS_GATE_WRAPPER)
+    );
+    copyFileSync(
+      path.join(REPO_ROOT, "all/copy-overwrite", GATE_RUNNER),
+      path.join(root, GATE_RUNNER)
+    );
+
+    const before = await installCarriers(root);
+    installManagerStandIn(root, LEFTHOOK);
+    const wired = await installCarriers(root);
+
+    expect(before.code).toBe(CARRIERS_BLOCKED_EXIT_CODE);
+    expect(wired.code).toBe(0);
+    expect(
+      wired.result?.enforcement_points.map(point => [
+        point.outcome,
+        point.wired_through,
+      ])
+    ).toEqual(HOOKS.map(() => [ALREADY_WIRED, "lisa-stack-hook"]));
+    expect(wired.result?.changes).toEqual([]);
+    expect(readFileSync(config, "utf8")).toBe(shipped);
   });
 });
 
@@ -280,8 +314,9 @@ describe("install-carriers and hooks it may not write to", () => {
   it("adds nothing to a manager file Lisa replaces on every update", async () => {
     const built = owned();
     const config = path.join(built.root, LEFTHOOK_CONFIG);
-    const shipped = readFileSync(SHIPPED_LEFTHOOK, "utf8");
-    writeFileSync(config, shipped);
+    const managed =
+      "# This file is managed by Lisa and IS replaced on each `lisa` run.\npre-commit:\n  commands:\n    rubocop:\n      run: bundle exec rubocop\n";
+    writeFileSync(config, managed);
     installManagerStandIn(built.root, LEFTHOOK);
 
     const run = await installCarriers(built.root);
@@ -290,7 +325,7 @@ describe("install-carriers and hooks it may not write to", () => {
     expect(run.result?.enforcement_points[0]?.reason).toMatch(
       /Nothing was added to lefthook\.yml for the pre-commit hook: it is replaced by Lisa on every update/u
     );
-    expect(readFileSync(config, "utf8")).toBe(shipped);
+    expect(readFileSync(config, "utf8")).toBe(managed);
     expect(run.result?.changes).toEqual([]);
   });
 });

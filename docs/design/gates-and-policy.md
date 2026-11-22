@@ -1452,6 +1452,14 @@ key in the schema and in `src/controls/register-types.ts` together;
 `tests/unit/controls/register-schema.test.ts` fails when one has a key or a
 value the other does not.
 
+When the criterion catalogue has no registered gate and an applicable requirement
+still lacks evidence, the audit report and the attest command's table output
+explain the gap and name the required evidence rung. A verified failure or a
+cited reason that the requirement does not apply keeps its own disposition.
+`lisa controls attest --check` still recomputes the verdict from the stored
+register and evidence. The [Level 1 evidence decision](../../wiki/decisions/2026-11-21-level-1-proof-reachability.md)
+describes the authoritative surfaces that can supply each observation or exercise.
+
 ## A pull-request executor Lisa did not write
 
 Lisa ships the file that runs the gates on a pull request for one hosting
@@ -1909,6 +1917,13 @@ start the carrier, which goes to its own top folder and asks git nothing.
 **Where a project type's own hook already calls the runner with
 `--coverage`, nothing is added.** A second call would run every gate twice.
 Those points are reported `already-wired`, through `lisa-stack-hook`.
+
+**Rails Lefthook coverage.** The managed commit and push jobs run declared gates first.
+RuboCop stands down when code style was proved, and RSpec stands down when both test
+correctness and coverage were proved. The other built-in jobs keep running. Run
+`lefthook install` after applying this version to refresh older installed Git hooks.
+The installed hook shares coverage in a per-run temporary directory. A direct
+`lefthook run` still runs both the registry and the built-in checks.
 
 **`core.hooksPath` is not committed.** A new clone has the files and not the
 setting, so git runs no carrier there until the command has run once in that

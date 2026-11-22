@@ -20,10 +20,8 @@
  * it reaches every language regardless of globs. Only the pre-commit surface is
  * glob-scoped, and only it can therefore under-reach silently.
  *
- * Rails is deliberately outside this guard's population: it ships ast-grep
- * rules but no lint-staged config — its pre-commit surface is `lefthook.yml`
- * and it ships no node manifest to install ast-grep from — so its rules are
- * reached by CI and by the agent-time `sg-scan-on-edit.sh` hooks instead.
+ * Rails ships Lefthook instead of lint-staged. Its structural rules run on
+ * the whole checkout before push and in CI, with an additional scan on edit.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import * as path from "node:path";

@@ -4,12 +4,12 @@
  *
  * A repository Lisa was never applied to has no runner for a carrier to
  * start, so the command places one. It places the runner's entry file and
- * every file that entry reaches through a relative import, a relative
+ * the threshold ratchet a declaration can invoke directly, and every file
+ * those entries reach through a relative import, a relative
  * `new URL(..., import.meta.url)` or a helper's `$PSScriptRoot`, found by
  * following those references from the entry: the registry, and the part of
  * `lib/` the runner uses. Nothing
- * else in the package's scripts folder is copied, so the repository gains
- * what runs and no more.
+ * else in the package's scripts folder is copied.
  *
  * The runner needs no installed dependency: every other import it makes is a
  * Node built-in.
@@ -25,6 +25,9 @@ import {
   CARRIER_RUNNER_FOLDER,
   type PlacedFile,
 } from "./carrier-types.js";
+
+/** Package programs a fresh carrier can run without applying a stack. */
+const RUNNER_ENTRIES = [CARRIER_RUNNER_FILE, "check-threshold-ratchet.mjs"];
 
 /** `import … from "./x"` and `export … from "./x"`, at the start of a line. */
 const FROM_REFERENCE =
@@ -109,7 +112,7 @@ function packageScriptsFolder(): string {
 export async function runnerFiles(
   scriptsFolder: string = packageScriptsFolder()
 ): Promise<readonly PlacedFile[]> {
-  const reached = await reach(scriptsFolder, [CARRIER_RUNNER_FILE], new Map());
+  const reached = await reach(scriptsFolder, RUNNER_ENTRIES, new Map());
   return [...reached.entries()]
     .map(([file, content]) => ({
       content,

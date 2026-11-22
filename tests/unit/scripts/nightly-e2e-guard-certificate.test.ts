@@ -23,6 +23,10 @@ const INVOKED_AS_SCRIPT = path.join(
   REPOSITORY_ROOT,
   "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs"
 );
+const RAILS_GUARD = path.join(
+  REPOSITORY_ROOT,
+  "rails/copy-overwrite/scripts/check-nightly-e2e-health.mjs"
+);
 const RETAINED_GUARD_DIGEST =
   "1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd";
 
@@ -53,6 +57,27 @@ async function certify(source: string) {
 }
 
 describe("nightly guard behavior certificate generation", () => {
+  it("ships exactly the certified guard and its import to Rails hosts", async () => {
+    const guardBytes = await readFile(RAILS_GUARD);
+    const canonical = await readFile(GUARD);
+    const invokedAsScriptBytes = await readFile(
+      path.join(
+        REPOSITORY_ROOT,
+        "all/copy-overwrite/scripts/lib/invoked-as-script.mjs"
+      )
+    );
+    const entry = await certifyNightlyGuardPackageArtifact({
+      guardBytes,
+      invokedAsScriptBytes,
+      packageVersion: await readWorkspacePackageVersion(),
+      provenance: "Rails applied guard fixture",
+    });
+    expect(guardBytes).toEqual(canonical);
+    expect(entry.digest).toBe(
+      (await certify(canonical.toString("utf8"))).digest
+    );
+  });
+
   it("certifies the real packaged handler only after exercising bounded waivers", async () => {
     const source = await readFile(GUARD, "utf8");
     const packageVersion = await readWorkspacePackageVersion();

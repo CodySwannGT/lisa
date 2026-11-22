@@ -3,8 +3,8 @@
  * `lisa check` (CodySwannGT/lisa#4613).
  *
  * Each case builds a fixture Rails host in a private temp directory carrying
- * what `lisa apply` delivers — `scripts/lisa-rails-gates.mjs`, its `lib/`
- * imports and the git-environment wrapper — commits it, and then EXECUTES the
+ * what `lisa apply` delivers — the Rails gate scripts, their `lib/` imports
+ * and the git-environment wrapper — commits it, and then EXECUTES the
  * real `pre-push` command text from the managed `rails/copy-overwrite/lefthook.yml`.
  * `lisa check` is the real command (`runCheck` from source, spawning the real
  * script), and admission is the real built `lisa admit` against a private
@@ -12,9 +12,8 @@
  * (`LISA_ADMISSION_FAKE_MACHINE`), exactly as `tests/integration/admission.test.ts`
  * drives it.
  *
- * Real Ruby is NOT used: `bundle` and `ruby` are stubs that record how they
- * were started. What is proved is which commands start, with how many workers,
- * and when — not that a real RSpec suite passes under `parallel_rspec`.
+ * Recording stand-ins for `bundle`, `ruby` and `npm` keep this fixture focused
+ * on which gate commands start, with how many workers, and when.
  * @module tests/integration/rails-push-gate-cache
  */
 import { spawn } from "node:child_process";
@@ -30,6 +29,7 @@ import {
   boundedSpawnSync,
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
+import { writeRailsGateCacheTools } from "./support/rails-gate-cache-tools.js";
 import { partialSelector } from "./support/rails-partial-selector.js";
 
 // File-scoped budget (CodySwannGT/lisa#4582): every case here starts real
@@ -41,11 +41,15 @@ useIoLatencyBudget(120_000);
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..");
 const CLI = path.join(REPO_ROOT, "dist", "index.js");
 const LEFTHOOK = path.join(REPO_ROOT, "rails/copy-overwrite/lefthook.yml");
-const GATES_SCRIPT = path.join(
-  REPO_ROOT,
-  "rails/copy-overwrite/scripts/lisa-rails-gates.mjs"
-);
-const CACHEABLE = ["rspec", "brakeman", "reek", "flog", "flay"] as const;
+const RAILS_SCRIPTS = path.join(REPO_ROOT, "rails/copy-overwrite/scripts");
+const CACHEABLE = [
+  "rspec",
+  "brakeman",
+  "reek",
+  "flog",
+  "flay",
+  "ast-grep",
+] as const;
 /** Room for one four-worker run, and no other load. */
 const ROOM_FOR_FOUR = JSON.stringify({
   cores: 4,
@@ -74,14 +78,6 @@ interface Host {
   readonly log: string;
   readonly env: Record<string, string>;
 }
-
-/** `bundle` stand-in: logs every `exec`, fails the gate named in STUB_FAIL. */
-const BUNDLE = `#!/bin/sh
-if [ "$1" = "-v" ]; then echo "Bundler version 2.6.0"; exit 0; fi
-printf 'bundle %s workers=%s\\n' "$*" "\${LISA_ADMITTED_WORKERS:-none}" >> "$EVENT_LOG"
-if [ -n "$STUB_FAIL" ]; then case " $* " in *" $STUB_FAIL "*) exit 1;; esac; fi
-exit 0
-`;
 
 /**
  * Build and commit a Rails host.
@@ -177,7 +173,11 @@ function writeHost(
     path.join(root, "state"),
   ])
     fs.mkdirSync(dir, { recursive: true });
-  fs.copyFileSync(GATES_SCRIPT, path.join(cwd, "scripts/lisa-rails-gates.mjs"));
+  for (const script of ["lisa-rails-gates.mjs", "lisa-rails-ast-grep.mjs"])
+    fs.copyFileSync(
+      path.join(RAILS_SCRIPTS, script),
+      path.join(cwd, "scripts", script)
+    );
   // lib/ is copied whole: the gate script imports into it, and a list of its
   // members here would be a second, silently stale dependency set.
   fs.cpSync(
@@ -191,21 +191,13 @@ function writeHost(
   );
   for (const [name, text] of Object.entries(files))
     fs.writeFileSync(path.join(cwd, name), text);
-  fs.writeFileSync(path.join(bin, "bundle"), BUNDLE, { mode: 0o755 });
-  fs.writeFileSync(path.join(bin, "ruby"), "#!/bin/sh\necho 'ruby 3.4.0'\n", {
-    mode: 0o755,
-  });
-  fs.writeFileSync(
-    path.join(bin, "lisa"),
-    `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(CLI)} "$@"\n`,
-    { mode: 0o755 }
-  );
+  writeRailsGateCacheTools(bin, CLI);
 }
 
 /**
  * The bundle commands started so far.
  * @param host - Fixture host
- * @returns One line per `bundle exec …`
+ * @returns One line per recorded gate tool invocation.
  */
 function started(host: Host): string[] {
   return fs.readFileSync(host.log, "utf8").split("\n").filter(Boolean);
@@ -245,6 +237,7 @@ describe("Rails pre-push through the pass cache and admission", () => {
     );
     expect(code, lines.join("\n")).toBe(0);
     expect(started(host)).toHaveLength(CACHEABLE.length + 1);
+    expect(started(host)).toContain("npm ast-grep scan");
     const before = started(host).length;
     for (const gate of CACHEABLE) {
       const result = hook(host, gate);

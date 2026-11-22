@@ -29,6 +29,7 @@ import {
   cli,
   commit,
   git,
+  issueJson,
   offlineFixture,
   Fixture,
 } from "../../support/work-item-cli.js";
@@ -39,7 +40,11 @@ const TERMINAL = "status:done";
 const SINCE = "--since";
 const APPLY = "--apply";
 const SWEEP = "sweep";
-const CURRENT_DRIFT = "DRIFT  acme/code#43";
+const CURRENT_PENDING = "PENDING VERIFICATION  acme/code#43";
+const CURRENT_ISSUE_URL = "https://github.com/acme/code/issues/43";
+const PENDING_ISSUES = JSON.stringify({
+  43: JSON.parse(issueJson({ number: 43, url: CURRENT_ISSUE_URL })),
+});
 const CURRENT_REF = "acme/code#43";
 const EARLIER_REF = "acme/code#42";
 
@@ -135,7 +140,7 @@ function completionReads(fixture: Fixture): Record<string, string> {
       labels: [{ name: "status:in-progress" }],
       number: 43,
       state: "OPEN",
-      url: "https://github.com/acme/code/issues/43",
+      url: CURRENT_ISSUE_URL,
     }),
     FAKE_GH_ISSUE_JSON_2: JSON.stringify({
       closedByPullRequestsReferences: [],
@@ -144,7 +149,7 @@ function completionReads(fixture: Fixture): Record<string, string> {
       number: 43,
       state: "CLOSED",
       stateReason: "COMPLETED",
-      url: "https://github.com/acme/code/issues/43",
+      url: CURRENT_ISSUE_URL,
     }),
   };
   acceptedCompatibility(
@@ -170,12 +175,13 @@ describe("sweep --since bounds the evidence to one push (#3704)", () => {
 
     const result = cli(fixture, [SWEEP, SINCE, before], {
       FAKE_GH_LIST_JSON: BOTH,
+      FAKE_GH_ISSUES_JSON: PENDING_ISSUES,
       FAKE_GH_TIMELINE_43_JSON: MERGED_TIMELINE,
       FAKE_GH_TIMELINE_JSON: MERGED_TIMELINE,
     });
 
     expect(result.exitCode).toBeUndefined();
-    expect(result.stdout).toContain(CURRENT_DRIFT);
+    expect(result.stdout).toContain(CURRENT_PENDING);
     expect(result.stdout).toContain(shipped.slice(0, 9));
     expect(result.stdout).not.toContain(EARLIER_REF);
   });
@@ -191,12 +197,13 @@ describe("sweep --since bounds the evidence to one push (#3704)", () => {
 
     const result = cli(fixture, [SWEEP], {
       FAKE_GH_LIST_JSON: BOTH,
+      FAKE_GH_ISSUES_JSON: PENDING_ISSUES,
       FAKE_GH_TIMELINE_43_JSON: MERGED_TIMELINE,
       FAKE_GH_TIMELINE_JSON: MERGED_TIMELINE,
     });
 
-    expect(result.stdout).toContain(CURRENT_DRIFT);
-    expect(result.stdout).toContain("DRIFT  acme/code#42");
+    expect(result.stdout).toContain(CURRENT_PENDING);
+    expect(result.stdout).toContain("PENDING VERIFICATION  acme/code#42");
   });
 
   // An absence claim has to say what it read. A bounded run that reported
@@ -230,6 +237,7 @@ describe("sweep --apply --since completes only what the push shipped", () => {
     const result = cli(fixture, [SWEEP, APPLY, SINCE, before], {
       ...completionReads(fixture),
       FAKE_GH_LIST_JSON: BOTH,
+      FAKE_GH_ISSUES_JSON: PENDING_ISSUES,
       FAKE_GH_LOG: logPath(fixture),
       FAKE_GH_TIMELINE_43_JSON: MERGED_TIMELINE,
       FAKE_GH_TIMELINE_JSON: MERGED_TIMELINE,
@@ -298,29 +306,36 @@ describe("sweep --since refuses rather than guessing (#3704)", () => {
     declareShipped(fixture, 43);
     const bounded = cli(fixture, [SWEEP, SINCE, before, "--branch", "main"], {
       FAKE_GH_LIST_JSON: BOTH,
+      FAKE_GH_ISSUES_JSON: PENDING_ISSUES,
     });
     expect(bounded.exitCode).toBeUndefined();
-    expect(bounded.stdout).toContain(CURRENT_DRIFT);
+    expect(bounded.stdout).toContain(CURRENT_PENDING);
     expect(bounded.stdout).not.toContain(EARLIER_REF);
     expect(bounded.stdout).toContain(`main gained since ${before}`);
-    const unbounded = cli(fixture, [SWEEP], { FAKE_GH_LIST_JSON: BOTH });
-    expect(unbounded.stdout).toContain("DRIFT  acme/code#42");
-    expect(unbounded.stdout).toContain(CURRENT_DRIFT);
+    const unbounded = cli(fixture, [SWEEP], {
+      FAKE_GH_LIST_JSON: BOTH,
+      FAKE_GH_ISSUES_JSON: PENDING_ISSUES,
+    });
+    expect(unbounded.stdout).toContain("PENDING VERIFICATION  acme/code#42");
+    expect(unbounded.stdout).toContain(CURRENT_PENDING);
     const selected = cli(fixture, [SWEEP, "--branch", "main"], {
       FAKE_GH_LIST_JSON: BOTH,
+      FAKE_GH_ISSUES_JSON: PENDING_ISSUES,
     });
     expect(selected.stdout).toContain("Examined deploy branches: main.");
     expect(selected.stdout).not.toContain(EARLIER_REF);
     const ambiguous = cli(fixture, [SWEEP, SINCE, before], {
       FAKE_GH_LIST_JSON: BOTH,
+      FAKE_GH_ISSUES_JSON: PENDING_ISSUES,
     });
     expect(ambiguous.exitCode).toBe(1);
     expect(ambiguous.stderr).toContain("must name the pushed deploy branch");
     const event = cli(fixture, [SWEEP, SINCE, before], {
       FAKE_GH_LIST_JSON: BOTH,
+      FAKE_GH_ISSUES_JSON: PENDING_ISSUES,
       GITHUB_REF_NAME: "main",
     });
-    expect(event.stdout).toContain(CURRENT_DRIFT);
+    expect(event.stdout).toContain(CURRENT_PENDING);
     expect(event.stdout).not.toContain(EARLIER_REF);
   });
 
@@ -351,7 +366,11 @@ describe("sweep --since refuses rather than guessing (#3704)", () => {
     const result = cli(
       fixture,
       [SWEEP, SINCE, "0000000000000000000000000000000000000000"],
-      { FAKE_GH_LIST_JSON: BOTH, FAKE_GH_LOG: logPath(fixture) }
+      {
+        FAKE_GH_LIST_JSON: BOTH,
+        FAKE_GH_ISSUES_JSON: PENDING_ISSUES,
+        FAKE_GH_LOG: logPath(fixture),
+      }
     );
 
     expect(result.exitCode).toBe(1);
@@ -372,6 +391,7 @@ describe("sweep --since refuses rather than guessing (#3704)", () => {
     const result = cli(fixture, [SWEEP, APPLY, SINCE], {
       ...completionReads(fixture),
       FAKE_GH_LIST_JSON: BOTH,
+      FAKE_GH_ISSUES_JSON: PENDING_ISSUES,
       FAKE_GH_LOG: logPath(fixture),
       FAKE_GH_TIMELINE_43_JSON: MERGED_TIMELINE,
       FAKE_GH_TIMELINE_JSON: MERGED_TIMELINE,
@@ -389,6 +409,7 @@ describe("sweep --since refuses rather than guessing (#3704)", () => {
 
     const result = cli(fixture, [SWEEP, SINCE, APPLY], {
       FAKE_GH_LIST_JSON: BOTH,
+      FAKE_GH_ISSUES_JSON: PENDING_ISSUES,
     });
 
     expect(result.exitCode).toBe(1);

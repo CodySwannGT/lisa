@@ -53,6 +53,13 @@ export type ProofJudge = (
   declared: DeclaredShape
 ) => ProofJudgement;
 
+/** How to start a proof command without invoking a shell. */
+interface ProofStartOptions {
+  readonly cwd: string;
+  readonly timeoutMs: number;
+  readonly env?: NodeJS.ProcessEnv;
+}
+
 /** What the paired-proof runner takes from the gate runner. */
 export interface ProofTools {
   /**
@@ -61,7 +68,7 @@ export interface ProofTools {
    */
   readonly start: (
     argv: readonly string[],
-    options: { readonly cwd: string; readonly timeoutMs: number }
+    options: ProofStartOptions
   ) => StartedAnswer;
   /** Resolve an entry's folder inside a root, refusing one that leads out. */
   readonly folder: (root: string, scope: string) => StartFolder;
@@ -77,11 +84,7 @@ interface GateRunnerModule {
   };
   readonly spawnArgv: (
     argv: readonly string[],
-    options: {
-      readonly cwd: string;
-      readonly timeoutMs: number;
-      readonly quiet: boolean;
-    }
+    options: ProofStartOptions & { readonly quiet: boolean }
   ) => StartedAnswer;
   readonly partDirectory: (root: string, scope: string) => StartFolder;
   readonly judgePart: (
@@ -146,8 +149,8 @@ export async function loadProofTools(): Promise<ProofTools> {
     import(pathToFileURL(path.join(scripts, DIAGNOSIS_FILE)).href),
   ])) as [GateRunnerModule, DiagnosisModule];
   return {
-    start: (argv, { cwd, timeoutMs }) =>
-      runner.spawnArgv([...argv], { cwd, timeoutMs, quiet: true }),
+    start: (argv, options) =>
+      runner.spawnArgv([...argv], { ...options, quiet: true }),
     folder: (root, scope) => runner.partDirectory(root, scope),
     judge: judgeWith(runner, diagnosis),
   };

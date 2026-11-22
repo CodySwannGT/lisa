@@ -131,6 +131,7 @@ describe("Rails defaults", () => {
       "reek",
       "flog",
       "flay",
+      "ast-grep",
     ]);
   });
 });
