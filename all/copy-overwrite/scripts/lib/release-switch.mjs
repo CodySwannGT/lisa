@@ -381,6 +381,31 @@ function parseSwitchedOff(tail) {
 }
 
 /**
+ * Parse one declaration line.
+ * @param {string} line - The declaration, trimmed.
+ * @returns {{mode: "live"} | {mode: "off", switchName: string, removedBy: string} | {mode: "invalid", problems: string[]}} Parsed form.
+ */
+function parseDeclarationLine(line) {
+  if (LIVE.test(line)) return { mode: "live" };
+  const off = afterLabel(line, SWITCHED_OFF_LABEL);
+  if (off !== null) return parseSwitchedOff(off);
+  return {
+    mode: "invalid",
+    problems: [`${JSON.stringify(line)} is neither of the two forms.`],
+  };
+}
+
+/**
+ * The text of an item's `## Release Switch` section, or "" when it has none.
+ * @param {string} body - Work-item body.
+ * @returns {string} Trimmed section text.
+ */
+const declarationSection = body =>
+  markdownSection(markdownHeadings(body), RELEASE_SWITCH_HEADING, {
+    anyCase: true,
+  });
+
+/**
  * Parse an item's `## Release Switch` declaration.
  *
  * The declaration is the whole section, on one line: a second line could say
@@ -390,11 +415,7 @@ function parseSwitchedOff(tail) {
  * @returns {null | {mode: "live"} | {mode: "off", switchName: string, removedBy: string} | {mode: "invalid", problems: string[]}} `null` when the section is absent.
  */
 export function parseDeclaration(body) {
-  const declaration = markdownSection(
-    markdownHeadings(body),
-    RELEASE_SWITCH_HEADING,
-    { anyCase: true }
-  );
+  const declaration = declarationSection(body);
   if (declaration === "") return null;
   if (declaration.includes("\n"))
     return {
@@ -403,13 +424,7 @@ export function parseDeclaration(body) {
         "The declaration must be the only line in the section; move any explanation into Technical Approach.",
       ],
     };
-  if (LIVE.test(declaration)) return { mode: "live" };
-  const off = afterLabel(declaration, SWITCHED_OFF_LABEL);
-  if (off !== null) return parseSwitchedOff(off);
-  return {
-    mode: "invalid",
-    problems: [`${JSON.stringify(declaration)} is neither of the two forms.`],
-  };
+  return parseDeclarationLine(declaration);
 }
 
 const VALID_FORMS = [
@@ -533,20 +548,17 @@ const headingName = line => {
 };
 
 /**
- * What survives of an old section when its declaration is replaced: everything
- * after the declaration's own paragraph. Deleting it would lose text a person
- * put there; keeping it means the checker still says it must move.
+ * What survives of an old section when its declaration is replaced: every line
+ * after the declaration line itself. Deleting them would lose text a person
+ * put there (or the closing marker of a block the line sat in); keeping them
+ * means the checker still says they must move.
  * @param {string[]} lines - The old section's lines, heading excluded.
  * @returns {string[]} Lines to keep, with no blank edges.
  */
 function keptAfterDeclaration(lines) {
   const first = lines.findIndex(line => line.trim() !== "");
   if (first < 0) return [];
-  const gap = lines.findIndex(
-    (line, index) => index > first && line.trim() === ""
-  );
-  if (gap < 0) return [];
-  const rest = lines.slice(gap);
+  const rest = lines.slice(first + 1);
   const start = rest.findIndex(line => line.trim() !== "");
   if (start < 0) return [];
   const end = rest.findLastIndex(line => line.trim() !== "");
@@ -602,13 +614,26 @@ export function upsertDeclaration(body, section) {
 
 /**
  * The switch this item must remove before it can finish, if any.
+ *
+ * The readiness gate is strict about the section's shape; this is deliberately
+ * not. It reads the FIRST line of the section, so text that later landed under
+ * the declaration (a trailer appended to the end of the body, a note) cannot
+ * make the obligation disappear. A first line that is neither form is reported
+ * as `invalid`: an item whose declaration cannot be read is not known to be
+ * free of a switch, and the done gate refuses it until the line is corrected.
  * @param {string} body - Work-item body.
  * @param {string} [ref] - The item's own reference, so `removed by <own ref>` counts too.
- * @returns {null | {switchName: string}} The obligation, or `null`.
+ * @returns {null | {switchName: string} | {invalid: string[]}} The obligation, `null` when there is none, or why the declaration cannot be read.
  */
 export function removalObligation(body, ref) {
-  const declaration = parseDeclaration(body);
-  if (declaration?.mode !== "off") return null;
+  const [firstLine = ""] = declarationSection(body)
+    .split("\n")
+    .map(line => line.trim())
+    .filter(Boolean);
+  if (firstLine === "") return null;
+  const declaration = parseDeclarationLine(firstLine);
+  if (declaration.mode === "invalid") return { invalid: declaration.problems };
+  if (declaration.mode !== "off") return null;
   // Tracker references are not case-sensitive (owner/Repo#7 is owner/repo#7),
   // and a remover this item fails to recognise as itself is a gate that never
   // fires.

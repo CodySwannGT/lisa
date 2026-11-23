@@ -197,6 +197,56 @@ describe("wiki code markers are ordinary text", () => {
   });
 });
 
+describe("the removal obligation is read leniently, so it cannot be lost", () => {
+  const own = `Switched off — ${SWITCH}; removed by this item`;
+  const ref = "acme/code#42";
+  const item = (section: string): string =>
+    `## Target Backend Environment\n\nproduction\n\n${SECTION}\n\n${section}\n`;
+
+  it("still owes removal when other text follows the declaration", () => {
+    for (const section of [
+      `${own}\n\nFiled by: an agent`,
+      `${own}\nexcept on mobile`,
+    ]) {
+      // The readiness gate rejects the shape; the obligation survives it.
+      expect(checkDeclaration(item(section), LIVE_USERS).verdict).toBe("FAIL");
+      expect(removalObligation(item(section), ref)).toEqual({
+        switchName: SWITCH,
+      });
+    }
+  });
+
+  it("owes nothing for a live declaration, with or without trailing text", () => {
+    expect(removalObligation(item(LIVE_DECLARATION), ref)).toBeNull();
+    expect(
+      removalObligation(item(`${LIVE_DECLARATION}\n\nFiled by: x`), ref)
+    ).toBeNull();
+  });
+
+  it("reports a first line that is neither form instead of owing nothing", () => {
+    expect(removalObligation(item(FREE_TEXT), ref)).toEqual({
+      invalid: [`"${FREE_TEXT}" is neither of the two forms.`],
+    });
+  });
+
+  it("keeps every line after a replaced declaration, including a closing marker", () => {
+    const body = [
+      WIKI_ENVIRONMENT,
+      "production",
+      "",
+      WIKI_NOTES,
+      CODE_MARKER,
+      WIKI_SECTION,
+      QUOTED_EXAMPLE,
+      CODE_MARKER,
+      "",
+    ].join("\n");
+    const written = upsertDeclaration(body, LIVE_SECTION);
+    expect(written.match(/\{code\}/g)).toHaveLength(2);
+    expect(written).toContain(LIVE_DECLARATION);
+  });
+});
+
 describe("setup problems reported in one place", () => {
   it("is empty for a sound setup", () => {
     expect(setupProblems({})).toEqual([]);

@@ -68,7 +68,10 @@ export function upsertDeclaration(body: string, section: string): string;
 export function removalObligation(
   body: string,
   ref?: string
-): { readonly switchName: string } | null;
+):
+  | { readonly switchName: string }
+  | { readonly invalid: readonly string[] }
+  | null;
 /** Tracked files that still reference a switch. */
 export function switchReferences(
   switchName: string,

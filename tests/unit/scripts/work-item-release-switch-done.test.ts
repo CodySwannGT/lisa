@@ -180,4 +180,26 @@ describe("switch-removal done gate in completion", () => {
     );
     expect(complete(fixture)).toContain(COMPLETED);
   });
+
+  it("is not switched off by text that landed under the declaration", () => {
+    // `render` appends the section at the end of a body, so a trailer added
+    // later with no heading of its own ends up inside it.
+    expect(
+      complete(
+        declared(
+          `${OWN}\n\nFiled by: an agent (requested by the owner)`,
+          REFERENCED
+        )
+      )
+    ).toContain(PENDING);
+    expect(
+      complete(declared(`${OWN}\nexcept on mobile`, REFERENCED))
+    ).toContain(PENDING);
+  });
+
+  it("refuses an item whose declaration cannot be read", () => {
+    const output = complete(declared("We will see", REFERENCED));
+    expect(output).toContain(PENDING);
+    expect(output).toContain("Release Switch declaration cannot be read");
+  });
 });

@@ -43,7 +43,7 @@
     "all/copy-overwrite/scripts/lib/changed-paths.mjs":
       "f9089dfab2a892e2512abc4ad4ee336fedc46253c8fe5b8c257c76dad1ac72a3",
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs":
-      "dc27a9f574fb6d9b304ed8033566cccf8846858dce6362f6203964d63f87e6eb",
+      "ff1ffb8158443b0be8f5aea8c90f8c9f17fc7fd40ea2a1daa30b8cc1c1a0a8af",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
       "e15eee0c13b196b0e0c60e5b69b05ce4ddcaff891718817a738cde12414ece7a",
     "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.d.mts":
@@ -281,9 +281,9 @@
     "all/copy-overwrite/scripts/lib/push-timing.mjs":
       "14df8a7b9ebd0d69e72ee0b02e4801ff72b9b3000e80a6a23324e556efbbcdbb",
     "all/copy-overwrite/scripts/lib/release-switch.d.mts":
-      "a4c90303b98f6dca044d0d2bd6efa981df74d6061fd3e6bc7f6242dc40a8e394",
+      "e404d88f7a3db9e0e931f479be3c04bcd56da6959796b7b63dd049c1462eec89",
     "all/copy-overwrite/scripts/lib/release-switch.mjs":
-      "b3674ec3724a54dfa68c853607c52fd6824b49400d3c749f65c6645ac207b3b2",
+      "2f7e0c83c01331b4025c4125f0471fa850da770e4ca0104523ca93060e4a79cb",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts":
       "da1eebc33c5215bc81ab4202c649a5af6b39e3d42f71f94cb2424e3535849154",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs":
@@ -433,7 +433,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "e4e82282d5e9fd79afd93506d992bbfcba084565dde6c79d5a66a2b948234ccc",
+      "c72f849d6c3c19745d58f6ad67d5b5e11166f9e7a12df02bfe9afd4259c5286f",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":

@@ -80,6 +80,14 @@ function validateSwitchRemoved(body, context, snapshot) {
   if (!context.switchReferences || context.release?.liveUsers === false) return;
   const obligation = removalObligation(body, context.ref);
   if (!obligation) return;
+  // A declaration that cannot be read is not evidence that the item removes
+  // nothing. Refusing here is what keeps a mangled section from switching the
+  // gate off.
+  requireProof(
+    !obligation.invalid,
+    `This item's ## Release Switch declaration cannot be read: ${(obligation.invalid ?? []).join(" ")} Correct it to one line (Live — complete and proven at merge, or Switched off — <switch-name>; removed by this item), then finish this item again.`,
+    PENDING_PROOF
+  );
   const { files, searched } = context.switchReferences(
     obligation.switchName,
     snapshot
