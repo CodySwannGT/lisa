@@ -260,6 +260,29 @@ const LOW_CONFIDENCE_VALUES = ["human-triage", "auto-merge"];
 const DEFAULT_MODE = HUMAN_GATE_MODE_VALUES[0];
 
 /**
+ * Whether the project has live users (CodySwannGT/lisa#5188). It decides
+ * whether the always-promotable rule applies, so a session must see how it
+ * resolved even when the project declares nothing. Absent means `true`; a value
+ * that is not a boolean is treated as `true`, the stricter option. Both, and
+ * the fallback switch mechanism below, are copied from
+ * `all/copy-overwrite/scripts/lib/release-switch.mjs` (not importable from a
+ * plugin payload) and pinned against it by this hook's wiring test.
+ */
+const LIVE_USERS_PATH = "release.liveUsers";
+
+/** What `release.liveUsers` resolves to when absent or invalid. */
+const DEFAULT_LIVE_USERS = "true";
+
+/** The switch mechanism a project names, if any. */
+const SWITCH_MECHANISM_PATH = "release.switch.mechanism";
+
+/** The mechanism in force when none is named: a plain configuration value that defaults to off. */
+const DEFAULT_SWITCH_MECHANISM = "config-value";
+
+/** The module that owns the `release.*` setting. */
+const RELEASE_OWNER = "all/copy-overwrite/scripts/lib/release-switch.mjs";
+
+/**
  * Keys Lisa supplies a built-in value for when a project declares none.
  *
  * Each entry names the module that OWNS the constant. This table is a copy for
@@ -315,6 +338,12 @@ export const BUILT_IN_DEFAULTS = [
     strict: "default",
     owner: "src/core/project-config-dependencies.ts",
   },
+  { path: LIVE_USERS_PATH, value: DEFAULT_LIVE_USERS, owner: RELEASE_OWNER },
+  {
+    path: SWITCH_MECHANISM_PATH,
+    value: DEFAULT_SWITCH_MECHANISM,
+    owner: RELEASE_OWNER,
+  },
 ];
 
 /**
@@ -341,6 +370,7 @@ const SUBTREE_ORDER = [
   "repo",
   "workItem",
   "deploy",
+  "release",
   "github",
   "jira",
   "linear",
@@ -849,6 +879,31 @@ function invalidLowConfidenceLine(config, fallback, owner) {
 }
 
 /**
+ * Whether a present `release.liveUsers` is unusable. Only a boolean says
+ * anything; `"false"` in quotes must not turn the rule off.
+ * @param {unknown} release The resolved `release` value.
+ * @returns {boolean} True when the key is present and not a boolean.
+ */
+function liveUsersInvalid(release) {
+  return (
+    isObject(release) &&
+    "liveUsers" in release &&
+    typeof release.liveUsers !== "boolean"
+  );
+}
+
+/**
+ * The INVALID line for an unusable `release.liveUsers`.
+ * @param {object} config Resolved config.
+ * @param {string} owner Module that owns the setting.
+ * @returns {string|null} The line, or null when the value is absent or valid.
+ */
+function invalidLiveUsersLine(config, owner) {
+  if (!liveUsersInvalid(config.release)) return null;
+  return `${LIVE_USERS_PATH}: ${DEFAULT_LIVE_USERS}   [INVALID — this project declares ${JSON.stringify(config.release.liveUsers)}, which is not true or false; treated as ${DEFAULT_LIVE_USERS} (the project has live users); owner: ${owner}]`;
+}
+
+/**
  * Render the `dependencies` block.
  *
  * `humanSignOff` is printed as its own dotted line so an agent finds the same
@@ -889,7 +944,9 @@ function renderDefaults(config) {
           ? invalidModeLine(config, owner)
           : path === LOW_CONFIDENCE_PATH
             ? invalidLowConfidenceLine(config, strict ?? value, owner)
-            : null;
+            : path === LIVE_USERS_PATH
+              ? invalidLiveUsersLine(config, owner)
+              : null;
     if (invalid !== null) {
       lines.push(invalid);
       continue;
@@ -989,6 +1046,12 @@ function renderBody(config) {
     }
     if (key === "humanGate") {
       renderHumanGate(config, lines);
+      continue;
+    }
+    if (key === "release" && liveUsersInvalid(config.release)) {
+      // Stated once, by the INVALID gap line; never as if it were in force.
+      const { liveUsers: _invalid, ...rest } = config.release;
+      renderSubtree(rest, key, lines);
       continue;
     }
     if (key === "learnings" && lowConfidenceInvalid(config.learnings)) {

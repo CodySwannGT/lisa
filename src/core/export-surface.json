@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 339,
-  "$names": 2601,
+  "$modules": 341,
+  "$names": 2619,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1081,6 +1081,25 @@
       "timingReport",
       "writeTimingReport"
     ],
+    "all/copy-overwrite/scripts/lib/release-switch.mjs": [
+      "FALLBACK_MECHANISM",
+      "LIVE_DECLARATION",
+      "RELEASE_DECISION_CLASS",
+      "RELEASE_SWITCH_HEADING",
+      "ReleaseSwitchError",
+      "THIS_ITEM",
+      "checkDeclaration",
+      "parseDeclaration",
+      "productionBranch",
+      "productionNotice",
+      "readProjectConfig",
+      "removalObligation",
+      "renderDeclaration",
+      "resolveReleaseSetting",
+      "runtimeScope",
+      "switchReferences",
+      "upsertDeclaration"
+    ],
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs": [
       "RUNS_PER_PAGE",
       "createRunPageFetcher",
@@ -1420,6 +1439,9 @@
       "rulesetSignals",
       "sameDeclaredValue",
       "unobservablePolicyFields"
+    ],
+    "all/copy-overwrite/scripts/lisa-release-switch.mjs": [
+      "runCli"
     ],
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs": [
       "PARTIAL_COVERAGE_HELPER",

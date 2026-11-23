@@ -30,6 +30,10 @@ import {
   LOW_CONFIDENCE_ROUTINGS,
   STRICT_LOW_CONFIDENCE_ROUTING,
 } from "../../../src/core/project-config-learnings.js";
+import {
+  FALLBACK_MECHANISM,
+  resolveReleaseSetting,
+} from "../../../all/copy-overwrite/scripts/lib/release-switch.mjs";
 import { BUILT_IN_DEFAULTS } from "../../../plugins/src/base/hooks/inject-resolved-config.mjs";
 import { shouldShipScript } from "../../../scripts/lib/per-agent-hook-filter.mjs";
 
@@ -85,9 +89,10 @@ describe("inject-resolved-config: bounded output", () => {
     expect(context).toContain("… (line truncated)");
     expect(context).toContain("tracker: github");
     // Below the 3000-character value the fixture declares, so the line cannot
-    // have survived whole. The margin above the ~1.7KB fixed text (preamble +
-    // built-in-default lines) grows by one line per new built-in default.
-    expect(context.length).toBeLessThan(2500);
+    // have survived whole. The margin above the ~1.9KB fixed text (preamble +
+    // built-in-default lines) grows by one line per new built-in default; the
+    // two `release.*` defaults (CodySwannGT/lisa#5188) moved it from 2500.
+    expect(context.length).toBeLessThan(2750);
   });
 
   it("summarises a wide object instead of listing every child", () => {
@@ -155,6 +160,12 @@ describe("inject-resolved-config: copied vocabularies still agree with their own
         DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF,
         STRICT_DEPENDENCY_HUMAN_SIGN_OFF,
       ],
+      [
+        "release.liveUsers",
+        String(resolveReleaseSetting({}).liveUsers),
+        undefined,
+      ],
+      ["release.switch.mechanism", FALLBACK_MECHANISM, undefined],
     ]);
   });
 

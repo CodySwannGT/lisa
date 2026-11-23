@@ -206,6 +206,36 @@ and the section shows that ledger's actual tokens and cost beside the estimate
 (`lisa-estimate.mjs tally`). It is `N/A` when the project turns the
 requirement off. Nobody is ever asked for an estimate.
 
+## Release switch (gate S22)
+
+Whatever is on a shared branch can be promoted to the next environment as it
+stands (`coding-philosophy`, "Always Promotable"). So every leaf that changes
+runtime behavior, in a project with live users, carries one `## Release Switch`
+section with exactly one line:
+
+```text
+Live — complete and proven at merge
+Switched off — <switch-name>; removed by this item
+Switched off — <switch-name>; removed by <work-item ref>
+```
+
+One question decides the form: if this were promoted to production right now,
+would a user see something unfinished or unproven? If no, the work is live and
+gets no switch: bug fixes, small tweaks, copy changes, refactors and dependency
+updates are live. If yes, it is switched off, and the declaration names the
+switch and the work item that removes it. The shipped
+`scripts/lisa-release-switch.mjs` renders and checks the section for every
+agent.
+
+At write and ready time a proposed leaf with no declaration fails, because the
+writer renders it. A leaf already in the tracker with none is `N/A` with a
+repair note, and the claiming agent writes the declaration before any work
+(`lisa-track`). A declaration that is present and malformed always fails. At
+done time `lisa-work-item finish` refuses the item that removes a switch while
+tracked source still references that switch. The gate is `N/A` for work that
+changes no runtime behavior, for containers, and whenever the project sets
+`release.liveUsers: false`. Nobody is ever asked which form applies.
+
 ## Relationship to the lifecycle
 
 - **Write time** — `*-write-*` runs the applicable pre-write gates; a spec

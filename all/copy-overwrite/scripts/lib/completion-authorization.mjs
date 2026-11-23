@@ -35,6 +35,7 @@ import {
 } from "./completion-proof-source.mjs";
 import { validateConformance } from "./completion-proof-conformance.mjs";
 import { checkEstimate } from "./work-item-estimate-check.mjs";
+import { removalObligation } from "./release-switch.mjs";
 
 const PENDING_PROOF = "pending-proof";
 
@@ -56,6 +57,37 @@ function validateEstimateTally(body, documents, context) {
   requireProof(
     result.verdict !== "FAIL",
     `The token estimate is not tallied for done. ${result.lines.join(" ")}`,
+    PENDING_PROOF
+  );
+}
+
+/** How many leftover references a refusal names before it counts the rest. */
+const NAMED_REFERENCES = 10;
+
+/**
+ * The switch-removal done gate (CodySwannGT/lisa#5188). Work that merges
+ * switched off is only finished once its switch is gone: a switch left behind
+ * is a second code path nobody owns. So the item that declares it removes a
+ * switch (`## Release Switch`: `Switched off — <name>; removed by this item`)
+ * cannot reach done while tracked source still references that name.
+ *
+ * It is pending, not invalid: the proof is fine and the item is simply not
+ * finished yet. A project marked as having no live users has turned the rule
+ * off, and a hand-built context that carries no search has made no claim.
+ */
+function validateSwitchRemoved(body, context) {
+  if (!context.switchReferences || context.release?.liveUsers === false) return;
+  const obligation = removalObligation(body, context.ref);
+  if (!obligation) return;
+  const { files, searched } = context.switchReferences(obligation.switchName);
+  const named = files.slice(0, NAMED_REFERENCES).join(", ");
+  const more =
+    files.length > NAMED_REFERENCES
+      ? ` and ${files.length - NAMED_REFERENCES} more`
+      : "";
+  requireProof(
+    files.length === 0,
+    `This item removes release switch ${JSON.stringify(obligation.switchName)}, which is still referenced in ${files.length} tracked file(s) on ${searched}: ${named}${more}. Remove the switch, merge that change, then finish this item again.`,
     PENDING_PROOF
   );
 }
@@ -273,6 +305,7 @@ export function authorizeCompletion(context) {
       [fresh.body, ...comments.map(row => row.body)],
       context
     );
+    validateSwitchRemoved(fresh.body, context);
     requireProof(
       context.hasBacklink(fresh, evaluated.primary.html_url),
       "The primary pull-request backlink changed before the terminal write; restore canonical linkage.",

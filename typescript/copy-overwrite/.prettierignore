@@ -78,6 +78,7 @@ scripts/check-third-party-review-evidence.mjs
 scripts/lisa-push-timing-report.mjs
 scripts/lisa-affected-tests.mjs
 scripts/fetch-test-access-map.mjs
+scripts/lisa-release-switch.mjs
 scripts/lisa-rspec-select.mjs
 scripts/lisa-rails-ast-grep.mjs
 scripts/lisa-rails-gates.mjs
@@ -146,6 +147,7 @@ scripts/bdd/report.mjs
 scripts/bdd/validate.mjs
 scripts/bdd/waivers.mjs
 scripts/lib/affected-tests.mjs
+scripts/lib/release-switch.mjs
 scripts/lib/rspec-selection.mjs
 scripts/lib/automation-provenance-contract.mjs
 scripts/lib/automation-provenance-files.mjs

@@ -11,6 +11,11 @@ import {
   MAX_NATIVE_JSON_BYTES,
   requireProof,
 } from "./completion-proof-shape.mjs";
+import {
+  ReleaseSwitchError,
+  resolveReleaseSetting,
+  switchReferences,
+} from "./release-switch.mjs";
 
 const READ_ERROR = "read-error";
 const WRITE_ERROR = "write-error";
@@ -29,6 +34,47 @@ function estimateSettings(config) {
   } catch (error) {
     if (!(error instanceof EstimateConfigError)) throw error;
     return { required: true, error: error.message };
+  }
+}
+
+/**
+ * Where a release switch is still referenced, for the switch-removal done gate
+ * (CodySwannGT/lisa#5188).
+ *
+ * The production branch's remote-tracking ref is searched when this checkout
+ * has one, because that is what the merged pull request actually changed; the
+ * checkout a finish runs from is often a feature branch that still carries the
+ * switch, or is behind. Without that ref the working tree is the only tree
+ * there is. A search that cannot run is a read error, never "no references".
+ */
+function trackedSwitchReferences(run, branch, switchName) {
+  const remote = `refs/remotes/origin/${branch}`;
+  const revision =
+    run("git", ["rev-parse", "-q", "--verify", remote], { allowFailure: true })
+      .status === 0
+      ? remote
+      : undefined;
+  try {
+    return {
+      searched: revision ? `origin/${branch}` : "the working tree",
+      files: switchReferences(switchName, {
+        revision,
+        run: args => {
+          const result = run("git", args, {
+            allowFailure: true,
+            maxBuffer: MAX_NATIVE_JSON_BYTES,
+          });
+          if (result.status === 0) return result.stdout;
+          throw Object.assign(new Error(result.stderr), {
+            status: result.status,
+            stderr: result.stderr,
+          });
+        },
+      }),
+    };
+  } catch (error) {
+    if (!(error instanceof ReleaseSwitchError)) throw error;
+    throw new CompletionProofError(READ_ERROR, error.message);
   }
 }
 
@@ -185,6 +231,9 @@ export function completionContext(options) {
     suppliedPrUrl: options.prUrl,
     policy: options.config.verification?.completion ?? {},
     estimate: estimateSettings(options.config),
+    release: resolveReleaseSetting(options.config),
+    switchReferences: switchName =>
+      trackedSwitchReferences(run, branch, switchName),
     run,
     declares,
     readSubject,

@@ -47,6 +47,8 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 
 ## Decisions
 
+- [2026-11-23 — Every shared branch is always promotable](decisions/2026-11-23-always-promotable.md)
+  - A piece of work never blocks a deployment: most changes merge complete and proven, only unfinished or unverified new behavior is switched off, a failed live change is reverted, and a project without live users turns the rule off with `release.liveUsers`.
 - [2026-11-21 — Level 1 evidence for controls Lisa cannot yet exercise](decisions/2026-11-21-level-1-proof-reachability.md)
 - [2026-09-05 — File Age Is Asked in Minutes, Never in Days](decisions/2026-09-05-find-age-predicates.md)
   - Why `find -mtime +N` means "older than N+1 days", the measured 49h-71h disagreement band, the correction to the "broken instrument" reading, and the `-mmin` / `! -newermt` equivalences the shipped ast-grep rule enforces.

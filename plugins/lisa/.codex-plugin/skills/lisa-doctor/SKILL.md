@@ -159,6 +159,16 @@ this order:
    - `PASS` otherwise, naming the declared environments.
    - `lisa doctor` reports this as the `CDK delivery proof configured?` check.
 
+8. **Always-promotable setting audit** (`coding-philosophy`, "Always Promotable")
+   - Run `node scripts/lisa-release-switch.mjs config` and report how `release.liveUsers` resolved.
+   - `FAIL` when it lists any problem: a `release.*` value that is present and unusable is named,
+     with the value treated in its place (an invalid `release.liveUsers` is treated as `true`).
+   - `PASS`, saying so in plain words, when `release.liveUsers` is `false`: the project is marked as
+     having no live users and the rule is off. Name the setting so the opt-out stays visible.
+   - `PASS` otherwise, naming the switch mechanism in force (`release.switch.mechanism`, or the
+     fallback: a plain configuration value that defaults to off).
+   - `lisa doctor` reports this as the `Always-promotable setting` check.
+
 Locality findings are advisory unless the merged config is unusable. Missing shared keys after the
 merge are `FAIL`; shared keys that exist only locally are `WARN`.
 

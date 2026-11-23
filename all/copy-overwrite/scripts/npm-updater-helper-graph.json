@@ -108,7 +108,7 @@
       "children": []
     },
     "lib/completion-authorization.mjs": {
-      "sha256": "a9c3fa0ee9c3de9c610e009c6775088237c1e8ebd69ff4d9fd829de2db1c206a",
+      "sha256": "887f68c117f8ceb868a314ac8906f8b7341272932e25ca110b2bf52efc7678bd",
       "staticImports": [
         "lib/completion-proof-conformance.mjs",
         "lib/completion-proof-content.mjs",
@@ -116,15 +116,17 @@
         "lib/completion-proof-reader.mjs",
         "lib/completion-proof-shape.mjs",
         "lib/completion-proof-source.mjs",
+        "lib/release-switch.mjs",
         "lib/work-item-estimate-check.mjs"
       ],
       "dynamicImports": [],
       "children": []
     },
     "lib/completion-proof-adapters.mjs": {
-      "sha256": "10e812829458c9b02f6cb012dc1714ad8b03388ced71a103130517150036f832",
+      "sha256": "c885efe74455e3f45808ad413b850c732ab79359d30b0c203823e2ce72bb41f2",
       "staticImports": [
         "lib/completion-proof-shape.mjs",
+        "lib/release-switch.mjs",
         "lib/work-item-estimate-config.mjs"
       ],
       "dynamicImports": [],
@@ -751,7 +753,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "f466c926c30087baddc8bce95ace6506f5808977e519a5c7a98329b4eca35045",
+      "sha256": "3630a999d1acf6f4d884256ada42425a7242d50a0cedc5a01e245a02a6a837d2",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -1423,6 +1425,17 @@
         "node:os",
         "node:path",
         "node:util"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/release-switch.mjs": {
+      "sha256": "0e3323eaa36f87f4db377b30c75d3132a6fbfa77ec1cb2ec5bfa52d51191b450",
+      "staticImports": [
+        "lib/completion-proof-markdown.mjs",
+        "node:child_process",
+        "node:fs",
+        "node:path"
       ],
       "dynamicImports": [],
       "children": []

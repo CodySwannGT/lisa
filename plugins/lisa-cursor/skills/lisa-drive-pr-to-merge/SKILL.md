@@ -1617,6 +1617,15 @@ a workflow is an action, so do **not** run `gh workflow run` / `workflow_dispatc
 it for the caller to act on, consistent with the report-mode contract (steps b–f
 of section 2 are diagnose-only).
 
+**No-live-users notice.** Whenever this step confirmed a deploy run, run
+`node scripts/lisa-release-switch.mjs notice --base <baseRefName>` and copy
+anything it prints, word for word, into your report to the operator. It prints
+only when the base is the project's production branch and the project sets
+`release.liveUsers: false`, to keep that opt-out from the always-promotable
+rule (`coding-philosophy`) visible on the day the project launches. It always
+exits 0 and never blocks, delays or changes the outcome of the merge. Skip it
+silently where the script is absent.
+
 ### c. Linear native-state reconciliation (non-terminal merges only)
 
 Linear's GitHub integration completes a linked Issue on merge to **any** branch

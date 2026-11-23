@@ -188,6 +188,50 @@ Right: create the label. Stop only if the tracker refuses for lack of permission
 
 This does not conflict with writing for a non-technical reader (`communication`). That rule is about who reads a report, not about giving them to-dos.
 
+### 8. Always Promotable
+
+**Always promotable.** Whatever is on a shared branch can be promoted to the next environment as it stands. Most changes meet this by being complete and proven when they merge, and need nothing more. Only new behavior that merges before it is finished or verified is switched off, and that switch is removed once it is. If the branch is not promotable, fixing or reverting that comes before any other work.
+
+A piece of work must never block a deployment. Promoting one environment to the next is a single step, never a sorting job: nobody works out which changes are ready and cherry-picks them. The established names are keeping the main line always releasable and separating deployment from release: code can be in production without being switched on.
+
+**One question decides whether a change needs a switch:** if this were promoted to production right now, would a user see something unfinished or unproven?
+
+- **No: the change is live and needs no switch.** Bug fixes, small tweaks, copy changes, refactors and dependency updates are complete and proven when they merge, and reverting is their off switch. Never add a switch to work like this. A switch on every change is machinery nobody needs (YAGNI).
+- **Yes: the change is switched off.** A feature that lands across several merges, or new behavior that merges before its verification has passed, merges behind a switch that is off in production.
+
+Live work is proven **before** it merges, not after. That is what lets it skip the switch.
+
+**Changes that cannot be switched off must be safe on their own**, because they are live the moment they ship:
+
+- Database changes add before they remove. Old and new code both work against the same data.
+- API changes are additive. A caller that has not been updated keeps working.
+
+**A switch is temporary.** The work is not done while its switch exists: removing it is part of finishing the feature, not a follow-up, so this rule does not conflict with Clean Deletion or with No Technical Debt. A switch and an add-before-remove change that this rule requires are not the compatibility shims Clean Deletion forbids.
+
+**The mechanism is the project's choice.** Lisa wraps no flag tool. A project names what it uses in `release.switch.mechanism` (a hosted flag service, a cloud configuration service, a product-analytics flag, a plain configuration value) and may point `release.switch.guide` at its own convention. With nothing named, use a plain configuration value that defaults to off. Whatever the mechanism, a switch must be settable per environment, on outside production while off in production, so the work can be verified. A project with one environment verifies switched-off work locally or for a test account only. An agent must be able to do three things with it:
+
+1. add a switch;
+2. confirm it is off in production;
+3. remove it.
+
+If you cannot confirm the production value, you cannot claim the work is dark.
+
+**Turning a finished feature on.** Once its verification passes, the agent turns the switch on in production. No person is needed, unless the project lists the decision class `feature-release` in `humanGate.humanOnly`; then that one step is a declared human gate.
+
+**When the branch is not promotable.** A change that shipped without a switch and then fails verification on a shared branch is reverted at once and reworked, and the work item goes back to the ready queue with the failure evidence. It is never left in place to be fixed forward, and it never holds a promotion.
+
+**Work items and pull requests say which.** A leaf work item that changes runtime behavior carries a `## Release Switch` section with exactly one line (gate S22 in the `*-validate-*` skills, checked by `scripts/lisa-release-switch.mjs check`):
+
+```text
+Live — complete and proven at merge
+Switched off — <switch-name>; removed by this item
+Switched off — <switch-name>; removed by <work-item ref>
+```
+
+The item that removes a switch cannot be finished while tracked source still references it (`lisa-work-item.mjs finish`). A pull request states the same thing next to how to undo it.
+
+**A project without live users.** `release.liveUsers` in `.lisa.config.json` is a fact about the project: absent means it has live users and this rule applies. A project that is not launched sets it to `false`; then nothing in this section applies, including the add-before-remove and additive requirements, because there are no users and no live data to protect. Lisa names the setting whenever a production deployment happens while it is `false`, so the opt-out is seen on launch day. A value that is not `true` or `false` is reported and treated as `true`. `node scripts/lisa-release-switch.mjs config` prints how it resolved.
+
 ---
 
 ## Quick Reference
@@ -499,6 +543,8 @@ Structure the code so future agents can easily identify what to change, make a t
 ## Code-Level Intent Preservation
 
 Write comments and docstrings that preserve engineering intent, not merely implementation details.
+
+This overrides any default to match the comment density of the surrounding code: future agents keep no memory of today, so intent that is not written down is lost.
 
 Code should generally explain **what** happens. Comments and docstrings should explain **why it happens that way**, especially when the reasoning is not obvious from the implementation.
 
