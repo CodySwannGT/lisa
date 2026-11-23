@@ -42,6 +42,10 @@ const LIVE = { mode: "live" };
 const SECTION = "## Release Switch";
 const LIVE_SECTION = renderDeclaration({ mode: "live" });
 const FREE_TEXT = "We will see";
+const WIKI_ENVIRONMENT = "h2. Target Backend Environment";
+const WIKI_SECTION = "h2. Release Switch";
+const WIKI_NOTES = "h2. Notes";
+const QUOTED_EXAMPLE = "Switched off — example; removed by this item";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -65,12 +69,10 @@ describe("JIRA wiki-markup tickets", () => {
       "h2. Context / Business Value",
       "Work.",
       "",
-      "h2. Target Backend Environment",
+      WIKI_ENVIRONMENT,
       environment,
       "",
-      ...(declaration === undefined
-        ? []
-        : ["h2. Release Switch", declaration, ""]),
+      ...(declaration === undefined ? [] : [WIKI_SECTION, declaration, ""]),
       "h2. Repository",
       "repo",
       "",
@@ -118,13 +120,13 @@ describe("JIRA wiki-markup tickets", () => {
 
 describe("a JIRA ticket that quotes the section in a code block", () => {
   const body = [
-    "h2. Target Backend Environment",
+    WIKI_ENVIRONMENT,
     "production",
     "",
     "h2. Technical Approach",
     "{code}",
-    "h2. Release Switch",
-    "Switched off — example; removed by this item",
+    WIKI_SECTION,
+    QUOTED_EXAMPLE,
     "{code}",
     "",
   ].join("\n");
@@ -142,6 +144,89 @@ describe("a JIRA ticket that quotes the section in a code block", () => {
   });
 });
 
+describe("a code marker that is never closed", () => {
+  // A pasted log often leaves a lone `{code}` line. Reading it as a block that
+  // runs to the end of the body once hid the declaration below it, and the done
+  // gate then closed an item whose switch was still in use.
+  const declaration = `Switched off — ${SWITCH}; removed by this item`;
+  const markdown = [
+    "## Target Backend Environment",
+    "",
+    "production",
+    "",
+    "## Notes",
+    "",
+    "The error was pasted from the tracker:",
+    "{code}",
+    "Error: boom",
+    "",
+    SECTION,
+    "",
+    declaration,
+    "",
+  ].join("\n");
+  const jira = [
+    WIKI_ENVIRONMENT,
+    "production",
+    "",
+    WIKI_NOTES,
+    "{code}",
+    "Error: boom",
+    "",
+    WIKI_SECTION,
+    declaration,
+    "",
+  ].join("\n");
+
+  it.each([
+    ["a markdown body", markdown],
+    ["a JIRA body", jira],
+  ])("still reads the declaration below it in %s", (_name, body) => {
+    expect(parseDeclaration(body)).toMatchObject({
+      mode: "off",
+      switchName: SWITCH,
+    });
+    expect(removalObligation(body, "acme/code#42")).toEqual({
+      switchName: SWITCH,
+    });
+    expect(checkDeclaration(body, LIVE_USERS).verdict).toBe("PASS");
+  });
+
+  it("still fails a malformed declaration below it on an existing item", () => {
+    const body = jira.replace(declaration, FREE_TEXT);
+    expect(checkDeclaration(body, LIVE_USERS, { existing: true }).verdict).toBe(
+      "FAIL"
+    );
+  });
+
+  it("replaces the section in place instead of appending a new one each run", () => {
+    const once = upsertDeclaration(jira, LIVE_SECTION);
+    const twice = upsertDeclaration(once, LIVE_SECTION);
+    expect(twice).toBe(once);
+    expect(once.match(/Release Switch/g)).toHaveLength(1);
+    expect(parseDeclaration(once)).toEqual(LIVE);
+  });
+
+  it("is not fooled by a {code} line inside a closed {noformat} block", () => {
+    const body = [
+      WIKI_ENVIRONMENT,
+      "production",
+      "",
+      WIKI_NOTES,
+      "{noformat}",
+      "{code}",
+      WIKI_SECTION,
+      QUOTED_EXAMPLE,
+      "{noformat}",
+      "",
+      WIKI_SECTION,
+      declaration,
+      "",
+    ].join("\n");
+    expect(parseDeclaration(body)).toMatchObject({ switchName: SWITCH });
+  });
+});
+
 describe("setup problems reported in one place", () => {
   it("is empty for a sound setup", () => {
     expect(setupProblems({})).toEqual([]);
@@ -155,6 +240,11 @@ describe("setup problems reported in one place", () => {
     });
     expect(problems.join(" ")).toContain("notice");
     expect(problems.join(" ")).toContain("deploy.branches");
+  });
+
+  it("says so when the configuration is not an object at all", () => {
+    expect(setupProblems([]).join(" ")).toContain("not a JSON object");
+    expect(setupProblems(null).join(" ")).toContain("not a JSON object");
   });
 
   it("includes release and human-gate problems", () => {
@@ -220,7 +310,7 @@ describe("writing the section into awkward bodies", () => {
       "```text",
       SECTION,
       "",
-      "Switched off — example; removed by this item",
+      QUOTED_EXAMPLE,
       "```",
       "",
     ].join("\n");
@@ -454,6 +544,53 @@ describe("searching the whole repository", () => {
       "pages/checkout.mdx",
       "src/evidence/collector.js",
     ]);
+  });
+
+  it("counts code that merely looks like a record by its name or folder", () => {
+    const root = repository();
+    writeFileSync(path.join(root, "app.js"), "show();\n");
+    mkdirSync(path.join(root, "src", "pages"), { recursive: true });
+    mkdirSync(path.join(root, "evidence"));
+    writeFileSync(
+      path.join(root, "src", "pages", "ChangelogPage.tsx"),
+      `export const Page = () => (flags["${SWITCH}"] ? 1 : 2);\n`
+    );
+    writeFileSync(
+      path.join(root, "src", "changelog.ts"),
+      `export const on = flag("${SWITCH}");\n`
+    );
+    writeFileSync(
+      path.join(root, "evidence", "collector.js"),
+      `collect("${SWITCH}");\n`
+    );
+    stage(root);
+    expect(switchReferences(SWITCH, { cwd: root })).toEqual([
+      "evidence/collector.js",
+      "src/changelog.ts",
+      "src/pages/ChangelogPage.tsx",
+    ]);
+  });
+
+  it("does not count Lisa's machine state under .lisa/", () => {
+    const root = repository();
+    writeFileSync(path.join(root, "app.js"), "show();\n");
+    mkdirSync(path.join(root, ".lisa"));
+    writeFileSync(
+      path.join(root, ".lisa", "PROJECT_LEARNINGS.md"),
+      `Removed the ${SWITCH} switch.\n`
+    );
+    stage(root);
+    expect(switchReferences(SWITCH, { cwd: root })).toEqual([]);
+  });
+
+  it("refuses a revision that is really a folder, or an option", () => {
+    const root = repository();
+    expect(() =>
+      switchReferences(SWITCH, { cwd: root, revision: "docs" })
+    ).toThrow(/Could not search/);
+    expect(() =>
+      switchReferences(SWITCH, { cwd: root, revision: "--cached" })
+    ).toThrow(/not a revision/);
   });
 
   it("finds the name in any letter case", () => {

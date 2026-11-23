@@ -283,7 +283,7 @@
     "all/copy-overwrite/scripts/lib/release-switch.d.mts":
       "986c3eff3c90a6932b9c6e3975bb196bbf353ae783332d28246a74290368dd99",
     "all/copy-overwrite/scripts/lib/release-switch.mjs":
-      "a8ded52f24930631f3c9533e541520ff0109b22bac877296ba7bc9a2ece63bd2",
+      "c9b5e8cc3c646719577cd30cdb9333a38a4078043c7dd733cd2b6df9a91fc110",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts":
       "da1eebc33c5215bc81ab4202c649a5af6b39e3d42f71f94cb2424e3535849154",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs":
@@ -433,7 +433,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "9aaa17c68deb6ca749d46e1a7115aa6e26417296d7abaa734af249b12458de92",
+      "49b03a7b904262dd757b04ef2c0235041dc026d62863694f79b9b2b5c5b390d1",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1269,7 +1269,7 @@
     "plugins/src/base/rules/reference/claim-time-guards.md":
       "a50664632190c94a68df74cf8e1893552e1507f0162e3dc497615a8360b40007",
     "plugins/src/base/rules/reference/coding-philosophy.md":
-      "06a480c3c3d49b7103c1a436cd0d1aeff33fef3240c50630f112457d42523614",
+      "2484ea4e9bae1a890b0fe7f651f22fa11a7271be6a5f40d166685b7538ccc6c7",
     "plugins/src/base/rules/reference/communication.md":
       "c9873d1b4564eb3cf86a350224158fe8d1c4da6a7a0644bcf4bfd200206bc174",
     "plugins/src/base/rules/reference/completion-authorization.md":
@@ -1591,7 +1591,7 @@
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "c247ecf2c25bf14d6482872989e2e3d471a7aaa551ea604e375ddc96593699d0",
+      "844321dc2e69fe0cd6c45f40a60aaf60b62a92dddf4e9c7ad589ea74ba645782",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":

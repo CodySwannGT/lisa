@@ -96,33 +96,64 @@ const WIKI_HEADING = /^h([1-6])\.[ \t]+/;
  * @returns {string} The same lines, with `hN. ` headings as `#` headings.
  */
 function markdownHeadings(body) {
-  // A `{code}` or `{noformat}` block is wiki markup's code fence. A heading
-  // quoted inside one is an example, exactly as inside a markdown fence, so it
-  // is left alone and never read or rewritten as a section.
-  const fence = /^\{(?:code|noformat)(?::[^}]*)?\}$/;
-  return body
-    .split("\n")
-    .reduce(
-      ({ lines, quoted }, line) => {
-        const toggles = fence.test(line.trim());
-        const wiki = quoted || toggles ? null : WIKI_HEADING.exec(line);
-        return {
-          lines: [
-            ...lines,
-            wiki
-              ? `${"#".repeat(Number(wiki[1]))} ${line.slice(wiki[0].length)}`
-              : // Indenting a quoted line keeps the markdown scanner from
-                // reading it as top level, without changing the line count.
-                quoted && !toggles
-                ? `    ${line}`
-                : line,
-          ],
-          quoted: toggles ? !quoted : quoted,
-        };
-      },
-      { lines: [], quoted: false }
-    )
-    .lines.join("\n");
+  const lines = body.split("\n");
+  // Only a body written in wiki markup has wiki code blocks. In a markdown
+  // body `{code}` is ordinary text and changes nothing.
+  if (!lines.some(line => WIKI_HEADING.test(line))) return body;
+  const quoted = wikiQuotedLines(lines);
+  return lines
+    .map((line, index) => {
+      // Indenting a quoted line keeps the markdown scanner from reading it as
+      // top level, without changing the line count.
+      if (quoted.has(index)) return `    ${line}`;
+      const wiki = WIKI_HEADING.exec(line);
+      return wiki
+        ? `${"#".repeat(Number(wiki[1]))} ${line.slice(wiki[0].length)}`
+        : line;
+    })
+    .join("\n");
+}
+
+/**
+ * The kind of wiki code-block marker a line is, if it is one: `{code}`,
+ * `{code:title=x}` or `{noformat}` alone on its line.
+ * @param {string} line - One body line.
+ * @returns {string|null} `code`, `noformat`, or `null`.
+ */
+function wikiFenceKind(line) {
+  const marker = line.trim();
+  if (!marker.startsWith("{") || !marker.endsWith("}")) return null;
+  const name = marker.slice(1, -1).split(":")[0];
+  return ["code", "noformat"].includes(name) ? name : null;
+}
+
+/**
+ * Indexes of the lines inside a CLOSED wiki code block.
+ *
+ * A block counts only when its opening marker has a closing marker of the same
+ * kind. An opener with no closer is ordinary text: treating it as a block that
+ * runs to the end of the body would hide every section after it, including the
+ * declaration, and a hidden declaration is one the done gate never enforces.
+ * @param {string[]} lines - Body lines.
+ * @returns {Set<number>} Indexes of quoted lines, markers excluded.
+ */
+function wikiQuotedLines(lines) {
+  const kinds = lines.map(wikiFenceKind);
+  return kinds.reduce(
+    ({ quoted, until }, kind, index) => {
+      if (index <= until || kind === null) return { quoted, until };
+      const close = kinds.indexOf(kind, index + 1);
+      if (close < 0) return { quoted, until };
+      return {
+        quoted: new Set([
+          ...quoted,
+          ...Array.from({ length: close - index - 1 }, (_, n) => index + 1 + n),
+        ]),
+        until: close,
+      };
+    },
+    { quoted: new Set(), until: -1 }
+  ).quoted;
 }
 // A `None —` declaration is how `## Target Backend Environment` says the item
 // changes no runtime behavior (or is a container). The em dash is the machine
@@ -253,6 +284,10 @@ export function turnOnProblems(config = {}) {
  * @returns {string[]} Problems, empty when the setup is sound.
  */
 export function setupProblems(config = {}) {
+  if (!isObject(config))
+    return [
+      "The Lisa configuration is not a JSON object, so no release setting can be read from it; the project is treated as having live users.",
+    ];
   const setting = resolveReleaseSetting(config);
   return [
     ...setting.problems,
@@ -650,21 +685,34 @@ const git = (args, cwd) =>
     maxBuffer: 64 * 1024 * 1024,
   });
 
+const CHANGELOG_FILE = /^changelog(?:\.(?:md|markdown|txt|rst|adoc))?$/i;
+
 /**
- * Files that are records of work and are never executed: Lisa's committed
- * evidence at the repository root, and changelogs. The read-back that proves a
- * switch is off in production is itself evidence that names the switch, and a
- * changelog says what was removed; counting either would leave the removing
- * item unable to finish. Everything else counts, prose included: Markdown and
- * MDX can carry template conditionals, and a text file can be a flag list.
- * This is one definition of "record" for every switch, not a list anyone adds
- * a failing file to.
+ * Files that are records of work and are never executed, so a mention in one
+ * cannot keep a switch alive:
+ *
+ * - committed evidence, `evidence/<ticket>/…` at the repository root. The
+ *   read-back that proves a switch is off in production names the switch.
+ * - a changelog (`CHANGELOG`, `CHANGELOG.md`, …), which says what was removed.
+ * - Lisa's own machine state under `.lisa/`, such as the learnings ledger.
+ *
+ * Everything else counts, prose included: Markdown and MDX can carry template
+ * conditionals, a text file can be a flag list, and `ChangelogPage.tsx` or a
+ * script sitting directly in `evidence/` is code. This is one definition of
+ * "record" for every switch, not a list anyone adds a failing file to.
  * @param {string} path - Repository-relative path.
  * @returns {boolean} True when the file can hold a reference that matters.
  */
-const isSource = path =>
-  !path.startsWith("evidence/") &&
-  !(path.split("/").at(-1) ?? "").toLowerCase().startsWith("changelog");
+function isSource(path) {
+  const segments = path.split("/");
+  const evidence = segments[0] === "evidence" && segments.length >= 3;
+  const machineState = segments[0] === ".lisa" && segments.length >= 2;
+  return !(
+    evidence ||
+    machineState ||
+    CHANGELOG_FILE.test(segments.at(-1) ?? "")
+  );
+}
 
 /**
  * An extended regular expression that matches the switch name as a whole
@@ -724,7 +772,16 @@ export function switchReferences(
   // would widen it stops meaning "the root" when a hook or alias runs under
   // `git --literal-pathspecs`; either way a switch still in use elsewhere would
   // be reported as gone.
+  // A value that starts with a dash would be read by git as an option.
+  if (revision !== undefined && !/^[A-Za-z0-9]/.test(revision))
+    throw new ReleaseSwitchError(
+      `${JSON.stringify(revision)} is not a revision this search accepts.`
+    );
   const root = repositoryRoot(run, cwd, failed);
+  // The closing `--` with nothing after it still means "the whole tree", and
+  // it makes git read the value before it as a revision or fail: without it a
+  // folder that happens to carry the same name would be searched instead, and
+  // the answer would be "not referenced" for a tree that was never looked at.
   const args = [
     "-C",
     root,
@@ -734,9 +791,11 @@ export function switchReferences(
     "-E",
     "-z",
     "--full-name",
+    "--recurse-submodules",
     "-e",
     tokenPattern(switchName),
     ...(revision ? [revision] : []),
+    "--",
   ];
   try {
     return run(args, cwd)

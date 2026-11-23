@@ -34,7 +34,7 @@ Work arrives on a shared branch all day. Without this rule, promoting one enviro
 - A switch must be settable per environment, on outside production while off in production, so switched-off work can be verified. A project with one environment verifies it locally or for a test account only.
 - A switch is temporary. Removing it is part of finishing the feature, which is how this rule stays consistent with deleting replaced code and with carrying no technical debt.
 - Antigravity ships no rules tree, so there the rule travels in the skills that apply it: planning, building, and the ticket writers and validators state the one-question test, and the verify skill applies the ticket's declaration.
-- The switch-removal check searches the production commit that the accepted completion proof names, as a whole token, in any letter case, from the repository root. Records do not count as references: the root `evidence/` folder and changelog files.
+- The switch-removal check searches the production commit that the accepted completion proof names, as a whole token, in any letter case, from the repository root. Records do not count as references: committed evidence under `evidence/<ticket>/`, a changelog file, and Lisa's machine state under `.lisa/`.
 - The always-loaded rule tier was full, so the statement there is a short rendering and the full text is in the reference rule. Five existing bullets in the same file, and its footer, were tightened to make room; nothing they require changed.
 
 ## What was not built
