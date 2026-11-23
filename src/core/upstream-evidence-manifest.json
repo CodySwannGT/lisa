@@ -283,7 +283,7 @@
     "all/copy-overwrite/scripts/lib/release-switch.d.mts":
       "30b119d7d9087f08efec17b4b60b97dde658079511c94c529e23ac51c46baa8b",
     "all/copy-overwrite/scripts/lib/release-switch.mjs":
-      "1d4ef90c5ab0090e82112a8e73746b7a77e3ad40d35b4659654a499c935a9f15",
+      "998f9872f1ad6c4bbabf9e4aeeadc1af1e87a47474724959881eb99208fb7378",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts":
       "da1eebc33c5215bc81ab4202c649a5af6b39e3d42f71f94cb2424e3535849154",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs":
@@ -433,7 +433,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "05383710d5b4559faf23b8835e092e928c1df873e738ef4f01cd0846853be0be",
+      "e44691bfda25d45399934da9aa70a82231588a1758a250d0f0d150206c59702c",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1379,7 +1379,7 @@
     "plugins/src/base/rules/reference/withdrawn-rulings.md":
       "34afe0413fce11872ac99b87e6323c59a754db7992c5fb054a56845af0723785",
     "plugins/src/base/rules/reference/work-item-definition-of-ready.md":
-      "5425e7ea5e0d227ead0add4a99a1d257402e0ed58ed5498cb12de1a96932275b",
+      "e36391b6bdaf386fab63a1e8230d79ab717a7cd236f8fc81557ba691ba9ab553",
     "plugins/src/base/rules/reference/work-item-trailer-definition.md":
       "2997766dc8ab61bf63891781dc9e86339a47ca35eddd4ca387bd7cc0ce85f2a5",
     "plugins/src/base/scripts/automation-run-record.mjs":
@@ -1579,11 +1579,11 @@
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
       "e068c078a79015af58b8faed193f1f736ff18d32ed1a677b0ee9cddf635d71b6",
     "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md":
-      "5e7eed7db57347a9f1760095d08142b5ec794ba6fac26a0d775ac81b61f79789",
+      "29f8da0a96c55b37a9d5eff77ddc06f6c19755945005b3a506add52ea20dc3da",
     "plugins/src/base/skills/lisa-github-verify/SKILL.md":
       "7264fbb02cdc6e8059d2130f19e16fadd36f5defff64621a1d95fc24565abc15",
     "plugins/src/base/skills/lisa-github-write-issue/SKILL.md":
-      "b177e9725fd9439cec34a2473d1e58d6d1cfc8e36fe7a02af09e59e885259782",
+      "e034f84cf3c21f672db86194c5e4347da59a1751690b9a6147dc4bdea439d93e",
     "plugins/src/base/skills/lisa-github-write-prd/SKILL.md":
       "9beb1af0314ab3e9cdcac6c2a7c2d9028e57695e9e140e92f64e863904a2313f",
     "plugins/src/base/skills/lisa-health-drift-cron/SKILL.md":
@@ -1635,11 +1635,11 @@
     "plugins/src/base/skills/lisa-jira-sync/SKILL.md":
       "943a89c2fd70b7cd1f13badc8ce0018f9f5ff18a0a7443440ba68a309bf4685f",
     "plugins/src/base/skills/lisa-jira-validate-ticket/SKILL.md":
-      "d22c87b83883f0aa7dae44c33d6b409cfa93d2a3bd38e1cb7724867572486f60",
+      "00138cd88d4cd8dc0ebdd59b9e37433553102c994fb3f0e8ec35e3af76f99ade",
     "plugins/src/base/skills/lisa-jira-verify/SKILL.md":
       "55484ce81b43a167db9bbeed62edf8b204676827b7ef7bf1892c17453027c7b6",
     "plugins/src/base/skills/lisa-jira-write-ticket/SKILL.md":
-      "d101ddf66d6272b371f02974c8f8c443c9f096063d562c6e7a806351885d23a6",
+      "421ecdf9c33ffcfdf2621f197bff90978936dd5b38dae8c3797c12989f3d0298",
     "plugins/src/base/skills/lisa-jsdoc-best-practices/SKILL.md":
       "93bbafa18f6278b554b5493e0251ad914f12cb3572f52cdfe9db0644e0372797",
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md":
@@ -1671,11 +1671,11 @@
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
       "af8efdcd13d0e30f729938a8c70674be58fd7113f2ad723ab5ebad7ea42ac5ce",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
-      "4453be86d1e85427eae3516f8a27794a089722cdf4bec36453199d4f9b67fdc7",
+      "51b2ae5d16105a9dd4875acc8f12f0ed0ecbd784be2ac06be1db255c1e48c4a4",
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "17251e8d6c762b69b2ca6a77d9cfe44beba31dfc0444de4cde051747e2c99eab",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
-      "18de7e134df6e9c0ca7e902e0617aaab8aacecce706ff1d9b0ce3462b8454123",
+      "19b1cbc4b8498c690f01d2a85e477f665df0ce51c766da8c46ca975880411c42",
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
       "f6de212c8ac7a905e754b82e08b0696d8d03f81b8e6b281e02fb28e3a489552d",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
@@ -2029,7 +2029,7 @@
     "plugins/src/base/skills/lisa-sync-down/SKILL.md":
       "5ec0a281504d9a908af14ae4b4100a4c4371ffdebde2ecc82dfbc1310fd50e28",
     "plugins/src/base/skills/lisa-task-decomposition/SKILL.md":
-      "c7a02c7b756bd6f584fc264208cf6bbf3ca9bf90fea1d109d6609755ddf48f2b",
+      "d133a21579ebf83273c459f1e9ce3b0a85361ecd40e43b1fa2d99789e2b8e400",
     "plugins/src/base/skills/lisa-task-triage/SKILL.md":
       "b3e55adaaa9754e56a3dbb9037008ff991bf801d1d6fbd2bfa722e84901546ec",
     "plugins/src/base/skills/lisa-tdd-implementation/SKILL.md":
@@ -2041,7 +2041,7 @@
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
       "8bbee6b63650115190991947a5ceed8f5a7654f8bf32b616a701c36e1b1cee93",
     "plugins/src/base/skills/lisa-track/SKILL.md":
-      "b46da4f6d236303a252c87830e830028c305d41633a0280cdb47220032b0765a",
+      "6c67796407e73f355632a8cb50e3377101cee42e3f7860c3d44c1d01085a5363",
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "5e250f235e91a6f72a7ebee93560d6c6fd7c5c47aabefe341fba05c6b88c4b25",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":

@@ -222,7 +222,8 @@ Switched off — <switch-name>; removed by <work-item ref>
 One question decides the form: if this were promoted to production right now,
 would a user see something unfinished or unproven? If no, the work is live and
 gets no switch: bug fixes, small tweaks, copy changes, refactors and dependency
-updates are live. If yes, it is switched off, and the declaration names the
+updates almost always are. The question decides, not the kind of work. If yes,
+it is switched off, and the declaration names the
 switch and the work item that removes it. The shipped
 `scripts/lisa-release-switch.mjs` renders and checks the section for every
 agent.

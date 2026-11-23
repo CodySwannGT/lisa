@@ -197,8 +197,9 @@ Scenario: <name>
    Switched off — <switch-name>; removed by <work-item ref>
  Decide it with one question: if this were promoted to production right now,
  would a user see something unfinished or unproven? If no, it is live: bug
- fixes, small tweaks, copy changes, refactors and dependency updates are live
- and never get a switch. If yes (a feature that lands across several merges, or
+ fixes, small tweaks, copy changes, refactors and dependency updates almost
+ always are, and work that is complete and proven when it merges never gets a
+ switch. If yes (a feature or a fix that lands across several merges, or
  new behavior that merges before its verification has passed), it is switched
  off: name the switch, and name the work item that removes it. Every item of a
  multi-item feature names the same switch and the same removing item. Pick a

@@ -151,6 +151,24 @@ describe("a JIRA declaration that may be inside a code block", () => {
     ["a lone noformat marker", below(NOFORMAT_MARKER, PASTED_LOG)],
     ["an opener with a title", below("{code:title=log}", PASTED_LOG)],
     [
+      "a code marker that is only text inside an open noformat block",
+      [
+        WIKI_ENVIRONMENT,
+        "production",
+        NOFORMAT_MARKER,
+        CODE_MARKER,
+        WIKI_SECTION,
+        LIVE_DECLARATION,
+        "h2. Example End",
+        NOFORMAT_MARKER,
+        "",
+      ].join("\n"),
+    ],
+    [
+      "a code block opened after a noformat block that only quoted a marker",
+      below(NOFORMAT_MARKER, CODE_MARKER, NOFORMAT_MARKER, CODE_MARKER),
+    ],
+    [
       "a quoted example with a heading after it and no real declaration",
       [
         WIKI_ENVIRONMENT,
@@ -193,6 +211,10 @@ describe("a JIRA declaration that may be inside a code block", () => {
         "b",
         NOFORMAT_MARKER
       ),
+    ],
+    [
+      "a closed noformat block that quoted a code marker",
+      below(NOFORMAT_MARKER, CODE_MARKER, "x", NOFORMAT_MARKER),
     ],
   ])("reads the declaration below %s", (_name, body) => {
     expect(parseDeclaration(body)).toMatchObject({

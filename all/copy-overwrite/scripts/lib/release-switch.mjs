@@ -424,18 +424,44 @@ const headingName = line => {
   return name.trim().split(/\s+/).join(" ").toLowerCase();
 };
 
-const WIKI_CODE_MARKERS = ["{code}", "{code:", "{noformat}", "{noformat:"];
+const WIKI_BLOCK_KINDS = ["code", "noformat"];
 
 /**
- * How many wiki code-block markers a line carries.
+ * The wiki code-block markers on a line, left to right, as block kinds.
+ * `{code}`, `{code:java}` and `{noformat}` are markers; anything else is text.
  * @param {string} line - One body line.
- * @returns {number} Count of `{code}` and `{noformat}` markers, with or without parameters.
+ * @returns {string[]} `code` or `noformat` for each marker, in order.
  */
-const wikiMarkerCount = line =>
-  WIKI_CODE_MARKERS.reduce(
-    (count, marker) => count + line.split(marker).length - 1,
-    0
-  );
+function wikiMarkers(line) {
+  return line
+    .split("{")
+    .slice(1)
+    .flatMap(piece => {
+      const kind = WIKI_BLOCK_KINDS.find(
+        name => piece.startsWith(`${name}}`) || piece.startsWith(`${name}:`)
+      );
+      return kind && piece.includes("}") ? [kind] : [];
+    });
+}
+
+/**
+ * The wiki block that is still open after these lines, if any.
+ *
+ * It follows JIRA's own rule: outside a block, a marker opens a block of its
+ * kind; inside one, only a marker of the SAME kind closes it, and the other
+ * kind is text. Counting markers instead cannot tell `{noformat}{code}` (one
+ * open block with text in it) from two blocks.
+ * @param {string[]} lines - Body lines above the point in question.
+ * @returns {string|null} `code`, `noformat`, or `null` when no block is open.
+ */
+function openWikiBlock(lines) {
+  return lines
+    .flatMap(wikiMarkers)
+    .reduce(
+      (open, kind) => (open === null ? kind : open === kind ? null : open),
+      /** @type {string|null} */ (null)
+    );
+}
 
 /**
  * Where an item's `## Release Switch` section is and what it holds.
@@ -444,11 +470,11 @@ const wikiMarkerCount = line =>
  * (a legacy item, or a live one nobody declared), a section whose text can be
  * read, and a section that is there but cannot be trusted. The last has two
  * forms. A blank section is unreadable, not evidence that the item removes
- * nothing. And in a JIRA ticket, a section whose `h2.` heading follows an
- * unclosed `{code}` or `{noformat}` marker may be a quoted example inside a
- * code block: wiki code blocks are not parsed here (every attempt to pair the
- * markers could be fooled into hiding a real declaration), so that shape is
- * refused as ambiguous instead of being guessed either way.
+ * nothing. And in a JIRA ticket, a section whose `h2.` heading sits inside a
+ * `{code}` or `{noformat}` block that is still open may be a quoted example.
+ * It is refused as ambiguous: never trusted as the declaration, and never read
+ * as absent (which is how an earlier version let a stray marker hide a real
+ * declaration from the done gate).
  * @param {string} body - Work-item body.
  * @returns {null | {text: string, problem: string|null}} `null` when there is no section.
  */
@@ -467,10 +493,10 @@ function declarationState(body) {
   const text = markdownSection(normalized, RELEASE_SWITCH_HEADING, {
     anyCase: true,
   });
-  const markersAbove = lines
-    .slice(0, match.line)
-    .reduce((count, line) => count + wikiMarkerCount(line), 0);
-  if (WIKI_HEADING.test(lines[match.line]) && markersAbove % 2 === 1)
+  if (
+    WIKI_HEADING.test(lines[match.line]) &&
+    openWikiBlock(lines.slice(0, match.line)) !== null
+  )
     return {
       text,
       problem:
@@ -677,7 +703,7 @@ export function upsertDeclaration(body, section) {
   if (
     first.startsWith("```") ||
     first.startsWith("~~~") ||
-    wikiMarkerCount(first) > 0
+    wikiMarkers(first).length > 0
   )
     throw new ReleaseSwitchError(
       `The ${RELEASE_SWITCH_HEADING} section starts with a code block. Move the block out of the section, then render again.`
