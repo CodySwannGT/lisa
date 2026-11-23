@@ -197,8 +197,8 @@ h2. Release Switch
  off: name the switch, and name the work item that removes it. Every item of a
  multi-item feature names the same switch and the same removing item. Pick a
  switch name that appears nowhere else in the repository and is not the start
- of another switch's name: the done gate searches tracked files for it as
- plain text. Never ask a person which form applies.]
+ of another switch's name: the done gate searches tracked source for it as a
+ whole token. Never ask a person which form applies.]
 
 h2. Sign-in Required
 [Include this section ONLY if the work touches authenticated surfaces.

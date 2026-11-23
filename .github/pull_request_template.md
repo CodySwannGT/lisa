@@ -22,6 +22,10 @@ Format: owner/repo#123 (for example CodySwannGT/lisa#1978).
 
 Work-Item: CodySwannGT/lisa#0
 
+## How to undo
+
+<!-- The fastest safe way back if this misbehaves: revert this pull request, flip a named switch, or roll back a migration (and whether that loses data). -->
+
 ## Safe to promote
 
 <!--

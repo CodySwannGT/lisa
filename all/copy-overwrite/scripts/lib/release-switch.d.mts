@@ -40,6 +40,8 @@ export declare class ReleaseSwitchError extends Error {}
 export function readProjectConfig(cwd: string): Record<string, unknown>;
 /** Who turns a finished, switched-off feature on in production. */
 export function turnOnOwner(config?: unknown): "agent" | "human";
+/** Problems with `humanGate.humanOnly` that affect the production turn-on. */
+export function turnOnProblems(config?: unknown): string[];
 /** Resolve `release.*` from an effective project config. */
 export function resolveReleaseSetting(config?: unknown): ReleaseSetting;
 /** Whether an item changes runtime behavior, from its stored declaration. */

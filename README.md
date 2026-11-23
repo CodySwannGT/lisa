@@ -553,7 +553,7 @@ A piece of work should never block a deployment. Lisa holds agents to one rule: 
 
 Most work meets the rule with no extra effort. A bug fix, a small tweak or a refactor is finished and proven when it merges. Only new behavior that merges before it is finished or verified is switched off, and the switch comes out once the feature is on. A change that turns out to be wrong after it merges is reverted straight away.
 
-Each ticket says which case it is, and Lisa checks that a switch is really gone before it closes the ticket that removes it. Lisa does not ship a feature-flag tool: your project keeps whatever it already uses.
+Each ticket says which case it is, and Lisa checks that a switch is really gone from what is in production before it closes the ticket that removes it. Lisa does not ship a feature-flag tool: your project keeps whatever it already uses.
 
 Three settings in `.lisa.config.json` control this. All are optional:
 

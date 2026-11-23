@@ -30,6 +30,7 @@ import {
   runtimeScope,
   switchReferences,
   turnOnOwner,
+  turnOnProblems,
   upsertDeclaration,
 } from "../../../all/copy-overwrite/scripts/lib/release-switch.mjs";
 import { normalizeGateText } from "../../../plugins/src/base/scripts/intake-blocker-reprobe.mjs";
@@ -254,9 +255,16 @@ describe("settings a person might really write", () => {
     expect(turnOnOwner({ humanGate: { humanOnly: ["pricing"] } })).toBe(
       "agent"
     );
-    expect(turnOnOwner({ humanGate: { humanOnly: "feature-release" } })).toBe(
-      "agent"
+    expect(turnOnProblems({ humanGate: { humanOnly: ["pricing"] } })).toEqual(
+      []
     );
+  });
+
+  it("reads a class written as a bare string as reserved, and reports the mistake", () => {
+    const config = { humanGate: { humanOnly: "feature-release" } };
+    expect(turnOnOwner(config)).toBe("human");
+    expect(turnOnProblems(config).join(" ")).toContain("humanGate.humanOnly");
+    expect(turnOnProblems(config).join(" ")).toContain("not a list");
   });
 });
 
@@ -274,6 +282,19 @@ describe("the production branch, read as the completion checker reads it", () =>
     expect(
       productionBranch({ policy: { repository: { default_branch: "trunk" } } })
     ).toBe("trunk");
+  });
+
+  it("accepts prod and production naming the same branch, and refuses two different ones", () => {
+    expect(
+      productionBranch({
+        deploy: { branches: { prod: "main", production: "main" } },
+      })
+    ).toBe("main");
+    expect(
+      productionBranch({
+        deploy: { branches: { prod: "release", production: "main" } },
+      })
+    ).toBeNull();
   });
 
   it("does not guess when deploy branches name no production environment", () => {
@@ -319,6 +340,37 @@ describe("searching the whole repository", () => {
     git("-c", "core.hooksPath=/dev/null", "commit", "--quiet", "-m", "fixture");
     return root;
   }
+
+  it("counts source only: evidence and prose that name the switch hold nothing open", () => {
+    const root = repository();
+    writeFileSync(path.join(root, "app.js"), "show();\n");
+    mkdirSync(path.join(root, "evidence", "42"), { recursive: true });
+    writeFileSync(
+      path.join(root, "evidence", "42", "switch-off-in-production.json"),
+      `{"switch":"${SWITCH}","production":false}\n`
+    );
+    writeFileSync(
+      path.join(root, "CHANGELOG.md"),
+      `Removed the ${SWITCH} switch.\n`
+    );
+    expect(switchReferences(SWITCH, { cwd: root })).toEqual([]);
+  });
+
+  it("matches the name as a whole token, not inside another word", () => {
+    const root = repository();
+    writeFileSync(
+      path.join(root, "app.js"),
+      'const banner = "renew-checkout-banner";\n'
+    );
+    expect(switchReferences(SWITCH, { cwd: root })).toEqual([]);
+    writeFileSync(
+      path.join(root, "app.js"),
+      `settings["${SWITCH}.enabled"] = true;\n`
+    );
+    expect(switchReferences(SWITCH, { cwd: root })).toEqual(["app.js"]);
+    writeFileSync(path.join(root, "app.js"), `const v2 = "${SWITCH}-v2";\n`);
+    expect(switchReferences(SWITCH, { cwd: root })).toEqual(["app.js"]);
+  });
 
   it("finds a reference at the root when started from a subfolder", () => {
     const root = repository();

@@ -194,13 +194,35 @@ function decisionClassKey(value) {
  * @returns {"agent"|"human"} Who performs the turn-on.
  */
 export function turnOnOwner(config = {}) {
-  const reserved = Array.isArray(config?.humanGate?.humanOnly)
-    ? config.humanGate.humanOnly
-    : [];
+  const declared = config?.humanGate?.humanOnly;
+  // A project that wrote the class as a bare string meant to reserve the step.
+  // Reading that as "not reserved" would hand a production turn-on to the
+  // agent because of a typing mistake, so it is read as a one-item list here
+  // and reported by {@link turnOnProblems}.
+  const reserved = Array.isArray(declared)
+    ? declared
+    : typeof declared === "string"
+      ? [declared]
+      : [];
   const wanted = decisionClassKey(RELEASE_DECISION_CLASS);
   return reserved.some(entry => decisionClassKey(entry) === wanted)
     ? "human"
     : "agent";
+}
+
+/**
+ * Problems with how the project reserved decisions for a person, as far as
+ * they affect the production turn-on.
+ * @param {object} [config] - Effective project config.
+ * @returns {string[]} Problems, empty when `humanGate.humanOnly` is absent or a list.
+ */
+export function turnOnProblems(config = {}) {
+  const declared = config?.humanGate?.humanOnly;
+  return declared === undefined || Array.isArray(declared)
+    ? []
+    : [
+        `humanGate.humanOnly is ${JSON.stringify(declared)}, which is not a list; write it as a list such as ["${RELEASE_DECISION_CLASS}"]. Until then the production turn-on is treated as ${turnOnOwner(config) === "human" ? "reserved for a person" : "the agent's"}.`,
+      ];
 }
 
 /**
@@ -589,13 +611,38 @@ const git = (args, cwd) =>
   });
 
 /**
- * Tracked files that still reference a switch.
+ * Files that record or describe work without being able to switch anything:
+ * Lisa's committed evidence, and prose. The read-back that proves a switch is
+ * off in production is itself evidence that names the switch, and a changelog
+ * says what was removed; counting either would leave the removing item unable
+ * to finish. This is the definition of "source" for the search, the same for
+ * every switch, not a list anyone adds a failing file to.
+ * @param {string} path - Repository-relative path.
+ * @returns {boolean} True when the file can hold a reference that matters.
+ */
+const isSource = path =>
+  !path.startsWith("evidence/") &&
+  !/\.(?:md|mdx|markdown|rst|txt)$/i.test(path);
+
+/**
+ * An extended regular expression that matches the switch name as a whole
+ * token: not glued to a letter or digit on either side. `new-checkout` then
+ * matches `flags["new-checkout"]`, `new-checkout.enabled` and
+ * `new-checkout_v2`, and does not match the unrelated `renew-checkout-banner`.
+ * @param {string} switchName - A validated switch name.
+ * @returns {string} Pattern for `git grep -E`.
+ */
+const tokenPattern = switchName =>
+  `(^|[^A-Za-z0-9])${switchName.replaceAll(".", "[.]")}($|[^A-Za-z0-9])`;
+
+/**
+ * Tracked source files that still reference a switch.
  *
- * It searches `revision` when one is given (the production branch after a
+ * It searches `revision` when one is given (the production commit after a
  * merge) and the working tree otherwise. `git grep` exits 1 for "no match",
  * which is the answer and not an error; anything else is surfaced, because a
  * search that could not run must never read as "the switch is gone".
- * @param {string} switchName - Switch to look for, matched as fixed text.
+ * @param {string} switchName - Switch to look for, matched as a whole token.
  * @param {{cwd?: string, revision?: string, run?: Function}} [options] - Where to search; `run` is injectable for tests.
  * @returns {string[]} Repository-relative paths, sorted.
  */
@@ -614,11 +661,11 @@ export function switchReferences(
   const args = [
     "grep",
     "-l",
-    "-F",
+    "-E",
     "-z",
     "--full-name",
     "-e",
-    switchName,
+    tokenPattern(switchName),
     ...(revision ? [revision] : []),
     "--",
     ":/",
@@ -628,6 +675,7 @@ export function switchReferences(
       .split("\0")
       .filter(Boolean)
       .map(path => (revision ? path.slice(revision.length + 1) : path))
+      .filter(isSource)
       .sort((left, right) => left.localeCompare(right));
   } catch (error) {
     if (error?.status === 1) return [];
@@ -659,8 +707,8 @@ const branchName = value => {
  * `refs/heads/` prefix is ignored, and a project that configures no deploy
  * branches at all deploys production from its default branch
  * (`policy.repository.default_branch`, else `main`). `prod` and `production`
- * are the same environment, but only when exactly one of them is configured:
- * with both present the project means two things and neither is guessed.
+ * are the same environment; when a project configures both and they name
+ * different branches, it means two things and neither is guessed.
  * @param {object} [config] - Effective project config.
  * @returns {string|null} Branch name, or `null` when it cannot be read.
  */
@@ -676,10 +724,12 @@ export function productionBranch(config = {}) {
     .filter(([, branch]) => branch !== "");
   if (mapped.length === 0)
     return text(config?.policy?.repository?.default_branch) ?? "main";
-  const production = mapped.filter(([environment]) =>
-    ["production", "prod"].includes(environment)
+  const production = new Set(
+    mapped
+      .filter(([environment]) => ["production", "prod"].includes(environment))
+      .map(([, branch]) => branch)
   );
-  return production.length === 1 ? production[0][1] : null;
+  return production.size === 1 ? [...production][0] : null;
 }
 
 /**
@@ -696,7 +746,7 @@ export function productionNotice(config, base) {
   if (setting.liveUsers || branch === "" || branch !== productionBranch(config))
     return null;
   return [
-    `Notice: this project is marked as having no live users (release.liveUsers is false in .lisa.config.json), so Lisa's always-promotable rule is off here.`,
+    `Notice: this project is marked as having no live users (release.liveUsers is false in its Lisa configuration: .lisa.config.json, or the local override .lisa.config.local.json), so Lisa's always-promotable rule is off here.`,
     `This deployment from ${branch} went to production, and unfinished work can reach production without being switched off.`,
     "When the project launches, set release.liveUsers to true or remove the line. Nothing was blocked.",
   ].join("\n");

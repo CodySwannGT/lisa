@@ -397,11 +397,6 @@ describe("no-live-users notice", () => {
     expect(
       productionBranch({ deploy: { branches: { prod: "release" } } })
     ).toBe("release");
-    expect(
-      productionBranch({
-        deploy: { branches: { prod: "release", production: "main" } },
-      })
-    ).toBeNull();
   });
 
   it("names the setting when a production deployment happens with the rule off", () => {

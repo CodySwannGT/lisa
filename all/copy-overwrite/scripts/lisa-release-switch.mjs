@@ -44,6 +44,7 @@ import {
   resolveReleaseSetting,
   switchReferences,
   turnOnOwner,
+  turnOnProblems,
   upsertDeclaration,
 } from "./lib/release-switch.mjs";
 
@@ -88,6 +89,7 @@ const COMMANDS = {
       out: `${JSON.stringify(
         {
           ...setting,
+          problems: [...setting.problems, ...turnOnProblems(config)],
           productionBranch: productionBranch(config),
           // Who turns a finished feature on in production: the agent, unless
           // the project reserved that decision for a person.

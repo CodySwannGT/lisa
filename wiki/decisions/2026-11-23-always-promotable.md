@@ -33,6 +33,8 @@ Work arrives on a shared branch all day. Without this rule, promoting one enviro
 - A change that cannot be switched off must be safe on its own: database changes add before they remove, and API changes are additive.
 - A switch must be settable per environment, on outside production while off in production, so switched-off work can be verified. A project with one environment verifies it locally or for a test account only.
 - A switch is temporary. Removing it is part of finishing the feature, which is how this rule stays consistent with deleting replaced code and with carrying no technical debt.
+- Antigravity ships no rules tree, so there the rule travels in the skills that apply it (planning, building, verifying, and the ticket writers and validators), each of which states the one-question test in full.
+- The switch-removal check searches the production commit that the accepted completion proof names, as a whole token and in source only: evidence and prose files do not count as references.
 - The always-loaded rule tier was full, so the statement there is a short rendering and the full text is in the reference rule. Four existing bullets in the same file were tightened to make room; nothing they require changed.
 
 ## What was not built
