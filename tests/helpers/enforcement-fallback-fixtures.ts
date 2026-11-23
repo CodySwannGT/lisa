@@ -24,6 +24,9 @@ import path from "node:path";
 
 import { runBoundedBash } from "./bounded-bash.js";
 import { boundedSpawnSync } from "./io-latency-budget.js";
+import { cleanGitEnv } from "./test-utils.js";
+import { readTaskConfig } from "../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
+import { requirementsContext } from "../../plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs";
 import { inheritedEnvironment } from "../support/process-environment.js";
 
 /** Absolute, so the interpreter is never resolved through a writeable PATH. */
@@ -283,8 +286,84 @@ export function scratchTmpdir(): string {
   return scratchRoot();
 }
 
+/** A dispatch's stdin payload and the environment its guards run in. */
+interface Dispatch {
+  readonly payload: unknown;
+  readonly env: NodeJS.ProcessEnv;
+}
+
+/**
+ * Point a dispatch against this checkout at task data the fixture owns.
+ *
+ * The dispatcher resolves and attributes guard CODE from the project
+ * directory, and for the Lisa checkout that is the whole point of the case.
+ * Task DATA is a different matter. The readiness guard reads the bound work
+ * item from the payload's `cwd` and falls back to its own working directory,
+ * so a payload with no `cwd` is judged against whatever work item this
+ * workstation has claimed. With one claimed, readiness goes on to prove access
+ * by calling `gh api user` and `gh api repos/<org>/<repo>` with the
+ * developer's own credentials, from inside a unit test. With none claimed it
+ * refuses before any probe, which hides the leak on a clean checkout and in
+ * CI.
+ *
+ * So the payload names a nested repository of its own, holding complete and
+ * empty requirements. Three details are load-bearing:
+ *
+ *   - `git init` makes a repository boundary. Without one, config discovery
+ *     falls back to `CLAUDE_PROJECT_DIR` and adopts the real checkout again.
+ *   - Empty requirements, not an absent context, keep the readiness control on
+ *     and permitting, so the verdict still belongs to the guard under test.
+ *   - Hook-exported git variables are dropped. The unit suite runs inside the
+ *     pre-push hook, and an inherited `GIT_DIR` sends the binding lookup back
+ *     to the real repository whatever `cwd` says (measured: readiness then
+ *     refuses the fixture as stale against the real binding).
+ *
+ * A merge once kept the test that pins this and dropped the code, and the
+ * test went on passing wherever no work item was claimed. It now also asserts
+ * that readiness permitted, which fails on every checkout without this.
+ * @param payload The PreToolUse payload the case supplied.
+ * @param env The environment the dispatcher would otherwise inherit.
+ * @returns The payload scoped to an owned task root, and the scrubbed environment.
+ */
+function withOwnedTaskData(payload: unknown, env: NodeJS.ProcessEnv): Dispatch {
+  if (typeof payload !== "object" || payload === null) return { payload, env };
+  const scoped = cleanGitEnv(env);
+  const taskRoot = scratchRoot();
+  const initialized = boundedSpawnSync({
+    label: "isolated dispatcher task repository",
+    command: "git",
+    args: ["init", "-q"],
+    cwd: taskRoot,
+    env: scoped,
+  });
+  if (initialized.status !== 0)
+    throw new Error("Cannot initialize the dispatcher task fixture");
+  mkdirSync(path.join(taskRoot, ".lisa"));
+  writeFileSync(
+    path.join(taskRoot, ".gitignore"),
+    ".lisa/work-item-context.md\n"
+  );
+  writeFileSync(
+    path.join(taskRoot, ".lisa", "work-item-context.md"),
+    // Built with the dispatcher's own environment: the header pins a digest of
+    // the resolved config and surface, and both are read from it.
+    requirementsContext(
+      readTaskConfig(taskRoot, scoped),
+      "fixture/dispatcher#1",
+      "github",
+      [],
+      "# Isolated governance fixture\n"
+    ),
+    { mode: 0o600 }
+  );
+  return { payload: { ...payload, cwd: taskRoot }, env: scoped };
+}
+
 /**
  * Drive the dispatcher exactly as Claude Code does.
+ *
+ * A run against {@link REPO_ROOT} keeps this checkout's guards and swaps in
+ * task data of its own; see {@link withOwnedTaskData}.
  * @param payload The PreToolUse payload, serialized here.
  * @param projectDir Value of CLAUDE_PROJECT_DIR.
  * @param tmpDir TMPDIR for the session notice marker; a fresh one per call
@@ -307,19 +386,24 @@ export function runFallback(
   tmpDir: string = scratchRoot(),
   overrides: Readonly<Record<string, string>> = {}
 ): Run {
+  const inherited = {
+    ...inheritedEnvironment(),
+    CLAUDE_PROJECT_DIR: projectDir,
+    CLAUDE_CONFIG_DIR: NO_CONFIG,
+    TMPDIR: tmpDir,
+    ...overrides,
+  };
+  const dispatch =
+    projectDir === REPO_ROOT
+      ? withOwnedTaskData(payload, inherited)
+      : { payload, env: inherited };
   const result = boundedSpawnSync({
     label: "lisa-enforcement-fallback.sh",
     command: BASH,
     args: [FALLBACK],
-    input: JSON.stringify(payload),
+    input: JSON.stringify(dispatch.payload),
     cwd: projectDir,
-    env: {
-      ...inheritedEnvironment(),
-      CLAUDE_PROJECT_DIR: projectDir,
-      CLAUDE_CONFIG_DIR: NO_CONFIG,
-      TMPDIR: tmpDir,
-      ...overrides,
-    },
+    env: dispatch.env,
   });
 
   return {

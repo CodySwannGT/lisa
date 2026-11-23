@@ -1,10 +1,11 @@
 /** Diagnose the fixed attribution fixture's actual source/root route, not timing guesses. */
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, expect, it } from "vitest";
 import {
   bash,
   cleanupScratchRoots,
+  PLUGIN_HOOKS,
   REPO_ROOT,
   runFallback,
   scratchRoot,
@@ -40,5 +41,18 @@ it("keeps dispatcher attribution fixtures out of workstation task credentials an
     })
   );
   expect(r.status).toBe(2);
+  // Readiness ran on the fixture's own task data and permitted it, so the
+  // refusal belongs to the hook-bypass guard alone. An empty journal does not
+  // show that by itself: on a checkout with no claimed work item readiness
+  // refuses before it probes anything, and the journal is empty for a reason
+  // that has nothing to do with isolation. That is how the isolation was once
+  // dropped from the helper without this case going red anywhere but on a
+  // workstation with a claimed work item.
+  const readiness = path.join(PLUGIN_HOOKS, "task-readiness-guard.sh");
+  expect(existsSync(readiness)).toBe(true);
+  expect(r.output).toContain(
+    `Refused by ${path.join(PLUGIN_HOOKS, "block-no-verify.sh")}`
+  );
+  expect(r.output).not.toContain(`Refused by ${readiness}`);
   expect(attempts).toEqual([]);
 });
