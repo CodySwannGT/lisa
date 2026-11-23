@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [8.9.0](https://github.com/CodySwannGT/lisa/compare/v8.8.0...v8.9.0) (2026-11-23)
+
+
+### Features
+
+* **release:** keep every shared branch promotable as it stands ([04b3496](https://github.com/CodySwannGT/lisa/commit/04b3496a4ee5f3eb6544bfcb3c7430cc1fe68ce6)), closes [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188) [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188)
+
+
+### Bug Fixes
+
+* **release:** address the review of the always-promotable change ([52fdd16](https://github.com/CodySwannGT/lisa/commit/52fdd1613e861098c5931f3b059fe6c76748478e)), closes [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188) [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188)
+* **release:** close the gaps an independent review found ([9a96ab7](https://github.com/CodySwannGT/lisa/commit/9a96ab7418ef39563c88d9c9698eb9041d5bcd73)), closes [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188) [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188)
+* **release:** close the second round of review findings ([8cc25d0](https://github.com/CodySwannGT/lisa/commit/8cc25d09c594a200e6685c45b9f609000b66da39)), closes [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188) [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188)
+* **release:** count only source as a switch reference ([b5040a6](https://github.com/CodySwannGT/lisa/commit/b5040a693ecb153be8b52cd1f52b3e02117ec9a8)), closes [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188) [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188)
+* **release:** describe rejected values, and cover life after turn-on ([f63252d](https://github.com/CodySwannGT/lisa/commit/f63252da7f963c84ea9806ef692180fdb3ef2415)), closes [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188) [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188)
+* **release:** finish the revert wording and stop two display leaks ([5b76480](https://github.com/CodySwannGT/lisa/commit/5b7648091629c7aebf23d923821fe83ff48c2396)), closes [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188) [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188)
+* **release:** follow JIRA's block rule, and sort work by the question ([a1c096c](https://github.com/CodySwannGT/lisa/commit/a1c096ca7b0ce6264c6f77306288fc591d305969)), closes [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188) [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188)
+* **release:** keep an unclosed code marker from hiding the declaration ([83724a6](https://github.com/CodySwannGT/lisa/commit/83724a6f38df99988b5a2b2feb197241b7268ff4)), closes [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188) [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188)
+* **release:** keep stray text from switching the done gate off ([ba49047](https://github.com/CodySwannGT/lisa/commit/ba49047c678c254f4d7b2845aa1b45cb27cac0d6)), closes [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188) [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188)
+* **release:** keep the switch search from failing open ([fe01169](https://github.com/CodySwannGT/lisa/commit/fe0116974adfa6e9af72b4a85114b422ed6199f8)), closes [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188) [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188)
+* **release:** stop reading wiki code blocks, so the gate fails closed ([8524870](https://github.com/CodySwannGT/lisa/commit/85248701ec210a438b936f71e7f0461e0ae486b3)), closes [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188) [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188)
+* **tests:** make three push-gate tests pass on a working developer machine ([9012075](https://github.com/CodySwannGT/lisa/commit/90120758b7e6b05238bc446dbd6c59b3d0986e99)), closes [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188) [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188)
+* **tests:** name the ShellCheck stand-in as the data file it is ([05242c7](https://github.com/CodySwannGT/lisa/commit/05242c7bc89d8d33851f5a7c8e5b10cff5ce4660)), closes [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188) [CodySwannGT/lisa#5188](https://github.com/CodySwannGT/lisa/issues/5188)
+
 ## [8.8.0](https://github.com/CodySwannGT/lisa/compare/v8.7.1...v8.8.0) (2026-11-22)
 
 
