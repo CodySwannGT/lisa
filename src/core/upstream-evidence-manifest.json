@@ -12423,7 +12423,7 @@
     "tests/fixtures/k6-installation/keyring.py": true,
     "tests/fixtures/k6-installation/loopback.js": true,
     "tests/fixtures/k6-installation/metrics.mjs": true,
-    "tests/fixtures/k6-installation/os-release.shellcheck": true,
+    "tests/fixtures/k6-installation/os-release.txt": true,
     "tests/fixtures/k6-installation/prepare.mjs": true,
     "tests/fixtures/k6-installation/prerequisites.sh": true,
     "tests/fixtures/k6-installation/qualification-oracles.json": true,
