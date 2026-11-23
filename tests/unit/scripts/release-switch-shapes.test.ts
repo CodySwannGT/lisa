@@ -520,6 +520,8 @@ describe("settings a person might really write", () => {
     expect(problems).toContain("release.switch.guide is an object");
     expect(shown("no")).toBe('"no"');
     expect(shown(7)).toBe("7");
+    // A long value is not a word or a yes/no; only its start is shown.
+    expect(shown("x".repeat(200))).toBe(`"${"x".repeat(39)}… (202 characters)`);
   });
 
   it("names an unknown key under release.switch", () => {

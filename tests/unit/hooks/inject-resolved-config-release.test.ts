@@ -149,13 +149,47 @@ describe("inject-resolved-config: release setting", () => {
       tracker: "github",
       release: {
         liveUsers: { password: secret },
-        switch: { mechanism: [secret], guide: { token: secret } },
+        other: { zzz: secret },
+        switch: {
+          mechanism: [secret],
+          guide: { token: secret },
+          Mechanism: [secret],
+        },
       },
+      humanGate: { humanOnly: { k: secret } },
     });
     const context = contextFor(root);
 
     expect(context).not.toContain(secret);
+    expect(context).toContain(
+      "humanGate.humanOnly: INVALID — this project declares an object, which is not a list of decision classes."
+    );
+    expect(context).toContain(
+      "release: keys Lisa does not read (values not shown): release.other, release.switch.Mechanism"
+    );
     expect(context).toContain("this project declares an object");
     expect(context).toContain("this project declares a list");
+  });
+
+  it("still shows a valid human-only list", () => {
+    const root = project();
+    writeJson(root, MAIN_CONFIG, {
+      tracker: "github",
+      humanGate: { humanOnly: ["feature-release"] },
+    });
+
+    expect(contextFor(root)).toContain("humanOnly=[feature-release]");
+  });
+
+  it("shows only the start of a long rejected value", () => {
+    const root = project();
+    writeJson(root, MAIN_CONFIG, {
+      tracker: "github",
+      release: { liveUsers: "x".repeat(200) },
+    });
+    const context = contextFor(root);
+
+    expect(context).not.toContain("x".repeat(60));
+    expect(context).toContain("(202 characters)");
   });
 });

@@ -35,7 +35,7 @@ export declare const LIVE_DECLARATION: string;
 /** A switch-removal owner written as the item itself. */
 export declare const THIS_ITEM: string;
 /** A rejected setting value as it may safely be shown. */
-export declare const shown: (value: unknown) => string;
+export function shown(value: unknown): string;
 /** Git's global option that ignores local replacement refs. */
 export declare const NO_REPLACE: string;
 /** Input this module cannot act on. */

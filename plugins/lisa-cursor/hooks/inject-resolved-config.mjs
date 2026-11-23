@@ -842,12 +842,25 @@ function invalidModeLine(config, owner) {
 function renderHumanGate(config, out) {
   const block = config.humanGate;
   if (!isObject(block)) return;
-  const { mode: _mode, ...rest } = block;
+  const { mode: _mode, humanOnly, ...rest } = block;
   const resolution = modeResolution(config);
   if (resolution.declared && resolution.rejected.length === 0) {
     out.push(`${HUMAN_GATE_MODE_PATH}: ${resolution.mode}`);
   }
-  renderSubtree(rest, "humanGate", out);
+  // `humanOnly` is a list of decision classes. Anything else names none, and
+  // is stated by kind only: its contents are not ours to print into a session.
+  if (humanOnly !== undefined && !Array.isArray(humanOnly)) {
+    out.push(
+      `humanGate.humanOnly: INVALID — this project declares ${shownRejected(humanOnly)}, which is not a list of decision classes.`
+    );
+    renderSubtree(rest, "humanGate", out);
+    return;
+  }
+  renderSubtree(
+    humanOnly === undefined ? rest : { ...rest, humanOnly },
+    "humanGate",
+    out
+  );
 }
 
 /**
@@ -888,8 +901,17 @@ function invalidLowConfidenceLine(config, fallback, owner) {
  */
 function shownRejected(value) {
   if (Array.isArray(value)) return "a list";
-  return isObject(value) ? "an object" : JSON.stringify(value);
+  if (isObject(value)) return "an object";
+  const text = JSON.stringify(value);
+  // A word or a yes/no is short. Anything longer is not what belonged here,
+  // so only its start is shown.
+  return text.length > REJECTED_VALUE_LIMIT
+    ? `${text.slice(0, REJECTED_VALUE_LIMIT)}… (${text.length} characters)`
+    : text;
 }
+
+/** Longest rejected value rendered whole. */
+const REJECTED_VALUE_LIMIT = 40;
 
 /**
  * Whether a present `release.liveUsers` is unusable. Only a boolean says
@@ -990,6 +1012,27 @@ function invalidSwitchGuideLine(config) {
 }
 
 /**
+ * Dotted names of the keys under `release` and `release.switch` that Lisa does
+ * not read, the misspelt live-users key excluded (its own INVALID line names
+ * it).
+ * @param {unknown} release The resolved `release` value.
+ * @returns {string[]} Key paths, in declaration order.
+ */
+function unreadReleaseKeys(release) {
+  if (!isObject(release)) return [];
+  const misspelt = misspeltLiveUsersKey(release);
+  const block = isObject(release.switch) ? release.switch : {};
+  return [
+    ...Object.keys(release)
+      .filter(key => !["liveUsers", "switch", misspelt].includes(key))
+      .map(key => `release.${key}`),
+    ...Object.keys(block)
+      .filter(key => !["mechanism", "guide"].includes(key))
+      .map(key => `release.switch.${key}`),
+  ].filter(path => !path.split(".").at(-1).startsWith("_"));
+}
+
+/**
  * The `release` block with every unusable value removed, so the subtree
  * renderer never prints a rejected value as if it were in force. Each removed
  * value is stated once, by its INVALID gap line.
@@ -998,26 +1041,21 @@ function invalidSwitchGuideLine(config) {
  */
 function usableRelease(release) {
   if (!isObject(release)) return null;
-  const { liveUsers, switch: block, ...others } = release;
-  const misspelt = misspeltLiveUsersKey(release);
-  const rest = Object.fromEntries(
-    Object.entries(others).filter(([key]) => key !== misspelt)
-  );
+  const { liveUsers, switch: block } = release;
   const text = value => typeof value === "string" && value.trim() !== "";
+  // Only the keys Lisa reads are rendered with their values. A key it does not
+  // read (a misspelling, or anything else) would otherwise be printed in full
+  // and look like a setting in force; those are named by key in one line.
   const usableSwitch = isObject(block)
     ? Object.fromEntries(
-        Object.entries(block).filter(
-          ([key, value]) =>
-            !(["mechanism", "guide"].includes(key) && !text(value))
-        )
+        ["mechanism", "guide"]
+          .filter(key => text(block[key]))
+          .map(key => [key, block[key]])
       )
-    : undefined;
+    : {};
   return {
-    ...rest,
     ...(typeof liveUsers === "boolean" ? { liveUsers } : {}),
-    ...(usableSwitch && Object.keys(usableSwitch).length > 0
-      ? { switch: usableSwitch }
-      : {}),
+    ...(Object.keys(usableSwitch).length > 0 ? { switch: usableSwitch } : {}),
   };
 }
 
@@ -1175,6 +1213,12 @@ function renderBody(config) {
       // if they were in force.
       const usable = usableRelease(config.release);
       if (usable !== null) renderSubtree(usable, key, lines);
+      const unread = unreadReleaseKeys(config.release);
+      if (unread.length > 0) {
+        lines.push(
+          `release: keys Lisa does not read (values not shown): ${unread.join(", ")}`
+        );
+      }
       continue;
     }
     if (key === "learnings" && lowConfidenceInvalid(config.learnings)) {

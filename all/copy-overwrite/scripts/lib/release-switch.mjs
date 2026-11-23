@@ -131,12 +131,19 @@ const isObject = value =>
  * @param {unknown} value - The value a project declared.
  * @returns {string} Text safe to show.
  */
-export const shown = value =>
-  Array.isArray(value)
-    ? "a list"
-    : value !== null && typeof value === "object"
-      ? "an object"
-      : JSON.stringify(value);
+export function shown(value) {
+  if (Array.isArray(value)) return "a list";
+  if (value !== null && typeof value === "object") return "an object";
+  const rendered = JSON.stringify(value);
+  // A word or a yes/no is short. Anything longer is not what belonged in the
+  // setting, so only its start is shown.
+  return rendered.length > SHOWN_LIMIT
+    ? `${rendered.slice(0, SHOWN_LIMIT)}… (${rendered.length} characters)`
+    : rendered;
+}
+
+/** Longest rejected value shown whole. */
+const SHOWN_LIMIT = 40;
 
 const text = value =>
   typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
