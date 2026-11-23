@@ -76,6 +76,18 @@ describe("always-promotable doctor check", () => {
     expect(check.detail).toContain("release.liveUsers");
     expect(check.detail).toContain('"no"');
     expect(check.detail).toContain("treated as true");
+    expect(check.detail).toContain("In force:");
+  });
+
+  it("keeps saying the rule is off when another release value is invalid", async () => {
+    const check = checkReleaseSetting(
+      await projectFixture(
+        '{"release":{"liveUsers":false,"switch":{"mechanism":5}}}\n'
+      )
+    );
+    expect(check.status).toBe("fail");
+    expect(check.detail).toContain("release.switch.mechanism");
+    expect(check.detail).toContain("the always-promotable rule is off");
   });
 
   it("reads the local override", async () => {

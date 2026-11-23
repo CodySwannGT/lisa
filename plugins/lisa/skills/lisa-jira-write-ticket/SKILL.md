@@ -193,8 +193,10 @@ h2. Release Switch
  and never get a switch. If yes (a feature that lands across several merges, or
  new behavior that merges before its verification has passed), it is switched
  off: name the switch, and name the work item that removes it. Every item of a
- multi-item feature names the same switch and the same removing item. Never
- ask a person which form applies.]
+ multi-item feature names the same switch and the same removing item. Pick a
+ switch name that appears nowhere else in the repository and is not the start
+ of another switch's name: the done gate searches tracked files for it as
+ plain text. Never ask a person which form applies.]
 
 h2. Sign-in Required
 [Include this section ONLY if the work touches authenticated surfaces.

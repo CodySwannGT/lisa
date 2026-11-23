@@ -899,8 +899,70 @@ function liveUsersInvalid(release) {
  * @returns {string|null} The line, or null when the value is absent or valid.
  */
 function invalidLiveUsersLine(config, owner) {
-  if (!liveUsersInvalid(config.release)) return null;
-  return `${LIVE_USERS_PATH}: ${DEFAULT_LIVE_USERS}   [INVALID — this project declares ${JSON.stringify(config.release.liveUsers)}, which is not true or false; treated as ${DEFAULT_LIVE_USERS} (the project has live users); owner: ${owner}]`;
+  const release = config.release;
+  // A `release` that is not an object says nothing, so nothing under it is in
+  // force. Printing it as `release: false` would read as "the rule is off".
+  if (release !== undefined && !isObject(release)) {
+    return `${LIVE_USERS_PATH}: ${DEFAULT_LIVE_USERS}   [INVALID — this project declares release as ${JSON.stringify(release)}, which is not an object; treated as ${DEFAULT_LIVE_USERS} (the project has live users); owner: ${owner}]`;
+  }
+  if (!liveUsersInvalid(release)) return null;
+  return `${LIVE_USERS_PATH}: ${DEFAULT_LIVE_USERS}   [INVALID — this project declares ${JSON.stringify(release.liveUsers)}, which is not true or false; treated as ${DEFAULT_LIVE_USERS} (the project has live users); owner: ${owner}]`;
+}
+
+/**
+ * Whether the declared switch mechanism is unusable: `release.switch` that is
+ * not an object, or a mechanism that is not a non-empty string.
+ * @param {unknown} release The resolved `release` value.
+ * @returns {boolean} True when a mechanism was declared and cannot be used.
+ */
+function switchMechanismInvalid(release) {
+  if (!isObject(release) || !("switch" in release)) return false;
+  const block = release.switch;
+  if (!isObject(block)) return true;
+  return (
+    "mechanism" in block &&
+    !(typeof block.mechanism === "string" && block.mechanism.trim() !== "")
+  );
+}
+
+/**
+ * The INVALID line for an unusable `release.switch.mechanism`.
+ * @param {object} config Resolved config.
+ * @param {string} owner Module that owns the setting.
+ * @returns {string|null} The line, or null when the value is absent or valid.
+ */
+function invalidSwitchMechanismLine(config, owner) {
+  if (!switchMechanismInvalid(config.release)) return null;
+  const block = config.release.switch;
+  const declared = isObject(block) ? block.mechanism : block;
+  const subject = isObject(block) ? "" : "release.switch as ";
+  return `${SWITCH_MECHANISM_PATH}: ${DEFAULT_SWITCH_MECHANISM}   [INVALID — this project declares ${subject}${JSON.stringify(declared)}, which is not ${isObject(block) ? "a non-empty string" : "an object"}; treated as ${DEFAULT_SWITCH_MECHANISM}; owner: ${owner}]`;
+}
+
+/**
+ * The `release` block with every unusable value removed, so the subtree
+ * renderer never prints a rejected value as if it were in force. Each removed
+ * value is stated once, by its INVALID gap line.
+ * @param {unknown} release The resolved `release` value.
+ * @returns {object|null} What may be rendered, or null when nothing may.
+ */
+function usableRelease(release) {
+  if (!isObject(release)) return null;
+  const { liveUsers, switch: block, ...rest } = release;
+  const usableSwitch = isObject(block)
+    ? Object.fromEntries(
+        Object.entries(block).filter(
+          ([key]) => !(key === "mechanism" && switchMechanismInvalid(release))
+        )
+      )
+    : undefined;
+  return {
+    ...rest,
+    ...(typeof liveUsers === "boolean" ? { liveUsers } : {}),
+    ...(usableSwitch && Object.keys(usableSwitch).length > 0
+      ? { switch: usableSwitch }
+      : {}),
+  };
 }
 
 /**
@@ -946,7 +1008,9 @@ function renderDefaults(config) {
             ? invalidLowConfidenceLine(config, strict ?? value, owner)
             : path === LIVE_USERS_PATH
               ? invalidLiveUsersLine(config, owner)
-              : null;
+              : path === SWITCH_MECHANISM_PATH
+                ? invalidSwitchMechanismLine(config, owner)
+                : null;
     if (invalid !== null) {
       lines.push(invalid);
       continue;
@@ -1048,10 +1112,11 @@ function renderBody(config) {
       renderHumanGate(config, lines);
       continue;
     }
-    if (key === "release" && liveUsersInvalid(config.release)) {
-      // Stated once, by the INVALID gap line; never as if it were in force.
-      const { liveUsers: _invalid, ...rest } = config.release;
-      renderSubtree(rest, key, lines);
+    if (key === "release") {
+      // Invalid values are stated once, by their INVALID gap lines; never as
+      // if they were in force.
+      const usable = usableRelease(config.release);
+      if (usable !== null) renderSubtree(usable, key, lines);
       continue;
     }
     if (key === "learnings" && lowConfidenceInvalid(config.learnings)) {

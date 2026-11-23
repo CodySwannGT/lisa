@@ -20,7 +20,10 @@ import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import {
   cleanupFixtures,
   cleanupTemplates,
+  commit,
+  createFixture,
   git,
+  githubConfig,
 } from "../../support/work-item-cli.js";
 import {
   attachRecord,
@@ -52,11 +55,26 @@ const complete = (fixture: ReturnType<typeof proofFixture>): string =>
 /**
  * A fixture whose item carries a `## Release Switch` declaration, with an
  * accepted proof made for that exact body.
+ *
+ * The gate searches the production commit the proof names, so the source file
+ * is committed on `main` BEFORE the fixture builds its pull request and merge:
+ * the proof's production snapshot then contains exactly this file.
  * @param declaration - The section's one line.
+ * @param source - Contents of the tracked source file in that snapshot.
  * @returns Fixture with the accepted proof attached.
  */
-function declared(declaration: string): ReturnType<typeof proofFixture> {
-  const fixture = proofFixture();
+function declared(
+  declaration: string,
+  source: string
+): ReturnType<typeof proofFixture> {
+  const base = createFixture({
+    ...githubConfig("full", "code"),
+    deploy: { branches: { production: "main" } },
+  });
+  writeFileSync(path.join(base.root, SOURCE_FILE), source);
+  git(base.root, ["add", SOURCE_FILE], base.env);
+  commit(base, "chore: fixture source");
+  const fixture = proofFixture(PROOF_REF, base);
   const body = fixture.body.replace(
     "## Acceptance Criteria",
     `## Release Switch\n${declaration}\n\n## Acceptance Criteria`
@@ -90,53 +108,70 @@ function declared(declaration: string): ReturnType<typeof proofFixture> {
   return fixture;
 }
 
-/**
- * Track a source file in the fixture repository.
- * @param fixture - Fixture to edit.
- * @param source - File contents.
- */
-function track(fixture: ReturnType<typeof proofFixture>, source: string): void {
-  writeFileSync(path.join(fixture.root, SOURCE_FILE), source);
-  git(fixture.root, ["add", SOURCE_FILE], fixture.env);
-}
+const REFERENCED = `if (flags["${SWITCH}"]) showNewCheckout();\n`;
+const REMOVED = "showNewCheckout();\n";
+const OWN = `Switched off — ${SWITCH}; removed by this item`;
 
 describe("switch-removal done gate in completion", () => {
   it("refuses, as pending, an item whose switch is still referenced, and names the files", () => {
-    const fixture = declared(`Switched off — ${SWITCH}; removed by this item`);
-    track(fixture, `if (flags["${SWITCH}"]) showNewCheckout();\n`);
-    const output = complete(fixture);
+    const output = complete(declared(OWN, REFERENCED));
     expect(output).toContain(PENDING);
     expect(output).toContain(`release switch "${SWITCH}"`);
     expect(output).toContain(SOURCE_FILE);
+    expect(output).toContain("production commit");
   });
 
   it("finishes the same item once nothing references the switch", () => {
-    const fixture = declared(`Switched off — ${SWITCH}; removed by this item`);
-    track(fixture, "showNewCheckout();\n");
-    expect(complete(fixture)).toContain(COMPLETED);
+    expect(complete(declared(OWN, REMOVED))).toContain(COMPLETED);
   });
 
-  it("counts an item that names itself by reference as the remover", () => {
-    const fixture = declared(`Switched off — ${SWITCH}; removed by #42`);
-    track(fixture, `if (flags["${SWITCH}"]) showNewCheckout();\n`);
-    expect(complete(fixture)).toContain(PENDING);
+  it("judges the production commit the proof names, not the checkout it runs from", () => {
+    // Removing the reference only in the working tree does not finish the
+    // item: what is in production still carries the switch.
+    const stillShipped = declared(OWN, REFERENCED);
+    writeFileSync(path.join(stillShipped.root, SOURCE_FILE), REMOVED);
+    expect(complete(stillShipped)).toContain(PENDING);
+    // And a stray reference that exists only in the working tree does not
+    // hold an item whose production commit is clean.
+    const clean = declared(OWN, REMOVED);
+    writeFileSync(path.join(clean.root, SOURCE_FILE), REFERENCED);
+    git(clean.root, ["add", SOURCE_FILE], clean.env);
+    expect(complete(clean)).toContain(COMPLETED);
+  });
+
+  it("counts an item that names itself by reference as the remover, whatever the case", () => {
+    expect(
+      complete(declared(`Switched off — ${SWITCH}; removed by #42`, REFERENCED))
+    ).toContain(PENDING);
+    expect(
+      complete(
+        declared(
+          `Switched off — ${SWITCH}; removed by ACME/Code#42`,
+          REFERENCED
+        )
+      )
+    ).toContain(PENDING);
   });
 
   it("does not gate an item whose switch another item removes", () => {
-    const fixture = declared(`Switched off — ${SWITCH}; removed by #43`);
-    track(fixture, `if (flags["${SWITCH}"]) showNewCheckout();\n`);
-    expect(complete(fixture)).toContain(COMPLETED);
+    expect(
+      complete(declared(`Switched off — ${SWITCH}; removed by #43`, REFERENCED))
+    ).toContain(COMPLETED);
   });
 
   it("does not gate an item declared live", () => {
-    const fixture = declared("Live — complete and proven at merge");
-    track(fixture, `const unrelated = "${SWITCH}";\n`);
-    expect(complete(fixture)).toContain(COMPLETED);
+    expect(
+      complete(
+        declared(
+          "Live — complete and proven at merge",
+          `const unrelated = "${SWITCH}";\n`
+        )
+      )
+    ).toContain(COMPLETED);
   });
 
   it("does not gate a project marked as having no live users", () => {
-    const fixture = declared(`Switched off — ${SWITCH}; removed by this item`);
-    track(fixture, `if (flags["${SWITCH}"]) showNewCheckout();\n`);
+    const fixture = declared(OWN, REFERENCED);
     const configFile = path.join(fixture.root, ".lisa.config.json");
     const config = JSON.parse(readFileSync(configFile, "utf8"));
     writeFileSync(

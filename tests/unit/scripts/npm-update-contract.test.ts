@@ -1105,8 +1105,10 @@ describe("complete authenticated helper closure", () => {
     // modules completion now imports for its done gate (CodySwannGT/lisa#4956),
     // plus tracker-row-fold, the stored-row comparison key the usage and
     // estimate projections share (CodySwannGT/lisa#4956), and cache-seed,
-    // prepare's explicit recorded-registry option (CodySwannGT/lisa#5092).
-    expect(members.length).toBe(149);
+    // prepare's explicit recorded-registry option (CodySwannGT/lisa#5092),
+    // and release-switch, which completion imports for its switch-removal
+    // done gate (CodySwannGT/lisa#5188).
+    expect(members.length).toBe(150);
     const completionMembers = [
       "lib/completion-authorization.mjs",
       "lib/completion-proof-adapters.mjs",

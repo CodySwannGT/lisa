@@ -41,24 +41,30 @@ function estimateSettings(config) {
  * Where a release switch is still referenced, for the switch-removal done gate
  * (CodySwannGT/lisa#5188).
  *
- * The production branch's remote-tracking ref is searched when this checkout
- * has one, because that is what the merged pull request actually changed; the
- * checkout a finish runs from is often a feature branch that still carries the
- * switch, or is behind. Without that ref the working tree is the only tree
- * there is. A search that cannot run is a read error, never "no references".
+ * It searches the production commit the accepted proof names, never a branch
+ * or the working tree. A finish often runs from a checkout that is behind, or
+ * on a feature branch that still carries the switch; a local `origin/<branch>`
+ * that predates the merge would answer "no references" for a switch that is in
+ * production. The proof's snapshot is the one tree the verification actually
+ * covered. When this checkout does not have that commit, or the search cannot
+ * run, that is a read error, never "no references".
  */
-function trackedSwitchReferences(run, branch, switchName) {
-  const remote = `refs/remotes/origin/${branch}`;
-  const revision =
-    run("git", ["rev-parse", "-q", "--verify", remote], { allowFailure: true })
-      .status === 0
-      ? remote
-      : undefined;
+function trackedSwitchReferences(run, switchName, snapshot) {
+  const known =
+    typeof snapshot === "string" &&
+    run("git", ["cat-file", "-e", `${snapshot}^{commit}`], {
+      allowFailure: true,
+    }).status === 0;
+  if (!known)
+    throw new CompletionProofError(
+      READ_ERROR,
+      `This checkout does not have the production commit the accepted proof names (${String(snapshot).slice(0, 12)}), so it cannot be searched for release switch ${JSON.stringify(switchName)}. Run git fetch origin, then finish this item again.`
+    );
   try {
     return {
-      searched: revision ? `origin/${branch}` : "the working tree",
+      searched: `production commit ${snapshot.slice(0, 12)}`,
       files: switchReferences(switchName, {
-        revision,
+        revision: snapshot,
         run: args => {
           const result = run("git", args, {
             allowFailure: true,
@@ -232,8 +238,8 @@ export function completionContext(options) {
     policy: options.config.verification?.completion ?? {},
     estimate: estimateSettings(options.config),
     release: resolveReleaseSetting(options.config),
-    switchReferences: switchName =>
-      trackedSwitchReferences(run, branch, switchName),
+    switchReferences: (switchName, snapshot) =>
+      trackedSwitchReferences(run, switchName, snapshot),
     run,
     declares,
     readSubject,

@@ -5,12 +5,14 @@
  * the no-live-users notice.
  * @module tests/unit/scripts/lisa-release-switch-cli
  */
-import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { cleanGitEnv, GIT_BIN } from "../../support/git-executable.js";
 
 import { runCli } from "../../../all/copy-overwrite/scripts/lisa-release-switch.mjs";
 
@@ -202,7 +204,13 @@ describe("lisa-release-switch references", () => {
    */
   function commit(root: string, source: string): void {
     const git = (...args: string[]): string =>
-      execFileSync("git", args, { cwd: root, encoding: "utf8" });
+      boundedExecFileSync({
+        label: `git ${args[0] ?? ""} (release-switch CLI fixture)`,
+        command: GIT_BIN,
+        args,
+        cwd: root,
+        env: cleanGitEnv(),
+      });
     git("init", "--quiet", "--initial-branch=main");
     git("config", "user.email", "test@example.invalid");
     git("config", "user.name", "Test");

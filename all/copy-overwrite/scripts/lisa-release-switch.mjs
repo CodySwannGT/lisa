@@ -35,7 +35,6 @@ import { readFileSync } from "node:fs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { CompletionProofError } from "./lib/completion-proof-errors.mjs";
 import {
-  RELEASE_DECISION_CLASS,
   ReleaseSwitchError,
   checkDeclaration,
   productionBranch,
@@ -44,6 +43,7 @@ import {
   renderDeclaration,
   resolveReleaseSetting,
   switchReferences,
+  turnOnOwner,
   upsertDeclaration,
 } from "./lib/release-switch.mjs";
 
@@ -81,9 +81,6 @@ const readBody = flags =>
     ? readFileSync(0, "utf8")
     : readFileSync(flags["body-file"], "utf8");
 
-const humanOnly = config =>
-  Array.isArray(config?.humanGate?.humanOnly) ? config.humanGate.humanOnly : [];
-
 const COMMANDS = {
   config: (_flags, config) => {
     const setting = resolveReleaseSetting(config);
@@ -94,9 +91,7 @@ const COMMANDS = {
           productionBranch: productionBranch(config),
           // Who turns a finished feature on in production: the agent, unless
           // the project reserved that decision for a person.
-          turnOn: humanOnly(config).includes(RELEASE_DECISION_CLASS)
-            ? "human"
-            : "agent",
+          turnOn: turnOnOwner(config),
         },
         null,
         2
@@ -175,18 +170,23 @@ export function runCli(argv = process.argv.slice(2), io = process) {
     io.stdout.write(out);
     return code;
   } catch (error) {
+    // The notice must never turn a deployment report into a failure, whatever
+    // goes wrong. For every other command, a file that cannot be read (missing,
+    // a directory, no permission) is a usage error like any other: exit 2, and
+    // never the exit 1 that means "the gate failed".
     if (
+      command !== "notice" &&
       !(
         error instanceof ReleaseSwitchError ||
         error instanceof CompletionProofError ||
         error instanceof SyntaxError ||
-        error?.code === "ENOENT"
+        typeof error?.code === "string"
       )
     )
       throw error;
-    io.stderr.write(`lisa-release-switch: ${error.message}\n`);
-    // The notice must never turn a deployment report into a failure, whatever
-    // is wrong with the project's config.
+    io.stderr.write(
+      `lisa-release-switch: ${error instanceof Error ? error.message : String(error)}\n`
+    );
     return command === "notice" ? 0 : 2;
   }
 }

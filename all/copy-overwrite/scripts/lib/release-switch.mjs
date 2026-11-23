@@ -31,7 +31,10 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { markdownSection } from "./completion-proof-markdown.mjs";
+import {
+  markdownSection,
+  topLevelLines,
+} from "./completion-proof-markdown.mjs";
 
 /** Heading of the work-item section that carries the declaration. */
 export const RELEASE_SWITCH_HEADING = "Release Switch";
@@ -52,10 +55,57 @@ export const THIS_ITEM = "this item";
 export class ReleaseSwitchError extends Error {}
 
 const SWITCH_NAME = /^[A-Za-z0-9][A-Za-z0-9._:/-]{2,63}$/;
-const WORK_ITEM_REF =
-  /^(?:[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+#[1-9]\d*|#[1-9]\d*|[A-Z][A-Z0-9]+-[1-9]\d*)$/;
-const LIVE = /^Live\s*[—-]\s*complete and proven at merge\.?$/i;
-const SWITCHED_OFF = /^Switched off\s*[—-]\s*(.*)$/i;
+// One small pattern per tracker shape (owner/repo#12, #12, ENG-12) instead of
+// one alternation: each stays linear to match and readable on its own.
+const WORK_ITEM_REF_FORMS = [
+  /^[\w.-]+\/[\w.-]+#[1-9]\d*$/,
+  /^#[1-9]\d*$/,
+  /^[A-Z][A-Z0-9]+-[1-9]\d*$/,
+];
+const isWorkItemRef = value =>
+  WORK_ITEM_REF_FORMS.some(form => form.test(value));
+// The rendered form uses an em dash. An en dash, a hyphen and a double hyphen
+// are read as the same thing, because that is what people and editors type.
+const LIVE = /^Live\s*(?:--|[—–-])\s*complete and proven at merge\.?$/i;
+const SWITCHED_OFF_LABEL = "switched off";
+const REMOVED_BY_LABEL = "removed by";
+const DASHES = ["--", "—", "–", "-"];
+
+/**
+ * The text after `<label> —`, read with string operations so a long or odd
+ * line cannot make a pattern backtrack.
+ * @param {string} line - One declaration line.
+ * @param {string} label - Lower-case label the line must start with.
+ * @returns {string|null} Trimmed remainder, or `null` when the line has another shape.
+ */
+function afterLabel(line, label) {
+  if (!line.toLowerCase().startsWith(label)) return null;
+  const rest = line.slice(label.length).trimStart();
+  const dash = DASHES.find(candidate => rest.startsWith(candidate));
+  return dash === undefined ? null : rest.slice(dash.length).trim();
+}
+
+// JIRA descriptions are written in wiki markup, where a section heading is
+// `h2. Name` and not `## Name`. Both spellings are the same heading here, so a
+// ticket in the JIRA writer's own shape is read like any other.
+const WIKI_HEADING = /^h([1-6])\.[ \t]+/;
+
+/**
+ * A body with wiki-markup headings rewritten as markdown ones, line for line.
+ * @param {string} body - Work-item body.
+ * @returns {string} The same lines, with `hN. ` headings as `#` headings.
+ */
+function markdownHeadings(body) {
+  return body
+    .split("\n")
+    .map(line => {
+      const wiki = WIKI_HEADING.exec(line);
+      return wiki
+        ? `${"#".repeat(Number(wiki[1]))} ${line.slice(wiki[0].length)}`
+        : line;
+    })
+    .join("\n");
+}
 // A `None —` declaration is how `## Target Backend Environment` says the item
 // changes no runtime behavior (or is a container). The em dash is the machine
 // discriminator the validators already use (gate S8).
@@ -79,7 +129,11 @@ const readJson = path =>
  */
 export function readProjectConfig(cwd) {
   const merge = (base, override) => {
-    if (!isObject(base) || !isObject(override)) return override ?? base;
+    // Only an ABSENT local key falls back. A local `null` is a declared value
+    // (an invalid one), read the same way the session-start hook and the
+    // completion checker read it.
+    if (override === undefined) return base;
+    if (!isObject(base) || !isObject(override)) return override;
     const keys = new Set([...Object.keys(base), ...Object.keys(override)]);
     return Object.fromEntries(
       [...keys].map(key => [
@@ -92,6 +146,61 @@ export function readProjectConfig(cwd) {
     readJson(join(cwd, ".lisa.config.json")),
     readJson(join(cwd, ".lisa.config.local.json"))
   );
+}
+
+/**
+ * Problems for keys a settings block carries that Lisa does not read.
+ * @param {object} block - The settings block.
+ * @param {string[]} known - Keys Lisa reads.
+ * @param {string} path - Dotted path of the block, for the message.
+ * @returns {string[]} One problem per unknown key.
+ */
+function unknownKeys(block, known, path) {
+  return Object.keys(block)
+    .filter(key => !known.includes(key) && !key.startsWith("_"))
+    .map(key => {
+      const near = known.find(
+        candidate => candidate.toLowerCase() === key.toLowerCase()
+      );
+      return `${path}.${key} is not a setting Lisa reads${near ? `; did you mean ${path}.${near}?` : `; the settings are ${known.map(name => `${path}.${name}`).join(" and ")}.`}`;
+    });
+}
+
+/**
+ * The comparable form of a decision class: lower case, with hyphens,
+ * underscores and slashes read as spaces. It mirrors `normalizeGateText` in
+ * the plugin's `intake-blocker-reprobe.mjs` (not importable from a shipped
+ * script), which is what decides whether a hold naming the class is valid; a
+ * test pins the two together. Without it `"Feature Release"` would hold a
+ * ticket for a person while this module told the agent to go ahead.
+ * @param {unknown} value - A decision class as a project wrote it.
+ * @returns {string} Normalized text.
+ */
+function decisionClassKey(value) {
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/[-_/]+/g, " ")
+    .replace(/[^a-z0-9' ]+/g, " ")
+    .replace(/'/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Who turns a finished, switched-off feature on in production: the agent,
+ * unless the project reserved that decision for a person by listing
+ * `feature-release` in `humanGate.humanOnly`.
+ * @param {object} [config] - Effective project config.
+ * @returns {"agent"|"human"} Who performs the turn-on.
+ */
+export function turnOnOwner(config = {}) {
+  const reserved = Array.isArray(config?.humanGate?.humanOnly)
+    ? config.humanGate.humanOnly
+    : [];
+  const wanted = decisionClassKey(RELEASE_DECISION_CLASS);
+  return reserved.some(entry => decisionClassKey(entry) === wanted)
+    ? "human"
+    : "agent";
 }
 
 /**
@@ -133,6 +242,10 @@ export function resolveReleaseSetting(config = {}) {
           ]
         : []
     ),
+    // A misspelt key is the quiet way to believe the rule is off when it is
+    // not, so every key Lisa does not read is named.
+    ...unknownKeys(block, ["liveUsers", "switch"], "release"),
+    ...unknownKeys(switchBlock, ["mechanism", "guide"], "release.switch"),
   ];
   return {
     liveUsers: liveValid ? block.liveUsers : true,
@@ -159,7 +272,10 @@ export function resolveReleaseSetting(config = {}) {
  * @returns {"runtime"|"none"|"underivable"} The item's scope.
  */
 export function runtimeScope(body) {
-  const declaration = markdownSection(body, "Target Backend Environment");
+  const declaration = markdownSection(
+    markdownHeadings(body),
+    "Target Backend Environment"
+  );
   if (declaration === "") return "underivable";
   return NO_RUNTIME.test(declaration) ? "none" : "runtime";
 }
@@ -172,10 +288,15 @@ export function runtimeScope(body) {
 function parseSwitchedOff(tail) {
   const [nameText = "", ...rest] = tail.split(";");
   const switchName = nameText.trim();
-  const owner = /^removed by\s+(.+?)\.?$/i.exec(rest.join(";").trim());
-  const removedBy = owner ? owner[1].trim() : "";
+  const ownerText = rest.join(";").trim();
+  const named =
+    ownerText.toLowerCase().startsWith(REMOVED_BY_LABEL) &&
+    /\s/.test(ownerText[REMOVED_BY_LABEL.length] ?? "");
+  const removedBy = named
+    ? ownerText.slice(REMOVED_BY_LABEL.length).trim().replace(/\.$/, "")
+    : "";
   const ownerValid =
-    removedBy.toLowerCase() === THIS_ITEM || WORK_ITEM_REF.test(removedBy);
+    removedBy.toLowerCase() === THIS_ITEM || isWorkItemRef(removedBy);
   const problems = [
     ...(SWITCH_NAME.test(switchName)
       ? []
@@ -212,7 +333,11 @@ function parseSwitchedOff(tail) {
  * @returns {null | {mode: "live"} | {mode: "off", switchName: string, removedBy: string} | {mode: "invalid", problems: string[]}} `null` when the section is absent.
  */
 export function parseDeclaration(body) {
-  const declaration = markdownSection(body, RELEASE_SWITCH_HEADING);
+  const declaration = markdownSection(
+    markdownHeadings(body),
+    RELEASE_SWITCH_HEADING,
+    { anyCase: true }
+  );
   if (declaration === "") return null;
   if (declaration.includes("\n"))
     return {
@@ -222,8 +347,8 @@ export function parseDeclaration(body) {
       ],
     };
   if (LIVE.test(declaration)) return { mode: "live" };
-  const off = SWITCHED_OFF.exec(declaration);
-  if (off) return parseSwitchedOff(off[1]);
+  const off = afterLabel(declaration, SWITCHED_OFF_LABEL);
+  if (off !== null) return parseSwitchedOff(off);
   return {
     mode: "invalid",
     problems: [`${JSON.stringify(declaration)} is neither of the two forms.`],
@@ -331,31 +456,91 @@ export function renderDeclaration({ mode, switchName, removedBy = THIS_ITEM }) {
   return `## ${RELEASE_SWITCH_HEADING}\n\nSwitched off — ${parsed.switchName}; removed by ${parsed.removedBy}\n`;
 }
 
+/** The declaration heading as a reader compares it: case and spacing do not matter. */
+const HEADING_KEY = RELEASE_SWITCH_HEADING.toLowerCase();
+
+/**
+ * The comparable name of a top-level heading line.
+ * @param {string} line - A trimmed `## Name` line.
+ * @returns {string} Lower-case name with runs of whitespace folded.
+ */
+const headingName = line => {
+  const text = line.replace(/^#+/, "").trim();
+  // A closing `#` sequence (`## Name ##`) is decoration, not part of the name.
+  const bare = text.slice(
+    0,
+    [...text].findLastIndex(character => character !== "#") + 1
+  );
+  const name = bare.length < text.length && bare.endsWith(" ") ? bare : text;
+  return name.trim().split(/\s+/).join(" ").toLowerCase();
+};
+
+/**
+ * What survives of an old section when its declaration is replaced: everything
+ * after the declaration's own paragraph. Deleting it would lose text a person
+ * put there; keeping it means the checker still says it must move.
+ * @param {string[]} lines - The old section's lines, heading excluded.
+ * @returns {string[]} Lines to keep, with no blank edges.
+ */
+function keptAfterDeclaration(lines) {
+  const first = lines.findIndex(line => line.trim() !== "");
+  if (first < 0) return [];
+  const gap = lines.findIndex(
+    (line, index) => index > first && line.trim() === ""
+  );
+  if (gap < 0) return [];
+  const rest = lines.slice(gap);
+  const start = rest.findIndex(line => line.trim() !== "");
+  if (start < 0) return [];
+  const end = rest.findLastIndex(line => line.trim() !== "");
+  return rest.slice(start, end + 1);
+}
+
 /**
  * Put a rendered declaration into a body, replacing the one that is there.
+ *
+ * The section is found the way the parser finds it: top-level headings only, so
+ * a quoted example inside a code fence or a comment is never rewritten. The
+ * body keeps its own line endings and its own heading spelling (`## Name`, or
+ * `h2. Name` in JIRA wiki markup).
  * @param {string} body - Work-item body.
  * @param {string} section - Output of {@link renderDeclaration}.
  * @returns {string} Body with exactly one declaration.
  */
 export function upsertDeclaration(body, section) {
-  const heading = `## ${RELEASE_SWITCH_HEADING}`;
-  const lines = body.split("\n");
-  const starts = lines.flatMap((line, index) =>
-    line.trim() === heading ? [index] : []
-  );
-  if (starts.length > 1)
+  const eol = body.includes("\r\n") ? "\r\n" : "\n";
+  const lines = body
+    .split("\n")
+    .map(line => (line.endsWith("\r") ? line.slice(0, -1) : line));
+  const normalized = markdownHeadings(lines.join("\n"));
+  const lineAt = offset => normalized.slice(0, offset).split("\n").length - 1;
+  const headings = topLevelLines(normalized)
+    .filter(row => row.heading)
+    .map(row => ({ line: lineAt(row.start), name: headingName(row.text) }));
+  const wiki = headings.some(({ line }) => WIKI_HEADING.test(lines[line]));
+  const declaration = section.trimEnd().split("\n").at(-1);
+  const rendered = [
+    `${wiki ? "h2." : "##"} ${RELEASE_SWITCH_HEADING}`,
+    "",
+    declaration,
+  ];
+  const matches = headings.filter(({ name }) => name === HEADING_KEY);
+  if (matches.length > 1)
     throw new ReleaseSwitchError(
-      `The body has more than one ${heading} section; remove the extra copies first.`
+      `The body has more than one ${RELEASE_SWITCH_HEADING} section; remove the extra copies first.`
     );
-  if (starts.length === 0) return `${body.trimEnd()}\n\n${section}`;
-  const [start] = starts;
-  const offset = lines.slice(start + 1).findIndex(line => /^## /.test(line));
-  const end = offset < 0 ? lines.length : start + 1 + offset;
+  if (matches.length === 0)
+    return `${lines.join(eol).trimEnd()}${eol}${eol}${rendered.join(eol)}${eol}`;
+  const start = matches[0].line;
+  const next = headings.find(({ line }) => line > start);
+  const end = next ? next.line : lines.length;
+  const kept = keptAfterDeclaration(lines.slice(start + 1, end));
   return [
     ...lines.slice(0, start),
-    ...section.trimEnd().split("\n"),
+    ...rendered,
+    ...(kept.length ? ["", ...kept] : []),
     ...(end < lines.length ? ["", ...lines.slice(end)] : [""]),
-  ].join("\n");
+  ].join(eol);
 }
 
 /**
@@ -367,15 +552,37 @@ export function upsertDeclaration(body, section) {
 export function removalObligation(body, ref) {
   const declaration = parseDeclaration(body);
   if (declaration?.mode !== "off") return null;
-  const own = [THIS_ITEM, ref, ref?.replace(/^[^#]*(?=#)/, "")].filter(Boolean);
-  return own.includes(declaration.removedBy)
+  // Tracker references are not case-sensitive (owner/Repo#7 is owner/repo#7),
+  // and a remover this item fails to recognise as itself is a gate that never
+  // fires.
+  const own = [THIS_ITEM, ref, ref?.replace(/^[^#]*(?=#)/, "")]
+    .filter(Boolean)
+    .map(value => value.toLowerCase());
+  return own.includes(declaration.removedBy.toLowerCase())
     ? { switchName: declaration.switchName }
     : null;
 }
 
+// A search "in cwd" means cwd's repository. Git run from inside a hook inherits
+// GIT_DIR and friends, which would silently point this search at the hook's
+// repository instead, so those are dropped.
+const gitEnvironment = () =>
+  Object.fromEntries(
+    Object.entries(process.env).filter(
+      ([name]) =>
+        ![
+          "GIT_DIR",
+          "GIT_WORK_TREE",
+          "GIT_INDEX_FILE",
+          "GIT_COMMON_DIR",
+        ].includes(name)
+    )
+  );
+
 const git = (args, cwd) =>
   execFileSync("git", args, {
     cwd,
+    env: gitEnvironment(),
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
     maxBuffer: 64 * 1024 * 1024,
@@ -400,15 +607,21 @@ export function switchReferences(
     throw new ReleaseSwitchError(
       `${JSON.stringify(switchName)} is not a valid switch name.`
     );
+  // `--full-name` with the `:/` pathspec searches the whole repository and
+  // prints paths from its root. Without them git searches only the directory it
+  // runs in, so a finish started from a subfolder would report a switch as gone
+  // while the rest of the repository still used it.
   const args = [
     "grep",
     "-l",
     "-F",
     "-z",
+    "--full-name",
     "-e",
     switchName,
     ...(revision ? [revision] : []),
     "--",
+    ":/",
   ];
   try {
     return run(args, cwd)
@@ -424,21 +637,49 @@ export function switchReferences(
   }
 }
 
+const HEADS_PREFIX = "refs/heads/";
+
 /**
- * The branch that deploys to production, from `deploy.branches`.
+ * A branch name without the `refs/heads/` prefix some tools report.
+ * @param {unknown} value - Branch as configured or as reported.
+ * @returns {string} Short branch name, or "" when there is none.
+ */
+const branchName = value => {
+  const trimmed = typeof value === "string" ? value.trim() : "";
+  return trimmed.startsWith(HEADS_PREFIX)
+    ? trimmed.slice(HEADS_PREFIX.length)
+    : trimmed;
+};
+
+/**
+ * The branch that deploys to production.
  *
- * `prod` and `production` are the same environment, but only when exactly one
- * of them is configured: with both present the project means two things and
- * neither is guessed.
+ * It reads `deploy.branches` the way the completion checker does, so the two
+ * agree on what "production" is: environment names are not case-sensitive, a
+ * `refs/heads/` prefix is ignored, and a project that configures no deploy
+ * branches at all deploys production from its default branch
+ * (`policy.repository.default_branch`, else `main`). `prod` and `production`
+ * are the same environment, but only when exactly one of them is configured:
+ * with both present the project means two things and neither is guessed.
  * @param {object} [config] - Effective project config.
  * @returns {string|null} Branch name, or `null` when it cannot be read.
  */
 export function productionBranch(config = {}) {
-  const branches = isObject(config?.deploy?.branches)
-    ? config.deploy.branches
-    : {};
-  const keys = ["production", "prod"].filter(key => text(branches[key]));
-  return keys.length === 1 ? branches[keys[0]].trim() : null;
+  const configured = isObject(config?.deploy?.branches)
+    ? Object.entries(config.deploy.branches)
+    : [];
+  const mapped = configured
+    .map(([environment, branch]) => [
+      String(environment).trim().toLowerCase(),
+      branchName(branch),
+    ])
+    .filter(([, branch]) => branch !== "");
+  if (mapped.length === 0)
+    return text(config?.policy?.repository?.default_branch) ?? "main";
+  const production = mapped.filter(([environment]) =>
+    ["production", "prod"].includes(environment)
+  );
+  return production.length === 1 ? production[0][1] : null;
 }
 
 /**
@@ -451,10 +692,12 @@ export function productionBranch(config = {}) {
  */
 export function productionNotice(config, base) {
   const setting = resolveReleaseSetting(config);
-  if (setting.liveUsers || base !== productionBranch(config)) return null;
+  const branch = branchName(base);
+  if (setting.liveUsers || branch === "" || branch !== productionBranch(config))
+    return null;
   return [
     `Notice: this project is marked as having no live users (release.liveUsers is false in .lisa.config.json), so Lisa's always-promotable rule is off here.`,
-    `This deployment from ${base} went to production, and unfinished work can reach production without being switched off.`,
+    `This deployment from ${branch} went to production, and unfinished work can reach production without being switched off.`,
     "When the project launches, set release.liveUsers to true or remove the line. Nothing was blocked.",
   ].join("\n");
 }

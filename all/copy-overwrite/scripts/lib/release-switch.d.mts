@@ -38,6 +38,8 @@ export declare const THIS_ITEM: string;
 export declare class ReleaseSwitchError extends Error {}
 /** The project's Lisa config with `.lisa.config.local.json` layered on top. */
 export function readProjectConfig(cwd: string): Record<string, unknown>;
+/** Who turns a finished, switched-off feature on in production. */
+export function turnOnOwner(config?: unknown): "agent" | "human";
 /** Resolve `release.*` from an effective project config. */
 export function resolveReleaseSetting(config?: unknown): ReleaseSetting;
 /** Whether an item changes runtime behavior, from its stored declaration. */

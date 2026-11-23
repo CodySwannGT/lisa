@@ -92,4 +92,34 @@ describe("inject-resolved-config: release setting", () => {
       `${LIVE_KEY}: true   [INVALID — this project declares "false", which is not true or false; treated as true (the project has live users); ${OWNER}]`,
     ]);
   });
+
+  it("never shows a release block that is not an object as if it were in force", () => {
+    const root = project();
+    writeJson(root, MAIN_CONFIG, { tracker: "github", release: false });
+    const context = contextFor(root);
+
+    expect(linesFor(context, LIVE_KEY)).toEqual([
+      `${LIVE_KEY}: true   [INVALID — this project declares release as false, which is not an object; treated as true (the project has live users); ${OWNER}]`,
+    ]);
+    expect(context).not.toContain("release: false");
+  });
+
+  it("states an invalid switch mechanism as INVALID and does not print it as in force", () => {
+    const root = project();
+    writeJson(root, MAIN_CONFIG, {
+      tracker: "github",
+      release: {
+        liveUsers: false,
+        switch: { mechanism: 5, guide: "docs/f.md" },
+      },
+    });
+    const context = contextFor(root);
+
+    expect(linesFor(context, MECHANISM_KEY)).toEqual([
+      `${MECHANISM_KEY}: config-value   [INVALID — this project declares 5, which is not a non-empty string; treated as config-value; ${OWNER}]`,
+    ]);
+    expect(context).not.toContain("mechanism=5");
+    expect(context).toContain("release: liveUsers=false");
+    expect(context).toContain("release.switch: guide=docs/f.md");
+  });
 });

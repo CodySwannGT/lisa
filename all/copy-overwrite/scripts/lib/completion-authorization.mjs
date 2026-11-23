@@ -69,17 +69,21 @@ const NAMED_REFERENCES = 10;
  * switched off is only finished once its switch is gone: a switch left behind
  * is a second code path nobody owns. So the item that declares it removes a
  * switch (`## Release Switch`: `Switched off — <name>; removed by this item`)
- * cannot reach done while tracked source still references that name.
+ * cannot reach done while the production commit the accepted proof names still
+ * references that name.
  *
  * It is pending, not invalid: the proof is fine and the item is simply not
  * finished yet. A project marked as having no live users has turned the rule
  * off, and a hand-built context that carries no search has made no claim.
  */
-function validateSwitchRemoved(body, context) {
+function validateSwitchRemoved(body, context, snapshot) {
   if (!context.switchReferences || context.release?.liveUsers === false) return;
   const obligation = removalObligation(body, context.ref);
   if (!obligation) return;
-  const { files, searched } = context.switchReferences(obligation.switchName);
+  const { files, searched } = context.switchReferences(
+    obligation.switchName,
+    snapshot
+  );
   const named = files.slice(0, NAMED_REFERENCES).join(", ");
   const more =
     files.length > NAMED_REFERENCES
@@ -87,7 +91,7 @@ function validateSwitchRemoved(body, context) {
       : "";
   requireProof(
     files.length === 0,
-    `This item removes release switch ${JSON.stringify(obligation.switchName)}, which is still referenced in ${files.length} tracked file(s) on ${searched}: ${named}${more}. Remove the switch, merge that change, then finish this item again.`,
+    `This item removes release switch ${JSON.stringify(obligation.switchName)}, which is still referenced in ${files.length} tracked file(s) at ${searched}: ${named}${more}. Remove the switch, merge that change, then finish this item again.`,
     PENDING_PROOF
   );
 }
@@ -305,7 +309,11 @@ export function authorizeCompletion(context) {
       [fresh.body, ...comments.map(row => row.body)],
       context
     );
-    validateSwitchRemoved(fresh.body, context);
+    validateSwitchRemoved(
+      fresh.body,
+      context,
+      chosen.record.source.production_snapshot_sha
+    );
     requireProof(
       context.hasBacklink(fresh, evaluated.primary.html_url),
       "The primary pull-request backlink changed before the terminal write; restore canonical linkage.",

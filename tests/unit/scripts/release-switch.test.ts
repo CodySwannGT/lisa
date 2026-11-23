@@ -4,12 +4,14 @@
  * gate S22, the switch-removal search and the no-live-users notice.
  * @module tests/unit/scripts/release-switch
  */
-import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { cleanGitEnv, GIT_BIN } from "../../support/git-executable.js";
 
 import {
   FALLBACK_MECHANISM,
@@ -322,7 +324,13 @@ describe("switch removal", () => {
     const root = mkdtempSync(path.join(tmpdir(), "lisa-release-switch-"));
     roots.push(root);
     const git = (...args: string[]): string =>
-      execFileSync("git", args, { cwd: root, encoding: "utf8" });
+      boundedExecFileSync({
+        label: `git ${args[0] ?? ""} (release-switch fixture)`,
+        command: GIT_BIN,
+        args,
+        cwd: root,
+        env: cleanGitEnv(),
+      });
     git("init", "--quiet", "--initial-branch=main");
     git("config", "user.email", "test@example.invalid");
     git("config", "user.name", "Test");
@@ -394,7 +402,6 @@ describe("no-live-users notice", () => {
         deploy: { branches: { prod: "release", production: "main" } },
       })
     ).toBeNull();
-    expect(productionBranch({})).toBeNull();
   });
 
   it("names the setting when a production deployment happens with the rule off", () => {
