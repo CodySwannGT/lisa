@@ -96,15 +96,33 @@ const WIKI_HEADING = /^h([1-6])\.[ \t]+/;
  * @returns {string} The same lines, with `hN. ` headings as `#` headings.
  */
 function markdownHeadings(body) {
+  // A `{code}` or `{noformat}` block is wiki markup's code fence. A heading
+  // quoted inside one is an example, exactly as inside a markdown fence, so it
+  // is left alone and never read or rewritten as a section.
+  const fence = /^\{(?:code|noformat)(?::[^}]*)?\}$/;
   return body
     .split("\n")
-    .map(line => {
-      const wiki = WIKI_HEADING.exec(line);
-      return wiki
-        ? `${"#".repeat(Number(wiki[1]))} ${line.slice(wiki[0].length)}`
-        : line;
-    })
-    .join("\n");
+    .reduce(
+      ({ lines, quoted }, line) => {
+        const toggles = fence.test(line.trim());
+        const wiki = quoted || toggles ? null : WIKI_HEADING.exec(line);
+        return {
+          lines: [
+            ...lines,
+            wiki
+              ? `${"#".repeat(Number(wiki[1]))} ${line.slice(wiki[0].length)}`
+              : // Indenting a quoted line keeps the markdown scanner from
+                // reading it as top level, without changing the line count.
+                quoted && !toggles
+                ? `    ${line}`
+                : line,
+          ],
+          quoted: toggles ? !quoted : quoted,
+        };
+      },
+      { lines: [], quoted: false }
+    )
+    .lines.join("\n");
 }
 // A `None —` declaration is how `## Target Backend Environment` says the item
 // changes no runtime behavior (or is a container). The em dash is the machine
@@ -223,6 +241,28 @@ export function turnOnProblems(config = {}) {
     : [
         `humanGate.humanOnly is ${JSON.stringify(declared)}, which is not a list; write it as a list such as ["${RELEASE_DECISION_CLASS}"]. Until then the production turn-on is treated as ${turnOnOwner(config) === "human" ? "reserved for a person" : "the agent's"}.`,
       ];
+}
+
+/**
+ * Every problem with how a project set this rule up: invalid `release.*`
+ * values, a `humanGate.humanOnly` that is not a list, and a production branch
+ * that cannot be read while the project is marked as having no live users (the
+ * notice that keeps that opt-out visible could then never print). One list for
+ * the CLI and the doctor check, so neither reports less than the other.
+ * @param {object} [config] - Effective project config.
+ * @returns {string[]} Problems, empty when the setup is sound.
+ */
+export function setupProblems(config = {}) {
+  const setting = resolveReleaseSetting(config);
+  return [
+    ...setting.problems,
+    ...turnOnProblems(config),
+    ...(!setting.liveUsers && productionBranch(config) === null
+      ? [
+          "release.liveUsers is false, but deploy.branches does not name one production branch (it has no production environment, or prod and production name different branches), so the notice on production deployments cannot be printed.",
+        ]
+      : []),
+  ];
 }
 
 /**
@@ -611,18 +651,20 @@ const git = (args, cwd) =>
   });
 
 /**
- * Files that record or describe work without being able to switch anything:
- * Lisa's committed evidence, and prose. The read-back that proves a switch is
- * off in production is itself evidence that names the switch, and a changelog
- * says what was removed; counting either would leave the removing item unable
- * to finish. This is the definition of "source" for the search, the same for
- * every switch, not a list anyone adds a failing file to.
+ * Files that are records of work and are never executed: Lisa's committed
+ * evidence at the repository root, and changelogs. The read-back that proves a
+ * switch is off in production is itself evidence that names the switch, and a
+ * changelog says what was removed; counting either would leave the removing
+ * item unable to finish. Everything else counts, prose included: Markdown and
+ * MDX can carry template conditionals, and a text file can be a flag list.
+ * This is one definition of "record" for every switch, not a list anyone adds
+ * a failing file to.
  * @param {string} path - Repository-relative path.
  * @returns {boolean} True when the file can hold a reference that matters.
  */
 const isSource = path =>
   !path.startsWith("evidence/") &&
-  !/\.(?:md|mdx|markdown|rst|txt)$/i.test(path);
+  !(path.split("/").at(-1) ?? "").toLowerCase().startsWith("changelog");
 
 /**
  * An extended regular expression that matches the switch name as a whole
@@ -636,12 +678,31 @@ const tokenPattern = switchName =>
   `(^|[^A-Za-z0-9])${switchName.replaceAll(".", "[.]")}($|[^A-Za-z0-9])`;
 
 /**
+ * The root of the repository `cwd` is in.
+ * @param {Function} run - Git runner.
+ * @param {string} cwd - A directory inside the repository.
+ * @param {Function} failed - Builds the error for a search that cannot run.
+ * @returns {string} Absolute path of the repository root.
+ */
+function repositoryRoot(run, cwd, failed) {
+  try {
+    return run(["rev-parse", "--show-toplevel"], cwd).trim();
+  } catch (error) {
+    throw failed(error);
+  }
+}
+
+/**
  * Tracked source files that still reference a switch.
  *
  * It searches `revision` when one is given (the production commit after a
- * merge) and the working tree otherwise. `git grep` exits 1 for "no match",
- * which is the answer and not an error; anything else is surfaced, because a
- * search that could not run must never read as "the switch is gone".
+ * merge) and the working tree otherwise, always from the repository root, in
+ * any letter case. `git grep` exits 1 for "no match", which is the answer and
+ * not an error; anything else is surfaced, because a search that could not run
+ * must never read as "the switch is gone".
+ *
+ * What it cannot find is a different spelling of the same switch
+ * (`NEW_CHECKOUT` for `new-checkout`): a project uses one spelling everywhere.
  * @param {string} switchName - Switch to look for, matched as a whole token.
  * @param {{cwd?: string, revision?: string, run?: Function}} [options] - Where to search; `run` is injectable for tests.
  * @returns {string[]} Repository-relative paths, sorted.
@@ -654,21 +715,28 @@ export function switchReferences(
     throw new ReleaseSwitchError(
       `${JSON.stringify(switchName)} is not a valid switch name.`
     );
-  // `--full-name` with the `:/` pathspec searches the whole repository and
-  // prints paths from its root. Without them git searches only the directory it
-  // runs in, so a finish started from a subfolder would report a switch as gone
-  // while the rest of the repository still used it.
+  const failed = error =>
+    new ReleaseSwitchError(
+      `Could not search tracked source for ${JSON.stringify(switchName)}: ${String(error?.stderr || error?.message || error).trim()}`
+    );
+  // The search runs from the repository root with no pathspec at all. Git run
+  // from a subfolder searches only that folder, and the `:/` pathspec that
+  // would widen it stops meaning "the root" when a hook or alias runs under
+  // `git --literal-pathspecs`; either way a switch still in use elsewhere would
+  // be reported as gone.
+  const root = repositoryRoot(run, cwd, failed);
   const args = [
+    "-C",
+    root,
     "grep",
     "-l",
+    "-i",
     "-E",
     "-z",
     "--full-name",
     "-e",
     tokenPattern(switchName),
     ...(revision ? [revision] : []),
-    "--",
-    ":/",
   ];
   try {
     return run(args, cwd)
@@ -679,9 +747,7 @@ export function switchReferences(
       .sort((left, right) => left.localeCompare(right));
   } catch (error) {
     if (error?.status === 1) return [];
-    throw new ReleaseSwitchError(
-      `Could not search tracked source for ${JSON.stringify(switchName)}: ${String(error?.stderr || error?.message || error).trim()}`
-    );
+    throw failed(error);
   }
 }
 

@@ -13,7 +13,7 @@ import {
   FALLBACK_MECHANISM,
   readProjectConfig,
   resolveReleaseSetting,
-  turnOnProblems,
+  setupProblems,
   type ReleaseSetting,
 } from "../../all/copy-overwrite/scripts/lib/release-switch.mjs";
 import type { DoctorCheck } from "./doctor.js";
@@ -62,12 +62,12 @@ function problemDetail(setting: ReleaseSetting): string {
 export function checkReleaseSetting(targetPath: string): DoctorCheck {
   try {
     const config = readProjectConfig(targetPath);
-    const resolved = resolveReleaseSetting(config);
-    // A mistyped humanGate.humanOnly changes who turns a finished feature on
-    // in production, so it is reported with the release settings.
+    // Problems beyond the release block are reported here too: a mistyped
+    // humanGate.humanOnly changes who turns a finished feature on, and an
+    // unreadable production branch silences the no-live-users notice.
     const setting = {
-      ...resolved,
-      problems: [...resolved.problems, ...turnOnProblems(config)],
+      ...resolveReleaseSetting(config),
+      problems: setupProblems(config),
     };
     return setting.problems.length > 0
       ? { name: NAME, status: "fail", detail: problemDetail(setting) }

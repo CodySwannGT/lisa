@@ -1430,7 +1430,7 @@
       "children": []
     },
     "lib/release-switch.mjs": {
-      "sha256": "0e4f38c9b0dfeab98041431f53d5819e99f24ec627cef7d8a3da4b10f873f31d",
+      "sha256": "a8ded52f24930631f3c9533e541520ff0109b22bac877296ba7bc9a2ece63bd2",
       "staticImports": [
         "lib/completion-proof-markdown.mjs",
         "node:child_process",

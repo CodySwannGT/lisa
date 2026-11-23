@@ -905,8 +905,29 @@ function invalidLiveUsersLine(config, owner) {
   if (release !== undefined && !isObject(release)) {
     return `${LIVE_USERS_PATH}: ${DEFAULT_LIVE_USERS}   [INVALID — this project declares release as ${JSON.stringify(release)}, which is not an object; treated as ${DEFAULT_LIVE_USERS} (the project has live users); owner: ${owner}]`;
   }
-  if (!liveUsersInvalid(release)) return null;
-  return `${LIVE_USERS_PATH}: ${DEFAULT_LIVE_USERS}   [INVALID — this project declares ${JSON.stringify(release.liveUsers)}, which is not true or false; treated as ${DEFAULT_LIVE_USERS} (the project has live users); owner: ${owner}]`;
+  if (liveUsersInvalid(release)) {
+    return `${LIVE_USERS_PATH}: ${DEFAULT_LIVE_USERS}   [INVALID — this project declares ${JSON.stringify(release.liveUsers)}, which is not true or false; treated as ${DEFAULT_LIVE_USERS} (the project has live users); owner: ${owner}]`;
+  }
+  // A key that differs only by letter case is not read at all, and it is the
+  // quietest way to believe the rule is off when it is on.
+  const misspelt = misspeltLiveUsersKey(release);
+  return misspelt === null || "liveUsers" in release
+    ? null
+    : `${LIVE_USERS_PATH}: ${DEFAULT_LIVE_USERS}   [INVALID — this project declares release.${misspelt}, which Lisa does not read (the key is ${LIVE_USERS_PATH}); treated as ${DEFAULT_LIVE_USERS} (the project has live users); owner: ${owner}]`;
+}
+
+/**
+ * A `release` key that spells `liveUsers` with different letter case.
+ * @param {unknown} release The resolved `release` value.
+ * @returns {string|null} The key as written, or null when there is none.
+ */
+function misspeltLiveUsersKey(release) {
+  if (!isObject(release)) return null;
+  return (
+    Object.keys(release).find(
+      key => key !== "liveUsers" && key.toLowerCase() === "liveusers"
+    ) ?? null
+  );
 }
 
 /**
@@ -948,11 +969,17 @@ function invalidSwitchMechanismLine(config, owner) {
  */
 function usableRelease(release) {
   if (!isObject(release)) return null;
-  const { liveUsers, switch: block, ...rest } = release;
+  const { liveUsers, switch: block, ...others } = release;
+  const misspelt = misspeltLiveUsersKey(release);
+  const rest = Object.fromEntries(
+    Object.entries(others).filter(([key]) => key !== misspelt)
+  );
+  const text = value => typeof value === "string" && value.trim() !== "";
   const usableSwitch = isObject(block)
     ? Object.fromEntries(
         Object.entries(block).filter(
-          ([key]) => !(key === "mechanism" && switchMechanismInvalid(release))
+          ([key, value]) =>
+            !(["mechanism", "guide"].includes(key) && !text(value))
         )
       )
     : undefined;

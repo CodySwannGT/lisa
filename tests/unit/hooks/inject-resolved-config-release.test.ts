@@ -122,4 +122,20 @@ describe("inject-resolved-config: release setting", () => {
     expect(context).toContain("release: liveUsers=false");
     expect(context).toContain("release.switch: guide=docs/f.md");
   });
+
+  it("names a key that differs only by letter case instead of showing it as a setting", () => {
+    const root = project();
+    writeJson(root, MAIN_CONFIG, {
+      tracker: "github",
+      release: { liveusers: false, switch: { mechanism: "flags", guide: 7 } },
+    });
+    const context = contextFor(root);
+
+    expect(linesFor(context, LIVE_KEY)).toEqual([
+      `${LIVE_KEY}: true   [INVALID — this project declares release.liveusers, which Lisa does not read (the key is release.liveUsers); treated as true (the project has live users); ${OWNER}]`,
+    ]);
+    expect(context).not.toContain("liveusers=false");
+    expect(context).not.toContain("guide=7");
+    expect(context).toContain("release.switch: mechanism=flags");
+  });
 });

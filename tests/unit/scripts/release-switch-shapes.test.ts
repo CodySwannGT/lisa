@@ -28,6 +28,7 @@ import {
   renderDeclaration,
   resolveReleaseSetting,
   runtimeScope,
+  setupProblems,
   switchReferences,
   turnOnOwner,
   turnOnProblems,
@@ -112,6 +113,57 @@ describe("JIRA wiki-markup tickets", () => {
     });
     expect(body).toContain("h2. Repository\nrepo");
     expect(body.match(/Release Switch/g)).toHaveLength(1);
+  });
+});
+
+describe("a JIRA ticket that quotes the section in a code block", () => {
+  const body = [
+    "h2. Target Backend Environment",
+    "production",
+    "",
+    "h2. Technical Approach",
+    "{code}",
+    "h2. Release Switch",
+    "Switched off — example; removed by this item",
+    "{code}",
+    "",
+  ].join("\n");
+
+  it("does not read the quoted example as the declaration", () => {
+    expect(parseDeclaration(body)).toBeNull();
+  });
+
+  it("leaves the code block intact and adds the real section", () => {
+    const written = upsertDeclaration(body, LIVE_SECTION);
+    expect(written).toContain(
+      "{code}\nh2. Release Switch\nSwitched off — example; removed by this item\n{code}"
+    );
+    expect(parseDeclaration(written)).toEqual(LIVE);
+  });
+});
+
+describe("setup problems reported in one place", () => {
+  it("is empty for a sound setup", () => {
+    expect(setupProblems({})).toEqual([]);
+    expect(setupProblems({ release: { liveUsers: false } })).toEqual([]);
+  });
+
+  it("says when the no-live-users notice could never print", () => {
+    const problems = setupProblems({
+      release: { liveUsers: false },
+      deploy: { branches: { prod: "release", production: "main" } },
+    });
+    expect(problems.join(" ")).toContain("notice");
+    expect(problems.join(" ")).toContain("deploy.branches");
+  });
+
+  it("includes release and human-gate problems", () => {
+    const problems = setupProblems({
+      release: { liveusers: false },
+      humanGate: { humanOnly: RELEASE_DECISION_CLASS },
+    }).join(" ");
+    expect(problems).toContain("release.liveusers");
+    expect(problems).toContain("humanGate.humanOnly");
   });
 });
 
@@ -261,7 +313,7 @@ describe("settings a person might really write", () => {
   });
 
   it("reads a class written as a bare string as reserved, and reports the mistake", () => {
-    const config = { humanGate: { humanOnly: "feature-release" } };
+    const config = { humanGate: { humanOnly: RELEASE_DECISION_CLASS } };
     expect(turnOnOwner(config)).toBe("human");
     expect(turnOnProblems(config).join(" ")).toContain("humanGate.humanOnly");
     expect(turnOnProblems(config).join(" ")).toContain("not a list");
@@ -315,6 +367,20 @@ describe("the production branch, read as the completion checker reads it", () =>
 
 describe("searching the whole repository", () => {
   /**
+   * Track everything currently in a fixture repository.
+   * @param root - Repository root
+   */
+  function stage(root: string): void {
+    boundedExecFileSync({
+      label: "git add (release-switch shapes fixture)",
+      command: GIT_BIN,
+      args: ["add", "--all"],
+      cwd: root,
+      env: cleanGitEnv(),
+    });
+  }
+
+  /**
    * A git repository with a root file that references the switch and a
    * subfolder that does not.
    * @returns Repository root
@@ -341,7 +407,7 @@ describe("searching the whole repository", () => {
     return root;
   }
 
-  it("counts source only: evidence and prose that name the switch hold nothing open", () => {
+  it("does not count records: root evidence and changelogs", () => {
     const root = repository();
     writeFileSync(path.join(root, "app.js"), "show();\n");
     mkdirSync(path.join(root, "evidence", "42"), { recursive: true });
@@ -353,7 +419,61 @@ describe("searching the whole repository", () => {
       path.join(root, "CHANGELOG.md"),
       `Removed the ${SWITCH} switch.\n`
     );
+    writeFileSync(path.join(root, "CHANGELOG"), `Removed ${SWITCH}.\n`);
+    stage(root);
     expect(switchReferences(SWITCH, { cwd: root })).toEqual([]);
+    // The same files do count once they are not records: proof that they were
+    // searched and set aside, not simply never seen.
+    writeFileSync(path.join(root, "notes.md"), `Uses ${SWITCH}.\n`);
+    stage(root);
+    expect(switchReferences(SWITCH, { cwd: root })).toEqual(["notes.md"]);
+  });
+
+  it("counts every other file, because prose and text can switch behavior too", () => {
+    const root = repository();
+    writeFileSync(path.join(root, "app.js"), "show();\n");
+    mkdirSync(path.join(root, "pages"));
+    mkdirSync(path.join(root, "src", "evidence"), { recursive: true });
+    writeFileSync(
+      path.join(root, "pages", "checkout.mdx"),
+      `{flags["${SWITCH}"] ? <New /> : <Old />}\n`
+    );
+    writeFileSync(
+      path.join(root, "pages", "checkout.md"),
+      `{% if site.flags.${SWITCH} %}new{% endif %}\n`
+    );
+    writeFileSync(path.join(root, "enabled-features.txt"), `${SWITCH}\n`);
+    writeFileSync(
+      path.join(root, "src", "evidence", "collector.js"),
+      `collect("${SWITCH}");\n`
+    );
+    stage(root);
+    expect(switchReferences(SWITCH, { cwd: root })).toEqual([
+      "enabled-features.txt",
+      "pages/checkout.md",
+      "pages/checkout.mdx",
+      "src/evidence/collector.js",
+    ]);
+  });
+
+  it("finds the name in any letter case", () => {
+    const root = repository();
+    writeFileSync(path.join(root, "app.js"), 'flag("New-Checkout");\n');
+    expect(switchReferences(SWITCH, { cwd: root })).toEqual(["app.js"]);
+  });
+
+  it("is not narrowed by git's literal-pathspec mode, which a hook can inherit", () => {
+    const root = repository();
+    const before = process.env.GIT_LITERAL_PATHSPECS;
+    process.env.GIT_LITERAL_PATHSPECS = "1";
+    try {
+      expect(
+        switchReferences(SWITCH, { cwd: path.join(root, "docs") })
+      ).toEqual(["app.js"]);
+    } finally {
+      if (before === undefined) delete process.env.GIT_LITERAL_PATHSPECS;
+      else process.env.GIT_LITERAL_PATHSPECS = before;
+    }
   });
 
   it("matches the name as a whole token, not inside another word", () => {
