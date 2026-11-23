@@ -108,7 +108,7 @@
       "children": []
     },
     "lib/completion-authorization.mjs": {
-      "sha256": "ff1ffb8158443b0be8f5aea8c90f8c9f17fc7fd40ea2a1daa30b8cc1c1a0a8af",
+      "sha256": "30f38c454a58a37997919e3e878c133887ec4f56733bc52128f195de04ef0233",
       "staticImports": [
         "lib/completion-proof-conformance.mjs",
         "lib/completion-proof-content.mjs",
@@ -123,7 +123,7 @@
       "children": []
     },
     "lib/completion-proof-adapters.mjs": {
-      "sha256": "e15eee0c13b196b0e0c60e5b69b05ce4ddcaff891718817a738cde12414ece7a",
+      "sha256": "f1f39218e6a6b4c866162a6e50b902d793dee54a279693cb624276aa191fff3f",
       "staticImports": [
         "lib/completion-proof-shape.mjs",
         "lib/release-switch.mjs",
@@ -1430,7 +1430,7 @@
       "children": []
     },
     "lib/release-switch.mjs": {
-      "sha256": "2f7e0c83c01331b4025c4125f0471fa850da770e4ca0104523ca93060e4a79cb",
+      "sha256": "1d4ef90c5ab0090e82112a8e73746b7a77e3ad40d35b4659654a499c935a9f15",
       "staticImports": [
         "lib/completion-proof-markdown.mjs",
         "node:child_process",

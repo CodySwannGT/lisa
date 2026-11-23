@@ -961,6 +961,22 @@ function invalidSwitchMechanismLine(config, owner) {
 }
 
 /**
+ * The INVALID line for a `release.switch.guide` that is not a non-empty
+ * string. The guide has no default, so nothing else would mention it, and
+ * dropping it in silence would hide a problem the doctor check reports.
+ * @param {object} config Resolved config.
+ * @returns {string|null} The line, or null when the guide is absent or usable.
+ */
+function invalidSwitchGuideLine(config) {
+  const block = isObject(config.release) ? config.release.switch : undefined;
+  if (!isObject(block) || !("guide" in block)) return null;
+  const usable = typeof block.guide === "string" && block.guide.trim() !== "";
+  return usable
+    ? null
+    : `release.switch.guide: not set   [INVALID — this project declares ${JSON.stringify(block.guide)}, which is not a non-empty string; treated as not set; owner: ${RELEASE_OWNER}]`;
+}
+
+/**
  * The `release` block with every unusable value removed, so the subtree
  * renderer never prints a rejected value as if it were in force. Each removed
  * value is stated once, by its INVALID gap line.
@@ -1102,6 +1118,8 @@ function renderBody(config) {
   // so it is the line that must survive.
   /** @type {string[]} */
   const lines = renderDefaults(config);
+  const guide = invalidSwitchGuideLine(config);
+  if (guide !== null) lines.push(guide);
   const notification = renderNotificationLevel(config.sessionManager);
   if (notification !== null) lines.push(notification);
   const gapLines = lines.length;

@@ -18,6 +18,7 @@ import { cleanGitEnv, GIT_BIN } from "../../support/git-executable.js";
 import { runCli } from "../../../all/copy-overwrite/scripts/lisa-release-switch.mjs";
 import {
   LIVE_DECLARATION,
+  NO_REPLACE,
   RELEASE_DECISION_CLASS,
   checkDeclaration,
   parseDeclaration,
@@ -42,6 +43,9 @@ const LIVE = { mode: "live" };
 const SECTION = "## Release Switch";
 const LIVE_SECTION = renderDeclaration({ mode: "live" });
 const FREE_TEXT = "We will see";
+const ITEM_REF = "acme/code#42";
+const HUMAN_ONLY_KEY = "humanGate.humanOnly";
+const MAIN_REF = "refs/heads/main";
 const WIKI_ENVIRONMENT = "h2. Target Backend Environment";
 const WIKI_SECTION = "h2. Release Switch";
 const WIKI_NOTES = "h2. Notes";
@@ -122,11 +126,12 @@ describe("JIRA wiki-markup tickets", () => {
   });
 });
 
-describe("wiki code markers are ordinary text", () => {
-  // Skipping headings quoted inside `{code}` blocks was tried and removed:
-  // every way of pairing the markers could be fooled into hiding the real
-  // declaration, and the done gate then closed an item whose switch was still
-  // in use. These are the shapes that broke it.
+describe("a JIRA declaration that may be inside a code block", () => {
+  // Wiki code blocks are not parsed: every way of pairing `{code}` markers
+  // could be fooled into hiding a real declaration, and the done gate then
+  // closed an item whose switch was still in use. So a wiki declaration that
+  // follows an unclosed marker is neither trusted nor ignored. It is refused
+  // as ambiguous, by the readiness gate and by the done gate alike.
   const declaration = `Switched off — ${SWITCH}; removed by this item`;
   const below = (...notes: string[]): string =>
     [
@@ -144,52 +149,80 @@ describe("wiki code markers are ordinary text", () => {
   it.each([
     ["a lone marker", below(CODE_MARKER, PASTED_LOG)],
     ["a lone noformat marker", below(NOFORMAT_MARKER, PASTED_LOG)],
+    ["an opener with a title", below("{code:title=log}", PASTED_LOG)],
     [
-      "an opener with text on its line",
-      below("{code}Error: boom", CODE_MARKER),
+      "a quoted example with a heading after it and no real declaration",
+      [
+        WIKI_ENVIRONMENT,
+        "production",
+        "",
+        CODE_MARKER,
+        WIKI_SECTION,
+        LIVE_DECLARATION,
+        "h2. Example End",
+        CODE_MARKER,
+        "",
+      ].join("\n"),
     ],
+  ])(
+    "refuses the section below %s, and never reads it as absent",
+    (_name, body) => {
+      const parsed = parseDeclaration(body);
+      expect(parsed).toMatchObject({ mode: "invalid" });
+      expect(JSON.stringify(parsed)).toContain("unclosed {code} or {noformat}");
+      expect(removalObligation(body, ITEM_REF)).toMatchObject({
+        invalid: [expect.stringContaining("unclosed")],
+      });
+      expect(checkDeclaration(body, LIVE_USERS).verdict).toBe("FAIL");
+      expect(
+        checkDeclaration(body, LIVE_USERS, { existing: true }).verdict
+      ).toBe("FAIL");
+    }
+  );
+
+  it.each([
+    ["a closed block", below(CODE_MARKER, PASTED_LOG, CODE_MARKER)],
+    ["a block opened and closed on one line", below("{code}x{code}")],
     [
-      "a closed block and then a stray marker later in the ticket",
-      `${below(CODE_MARKER, PASTED_LOG)}\nh2. Appendix\n{code}\nselect 1;\n{code}\n`,
-    ],
-    [
-      "a code marker inside a noformat block",
-      below(NOFORMAT_MARKER, CODE_MARKER, "x", NOFORMAT_MARKER),
+      "two closed blocks",
+      below(
+        CODE_MARKER,
+        "a",
+        CODE_MARKER,
+        NOFORMAT_MARKER,
+        "b",
+        NOFORMAT_MARKER
+      ),
     ],
   ])("reads the declaration below %s", (_name, body) => {
     expect(parseDeclaration(body)).toMatchObject({
       mode: "off",
       switchName: SWITCH,
     });
-    expect(removalObligation(body, "acme/code#42")).toEqual({
-      switchName: SWITCH,
-    });
-    expect(checkDeclaration(body, LIVE_USERS).verdict).toBe("PASS");
+    expect(removalObligation(body, ITEM_REF)).toEqual({ switchName: SWITCH });
   });
 
-  it("reads the same shapes in a markdown body", () => {
-    const body = `## Target Backend Environment\n\nproduction\n\n## Notes\n\n{code}\nError: boom\n\n${SECTION}\n\n${declaration}\n`;
+  it("does not apply to a markdown declaration, where {code} is ordinary text", () => {
+    const body = `## Target Backend Environment\n\nproduction\n\n## Notes\n\n{code}\n${PASTED_LOG}\n\n${SECTION}\n\n${declaration}\n`;
     expect(parseDeclaration(body)).toMatchObject({ switchName: SWITCH });
   });
 
-  it("still fails a malformed declaration below a stray marker", () => {
-    const body = below(CODE_MARKER, PASTED_LOG).replace(declaration, FREE_TEXT);
-    expect(checkDeclaration(body, LIVE_USERS, { existing: true }).verdict).toBe(
-      "FAIL"
+  it("refuses to write a wiki section where it would land under an unclosed marker", () => {
+    const body = [
+      WIKI_ENVIRONMENT,
+      "production",
+      "",
+      CODE_MARKER,
+      PASTED_LOG,
+      "",
+    ].join("\n");
+    expect(() => upsertDeclaration(body, LIVE_SECTION)).toThrow(
+      /could not be written where it would be read/
     );
   });
 
-  it("writes the section once, however often it is rendered", () => {
-    const once = upsertDeclaration(
-      below(CODE_MARKER, PASTED_LOG),
-      LIVE_SECTION
-    );
-    expect(upsertDeclaration(once, LIVE_SECTION)).toBe(once);
-    expect(once.match(/Release Switch/g)).toHaveLength(1);
-  });
-
-  it("refuses a ticket that quotes the section inside a wiki code block, as ambiguous", () => {
-    const body = below(CODE_MARKER, WIKI_SECTION, QUOTED_EXAMPLE, CODE_MARKER);
+  it("refuses a ticket that quotes the section and also has a real one, as ambiguous", () => {
+    const body = `${[WIKI_ENVIRONMENT, "production", "", CODE_MARKER, WIKI_SECTION, QUOTED_EXAMPLE, CODE_MARKER, ""].join("\n")}\n${WIKI_SECTION}\n${declaration}\n`;
     expect(() => parseDeclaration(body)).toThrow(/Duplicate Release Switch/);
     expect(() => upsertDeclaration(body, LIVE_SECTION)).toThrow(
       /more than one Release Switch/
@@ -197,9 +230,54 @@ describe("wiki code markers are ordinary text", () => {
   });
 });
 
+describe("a section that is there but says nothing", () => {
+  const blank = `## Target Backend Environment\n\nproduction\n\n${SECTION}\n\n## Repository\n\nrepo\n`;
+
+  it("is unreadable, not absent", () => {
+    expect(parseDeclaration(blank)).toMatchObject({ mode: "invalid" });
+    expect(JSON.stringify(parseDeclaration(blank))).toContain("empty");
+    expect(
+      checkDeclaration(blank, LIVE_USERS, { existing: true }).verdict
+    ).toBe("FAIL");
+    expect(removalObligation(blank, ITEM_REF)).toMatchObject({
+      invalid: [expect.stringContaining("empty")],
+    });
+  });
+
+  it("can be filled in by rendering", () => {
+    const written = upsertDeclaration(blank, LIVE_SECTION);
+    expect(parseDeclaration(written)).toEqual(LIVE);
+    expect(written).toContain("## Repository\n\nrepo");
+  });
+});
+
+describe("writes that would not be readable are refused", () => {
+  it("refuses to replace a section that starts with a code block", () => {
+    const body = `## Target Backend Environment\n\nproduction\n\n${SECTION}\n\n\`\`\`text\n${LIVE_DECLARATION}\n\`\`\`\n\n## Repository\n\nrepo\n`;
+    expect(() => upsertDeclaration(body, LIVE_SECTION)).toThrow(
+      /starts with a code block/
+    );
+  });
+
+  it("refuses to append into a body that ends inside an open code fence", () => {
+    const body =
+      "## Target Backend Environment\n\nproduction\n\n## Notes\n\n```\nunfinished\n";
+    expect(() => upsertDeclaration(body, LIVE_SECTION)).toThrow(
+      /could not be written where it would be read/
+    );
+  });
+
+  it("refuses to append into a body that ends inside an open HTML comment", () => {
+    const body =
+      "## Target Backend Environment\n\nproduction\n\n<!-- note\nunfinished\n";
+    expect(() => upsertDeclaration(body, LIVE_SECTION)).toThrow(
+      /could not be written where it would be read/
+    );
+  });
+});
+
 describe("the removal obligation is read leniently, so it cannot be lost", () => {
   const own = `Switched off — ${SWITCH}; removed by this item`;
-  const ref = "acme/code#42";
   const item = (section: string): string =>
     `## Target Backend Environment\n\nproduction\n\n${SECTION}\n\n${section}\n`;
 
@@ -210,40 +288,32 @@ describe("the removal obligation is read leniently, so it cannot be lost", () =>
     ]) {
       // The readiness gate rejects the shape; the obligation survives it.
       expect(checkDeclaration(item(section), LIVE_USERS).verdict).toBe("FAIL");
-      expect(removalObligation(item(section), ref)).toEqual({
+      expect(removalObligation(item(section), ITEM_REF)).toEqual({
         switchName: SWITCH,
       });
     }
   });
 
   it("owes nothing for a live declaration, with or without trailing text", () => {
-    expect(removalObligation(item(LIVE_DECLARATION), ref)).toBeNull();
+    expect(removalObligation(item(LIVE_DECLARATION), ITEM_REF)).toBeNull();
     expect(
-      removalObligation(item(`${LIVE_DECLARATION}\n\nFiled by: x`), ref)
+      removalObligation(item(`${LIVE_DECLARATION}\n\nFiled by: x`), ITEM_REF)
     ).toBeNull();
   });
 
   it("reports a first line that is neither form instead of owing nothing", () => {
-    expect(removalObligation(item(FREE_TEXT), ref)).toEqual({
+    expect(removalObligation(item(FREE_TEXT), ITEM_REF)).toEqual({
       invalid: [`"${FREE_TEXT}" is neither of the two forms.`],
     });
   });
 
-  it("keeps every line after a replaced declaration, including a closing marker", () => {
-    const body = [
-      WIKI_ENVIRONMENT,
-      "production",
-      "",
-      WIKI_NOTES,
-      CODE_MARKER,
-      WIKI_SECTION,
-      QUOTED_EXAMPLE,
-      CODE_MARKER,
-      "",
-    ].join("\n");
+  it("keeps every line after a replaced declaration", () => {
+    const body = item(`${FREE_TEXT}\nexcept on mobile\n\nFiled by: a person`);
     const written = upsertDeclaration(body, LIVE_SECTION);
-    expect(written.match(/\{code\}/g)).toHaveLength(2);
     expect(written).toContain(LIVE_DECLARATION);
+    expect(written).toContain("except on mobile");
+    expect(written).toContain("Filed by: a person");
+    expect(written).not.toContain(FREE_TEXT);
   });
 });
 
@@ -281,7 +351,7 @@ describe("setup problems reported in one place", () => {
       humanGate: { humanOnly: RELEASE_DECISION_CLASS },
     }).join(" ");
     expect(problems).toContain("release.liveusers");
-    expect(problems).toContain("humanGate.humanOnly");
+    expect(problems).toContain(HUMAN_ONLY_KEY);
   });
 });
 
@@ -420,6 +490,15 @@ describe("settings a person might really write", () => {
     }
   );
 
+  it("skips and reports an entry that is not text, without losing a valid one beside it", () => {
+    const config = {
+      humanGate: { humanOnly: [{ toString: null }, 7, "feature-release"] },
+    };
+    expect(turnOnOwner(config)).toBe("human");
+    expect(turnOnProblems(config).join(" ")).toContain("not text");
+    expect(setupProblems(config).join(" ")).toContain(HUMAN_ONLY_KEY);
+  });
+
   it("leaves the turn-on with the agent when the class is not listed", () => {
     expect(turnOnOwner({})).toBe("agent");
     expect(turnOnOwner({ humanGate: { humanOnly: ["pricing"] } })).toBe(
@@ -433,7 +512,7 @@ describe("settings a person might really write", () => {
   it("reads a class written as a bare string as reserved, and reports the mistake", () => {
     const config = { humanGate: { humanOnly: RELEASE_DECISION_CLASS } };
     expect(turnOnOwner(config)).toBe("human");
-    expect(turnOnProblems(config).join(" ")).toContain("humanGate.humanOnly");
+    expect(turnOnProblems(config).join(" ")).toContain(HUMAN_ONLY_KEY);
     expect(turnOnProblems(config).join(" ")).toContain("not a list");
   });
 });
@@ -442,7 +521,7 @@ describe("the production branch, read as the completion checker reads it", () =>
   it("ignores a refs/heads/ prefix and the case of the environment name", () => {
     expect(
       productionBranch({
-        deploy: { branches: { Production: "refs/heads/main" } },
+        deploy: { branches: { Production: MAIN_REF } },
       })
     ).toBe("main");
   });
@@ -467,6 +546,15 @@ describe("the production branch, read as the completion checker reads it", () =>
     ).toBeNull();
   });
 
+  it("ignores a refs/heads/ prefix on the fallback default branch too", () => {
+    const config = {
+      policy: { repository: { default_branch: MAIN_REF } },
+      release: { liveUsers: false },
+    };
+    expect(productionBranch(config)).toBe("main");
+    expect(productionNotice(config, "main")).toContain("release.liveUsers");
+  });
+
   it("does not guess when deploy branches name no production environment", () => {
     expect(
       productionBranch({ deploy: { branches: { staging: "dev" } } })
@@ -476,7 +564,7 @@ describe("the production branch, read as the completion checker reads it", () =>
   it("prints the notice for a base reported with its refs/heads/ prefix", () => {
     const notice = productionNotice(
       { release: { liveUsers: false } },
-      "refs/heads/main"
+      MAIN_REF
     );
     expect(notice).toContain("release.liveUsers");
     expect(notice).toContain("from main");
@@ -611,6 +699,36 @@ describe("searching the whole repository", () => {
     expect(switchReferences(SWITCH, { cwd: root })).toEqual([]);
   });
 
+  it("ignores local replacement refs, so the commit named is the commit searched", () => {
+    const calls: string[][] = [];
+    const run = (args: readonly string[]): string => {
+      calls.push([...args]);
+      return args.includes("rev-parse") ? "/repo\n" : "";
+    };
+    switchReferences(SWITCH, { cwd: "/repo", revision: "abc123", run });
+    expect(calls).toHaveLength(2);
+    for (const args of calls) expect(args[0]).toBe(NO_REPLACE);
+  });
+
+  it("does not read a failed search as no references", () => {
+    const failing =
+      (status: number, stderr: string) => (args: readonly string[]) => {
+        if (args.includes("rev-parse")) return "/repo\n";
+        throw Object.assign(new Error(stderr), { status, stderr });
+      };
+    // Exit 1 with nothing said is git's "no match".
+    expect(
+      switchReferences(SWITCH, { cwd: "/repo", run: failing(1, "") })
+    ).toEqual([]);
+    // Exit 1 with a diagnostic is a read that failed partway.
+    expect(() =>
+      switchReferences(SWITCH, {
+        cwd: "/repo",
+        run: failing(1, "error: unable to read sha1 file of app.js"),
+      })
+    ).toThrow(/Could not search/);
+  });
+
   it("refuses a revision that is really a folder, or an option", () => {
     const root = repository();
     expect(() =>
@@ -681,6 +799,23 @@ describe("command-line edges", () => {
     });
     return { code, err: err.join("") };
   }
+
+  it("exits 2 on an --existing value that is not true or false", () => {
+    const root = scratch();
+    const body = path.join(root, "body.md");
+    writeFileSync(body, "## Target Backend Environment\n\nproduction\n");
+    const result = run([
+      "check",
+      "--cwd",
+      root,
+      "--existing",
+      "True",
+      "--body-file",
+      body,
+    ]);
+    expect(result.code).toBe(2);
+    expect(result.err).toContain("--existing must be true or false");
+  });
 
   it("exits 2, not the failing 1, when the body cannot be read", () => {
     const root = scratch();

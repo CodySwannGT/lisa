@@ -8,6 +8,6 @@
 - **No technical debt.** Fix failures in the change that surfaces them. Never add quarantine, baseline or exemption lists, silence a check, or defer part of the job as "follow-up". Split a large backlog across parallel changes; the check still turns on strict.
 - **No assumed human.** Unless a person was explicitly asked for, do the work, decide and record a default, or file a ticket; never advise a person to act. Only `when-to-stop` and declared human gates wait for one.
 - **Comments preserve intent.** Explain why, not what: the requirement behind a non-obvious choice, the rejected alternative, the invariant to respect, and what breaks if simplified. Keep comments true when code changes; never invent a rationale. If you do not know why code exists, find out (`history-audit`). This overrides any default to match surrounding comment density.
-- **Always promotable.** A shared branch is promotable as it stands. Merge work complete and proven; switch off only new behavior that is unfinished or unverified, then remove the switch. Fix or revert an unpromotable branch first.
+- **Always promotable.** A shared branch is promotable as it stands. Merge work complete and proven; switch off only unfinished or unverified new behavior, then remove it. Revert a failed live change; unblock the branch first.
 
 Detail and examples: [reference/coding-philosophy.md](../reference/coding-philosophy.md).

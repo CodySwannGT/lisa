@@ -27,7 +27,7 @@
  * mechanism; this module only carries the name to the agent.
  * @module scripts/lib/release-switch
  */
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -208,11 +208,13 @@ export function turnOnOwner(config = {}) {
   // Reading that as "not reserved" would hand a production turn-on to the
   // agent because of a typing mistake, so it is read as a one-item list here
   // and reported by {@link turnOnProblems}.
-  const reserved = Array.isArray(declared)
-    ? declared
-    : typeof declared === "string"
-      ? [declared]
-      : [];
+  const reserved = (
+    Array.isArray(declared)
+      ? declared
+      : typeof declared === "string"
+        ? [declared]
+        : []
+  ).filter(entry => typeof entry === "string");
   const wanted = decisionClassKey(RELEASE_DECISION_CLASS);
   return reserved.some(entry => decisionClassKey(entry) === wanted)
     ? "human"
@@ -227,7 +229,15 @@ export function turnOnOwner(config = {}) {
  */
 export function turnOnProblems(config = {}) {
   const declared = config?.humanGate?.humanOnly;
-  return declared === undefined || Array.isArray(declared)
+  if (Array.isArray(declared))
+    // An entry that is not text names no decision class. It is reported and
+    // skipped, so one bad entry cannot hide a valid reservation beside it.
+    return declared.some(entry => typeof entry !== "string")
+      ? [
+          `humanGate.humanOnly holds an entry that is not text; each entry is a decision class such as "${RELEASE_DECISION_CLASS}". That entry is ignored.`,
+        ]
+      : [];
+  return declared === undefined
     ? []
     : [
         `humanGate.humanOnly is ${JSON.stringify(declared)}, which is not a list; write it as a list such as ["${RELEASE_DECISION_CLASS}"]. Until then the production turn-on is treated as ${turnOnOwner(config) === "human" ? "reserved for a person" : "the agent's"}.`,
@@ -395,15 +405,85 @@ function parseDeclarationLine(line) {
   };
 }
 
+/** The declaration heading as a reader compares it: case and spacing do not matter. */
+const HEADING_KEY = RELEASE_SWITCH_HEADING.toLowerCase();
+
 /**
- * The text of an item's `## Release Switch` section, or "" when it has none.
- * @param {string} body - Work-item body.
- * @returns {string} Trimmed section text.
+ * The comparable name of a top-level heading line.
+ * @param {string} line - A trimmed `## Name` line.
+ * @returns {string} Lower-case name with runs of whitespace folded.
  */
-const declarationSection = body =>
-  markdownSection(markdownHeadings(body), RELEASE_SWITCH_HEADING, {
+const headingName = line => {
+  const text = line.replace(/^#+/, "").trim();
+  // A closing `#` sequence (`## Name ##`) is decoration, not part of the name.
+  const bare = text.slice(
+    0,
+    [...text].findLastIndex(character => character !== "#") + 1
+  );
+  const name = bare.length < text.length && bare.endsWith(" ") ? bare : text;
+  return name.trim().split(/\s+/).join(" ").toLowerCase();
+};
+
+const WIKI_CODE_MARKERS = ["{code}", "{code:", "{noformat}", "{noformat:"];
+
+/**
+ * How many wiki code-block markers a line carries.
+ * @param {string} line - One body line.
+ * @returns {number} Count of `{code}` and `{noformat}` markers, with or without parameters.
+ */
+const wikiMarkerCount = line =>
+  WIKI_CODE_MARKERS.reduce(
+    (count, marker) => count + line.split(marker).length - 1,
+    0
+  );
+
+/**
+ * Where an item's `## Release Switch` section is and what it holds.
+ *
+ * Three states matter and must not collapse into each other: no section at all
+ * (a legacy item, or a live one nobody declared), a section whose text can be
+ * read, and a section that is there but cannot be trusted. The last has two
+ * forms. A blank section is unreadable, not evidence that the item removes
+ * nothing. And in a JIRA ticket, a section whose `h2.` heading follows an
+ * unclosed `{code}` or `{noformat}` marker may be a quoted example inside a
+ * code block: wiki code blocks are not parsed here (every attempt to pair the
+ * markers could be fooled into hiding a real declaration), so that shape is
+ * refused as ambiguous instead of being guessed either way.
+ * @param {string} body - Work-item body.
+ * @returns {null | {text: string, problem: string|null}} `null` when there is no section.
+ */
+function declarationState(body) {
+  const lines = body
+    .split("\n")
+    .map(line => (line.endsWith("\r") ? line.slice(0, -1) : line));
+  const normalized = markdownHeadings(lines.join("\n"));
+  const lineAt = offset => normalized.slice(0, offset).split("\n").length - 1;
+  const match = topLevelLines(normalized)
+    .filter(row => row.heading)
+    .map(row => ({ line: lineAt(row.start), name: headingName(row.text) }))
+    .find(({ name }) => name === HEADING_KEY);
+  if (!match) return null;
+  // Duplicate sections are refused here, by the shared section reader.
+  const text = markdownSection(normalized, RELEASE_SWITCH_HEADING, {
     anyCase: true,
   });
+  const markersAbove = lines
+    .slice(0, match.line)
+    .reduce((count, line) => count + wikiMarkerCount(line), 0);
+  if (WIKI_HEADING.test(lines[match.line]) && markersAbove % 2 === 1)
+    return {
+      text,
+      problem:
+        "The section follows an unclosed {code} or {noformat} marker, so it may be a quoted example and not the declaration. Close or remove that marker, or move the section above it.",
+    };
+  return {
+    text,
+    problem:
+      text === ""
+        ? "The section is empty. Write the declaration on one line."
+        : null,
+  };
+}
 
 /**
  * Parse an item's `## Release Switch` declaration.
@@ -415,16 +495,18 @@ const declarationSection = body =>
  * @returns {null | {mode: "live"} | {mode: "off", switchName: string, removedBy: string} | {mode: "invalid", problems: string[]}} `null` when the section is absent.
  */
 export function parseDeclaration(body) {
-  const declaration = declarationSection(body);
-  if (declaration === "") return null;
-  if (declaration.includes("\n"))
+  const state = declarationState(body);
+  if (state === null) return null;
+  if (state.problem !== null)
+    return { mode: "invalid", problems: [state.problem] };
+  if (state.text.includes("\n"))
     return {
       mode: "invalid",
       problems: [
         "The declaration must be the only line in the section; move any explanation into Technical Approach.",
       ],
     };
-  return parseDeclarationLine(declaration);
+  return parseDeclarationLine(state.text);
 }
 
 const VALID_FORMS = [
@@ -528,25 +610,6 @@ export function renderDeclaration({ mode, switchName, removedBy = THIS_ITEM }) {
   return `## ${RELEASE_SWITCH_HEADING}\n\nSwitched off — ${parsed.switchName}; removed by ${parsed.removedBy}\n`;
 }
 
-/** The declaration heading as a reader compares it: case and spacing do not matter. */
-const HEADING_KEY = RELEASE_SWITCH_HEADING.toLowerCase();
-
-/**
- * The comparable name of a top-level heading line.
- * @param {string} line - A trimmed `## Name` line.
- * @returns {string} Lower-case name with runs of whitespace folded.
- */
-const headingName = line => {
-  const text = line.replace(/^#+/, "").trim();
-  // A closing `#` sequence (`## Name ##`) is decoration, not part of the name.
-  const bare = text.slice(
-    0,
-    [...text].findLastIndex(character => character !== "#") + 1
-  );
-  const name = bare.length < text.length && bare.endsWith(" ") ? bare : text;
-  return name.trim().split(/\s+/).join(" ").toLowerCase();
-};
-
 /**
  * What survives of an old section when its declaration is replaced: every line
  * after the declaration line itself. Deleting them would lose text a person
@@ -599,17 +662,64 @@ export function upsertDeclaration(body, section) {
       `The body has more than one ${RELEASE_SWITCH_HEADING} section; remove the extra copies first.`
     );
   if (matches.length === 0)
-    return `${lines.join(eol).trimEnd()}${eol}${eol}${rendered.join(eol)}${eol}`;
+    return written(
+      `${lines.join(eol).trimEnd()}${eol}${eol}${rendered.join(eol)}${eol}`,
+      declaration
+    );
   const start = matches[0].line;
   const next = headings.find(({ line }) => line > start);
   const end = next ? next.line : lines.length;
-  const kept = keptAfterDeclaration(lines.slice(start + 1, end));
-  return [
-    ...lines.slice(0, start),
-    ...rendered,
-    ...(kept.length ? ["", ...kept] : []),
-    ...(end < lines.length ? ["", ...lines.slice(end)] : [""]),
-  ].join(eol);
+  const old = lines.slice(start + 1, end);
+  // The first line is what gets replaced. If it opens a code block, replacing
+  // it would leave the block's closing marker behind to open a new one, and
+  // every section after it would stop being read.
+  const first = (old.find(line => line.trim() !== "") ?? "").trim();
+  if (
+    first.startsWith("```") ||
+    first.startsWith("~~~") ||
+    wikiMarkerCount(first) > 0
+  )
+    throw new ReleaseSwitchError(
+      `The ${RELEASE_SWITCH_HEADING} section starts with a code block. Move the block out of the section, then render again.`
+    );
+  return written(
+    [
+      ...lines.slice(0, start),
+      ...rendered,
+      ...(keptAfterDeclaration(old).length
+        ? ["", ...keptAfterDeclaration(old)]
+        : []),
+      ...(end < lines.length ? ["", ...lines.slice(end)] : [""]),
+    ].join(eol),
+    declaration
+  );
+}
+
+/**
+ * A body the declaration was just written into, proven readable.
+ *
+ * A write that the reader cannot see is worse than no write: the caller is told
+ * the item now has a declaration and the gate then reports it missing. That is
+ * what happens when the body ends inside an unclosed code fence or HTML
+ * comment, or when a wiki heading lands under an unclosed code marker. So the
+ * result is read back, and a declaration that did not come back is an error
+ * naming what to fix.
+ * @param {string} body - The body after the write.
+ * @param {string} declaration - The line that was written.
+ * @returns {string} The same body.
+ */
+function written(body, declaration) {
+  const state = declarationState(body);
+  const [firstLine = ""] = (state?.text ?? "").split("\n");
+  if (
+    state === null ||
+    state.problem !== null ||
+    firstLine.trim() !== declaration
+  )
+    throw new ReleaseSwitchError(
+      `The ${RELEASE_SWITCH_HEADING} section could not be written where it would be read${state?.problem ? `: ${state.problem}` : ": the body ends inside an unclosed code block or comment. Close it, then render again."}`
+    );
+  return body;
 }
 
 /**
@@ -626,11 +736,13 @@ export function upsertDeclaration(body, section) {
  * @returns {null | {switchName: string} | {invalid: string[]}} The obligation, `null` when there is none, or why the declaration cannot be read.
  */
 export function removalObligation(body, ref) {
-  const [firstLine = ""] = declarationSection(body)
+  const state = declarationState(body);
+  if (state === null) return null;
+  if (state.problem !== null) return { invalid: [state.problem] };
+  const [firstLine = ""] = state.text
     .split("\n")
     .map(line => line.trim())
     .filter(Boolean);
-  if (firstLine === "") return null;
   const declaration = parseDeclarationLine(firstLine);
   if (declaration.mode === "invalid") return { invalid: declaration.problems };
   if (declaration.mode !== "off") return null;
@@ -661,14 +773,31 @@ const gitEnvironment = () =>
     )
   );
 
-const git = (args, cwd) =>
-  execFileSync("git", args, {
+/**
+ * Run git and return its output, or throw with the exit status and stderr.
+ *
+ * Anything git says on stderr is a failure here, whatever the exit status. A
+ * search that could not read part of a tree can still exit 0 or 1, and "no
+ * match" from a search that skipped an unreadable file is not an answer.
+ * @param {string[]} args - Git arguments.
+ * @param {string} cwd - Directory to run in.
+ * @returns {string} Standard output.
+ */
+function git(args, cwd) {
+  const result = spawnSync("git", args, {
     cwd,
     env: gitEnvironment(),
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
     maxBuffer: 64 * 1024 * 1024,
   });
+  const stderr = result.stderr ?? "";
+  if (result.status === 0 && stderr.trim() === "") return result.stdout ?? "";
+  throw Object.assign(new Error(stderr || String(result.error ?? "")), {
+    status: result.status,
+    stderr,
+  });
+}
 
 const CHANGELOG_FILE = /^changelog(?:\.(?:md|markdown|txt|rst|adoc))?$/i;
 
@@ -715,6 +844,13 @@ const tokenPattern = switchName =>
   `(^|[^A-Za-z0-9])${switchName.replaceAll(".", "[.]")}($|[^A-Za-z0-9])`;
 
 /**
+ * Git's own switch for ignoring local replacement refs. With one in place, a
+ * search "at commit X" would read whatever tree X was locally replaced by,
+ * while the caller reports X: the proof's commit would not be the one searched.
+ */
+export const NO_REPLACE = "--no-replace-objects";
+
+/**
  * The root of the repository `cwd` is in.
  * @param {Function} run - Git runner.
  * @param {string} cwd - A directory inside the repository.
@@ -723,7 +859,7 @@ const tokenPattern = switchName =>
  */
 function repositoryRoot(run, cwd, failed) {
   try {
-    return run(["rev-parse", "--show-toplevel"], cwd).trim();
+    return run([NO_REPLACE, "rev-parse", "--show-toplevel"], cwd).trim();
   } catch (error) {
     throw failed(error);
   }
@@ -772,6 +908,7 @@ export function switchReferences(
   // folder that happens to carry the same name would be searched instead, and
   // the answer would be "not referenced" for a tree that was never looked at.
   const args = [
+    NO_REPLACE,
     "-C",
     root,
     "grep",
@@ -794,7 +931,10 @@ export function switchReferences(
       .filter(isSource)
       .sort((left, right) => left.localeCompare(right));
   } catch (error) {
-    if (error?.status === 1) return [];
+    // Exit 1 with nothing on stderr is git's "no match". Exit 1 WITH a
+    // diagnostic is a read that failed partway, and is not a clean answer.
+    if (error?.status === 1 && String(error.stderr ?? "").trim() === "")
+      return [];
     throw failed(error);
   }
 }
@@ -837,7 +977,7 @@ export function productionBranch(config = {}) {
     ])
     .filter(([, branch]) => branch !== "");
   if (mapped.length === 0)
-    return text(config?.policy?.repository?.default_branch) ?? "main";
+    return branchName(config?.policy?.repository?.default_branch) || "main";
   const production = new Set(
     mapped
       .filter(([environment]) => ["production", "prod"].includes(environment))

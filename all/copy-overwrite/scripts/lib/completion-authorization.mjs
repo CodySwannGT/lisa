@@ -291,6 +291,16 @@ export function authorizeCompletion(context) {
       "Completion proof changed while it was being verified; run canonical Verify/evidence again.",
       PENDING_PROOF
     );
+    // The switch search reads the local repository, which takes time. It runs
+    // here, before the final native reads, so that a proof revoked while it
+    // ran is still caught by the locator-history comparison below. The
+    // requirement-digest check after that proves the declaration it judged is
+    // the one still on the item.
+    validateSwitchRemoved(
+      subject.body,
+      context,
+      chosen.record.source.production_snapshot_sha
+    );
     // All slow source, delivery, asset and issuer reads precede these final
     // native reads. No provider read intervenes between local final checks and
     // the caller's lifecycle-policy check/first terminal write.
@@ -316,11 +326,6 @@ export function authorizeCompletion(context) {
       fresh.body,
       [fresh.body, ...comments.map(row => row.body)],
       context
-    );
-    validateSwitchRemoved(
-      fresh.body,
-      context,
-      chosen.record.source.production_snapshot_sha
     );
     requireProof(
       context.hasBacklink(fresh, evaluated.primary.html_url),

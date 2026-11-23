@@ -12,6 +12,7 @@ import {
   requireProof,
 } from "./completion-proof-shape.mjs";
 import {
+  NO_REPLACE,
   ReleaseSwitchError,
   resolveReleaseSetting,
   switchReferences,
@@ -52,13 +53,13 @@ function estimateSettings(config) {
 function trackedSwitchReferences(run, switchName, snapshot) {
   const known =
     typeof snapshot === "string" &&
-    run("git", ["cat-file", "-e", `${snapshot}^{commit}`], {
+    run("git", [NO_REPLACE, "cat-file", "-e", `${snapshot}^{commit}`], {
       allowFailure: true,
     }).status === 0;
   if (!known)
     throw new CompletionProofError(
       READ_ERROR,
-      `This checkout does not have the production commit the accepted proof names (${String(snapshot).slice(0, 12)}), so it cannot be searched for release switch ${JSON.stringify(switchName)}. Run git fetch origin, then finish this item again.`
+      `This checkout does not have the production commit the accepted proof names (${String(snapshot)}), so it cannot be searched for release switch ${JSON.stringify(switchName)}. Get that exact commit, then finish this item again: run git fetch origin, and in a shallow checkout deepen it (git fetch --unshallow) or use a full clone.`
     );
   try {
     return {
@@ -70,7 +71,10 @@ function trackedSwitchReferences(run, switchName, snapshot) {
             allowFailure: true,
             maxBuffer: MAX_NATIVE_JSON_BYTES,
           });
-          if (result.status === 0) return result.stdout;
+          // Any diagnostic on stderr is a failure, whatever the exit status:
+          // a search that skipped an unreadable object is not an answer.
+          if (result.status === 0 && result.stderr.trim() === "")
+            return result.stdout;
           throw Object.assign(new Error(result.stderr), {
             status: result.status,
             stderr: result.stderr,

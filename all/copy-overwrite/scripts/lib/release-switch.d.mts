@@ -34,6 +34,8 @@ export declare const FALLBACK_MECHANISM: string;
 export declare const LIVE_DECLARATION: string;
 /** A switch-removal owner written as the item itself. */
 export declare const THIS_ITEM: string;
+/** Git's global option that ignores local replacement refs. */
+export declare const NO_REPLACE: string;
 /** Input this module cannot act on. */
 export declare class ReleaseSwitchError extends Error {}
 /** The project's Lisa config with `.lisa.config.local.json` layered on top. */

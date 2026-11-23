@@ -136,6 +136,9 @@ describe("inject-resolved-config: release setting", () => {
     ]);
     expect(context).not.toContain("liveusers=false");
     expect(context).not.toContain("guide=7");
+    expect(context).toContain(
+      `release.switch.guide: not set   [INVALID — this project declares 7, which is not a non-empty string; treated as not set; ${OWNER}]`
+    );
     expect(context).toContain("release.switch: mechanism=flags");
   });
 });

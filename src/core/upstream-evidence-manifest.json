@@ -43,9 +43,9 @@
     "all/copy-overwrite/scripts/lib/changed-paths.mjs":
       "f9089dfab2a892e2512abc4ad4ee336fedc46253c8fe5b8c257c76dad1ac72a3",
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs":
-      "ff1ffb8158443b0be8f5aea8c90f8c9f17fc7fd40ea2a1daa30b8cc1c1a0a8af",
+      "30f38c454a58a37997919e3e878c133887ec4f56733bc52128f195de04ef0233",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
-      "e15eee0c13b196b0e0c60e5b69b05ce4ddcaff891718817a738cde12414ece7a",
+      "f1f39218e6a6b4c866162a6e50b902d793dee54a279693cb624276aa191fff3f",
     "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.d.mts":
       "9d951f9a095264b33f527dd65eb41c8d6617b3b1c572d13c22332773ac99dca5",
     "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.mjs":
@@ -281,9 +281,9 @@
     "all/copy-overwrite/scripts/lib/push-timing.mjs":
       "14df8a7b9ebd0d69e72ee0b02e4801ff72b9b3000e80a6a23324e556efbbcdbb",
     "all/copy-overwrite/scripts/lib/release-switch.d.mts":
-      "e404d88f7a3db9e0e931f479be3c04bcd56da6959796b7b63dd049c1462eec89",
+      "30b119d7d9087f08efec17b4b60b97dde658079511c94c529e23ac51c46baa8b",
     "all/copy-overwrite/scripts/lib/release-switch.mjs":
-      "2f7e0c83c01331b4025c4125f0471fa850da770e4ca0104523ca93060e4a79cb",
+      "1d4ef90c5ab0090e82112a8e73746b7a77e3ad40d35b4659654a499c935a9f15",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts":
       "da1eebc33c5215bc81ab4202c649a5af6b39e3d42f71f94cb2424e3535849154",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs":
@@ -413,7 +413,7 @@
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "07ca88dcfb7caddd3ce1841c92a153067dcf7d4c52bbb66d21d4a7aad6eb18d1",
     "all/copy-overwrite/scripts/lisa-release-switch.mjs":
-      "f117d0ce359ad561a747a051343d1f1643a971af56b08221a8c6f996cb98b4e3",
+      "31f8a34d6788254b76c9edafb0dac76f3230a09c5b8359014177b898feaea7fd",
     "all/copy-overwrite/scripts/lisa-rspec-select.mjs":
       "2e0752d211e6d03db6a150d060bc078ec6fe03a5dd76f39e9434c42d316861e7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
@@ -433,7 +433,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "c72f849d6c3c19745d58f6ad67d5b5e11166f9e7a12df02bfe9afd4259c5286f",
+      "05383710d5b4559faf23b8835e092e928c1df873e738ef4f01cd0846853be0be",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1171,7 +1171,7 @@
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-resolved-config.mjs":
-      "381c0c19fd1f2ff95d4630e8ec52ff746e665e77eb43c600ea0f4297daad0d8d",
+      "833c67c016a51706b057a0b5cd15049f1b30d155f2c55f08ddeec891531e4ff2",
     "plugins/src/base/hooks/inject-resolved-config.sh":
       "bc73e118afff35f455241647c24da6e23caaf30d189eb6d3a48814e9a8309613",
     "plugins/src/base/hooks/inject-rules.sh":
@@ -1227,7 +1227,7 @@
     "plugins/src/base/rules/eager/base-rules.md":
       "ef28da035861ff5d8f8a8dd4e9d43bb21d147fcbe055de36e0df8b96cb2407b4",
     "plugins/src/base/rules/eager/coding-philosophy.md":
-      "7bff8a8f4a19587d89b7631f5bfee0c7ade32fe309e22a5305cc43a4c0333ec2",
+      "865446880b7faca9bd099be91180fd2075d1df3ea2103973a5aa66bc10560821",
     "plugins/src/base/rules/eager/communication.md":
       "bc192f299fbe76f27d60aca38d461b2eec3412737e49b1e400fde8399116b389",
     "plugins/src/base/rules/eager/config-resolution.md":
@@ -1269,7 +1269,7 @@
     "plugins/src/base/rules/reference/claim-time-guards.md":
       "a50664632190c94a68df74cf8e1893552e1507f0162e3dc497615a8360b40007",
     "plugins/src/base/rules/reference/coding-philosophy.md":
-      "41f755efcf561efd12164f93fe56a90bd82050cc8c13a9356a694731a75be56e",
+      "118770b4125fe4c5a1b25be2d9c16e784509c6ae78247cf50d31ac9ce3679605",
     "plugins/src/base/rules/reference/communication.md":
       "c9873d1b4564eb3cf86a350224158fe8d1c4da6a7a0644bcf4bfd200206bc174",
     "plugins/src/base/rules/reference/completion-authorization.md":
@@ -1311,7 +1311,7 @@
     "plugins/src/base/rules/reference/integration-access-layer.md":
       "c5fc07f5f46ba1f99403b6e4fd5603d153411a9bb1838bea320b26a5bd5273d6",
     "plugins/src/base/rules/reference/intent-routing.md":
-      "ba04941854dff35a5d437887d752ea060aef43d0b1c7c3892ecc6116767e2d68",
+      "7531c39c0f7e2b697ca5c2103f9ab413b8ed8ea32ae51c89c41fd269e36942cb",
     "plugins/src/base/rules/reference/leaf-only-lifecycle.md":
       "caa31885b5ed834124159d0523f954c8248311dfd46aa1da07ab1782513d1648",
     "plugins/src/base/rules/reference/learnings-ladder.md":
@@ -1591,7 +1591,7 @@
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "844321dc2e69fe0cd6c45f40a60aaf60b62a92dddf4e9c7ad589ea74ba645782",
+      "40516f18406b5f6c486f45908fa849814beb700dbdb77e3eab09308d56f8029d",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -2085,7 +2085,7 @@
     "plugins/src/base/skills/lisa-verify-workflow-change/SKILL.md":
       "d89740a4dc350a9ac0d26b1b955bf74f009775b60ee0275df3f9a50fe8be3048",
     "plugins/src/base/skills/lisa-verify/SKILL.md":
-      "3d52aa588619bc35d858853c65ac7304ced95519f236747b17c27b71e080f47a",
+      "55cc067f269cc2443ae001f5072e6ad44086c04d0895bc90cfb96ff8556bb044",
     "plugins/src/cdk/commands/setup/aws.md":
       "9b072a22dd017cae60221e39353c9a381ccbef40626e94922f1005bdf0cfa337",
     "plugins/src/cdk/skills/setup-aws-accounts/SKILL.md":

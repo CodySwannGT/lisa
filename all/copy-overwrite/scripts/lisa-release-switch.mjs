@@ -102,6 +102,13 @@ const COMMANDS = {
     };
   },
   check: (flags, config) => {
+    // Anything but true or false is a mistake in the call, not a failed gate:
+    // `--existing True` would otherwise be judged as a proposed item and exit
+    // 1, which says the item failed.
+    if (!["true", "false", undefined].includes(flags.existing))
+      throw new ReleaseSwitchError(
+        `--existing must be true or false, not ${JSON.stringify(flags.existing)}.`
+      );
     const result = checkDeclaration(
       readBody(flags),
       resolveReleaseSetting(config),

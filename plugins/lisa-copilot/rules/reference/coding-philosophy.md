@@ -196,8 +196,8 @@ A piece of work must never block a deployment. Promoting one environment to the 
 
 **One question decides whether a change needs a switch:** if this were promoted to production right now, would a user see something unfinished or unproven?
 
-- **No: the change is live and needs no switch.** Bug fixes, small tweaks, copy changes, refactors and dependency updates are complete and proven when they merge, and reverting is their off switch. Never add a switch to work like this. A switch on every change is machinery nobody needs (YAGNI).
-- **Yes: the change is switched off.** A feature that lands across several merges, or new behavior that merges before its verification has passed, merges behind a switch that is off in production.
+- **No: the change is live and needs no switch.** Bug fixes, small tweaks, copy changes, refactors and dependency updates are almost always complete and proven when they merge, and reverting is their off switch. Never add a switch to work that is complete and proven when it merges. A switch on every change is machinery nobody needs (YAGNI).
+- **Yes: the change is switched off.** The question decides, not the kind of work: a feature or a fix that lands across several merges, or new behavior that merges before its verification has passed, merges behind a switch that is off in production.
 
 Live work is proven **before** it merges, not after. That is what lets it skip the switch. Proven means its local verification passed before the merge. The check in the target environment after the deploy confirms that proof, and a change is not "unverified" merely because that later check has not run yet. Work is unverified when it cannot be proven before it merges: it needs a piece that has not landed, an environment it cannot reach locally, or a decision that has not been made.
 
@@ -218,9 +218,9 @@ Live work is proven **before** it merges, not after. That is what lets it skip t
 
 If you cannot confirm the production value, you cannot claim the work is dark.
 
-**Turning a finished feature on.** Once its verification passes, the agent turns the switch on in production. No person is needed, unless the project lists the decision class `feature-release` in `humanGate.humanOnly`; then that one step is a declared human gate.
+**Turning a finished feature on.** A feature is turned on once, by the work item that removes its switch, after the whole feature is verified. An earlier item of the same feature verifies its own part with the switch on outside production and leaves it off in production. Then the agent turns the switch on in production. No person is needed, unless the project lists the decision class `feature-release` in `humanGate.humanOnly`; then that one step is a declared human gate.
 
-**When the branch is not promotable.** A change that shipped without a switch and then fails verification on a shared branch is reverted at once and reworked, and the work item goes back to the ready queue with the failure evidence. It is never left in place to be fixed forward, and it never holds a promotion.
+**When the branch is not promotable.** A change that shipped without a switch and then fails on a shared branch, at its deployment or at verification, is reverted at once and reworked, and the work item goes back to the ready queue with the failure evidence. It is never left in place to be fixed forward, and it never holds a promotion.
 
 **Work items and pull requests say which.** A leaf work item that changes runtime behavior carries a `## Release Switch` section with exactly one line (gate S22 in the `*-validate-*` skills, checked by `scripts/lisa-release-switch.mjs check`):
 

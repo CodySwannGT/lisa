@@ -62,8 +62,12 @@ describe("always-promotable rule text", () => {
       const rule = read(root, eager);
       expect(rule).toContain("**Always promotable.**");
       expect(rule).toContain("A shared branch is promotable as it stands.");
-      expect(rule).toContain("switch off only new behavior");
-      expect(rule).toContain("Fix or revert an unpromotable branch first.");
+      expect(rule).toContain(
+        "switch off only unfinished or unverified new behavior"
+      );
+      expect(rule).toContain(
+        "Revert a failed live change; unblock the branch first."
+      );
     }
   );
 
@@ -80,7 +84,9 @@ describe("always-promotable rule text", () => {
       expect(rule).toContain(
         "Bug fixes, small tweaks, copy changes, refactors and dependency updates"
       );
-      expect(rule).toContain("Never add a switch to work like this.");
+      expect(rule).toContain(
+        "Never add a switch to work that is complete and proven when it merges."
+      );
       expect(rule).toContain("release.liveUsers");
       expect(rule).toContain(RELEASE_DECISION_CLASS);
     }
@@ -131,9 +137,7 @@ describe.each(SKILL_ROOTS)("always-promotable guidance under %s", root => {
       expect(skill).toContain(
         "if this were promoted to production right now, would a user see something unfinished or unproven?"
       );
-      expect(skill).toMatch(
-        /Never add a switch to (them|work that is complete)/
-      );
+      expect(skill).toMatch(/Never add a switch to work that is complete/);
       expect(skill).toContain(
         "ug fixes, small tweaks, copy changes, refactors and dependency updates"
       );
@@ -145,6 +149,11 @@ describe.each(SKILL_ROOTS)("always-promotable guidance under %s", root => {
     slug => {
       const skill = readSkill(root, slug);
       expect(skill).toMatch(/turn (the switch|it) on in production yourself/);
+      // A feature split across several items is turned on once, by the item
+      // that removes its switch, never after the first item passes.
+      expect(skill).toContain(
+        "Only the item that removes the switch turns the feature on"
+      );
       expect(skill).toContain(RELEASE_DECISION_CLASS);
       expect(skill).toContain("humanGate.humanOnly");
       expect(skill).toMatch(/[Rr]evert (it|the merged change) at once/);
