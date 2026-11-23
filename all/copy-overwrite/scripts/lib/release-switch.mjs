@@ -32,6 +32,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
+  headingKey,
   markdownSection,
   topLevelLines,
 } from "./completion-proof-markdown.mjs";
@@ -121,6 +122,21 @@ const NO_RUNTIME = /^None\s*[—-]/i;
 
 const isObject = value =>
   value !== null && typeof value === "object" && !Array.isArray(value);
+
+/**
+ * A rejected setting value as it may be shown to a person or put in a
+ * session's context. An object or a list is named by its kind only: whatever
+ * someone put inside a setting that should have been a word or a yes/no is not
+ * ours to print, and it could be a credential.
+ * @param {unknown} value - The value a project declared.
+ * @returns {string} Text safe to show.
+ */
+export const shown = value =>
+  Array.isArray(value)
+    ? "a list"
+    : value !== null && typeof value === "object"
+      ? "an object"
+      : JSON.stringify(value);
 
 const text = value =>
   typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
@@ -240,7 +256,7 @@ export function turnOnProblems(config = {}) {
   return declared === undefined
     ? []
     : [
-        `humanGate.humanOnly is ${JSON.stringify(declared)}, which is not a list; write it as a list such as ["${RELEASE_DECISION_CLASS}"]. Until then the production turn-on is treated as ${turnOnOwner(config) === "human" ? "reserved for a person" : "the agent's"}.`,
+        `humanGate.humanOnly is ${shown(declared)}, which is not a list; write it as a list such as ["${RELEASE_DECISION_CLASS}"]. Until then the production turn-on is treated as ${turnOnOwner(config) === "human" ? "reserved for a person" : "the agent's"}.`,
       ];
 }
 
@@ -290,22 +306,22 @@ export function resolveReleaseSetting(config = {}) {
     ...(declared === undefined || isObject(declared)
       ? []
       : [
-          `release is ${JSON.stringify(declared)}, which is not an object; treated as not set.`,
+          `release is ${shown(declared)}, which is not an object; treated as not set.`,
         ]),
     ...(liveDeclared && !liveValid
       ? [
-          `release.liveUsers is ${JSON.stringify(block.liveUsers)}, which is not true or false; treated as true (the project has live users).`,
+          `release.liveUsers is ${shown(block.liveUsers)}, which is not true or false; treated as true (the project has live users).`,
         ]
       : []),
     ...(block.switch === undefined || isObject(block.switch)
       ? []
       : [
-          `release.switch is ${JSON.stringify(block.switch)}, which is not an object; treated as not set.`,
+          `release.switch is ${shown(block.switch)}, which is not an object; treated as not set.`,
         ]),
     ...["mechanism", "guide"].flatMap(key =>
       Object.hasOwn(switchBlock, key) && text(switchBlock[key]) === null
         ? [
-            `release.switch.${key} is ${JSON.stringify(switchBlock[key])}, which is not a non-empty string; treated as not set.`,
+            `release.switch.${key} is ${shown(switchBlock[key])}, which is not a non-empty string; treated as not set.`,
           ]
         : []
     ),
@@ -405,24 +421,14 @@ function parseDeclarationLine(line) {
   };
 }
 
-/** The declaration heading as a reader compares it: case and spacing do not matter. */
-const HEADING_KEY = RELEASE_SWITCH_HEADING.toLowerCase();
-
 /**
- * The comparable name of a top-level heading line.
- * @param {string} line - A trimmed `## Name` line.
- * @returns {string} Lower-case name with runs of whitespace folded.
+ * The declaration heading, folded the way the shared section reader folds it.
+ * Lookup, replacement and extraction all use this one comparison: a heading the
+ * reader accepts (closing hashes after a tab, odd spacing, another case) that a
+ * second comparison missed would read as "no declaration", and an item with no
+ * declaration owes nothing.
  */
-const headingName = line => {
-  const text = line.replace(/^#+/, "").trim();
-  // A closing `#` sequence (`## Name ##`) is decoration, not part of the name.
-  const bare = text.slice(
-    0,
-    [...text].findLastIndex(character => character !== "#") + 1
-  );
-  const name = bare.length < text.length && bare.endsWith(" ") ? bare : text;
-  return name.trim().split(/\s+/).join(" ").toLowerCase();
-};
+const HEADING_KEY = headingKey(`## ${RELEASE_SWITCH_HEADING}`);
 
 const WIKI_BLOCK_KINDS = ["code", "noformat"];
 
@@ -486,7 +492,7 @@ function declarationState(body) {
   const lineAt = offset => normalized.slice(0, offset).split("\n").length - 1;
   const match = topLevelLines(normalized)
     .filter(row => row.heading)
-    .map(row => ({ line: lineAt(row.start), name: headingName(row.text) }))
+    .map(row => ({ line: lineAt(row.start), name: headingKey(row.text) }))
     .find(({ name }) => name === HEADING_KEY);
   if (!match) return null;
   // Duplicate sections are refused here, by the shared section reader.
@@ -674,7 +680,7 @@ export function upsertDeclaration(body, section) {
   const lineAt = offset => normalized.slice(0, offset).split("\n").length - 1;
   const headings = topLevelLines(normalized)
     .filter(row => row.heading)
-    .map(row => ({ line: lineAt(row.start), name: headingName(row.text) }));
+    .map(row => ({ line: lineAt(row.start), name: headingKey(row.text) }));
   const wiki = headings.some(({ line }) => WIKI_HEADING.test(lines[line]));
   const declaration = section.trimEnd().split("\n").at(-1);
   const rendered = [
@@ -703,10 +709,11 @@ export function upsertDeclaration(body, section) {
   if (
     first.startsWith("```") ||
     first.startsWith("~~~") ||
+    first.startsWith("<!--") ||
     wikiMarkers(first).length > 0
   )
     throw new ReleaseSwitchError(
-      `The ${RELEASE_SWITCH_HEADING} section starts with a code block. Move the block out of the section, then render again.`
+      `The ${RELEASE_SWITCH_HEADING} section starts with a code block or a comment. Move it out of the section, then render again.`
     );
   return written(
     [

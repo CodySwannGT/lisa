@@ -61,7 +61,7 @@ export function topLevelLines(body) {
  * @param {string} text - Trimmed top-level heading line
  * @returns {string} Comparable heading key
  */
-function headingKey(text) {
+export function headingKey(text) {
   return withoutClosingHashes(text.replace(/^##[ \t]+/, ""))
     .trim()
     .replace(/\s+/g, " ")

@@ -141,4 +141,21 @@ describe("inject-resolved-config: release setting", () => {
     );
     expect(context).toContain("release.switch: mechanism=flags");
   });
+
+  it("never puts the contents of a rejected object or list into the session", () => {
+    const secret = "hunter2-do-not-print";
+    const root = project();
+    writeJson(root, MAIN_CONFIG, {
+      tracker: "github",
+      release: {
+        liveUsers: { password: secret },
+        switch: { mechanism: [secret], guide: { token: secret } },
+      },
+    });
+    const context = contextFor(root);
+
+    expect(context).not.toContain(secret);
+    expect(context).toContain("this project declares an object");
+    expect(context).toContain("this project declares a list");
+  });
 });

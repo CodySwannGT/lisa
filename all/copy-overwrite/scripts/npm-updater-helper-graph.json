@@ -175,7 +175,7 @@
       "children": []
     },
     "lib/completion-proof-markdown.mjs": {
-      "sha256": "8ff9efc772463c3fccf5d6e5a42c73df324babd2e02e66228f2d9a0b1896cbf4",
+      "sha256": "4237e79d9544bfe6e1eec95c0afa219a515d3b65e0061baaac744fa459efe653",
       "staticImports": [
         "lib/completion-proof-errors.mjs"
       ],
@@ -1430,7 +1430,7 @@
       "children": []
     },
     "lib/release-switch.mjs": {
-      "sha256": "998f9872f1ad6c4bbabf9e4aeeadc1af1e87a47474724959881eb99208fb7378",
+      "sha256": "7dc7fa65133b4447edcd5379cb50871faf9efa4c24a5978187af2f33e6f5103e",
       "staticImports": [
         "lib/completion-proof-markdown.mjs",
         "node:child_process",

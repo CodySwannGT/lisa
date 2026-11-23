@@ -879,6 +879,19 @@ function invalidLowConfidenceLine(config, fallback, owner) {
 }
 
 /**
+ * A rejected `release.*` value as it may be put in a session's context. An
+ * object or a list is named by its kind only: this block is injected into
+ * every session, and whatever sits inside a setting that should have been a
+ * word or a yes/no could be a credential that no pattern recognises.
+ * @param {unknown} value The declared value.
+ * @returns {string} Text safe to render.
+ */
+function shownRejected(value) {
+  if (Array.isArray(value)) return "a list";
+  return isObject(value) ? "an object" : JSON.stringify(value);
+}
+
+/**
  * Whether a present `release.liveUsers` is unusable. Only a boolean says
  * anything; `"false"` in quotes must not turn the rule off.
  * @param {unknown} release The resolved `release` value.
@@ -903,10 +916,10 @@ function invalidLiveUsersLine(config, owner) {
   // A `release` that is not an object says nothing, so nothing under it is in
   // force. Printing it as `release: false` would read as "the rule is off".
   if (release !== undefined && !isObject(release)) {
-    return `${LIVE_USERS_PATH}: ${DEFAULT_LIVE_USERS}   [INVALID — this project declares release as ${JSON.stringify(release)}, which is not an object; treated as ${DEFAULT_LIVE_USERS} (the project has live users); owner: ${owner}]`;
+    return `${LIVE_USERS_PATH}: ${DEFAULT_LIVE_USERS}   [INVALID — this project declares release as ${shownRejected(release)}, which is not an object; treated as ${DEFAULT_LIVE_USERS} (the project has live users); owner: ${owner}]`;
   }
   if (liveUsersInvalid(release)) {
-    return `${LIVE_USERS_PATH}: ${DEFAULT_LIVE_USERS}   [INVALID — this project declares ${JSON.stringify(release.liveUsers)}, which is not true or false; treated as ${DEFAULT_LIVE_USERS} (the project has live users); owner: ${owner}]`;
+    return `${LIVE_USERS_PATH}: ${DEFAULT_LIVE_USERS}   [INVALID — this project declares ${shownRejected(release.liveUsers)}, which is not true or false; treated as ${DEFAULT_LIVE_USERS} (the project has live users); owner: ${owner}]`;
   }
   // A key that differs only by letter case is not read at all, and it is the
   // quietest way to believe the rule is off when it is on.
@@ -957,7 +970,7 @@ function invalidSwitchMechanismLine(config, owner) {
   const block = config.release.switch;
   const declared = isObject(block) ? block.mechanism : block;
   const subject = isObject(block) ? "" : "release.switch as ";
-  return `${SWITCH_MECHANISM_PATH}: ${DEFAULT_SWITCH_MECHANISM}   [INVALID — this project declares ${subject}${JSON.stringify(declared)}, which is not ${isObject(block) ? "a non-empty string" : "an object"}; treated as ${DEFAULT_SWITCH_MECHANISM}; owner: ${owner}]`;
+  return `${SWITCH_MECHANISM_PATH}: ${DEFAULT_SWITCH_MECHANISM}   [INVALID — this project declares ${subject}${shownRejected(declared)}, which is not ${isObject(block) ? "a non-empty string" : "an object"}; treated as ${DEFAULT_SWITCH_MECHANISM}; owner: ${owner}]`;
 }
 
 /**
@@ -973,7 +986,7 @@ function invalidSwitchGuideLine(config) {
   const usable = typeof block.guide === "string" && block.guide.trim() !== "";
   return usable
     ? null
-    : `release.switch.guide: not set   [INVALID — this project declares ${JSON.stringify(block.guide)}, which is not a non-empty string; treated as not set; owner: ${RELEASE_OWNER}]`;
+    : `release.switch.guide: not set   [INVALID — this project declares ${shownRejected(block.guide)}, which is not a non-empty string; treated as not set; owner: ${RELEASE_OWNER}]`;
 }
 
 /**

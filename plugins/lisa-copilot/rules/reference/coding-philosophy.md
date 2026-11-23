@@ -218,9 +218,9 @@ Live work is proven **before** it merges, not after. That is what lets it skip t
 
 If you cannot confirm the production value, you cannot claim the work is dark.
 
-**Turning a finished feature on.** A feature is turned on once, by the work item that removes its switch, after the whole feature is verified. An earlier item of the same feature verifies its own part with the switch on outside production and leaves it off in production. Then the agent turns the switch on in production. No person is needed, unless the project lists the decision class `feature-release` in `humanGate.humanOnly`; then that one step is a declared human gate.
+**Turning a finished feature on.** A feature is turned on once, by the work item that removes its switch, after the whole feature is verified. An earlier item of the same feature verifies its own part with the switch on outside production and leaves it off in production. Then, having confirmed that production is running the verified version, the agent turns the switch on in production. The switch is removed only after that, never while the turn-on is still waiting. No person is needed, unless the project lists the decision class `feature-release` in `humanGate.humanOnly`; then that one step is a declared human gate.
 
-**When the branch is not promotable.** A change that shipped without a switch and then fails on a shared branch, at its deployment or at verification, is reverted at once and reworked, and the work item goes back to the ready queue with the failure evidence. It is never left in place to be fixed forward, and it never holds a promotion.
+**When the branch is not promotable.** A change whose failure is live on a shared branch is reverted at once: one that shipped without a switch and fails at verification, one that is switched off but breaks something with the switch off, and any change that breaks the build or the deployment, which no switch can turn off. It is reworked, and the work item goes back to the ready queue with the failure evidence. It is never left in place to be fixed forward, and it never holds a promotion.
 
 **Work items and pull requests say which.** A leaf work item that changes runtime behavior carries a `## Release Switch` section with exactly one line (gate S22 in the `*-validate-*` skills, checked by `scripts/lisa-release-switch.mjs check`):
 

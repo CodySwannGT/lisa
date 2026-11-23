@@ -30,6 +30,7 @@ import {
   resolveReleaseSetting,
   runtimeScope,
   setupProblems,
+  shown,
   switchReferences,
   turnOnOwner,
   turnOnProblems,
@@ -252,6 +253,31 @@ describe("a JIRA declaration that may be inside a code block", () => {
   });
 });
 
+describe("headings the shared section reader accepts", () => {
+  const declaration = `Switched off — ${SWITCH}; removed by this item`;
+  const under = (heading: string): string =>
+    `## Target Backend Environment\n\nproduction\n\n${heading}\n\n${declaration}\n`;
+
+  it.each([
+    ["closing hashes after a space", "## Release Switch ##"],
+    ["closing hashes after a tab", "## Release Switch\t##"],
+    ["extra spacing and another case", "##   release   SWITCH"],
+  ])(
+    "finds the declaration under %s, so the obligation is not lost",
+    (_name, heading) => {
+      expect(parseDeclaration(under(heading))).toMatchObject({
+        mode: "off",
+        switchName: SWITCH,
+      });
+      expect(removalObligation(under(heading), ITEM_REF)).toEqual({
+        switchName: SWITCH,
+      });
+      const rewritten = upsertDeclaration(under(heading), LIVE_SECTION);
+      expect(rewritten.match(/release\s+switch/gi)).toHaveLength(1);
+    }
+  );
+});
+
 describe("a section that is there but says nothing", () => {
   const blank = `## Target Backend Environment\n\nproduction\n\n${SECTION}\n\n## Repository\n\nrepo\n`;
 
@@ -278,6 +304,13 @@ describe("writes that would not be readable are refused", () => {
     const body = `## Target Backend Environment\n\nproduction\n\n${SECTION}\n\n\`\`\`text\n${LIVE_DECLARATION}\n\`\`\`\n\n## Repository\n\nrepo\n`;
     expect(() => upsertDeclaration(body, LIVE_SECTION)).toThrow(
       /starts with a code block/
+    );
+  });
+
+  it("refuses to replace a section that starts with a comment", () => {
+    const body = `## Target Backend Environment\n\nproduction\n\n${SECTION}\n\n<!-- draft\nhidden note\n-->\n\n## Repository\n\nrepo\n`;
+    expect(() => upsertDeclaration(body, LIVE_SECTION)).toThrow(
+      /starts with a code block or a comment/
     );
   });
 
@@ -470,6 +503,23 @@ describe("settings a person might really write", () => {
     expect(setting.problems.join(" ")).toContain(
       "did you mean release.liveUsers?"
     );
+  });
+
+  it("never prints what is inside a rejected object or list", () => {
+    const secret = "hunter2-do-not-print";
+    const problems = setupProblems({
+      release: {
+        liveUsers: { password: secret },
+        switch: { mechanism: [secret], guide: { token: secret } },
+      },
+      humanGate: { humanOnly: { key: secret } },
+    }).join(" ");
+    expect(problems).not.toContain(secret);
+    expect(problems).toContain("release.liveUsers is an object");
+    expect(problems).toContain("release.switch.mechanism is a list");
+    expect(problems).toContain("release.switch.guide is an object");
+    expect(shown("no")).toBe('"no"');
+    expect(shown(7)).toBe("7");
   });
 
   it("names an unknown key under release.switch", () => {
