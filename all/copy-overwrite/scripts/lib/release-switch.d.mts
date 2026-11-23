@@ -37,7 +37,7 @@ export declare const THIS_ITEM: string;
 /** Input this module cannot act on. */
 export declare class ReleaseSwitchError extends Error {}
 /** The project's Lisa config with `.lisa.config.local.json` layered on top. */
-export function readProjectConfig(cwd: string): Record<string, unknown>;
+export function readProjectConfig(cwd: string): unknown;
 /** Who turns a finished, switched-off feature on in production. */
 export function turnOnOwner(config?: unknown): "agent" | "human";
 /** Problems with `humanGate.humanOnly` that affect the production turn-on. */

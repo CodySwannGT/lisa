@@ -45,6 +45,10 @@ const FREE_TEXT = "We will see";
 const WIKI_ENVIRONMENT = "h2. Target Backend Environment";
 const WIKI_SECTION = "h2. Release Switch";
 const WIKI_NOTES = "h2. Notes";
+const CODE_MARKER = "{code}";
+const NOFORMAT_MARKER = "{noformat}";
+const PASTED_LOG = "Error: boom";
+const NOT_AN_OBJECT = "not a JSON object";
 const QUOTED_EXAMPLE = "Switched off — example; removed by this item";
 
 const roots: string[] = [];
@@ -118,70 +122,41 @@ describe("JIRA wiki-markup tickets", () => {
   });
 });
 
-describe("a JIRA ticket that quotes the section in a code block", () => {
-  const body = [
-    WIKI_ENVIRONMENT,
-    "production",
-    "",
-    "h2. Technical Approach",
-    "{code}",
-    WIKI_SECTION,
-    QUOTED_EXAMPLE,
-    "{code}",
-    "",
-  ].join("\n");
-
-  it("does not read the quoted example as the declaration", () => {
-    expect(parseDeclaration(body)).toBeNull();
-  });
-
-  it("leaves the code block intact and adds the real section", () => {
-    const written = upsertDeclaration(body, LIVE_SECTION);
-    expect(written).toContain(
-      "{code}\nh2. Release Switch\nSwitched off — example; removed by this item\n{code}"
-    );
-    expect(parseDeclaration(written)).toEqual(LIVE);
-  });
-});
-
-describe("a code marker that is never closed", () => {
-  // A pasted log often leaves a lone `{code}` line. Reading it as a block that
-  // runs to the end of the body once hid the declaration below it, and the done
-  // gate then closed an item whose switch was still in use.
+describe("wiki code markers are ordinary text", () => {
+  // Skipping headings quoted inside `{code}` blocks was tried and removed:
+  // every way of pairing the markers could be fooled into hiding the real
+  // declaration, and the done gate then closed an item whose switch was still
+  // in use. These are the shapes that broke it.
   const declaration = `Switched off — ${SWITCH}; removed by this item`;
-  const markdown = [
-    "## Target Backend Environment",
-    "",
-    "production",
-    "",
-    "## Notes",
-    "",
-    "The error was pasted from the tracker:",
-    "{code}",
-    "Error: boom",
-    "",
-    SECTION,
-    "",
-    declaration,
-    "",
-  ].join("\n");
-  const jira = [
-    WIKI_ENVIRONMENT,
-    "production",
-    "",
-    WIKI_NOTES,
-    "{code}",
-    "Error: boom",
-    "",
-    WIKI_SECTION,
-    declaration,
-    "",
-  ].join("\n");
+  const below = (...notes: string[]): string =>
+    [
+      WIKI_ENVIRONMENT,
+      "production",
+      "",
+      WIKI_NOTES,
+      ...notes,
+      "",
+      WIKI_SECTION,
+      declaration,
+      "",
+    ].join("\n");
 
   it.each([
-    ["a markdown body", markdown],
-    ["a JIRA body", jira],
-  ])("still reads the declaration below it in %s", (_name, body) => {
+    ["a lone marker", below(CODE_MARKER, PASTED_LOG)],
+    ["a lone noformat marker", below(NOFORMAT_MARKER, PASTED_LOG)],
+    [
+      "an opener with text on its line",
+      below("{code}Error: boom", CODE_MARKER),
+    ],
+    [
+      "a closed block and then a stray marker later in the ticket",
+      `${below(CODE_MARKER, PASTED_LOG)}\nh2. Appendix\n{code}\nselect 1;\n{code}\n`,
+    ],
+    [
+      "a code marker inside a noformat block",
+      below(NOFORMAT_MARKER, CODE_MARKER, "x", NOFORMAT_MARKER),
+    ],
+  ])("reads the declaration below %s", (_name, body) => {
     expect(parseDeclaration(body)).toMatchObject({
       mode: "off",
       switchName: SWITCH,
@@ -192,38 +167,33 @@ describe("a code marker that is never closed", () => {
     expect(checkDeclaration(body, LIVE_USERS).verdict).toBe("PASS");
   });
 
-  it("still fails a malformed declaration below it on an existing item", () => {
-    const body = jira.replace(declaration, FREE_TEXT);
+  it("reads the same shapes in a markdown body", () => {
+    const body = `## Target Backend Environment\n\nproduction\n\n## Notes\n\n{code}\nError: boom\n\n${SECTION}\n\n${declaration}\n`;
+    expect(parseDeclaration(body)).toMatchObject({ switchName: SWITCH });
+  });
+
+  it("still fails a malformed declaration below a stray marker", () => {
+    const body = below(CODE_MARKER, PASTED_LOG).replace(declaration, FREE_TEXT);
     expect(checkDeclaration(body, LIVE_USERS, { existing: true }).verdict).toBe(
       "FAIL"
     );
   });
 
-  it("replaces the section in place instead of appending a new one each run", () => {
-    const once = upsertDeclaration(jira, LIVE_SECTION);
-    const twice = upsertDeclaration(once, LIVE_SECTION);
-    expect(twice).toBe(once);
+  it("writes the section once, however often it is rendered", () => {
+    const once = upsertDeclaration(
+      below(CODE_MARKER, PASTED_LOG),
+      LIVE_SECTION
+    );
+    expect(upsertDeclaration(once, LIVE_SECTION)).toBe(once);
     expect(once.match(/Release Switch/g)).toHaveLength(1);
-    expect(parseDeclaration(once)).toEqual(LIVE);
   });
 
-  it("is not fooled by a {code} line inside a closed {noformat} block", () => {
-    const body = [
-      WIKI_ENVIRONMENT,
-      "production",
-      "",
-      WIKI_NOTES,
-      "{noformat}",
-      "{code}",
-      WIKI_SECTION,
-      QUOTED_EXAMPLE,
-      "{noformat}",
-      "",
-      WIKI_SECTION,
-      declaration,
-      "",
-    ].join("\n");
-    expect(parseDeclaration(body)).toMatchObject({ switchName: SWITCH });
+  it("refuses a ticket that quotes the section inside a wiki code block, as ambiguous", () => {
+    const body = below(CODE_MARKER, WIKI_SECTION, QUOTED_EXAMPLE, CODE_MARKER);
+    expect(() => parseDeclaration(body)).toThrow(/Duplicate Release Switch/);
+    expect(() => upsertDeclaration(body, LIVE_SECTION)).toThrow(
+      /more than one Release Switch/
+    );
   });
 });
 
@@ -243,8 +213,16 @@ describe("setup problems reported in one place", () => {
   });
 
   it("says so when the configuration is not an object at all", () => {
-    expect(setupProblems([]).join(" ")).toContain("not a JSON object");
-    expect(setupProblems(null).join(" ")).toContain("not a JSON object");
+    expect(setupProblems([]).join(" ")).toContain(NOT_AN_OBJECT);
+    expect(setupProblems(null).join(" ")).toContain(NOT_AN_OBJECT);
+  });
+
+  it("reports a config file that is not an object when read from disk", () => {
+    const root = scratch();
+    writeFileSync(path.join(root, ".lisa.config.json"), "[]");
+    expect(setupProblems(readProjectConfig(root)).join(" ")).toContain(
+      NOT_AN_OBJECT
+    );
   });
 
   it("includes release and human-gate problems", () => {

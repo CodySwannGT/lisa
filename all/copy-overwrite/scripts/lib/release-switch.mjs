@@ -88,6 +88,13 @@ function afterLabel(line, label) {
 // JIRA descriptions are written in wiki markup, where a section heading is
 // `h2. Name` and not `## Name`. Both spellings are the same heading here, so a
 // ticket in the JIRA writer's own shape is read like any other.
+//
+// Wiki code blocks (`{code}` … `{code}`) are deliberately NOT understood. An
+// earlier version skipped headings quoted inside them, and every way of
+// pairing the markers could be fooled into hiding the real declaration below a
+// stray one, which let the done gate close an item whose switch was still in
+// use. Without it, a ticket that quotes the section inside a wiki code block
+// has two declarations and is refused as ambiguous: it fails closed.
 const WIKI_HEADING = /^h([1-6])\.[ \t]+/;
 
 /**
@@ -96,16 +103,9 @@ const WIKI_HEADING = /^h([1-6])\.[ \t]+/;
  * @returns {string} The same lines, with `hN. ` headings as `#` headings.
  */
 function markdownHeadings(body) {
-  const lines = body.split("\n");
-  // Only a body written in wiki markup has wiki code blocks. In a markdown
-  // body `{code}` is ordinary text and changes nothing.
-  if (!lines.some(line => WIKI_HEADING.test(line))) return body;
-  const quoted = wikiQuotedLines(lines);
-  return lines
-    .map((line, index) => {
-      // Indenting a quoted line keeps the markdown scanner from reading it as
-      // top level, without changing the line count.
-      if (quoted.has(index)) return `    ${line}`;
+  return body
+    .split("\n")
+    .map(line => {
       const wiki = WIKI_HEADING.exec(line);
       return wiki
         ? `${"#".repeat(Number(wiki[1]))} ${line.slice(wiki[0].length)}`
@@ -114,47 +114,6 @@ function markdownHeadings(body) {
     .join("\n");
 }
 
-/**
- * The kind of wiki code-block marker a line is, if it is one: `{code}`,
- * `{code:title=x}` or `{noformat}` alone on its line.
- * @param {string} line - One body line.
- * @returns {string|null} `code`, `noformat`, or `null`.
- */
-function wikiFenceKind(line) {
-  const marker = line.trim();
-  if (!marker.startsWith("{") || !marker.endsWith("}")) return null;
-  const name = marker.slice(1, -1).split(":")[0];
-  return ["code", "noformat"].includes(name) ? name : null;
-}
-
-/**
- * Indexes of the lines inside a CLOSED wiki code block.
- *
- * A block counts only when its opening marker has a closing marker of the same
- * kind. An opener with no closer is ordinary text: treating it as a block that
- * runs to the end of the body would hide every section after it, including the
- * declaration, and a hidden declaration is one the done gate never enforces.
- * @param {string[]} lines - Body lines.
- * @returns {Set<number>} Indexes of quoted lines, markers excluded.
- */
-function wikiQuotedLines(lines) {
-  const kinds = lines.map(wikiFenceKind);
-  return kinds.reduce(
-    ({ quoted, until }, kind, index) => {
-      if (index <= until || kind === null) return { quoted, until };
-      const close = kinds.indexOf(kind, index + 1);
-      if (close < 0) return { quoted, until };
-      return {
-        quoted: new Set([
-          ...quoted,
-          ...Array.from({ length: close - index - 1 }, (_, n) => index + 1 + n),
-        ]),
-        until: close,
-      };
-    },
-    { quoted: new Set(), until: -1 }
-  ).quoted;
-}
 // A `None —` declaration is how `## Target Backend Environment` says the item
 // changes no runtime behavior (or is a container). The em dash is the machine
 // discriminator the validators already use (gate S8).
@@ -191,10 +150,11 @@ export function readProjectConfig(cwd) {
       ])
     );
   };
-  return merge(
-    readJson(join(cwd, ".lisa.config.json")),
-    readJson(join(cwd, ".lisa.config.local.json"))
-  );
+  const committed = readJson(join(cwd, ".lisa.config.json"));
+  // A config file that is not an object is handed back as it is, so the
+  // problem can be reported; merging would quietly turn it into `{}`.
+  if (!isObject(committed)) return committed;
+  return merge(committed, readJson(join(cwd, ".lisa.config.local.json")));
 }
 
 /**
@@ -695,6 +655,10 @@ const CHANGELOG_FILE = /^changelog(?:\.(?:md|markdown|txt|rst|adoc))?$/i;
  *   read-back that proves a switch is off in production names the switch.
  * - a changelog (`CHANGELOG`, `CHANGELOG.md`, …), which says what was removed.
  * - Lisa's own machine state under `.lisa/`, such as the learnings ledger.
+ *
+ * Everything inside those two folders is treated as a record, code included,
+ * so nothing that reads a switch belongs there. A submodule that is not
+ * checked out has no files to search and is not reported.
  *
  * Everything else counts, prose included: Markdown and MDX can carry template
  * conditionals, a text file can be a flag list, and `ChangelogPage.tsx` or a
