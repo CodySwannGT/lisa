@@ -134,16 +134,18 @@ const isObject = value =>
 export function shown(value) {
   if (Array.isArray(value)) return "a list";
   if (value !== null && typeof value === "object") return "an object";
-  const rendered = JSON.stringify(value);
-  // A word or a yes/no is short. Anything longer is not what belonged in the
-  // setting, so only its start is shown.
-  return rendered.length > SHOWN_LIMIT
-    ? `${rendered.slice(0, SHOWN_LIMIT)}… (${rendered.length} characters)`
-    : rendered;
+  if (typeof value !== "string") return JSON.stringify(value);
+  // A mistyped yes/no or mechanism name is a short plain word, and showing it
+  // helps ("no", "false", "hosted flags"). Anything else is not what belonged
+  // in the setting, and it is described, never quoted: a URL with a password
+  // in it stays a credential however much of it is cut off.
+  return PLAIN_WORD.test(value)
+    ? JSON.stringify(value)
+    : `a string of ${value.length} characters`;
 }
 
-/** Longest rejected value shown whole. */
-const SHOWN_LIMIT = 40;
+/** A short value made only of letters, digits, spaces, dots, underscores and hyphens. */
+const PLAIN_WORD = /^[\w .-]{0,40}$/;
 
 const text = value =>
   typeof value === "string" && value.trim().length > 0 ? value.trim() : null;

@@ -520,8 +520,16 @@ describe("settings a person might really write", () => {
     expect(problems).toContain("release.switch.guide is an object");
     expect(shown("no")).toBe('"no"');
     expect(shown(7)).toBe("7");
-    // A long value is not a word or a yes/no; only its start is shown.
-    expect(shown("x".repeat(200))).toBe(`"${"x".repeat(39)}… (202 characters)`);
+    expect(shown("hosted flags")).toBe('"hosted flags"');
+    // Anything that is not a short plain word is described, never quoted.
+    expect(shown("x".repeat(200))).toBe("a string of 200 characters");
+    const connection = "https://user:hunter2-do-not-print@example.com";
+    expect(shown(connection)).toBe(
+      `a string of ${connection.length} characters`
+    );
+    expect(
+      setupProblems({ release: { liveUsers: connection } }).join(" ")
+    ).not.toContain("hunter2");
   });
 
   it("names an unknown key under release.switch", () => {

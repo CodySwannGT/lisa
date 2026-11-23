@@ -902,16 +902,18 @@ function invalidLowConfidenceLine(config, fallback, owner) {
 function shownRejected(value) {
   if (Array.isArray(value)) return "a list";
   if (isObject(value)) return "an object";
-  const text = JSON.stringify(value);
-  // A word or a yes/no is short. Anything longer is not what belonged here,
-  // so only its start is shown.
-  return text.length > REJECTED_VALUE_LIMIT
-    ? `${text.slice(0, REJECTED_VALUE_LIMIT)}… (${text.length} characters)`
-    : text;
+  if (typeof value !== "string") return JSON.stringify(value);
+  // A mistyped yes/no or mechanism name is a short plain word, and showing it
+  // helps. Anything else is described, never quoted, and never cut short: the
+  // credential scrub runs on whole values, and a connection string with its
+  // host sliced off no longer looks like one to it.
+  return REJECTED_PLAIN_WORD.test(value)
+    ? JSON.stringify(value)
+    : `a string of ${value.length} characters`;
 }
 
-/** Longest rejected value rendered whole. */
-const REJECTED_VALUE_LIMIT = 40;
+/** A short value made only of letters, digits, spaces, dots, underscores and hyphens. */
+const REJECTED_PLAIN_WORD = /^[\w .-]{0,40}$/;
 
 /**
  * Whether a present `release.liveUsers` is unusable. Only a boolean says

@@ -181,15 +181,19 @@ describe("inject-resolved-config: release setting", () => {
     expect(contextFor(root)).toContain("humanOnly=[feature-release]");
   });
 
-  it("shows only the start of a long rejected value", () => {
+  it("describes a rejected value that is not a short plain word, and never quotes it", () => {
+    const connection = "https://user:hunter2-do-not-print@example.com";
     const root = project();
     writeJson(root, MAIN_CONFIG, {
       tracker: "github",
-      release: { liveUsers: "x".repeat(200) },
+      release: { liveUsers: connection },
     });
     const context = contextFor(root);
 
-    expect(context).not.toContain("x".repeat(60));
-    expect(context).toContain("(202 characters)");
+    expect(context).not.toContain("hunter2");
+    expect(context).not.toContain("example.com");
+    expect(context).toContain(
+      `this project declares a string of ${connection.length} characters`
+    );
   });
 });
