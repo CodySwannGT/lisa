@@ -1,0 +1,14 @@
+# What ShellCheck reads in place of the hosted runner's /etc/os-release.
+#
+# inspect-before.sh sources /etc/os-release, which exists on the Ubuntu runner
+# it is written for and not on macOS. ShellCheck follows sourced files, so on a
+# host without that file it reported "Not following" (SC1091) and the lint of a
+# tracked script depended on the machine running it. The script's
+# `# shellcheck source=` hint names this file instead, so every host checks the
+# same thing.
+#
+# Nothing executes this. It declares only the two fields inspect-before.sh
+# reads, in the form the runner's file gives them; the values are the ones
+# that script requires.
+ID=ubuntu
+VERSION_ID="26.04"

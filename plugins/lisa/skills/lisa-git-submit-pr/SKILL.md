@@ -132,6 +132,7 @@ Include in the PR description:
 - **Issue / Tracker link**: The provider-specific native linkage line when a source work item is available, placed after the summary and before the test plan.
 - **How we'll know it works in production**: the signal that will show this change working or failing once deployed — the log line, metric, trace, error-report grouping, or analytics event, and where it lands. For a change with no runtime effect (docs, tests, tooling), say so in one line.
 - **How to undo**: the fastest safe way back if it misbehaves — revert this PR, flip a named flag, roll back a migration (and whether that loses data), or anything else a non-author would need to know.
+- **Safe to promote**: one line saying how this change can be promoted to the next environment as it stands, matching the work item's `## Release Switch` declaration (`coding-philosophy`, "Always Promotable"): either `Live — complete and proven at merge`, or `Switched off — <switch-name>`, naming where the switch is set and confirming it is off in production. Omit the line for a change with no runtime effect, and in a project that sets `release.liveUsers: false`.
 - **Also fixed**: any defect in code this change touches or depends on that was fixed along the way, one line each (omit the section when there are none).
 
 ### Never

@@ -37,6 +37,7 @@ const COMMON = [
   "lib/work-item-estimate-check.mjs",
   "lib/work-item-estimate-config.mjs",
   "lib/work-item-estimate-tally.mjs",
+  "lib/release-switch.mjs",
   "lib/process-tree-runner.mjs",
   "lib/windows-process-job.mjs",
   "lib/windows-process-job.ps1",

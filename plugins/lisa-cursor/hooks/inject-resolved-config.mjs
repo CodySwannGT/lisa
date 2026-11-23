@@ -260,6 +260,29 @@ const LOW_CONFIDENCE_VALUES = ["human-triage", "auto-merge"];
 const DEFAULT_MODE = HUMAN_GATE_MODE_VALUES[0];
 
 /**
+ * Whether the project has live users (CodySwannGT/lisa#5188). It decides
+ * whether the always-promotable rule applies, so a session must see how it
+ * resolved even when the project declares nothing. Absent means `true`; a value
+ * that is not a boolean is treated as `true`, the stricter option. Both, and
+ * the fallback switch mechanism below, are copied from
+ * `all/copy-overwrite/scripts/lib/release-switch.mjs` (not importable from a
+ * plugin payload) and pinned against it by this hook's wiring test.
+ */
+const LIVE_USERS_PATH = "release.liveUsers";
+
+/** What `release.liveUsers` resolves to when absent or invalid. */
+const DEFAULT_LIVE_USERS = "true";
+
+/** The switch mechanism a project names, if any. */
+const SWITCH_MECHANISM_PATH = "release.switch.mechanism";
+
+/** The mechanism in force when none is named: a plain configuration value that defaults to off. */
+const DEFAULT_SWITCH_MECHANISM = "config-value";
+
+/** The module that owns the `release.*` setting. */
+const RELEASE_OWNER = "all/copy-overwrite/scripts/lib/release-switch.mjs";
+
+/**
  * Keys Lisa supplies a built-in value for when a project declares none.
  *
  * Each entry names the module that OWNS the constant. This table is a copy for
@@ -315,6 +338,12 @@ export const BUILT_IN_DEFAULTS = [
     strict: "default",
     owner: "src/core/project-config-dependencies.ts",
   },
+  { path: LIVE_USERS_PATH, value: DEFAULT_LIVE_USERS, owner: RELEASE_OWNER },
+  {
+    path: SWITCH_MECHANISM_PATH,
+    value: DEFAULT_SWITCH_MECHANISM,
+    owner: RELEASE_OWNER,
+  },
 ];
 
 /**
@@ -341,6 +370,7 @@ const SUBTREE_ORDER = [
   "repo",
   "workItem",
   "deploy",
+  "release",
   "github",
   "jira",
   "linear",
@@ -812,12 +842,25 @@ function invalidModeLine(config, owner) {
 function renderHumanGate(config, out) {
   const block = config.humanGate;
   if (!isObject(block)) return;
-  const { mode: _mode, ...rest } = block;
+  const { mode: _mode, humanOnly, ...rest } = block;
   const resolution = modeResolution(config);
   if (resolution.declared && resolution.rejected.length === 0) {
     out.push(`${HUMAN_GATE_MODE_PATH}: ${resolution.mode}`);
   }
-  renderSubtree(rest, "humanGate", out);
+  // `humanOnly` is a list of decision classes. Anything else names none, and
+  // is stated by kind only: its contents are not ours to print into a session.
+  if (humanOnly !== undefined && !Array.isArray(humanOnly)) {
+    out.push(
+      `humanGate.humanOnly: INVALID — this project declares ${shownRejected(humanOnly)}, which is not a list of decision classes.`
+    );
+    renderSubtree(rest, "humanGate", out);
+    return;
+  }
+  renderSubtree(
+    humanOnly === undefined ? rest : { ...rest, humanOnly },
+    "humanGate",
+    out
+  );
 }
 
 /**
@@ -846,6 +889,176 @@ function invalidLowConfidenceLine(config, fallback, owner) {
     .map(value => `"${value}"`)
     .join(" | ");
   return `${LOW_CONFIDENCE_PATH}: ${fallback}   [INVALID — this project declares ${JSON.stringify(config.learnings.lowConfidence)}, which is not one of ${accepted}; treated as ${fallback}; owner: ${owner}]`;
+}
+
+/**
+ * A rejected `release.*` value as it may be put in a session's context. An
+ * object or a list is named by its kind only: this block is injected into
+ * every session, and whatever sits inside a setting that should have been a
+ * word or a yes/no could be a credential that no pattern recognises.
+ * @param {unknown} value The declared value.
+ * @returns {string} Text safe to render.
+ */
+function shownRejected(value) {
+  if (Array.isArray(value)) return "a list";
+  if (isObject(value)) return "an object";
+  if (typeof value !== "string") return JSON.stringify(value);
+  // A mistyped yes/no or mechanism name is a short plain word, and showing it
+  // helps. Anything else is described, never quoted, and never cut short: the
+  // credential scrub runs on whole values, and a connection string with its
+  // host sliced off no longer looks like one to it.
+  return REJECTED_PLAIN_WORD.test(value)
+    ? JSON.stringify(value)
+    : `a string of ${value.length} characters`;
+}
+
+/** A short value made only of letters, digits, spaces, dots, underscores and hyphens. */
+const REJECTED_PLAIN_WORD = /^[\w .-]{0,40}$/;
+
+/**
+ * Whether a present `release.liveUsers` is unusable. Only a boolean says
+ * anything; `"false"` in quotes must not turn the rule off.
+ * @param {unknown} release The resolved `release` value.
+ * @returns {boolean} True when the key is present and not a boolean.
+ */
+function liveUsersInvalid(release) {
+  return (
+    isObject(release) &&
+    "liveUsers" in release &&
+    typeof release.liveUsers !== "boolean"
+  );
+}
+
+/**
+ * The INVALID line for an unusable `release.liveUsers`.
+ * @param {object} config Resolved config.
+ * @param {string} owner Module that owns the setting.
+ * @returns {string|null} The line, or null when the value is absent or valid.
+ */
+function invalidLiveUsersLine(config, owner) {
+  const release = config.release;
+  // A `release` that is not an object says nothing, so nothing under it is in
+  // force. Printing it as `release: false` would read as "the rule is off".
+  if (release !== undefined && !isObject(release)) {
+    return `${LIVE_USERS_PATH}: ${DEFAULT_LIVE_USERS}   [INVALID — this project declares release as ${shownRejected(release)}, which is not an object; treated as ${DEFAULT_LIVE_USERS} (the project has live users); owner: ${owner}]`;
+  }
+  if (liveUsersInvalid(release)) {
+    return `${LIVE_USERS_PATH}: ${DEFAULT_LIVE_USERS}   [INVALID — this project declares ${shownRejected(release.liveUsers)}, which is not true or false; treated as ${DEFAULT_LIVE_USERS} (the project has live users); owner: ${owner}]`;
+  }
+  // A key that differs only by letter case is not read at all, and it is the
+  // quietest way to believe the rule is off when it is on.
+  const misspelt = misspeltLiveUsersKey(release);
+  return misspelt === null || "liveUsers" in release
+    ? null
+    : `${LIVE_USERS_PATH}: ${DEFAULT_LIVE_USERS}   [INVALID — this project declares release.${misspelt}, which Lisa does not read (the key is ${LIVE_USERS_PATH}); treated as ${DEFAULT_LIVE_USERS} (the project has live users); owner: ${owner}]`;
+}
+
+/**
+ * A `release` key that spells `liveUsers` with different letter case.
+ * @param {unknown} release The resolved `release` value.
+ * @returns {string|null} The key as written, or null when there is none.
+ */
+function misspeltLiveUsersKey(release) {
+  if (!isObject(release)) return null;
+  return (
+    Object.keys(release).find(
+      key => key !== "liveUsers" && key.toLowerCase() === "liveusers"
+    ) ?? null
+  );
+}
+
+/**
+ * Whether the declared switch mechanism is unusable: `release.switch` that is
+ * not an object, or a mechanism that is not a non-empty string.
+ * @param {unknown} release The resolved `release` value.
+ * @returns {boolean} True when a mechanism was declared and cannot be used.
+ */
+function switchMechanismInvalid(release) {
+  if (!isObject(release) || !("switch" in release)) return false;
+  const block = release.switch;
+  if (!isObject(block)) return true;
+  return (
+    "mechanism" in block &&
+    !(typeof block.mechanism === "string" && block.mechanism.trim() !== "")
+  );
+}
+
+/**
+ * The INVALID line for an unusable `release.switch.mechanism`.
+ * @param {object} config Resolved config.
+ * @param {string} owner Module that owns the setting.
+ * @returns {string|null} The line, or null when the value is absent or valid.
+ */
+function invalidSwitchMechanismLine(config, owner) {
+  if (!switchMechanismInvalid(config.release)) return null;
+  const block = config.release.switch;
+  const declared = isObject(block) ? block.mechanism : block;
+  const subject = isObject(block) ? "" : "release.switch as ";
+  return `${SWITCH_MECHANISM_PATH}: ${DEFAULT_SWITCH_MECHANISM}   [INVALID — this project declares ${subject}${shownRejected(declared)}, which is not ${isObject(block) ? "a non-empty string" : "an object"}; treated as ${DEFAULT_SWITCH_MECHANISM}; owner: ${owner}]`;
+}
+
+/**
+ * The INVALID line for a `release.switch.guide` that is not a non-empty
+ * string. The guide has no default, so nothing else would mention it, and
+ * dropping it in silence would hide a problem the doctor check reports.
+ * @param {object} config Resolved config.
+ * @returns {string|null} The line, or null when the guide is absent or usable.
+ */
+function invalidSwitchGuideLine(config) {
+  const block = isObject(config.release) ? config.release.switch : undefined;
+  if (!isObject(block) || !("guide" in block)) return null;
+  const usable = typeof block.guide === "string" && block.guide.trim() !== "";
+  return usable
+    ? null
+    : `release.switch.guide: not set   [INVALID — this project declares ${shownRejected(block.guide)}, which is not a non-empty string; treated as not set; owner: ${RELEASE_OWNER}]`;
+}
+
+/**
+ * Dotted names of the keys under `release` and `release.switch` that Lisa does
+ * not read, the misspelt live-users key excluded (its own INVALID line names
+ * it).
+ * @param {unknown} release The resolved `release` value.
+ * @returns {string[]} Key paths, in declaration order.
+ */
+function unreadReleaseKeys(release) {
+  if (!isObject(release)) return [];
+  const misspelt = misspeltLiveUsersKey(release);
+  const block = isObject(release.switch) ? release.switch : {};
+  return [
+    ...Object.keys(release)
+      .filter(key => !["liveUsers", "switch", misspelt].includes(key))
+      .map(key => `release.${key}`),
+    ...Object.keys(block)
+      .filter(key => !["mechanism", "guide"].includes(key))
+      .map(key => `release.switch.${key}`),
+  ].filter(path => !path.split(".").at(-1).startsWith("_"));
+}
+
+/**
+ * The `release` block with every unusable value removed, so the subtree
+ * renderer never prints a rejected value as if it were in force. Each removed
+ * value is stated once, by its INVALID gap line.
+ * @param {unknown} release The resolved `release` value.
+ * @returns {object|null} What may be rendered, or null when nothing may.
+ */
+function usableRelease(release) {
+  if (!isObject(release)) return null;
+  const { liveUsers, switch: block } = release;
+  const text = value => typeof value === "string" && value.trim() !== "";
+  // Only the keys Lisa reads are rendered with their values. A key it does not
+  // read (a misspelling, or anything else) would otherwise be printed in full
+  // and look like a setting in force; those are named by key in one line.
+  const usableSwitch = isObject(block)
+    ? Object.fromEntries(
+        ["mechanism", "guide"]
+          .filter(key => text(block[key]))
+          .map(key => [key, block[key]])
+      )
+    : {};
+  return {
+    ...(typeof liveUsers === "boolean" ? { liveUsers } : {}),
+    ...(Object.keys(usableSwitch).length > 0 ? { switch: usableSwitch } : {}),
+  };
 }
 
 /**
@@ -889,7 +1102,11 @@ function renderDefaults(config) {
           ? invalidModeLine(config, owner)
           : path === LOW_CONFIDENCE_PATH
             ? invalidLowConfidenceLine(config, strict ?? value, owner)
-            : null;
+            : path === LIVE_USERS_PATH
+              ? invalidLiveUsersLine(config, owner)
+              : path === SWITCH_MECHANISM_PATH
+                ? invalidSwitchMechanismLine(config, owner)
+                : null;
     if (invalid !== null) {
       lines.push(invalid);
       continue;
@@ -954,6 +1171,8 @@ function renderBody(config) {
   // so it is the line that must survive.
   /** @type {string[]} */
   const lines = renderDefaults(config);
+  const guide = invalidSwitchGuideLine(config);
+  if (guide !== null) lines.push(guide);
   const notification = renderNotificationLevel(config.sessionManager);
   if (notification !== null) lines.push(notification);
   const gapLines = lines.length;
@@ -989,6 +1208,19 @@ function renderBody(config) {
     }
     if (key === "humanGate") {
       renderHumanGate(config, lines);
+      continue;
+    }
+    if (key === "release") {
+      // Invalid values are stated once, by their INVALID gap lines; never as
+      // if they were in force.
+      const usable = usableRelease(config.release);
+      if (usable !== null) renderSubtree(usable, key, lines);
+      const unread = unreadReleaseKeys(config.release);
+      if (unread.length > 0) {
+        lines.push(
+          `release: keys Lisa does not read (values not shown): ${unread.join(", ")}`
+        );
+      }
       continue;
     }
     if (key === "learnings" && lowConfidenceInvalid(config.learnings)) {

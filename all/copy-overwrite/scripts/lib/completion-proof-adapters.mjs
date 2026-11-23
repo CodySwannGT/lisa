@@ -11,6 +11,12 @@ import {
   MAX_NATIVE_JSON_BYTES,
   requireProof,
 } from "./completion-proof-shape.mjs";
+import {
+  NO_REPLACE,
+  ReleaseSwitchError,
+  resolveReleaseSetting,
+  switchReferences,
+} from "./release-switch.mjs";
 
 const READ_ERROR = "read-error";
 const WRITE_ERROR = "write-error";
@@ -29,6 +35,56 @@ function estimateSettings(config) {
   } catch (error) {
     if (!(error instanceof EstimateConfigError)) throw error;
     return { required: true, error: error.message };
+  }
+}
+
+/**
+ * Where a release switch is still referenced, for the switch-removal done gate
+ * (CodySwannGT/lisa#5188).
+ *
+ * It searches the production commit the accepted proof names, never a branch
+ * or the working tree. A finish often runs from a checkout that is behind, or
+ * on a feature branch that still carries the switch; a local `origin/<branch>`
+ * that predates the merge would answer "no references" for a switch that is in
+ * production. The proof's snapshot is the one tree the verification actually
+ * covered. When this checkout does not have that commit, or the search cannot
+ * run, that is a read error, never "no references".
+ */
+function trackedSwitchReferences(run, switchName, snapshot) {
+  const known =
+    typeof snapshot === "string" &&
+    run("git", [NO_REPLACE, "cat-file", "-e", `${snapshot}^{commit}`], {
+      allowFailure: true,
+    }).status === 0;
+  if (!known)
+    throw new CompletionProofError(
+      READ_ERROR,
+      `This checkout does not have the production commit the accepted proof names (${String(snapshot)}), so it cannot be searched for release switch ${JSON.stringify(switchName)}. Get that exact commit, then finish this item again: run git fetch origin, and in a shallow checkout deepen it (git fetch --unshallow) or use a full clone.`
+    );
+  try {
+    return {
+      searched: `production commit ${snapshot.slice(0, 12)}`,
+      files: switchReferences(switchName, {
+        revision: snapshot,
+        run: args => {
+          const result = run("git", args, {
+            allowFailure: true,
+            maxBuffer: MAX_NATIVE_JSON_BYTES,
+          });
+          // Any diagnostic on stderr is a failure, whatever the exit status:
+          // a search that skipped an unreadable object is not an answer.
+          if (result.status === 0 && result.stderr.trim() === "")
+            return result.stdout;
+          throw Object.assign(new Error(result.stderr), {
+            status: result.status,
+            stderr: result.stderr,
+          });
+        },
+      }),
+    };
+  } catch (error) {
+    if (!(error instanceof ReleaseSwitchError)) throw error;
+    throw new CompletionProofError(READ_ERROR, error.message);
   }
 }
 
@@ -185,6 +241,9 @@ export function completionContext(options) {
     suppliedPrUrl: options.prUrl,
     policy: options.config.verification?.completion ?? {},
     estimate: estimateSettings(options.config),
+    release: resolveReleaseSetting(options.config),
+    switchReferences: (switchName, snapshot) =>
+      trackedSwitchReferences(run, switchName, snapshot),
     run,
     declares,
     readSubject,

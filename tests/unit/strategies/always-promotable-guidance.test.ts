@@ -1,0 +1,222 @@
+/**
+ * The always-promotable rule and the guidance that carries it
+ * (CodySwannGT/lisa#5188) reach every supported agent's shipped copy.
+ *
+ * The rule is prose, so what is pinned here is small on purpose: the statement
+ * itself, the machine-read tokens the shipped script parses (`## Release
+ * Switch`, gate S22, `feature-release`), and the two behaviors an owner ruled
+ * on (the agent turns a verified feature on; a failed live change is reverted).
+ * Each is read from the source tree AND from every generated tree, because a
+ * rule that exists only in `plugins/src` reaches no agent at all.
+ * @module tests/unit/strategies/always-promotable-guidance
+ */
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+
+import { describe, expect, it } from "vitest";
+
+import {
+  LIVE_DECLARATION,
+  RELEASE_DECISION_CLASS,
+  RELEASE_SWITCH_HEADING,
+} from "../../../all/copy-overwrite/scripts/lib/release-switch.mjs";
+import {
+  SKILL_ROOTS,
+  VALIDATORS,
+  WRITERS,
+  readSkill,
+} from "./runtime-behavior-change-sources.js";
+
+/** The statement the owner agreed, word for word. */
+const STATEMENT =
+  "**Always promotable.** Whatever is on a shared branch can be promoted to the next environment as it stands. Most changes meet this by being complete and proven when they merge, and need nothing more. Only new behavior that merges before it is finished or verified is switched off, and that switch is removed once it is. If the branch is not promotable, fixing or reverting that comes before any other work.";
+
+const EAGER = "eager/coding-philosophy.md";
+const REFERENCE = "reference/coding-philosophy.md";
+
+/**
+ * Every shipped copy of the coding-philosophy rule, eager and reference. Devin
+ * and Copilot keep the nested `rules/` tree; Cursor flattens it to `.mdc`.
+ * Antigravity ships no rules tree, so it gets the rule through the skills that
+ * cite it, asserted separately below.
+ */
+const RULE_COPIES = [
+  ["plugins/src/base/rules", EAGER, REFERENCE],
+  ["plugins/lisa/rules", EAGER, REFERENCE],
+  ["plugins/lisa-copilot/rules", EAGER, REFERENCE],
+  ["plugins/lisa-devin/rules", EAGER, REFERENCE],
+  [
+    "plugins/lisa-cursor/rules",
+    "coding-philosophy.mdc",
+    "coding-philosophy-reference.mdc",
+  ],
+] as const;
+
+const read = (...segments: string[]): string =>
+  readFileSync(path.resolve(...segments), "utf-8");
+
+describe("always-promotable rule text", () => {
+  it.each(RULE_COPIES)(
+    "is in the always-loaded coding philosophy under %s",
+    (root, eager) => {
+      const rule = read(root, eager);
+      expect(rule).toContain("**Always promotable.**");
+      expect(rule).toContain("A shared branch is promotable as it stands.");
+      expect(rule).toContain(
+        "switch off only unfinished or unverified new behavior"
+      );
+      expect(rule).toContain(
+        "Revert a failed live change; unblock the branch first."
+      );
+    }
+  );
+
+  it.each(RULE_COPIES)(
+    "carries the agreed statement word for word in the reference under %s",
+    (root, _eager, reference) => {
+      const rule = read(root, reference);
+      expect(rule).toContain(STATEMENT);
+      // The one-question test and the no-switch cases are what keep the switch
+      // the exception; without them the rule reads as "flag everything".
+      expect(rule).toContain(
+        "if this were promoted to production right now, would a user see something unfinished or unproven?"
+      );
+      expect(rule).toContain(
+        "Bug fixes, small tweaks, copy changes, refactors and dependency updates"
+      );
+      expect(rule).toContain(
+        "Never add a switch to work that is complete and proven when it merges."
+      );
+      expect(rule).toContain("release.liveUsers");
+      expect(rule).toContain(RELEASE_DECISION_CLASS);
+    }
+  );
+});
+
+describe.each(SKILL_ROOTS)("always-promotable guidance under %s", root => {
+  it.each(VALIDATORS)("%s defines gate S22 and reports it", slug => {
+    const skill = readSkill(root, slug);
+    expect(skill).toContain(
+      "| S22 Release switch declaration | `technical` | false |"
+    );
+    expect(skill).toContain("#### S22 — Release switch declaration");
+    expect(skill).toContain(
+      "- [PASS|FAIL|N/A] S22 Release switch declaration — <one-line reason>"
+    );
+    expect(skill).toContain(
+      "node scripts/lisa-release-switch.mjs check --body-file"
+    );
+    expect(skill).toContain("--existing true");
+    expect(skill).toContain(`## ${RELEASE_SWITCH_HEADING}`);
+    expect(skill).toContain(LIVE_DECLARATION);
+    expect(skill).toContain(
+      "Switched off — <switch-name>; removed by this item"
+    );
+    expect(skill).toContain(
+      "this gate never asks for a switch on work that is complete and proven when it merges"
+    );
+    expect(skill).toContain("The question decides, not the kind of work.");
+  });
+
+  it.each(WRITERS)("%s renders the declaration", slug => {
+    const skill = readSkill(root, slug);
+    expect(skill).toContain(`${RELEASE_SWITCH_HEADING}\n[GENERATED by`);
+    expect(skill).toContain("node scripts/lisa-release-switch.mjs render");
+    expect(skill).toContain(LIVE_DECLARATION);
+    expect(skill).toContain("never gets a\n switch");
+  });
+
+  it("lisa-track writes a missing declaration at claim time", () => {
+    const skill = readSkill(root, "lisa-track");
+    expect(skill).toContain("**Release switch before any work**");
+    expect(skill).toContain(
+      "release_switch_outcome: present|written|failed|n/a"
+    );
+  });
+
+  it("planning and building apply the one-question test and keep switches off finished work", () => {
+    for (const slug of ["lisa-implement", "lisa-task-decomposition"]) {
+      const skill = readSkill(root, slug);
+      expect(skill).toContain(
+        "if this were promoted to production right now, would a user see something unfinished or unproven?"
+      );
+      expect(skill).toMatch(/Never add a switch to work that is complete/);
+      expect(skill).toContain(
+        "ug fixes, small tweaks, copy changes, refactors and dependency updates"
+      );
+    }
+  });
+
+  it.each(["lisa-implement", "lisa-verify"])(
+    "%s covers the turn-on, the reserved decision class and the revert",
+    slug => {
+      const skill = readSkill(root, slug);
+      expect(skill).toMatch(/turn (the switch|it) on in production yourself/);
+      // A feature split across several items is turned on once, by the item
+      // that removes its switch, never after the first item passes.
+      expect(skill).toContain(
+        "Only the item that removes the switch turns the feature on"
+      );
+      expect(skill).toContain(RELEASE_DECISION_CLASS);
+      expect(skill).toContain("humanGate.humanOnly");
+      expect(skill).toMatch(/[Rr]evert (it|the merged change) at once/);
+      expect(skill).toContain(
+        "return the work item to the ready queue with the failure evidence"
+      );
+      expect(skill).toMatch(/never hold a promotion/i);
+    }
+  );
+
+  it("the merge flow prints the no-live-users notice without blocking", () => {
+    const skill = readSkill(root, "lisa-drive-pr-to-merge");
+    expect(skill).toContain(
+      "node scripts/lisa-release-switch.mjs notice --base <baseRefName>"
+    );
+    expect(skill).toContain("always\nexits 0 and never blocks");
+  });
+
+  it("pull requests carry the same declaration next to how to undo", () => {
+    const skill = readSkill(root, "lisa-git-submit-pr");
+    const undo = skill.indexOf("- **How to undo**");
+    const promote = skill.indexOf("- **Safe to promote**");
+    expect(undo).toBeGreaterThan(-1);
+    expect(promote).toBeGreaterThan(undo);
+    expect(skill.slice(promote)).toContain(LIVE_DECLARATION);
+  });
+
+  it("the doctor skill reports the setting", () => {
+    const skill = readSkill(root, "lisa-doctor");
+    expect(skill).toContain("Always-promotable setting audit");
+    expect(skill).toContain("node scripts/lisa-release-switch.mjs config");
+  });
+});
+
+describe("always-promotable surfaces outside the plugin trees", () => {
+  it("this repository's pull request template asks for the declaration", () => {
+    const template = read(".github/pull_request_template.md");
+    expect(template).toContain("## Safe to promote");
+    expect(template).toContain(LIVE_DECLARATION);
+  });
+
+  it("documents the settings where project options are documented", () => {
+    const rule = read("plugins/src/base/rules/reference/config-resolution.md");
+    expect(rule).toContain("| `release.liveUsers` | no | `true` |");
+    expect(rule).toContain(
+      "| `release.switch.mechanism` | no | `config-value` |"
+    );
+    expect(rule).toContain("| `release.switch.guide` | no |");
+    expect(rule).toContain(`Listing \`${RELEASE_DECISION_CLASS}\` reserves`);
+  });
+
+  it("ships the script to host projects and keeps the repository entry point", () => {
+    expect(
+      existsSync("all/copy-overwrite/scripts/lisa-release-switch.mjs")
+    ).toBe(true);
+    expect(
+      existsSync("all/copy-overwrite/scripts/lib/release-switch.mjs")
+    ).toBe(true);
+    expect(read("scripts/lisa-release-switch.mjs")).toContain(
+      "../all/copy-overwrite/scripts/lisa-release-switch.mjs"
+    );
+  });
+});

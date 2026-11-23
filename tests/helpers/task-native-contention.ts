@@ -1,11 +1,5 @@
 /** Deterministic rendezvous at a real syscall, never a guessed overlap sleep. */
-import {
-  existsSync,
-  readFileSync,
-  readdirSync,
-  writeFileSync,
-  watch,
-} from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import {
@@ -23,6 +17,27 @@ import type {
   NativeFixture,
   NativeEvent,
 } from "./task-native-contention-process.js";
+/**
+ * How often the driver looks for the marker the contender writes at its EEXIST.
+ *
+ * The contender retries its exclusive open every 10 ms and gives up after one
+ * second. That bound is production's and is what these cases exercise, so the
+ * hand-over has to reach the holder well inside it, and a directory watch
+ * cannot promise that. On macOS `fs.watch` on a directory is delivered by the
+ * machine-wide FSEvents daemon, with no latency bound. Measured on a
+ * workstation running many agent sessions, with that daemon at 100% CPU: a
+ * file created in a watched directory was reported 566 to 5854 ms later and
+ * sometimes not within 6 s, and in three instrumented runs of the serializing
+ * case the watch delivered nothing before the contender had timed out. The
+ * case then failed for a reason unrelated to the serialization it checks.
+ *
+ * Looking for the marker every 5 ms released the holder 3 to 6 ms after the
+ * real EEXIST in the same measurement, inside the contender's next retry.
+ *
+ * This is not an overlap sleep, and nothing is released on a timer: the holder
+ * is released only once the marker written at the real syscall exists.
+ */
+const MARKER_POLL_MS = 5;
 /** Snapshot temporary hashes without raw private scope or provider values.
  * @param f - Owned fixture.
  * @returns Exact epoch and state byte hashes.
@@ -103,9 +118,14 @@ async function contend(
     `readiness-${holder.key}.json.lock`
   );
   const marker = path.join(f.root, "contender-eexist");
-  const watcher = watch(f.root, () => {
-    if (!exhaust && existsSync(marker)) void holder.release();
-  });
+  // The exhausting case keeps the holder to the end, so it looks for nothing.
+  const sighting = exhaust
+    ? undefined
+    : setInterval(() => {
+        if (!existsSync(marker)) return;
+        clearInterval(sighting);
+        void holder.release();
+      }, MARKER_POLL_MS);
   const hook = startNativeHook(f, event, {
     ...f.primary,
     NODE_OPTIONS: `--require ${f.instrumentation.observer}`,
@@ -119,7 +139,7 @@ async function contend(
     if (exhaust) await holder.release();
     return { result, heldAfter, contended };
   } finally {
-    watcher.close();
+    clearInterval(sighting);
     hook.stop();
     await hook.terminal;
   }

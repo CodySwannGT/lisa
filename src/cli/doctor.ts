@@ -43,6 +43,7 @@ import { checkSkipJobsMigration } from "./doctor-skip-jobs-migration.js";
 import { checkTwoChannelDrift } from "./doctor-two-channel-drift.js";
 import { checkNightlyE2eBypassArming } from "./doctor-nightly-e2e-bypass-arming.js";
 import { checkNightlyE2eGuard } from "./doctor-nightly-e2e-guard.js";
+import { checkReleaseSetting } from "./doctor-release-setting.js";
 import { checkWiki } from "./doctor-wiki.js";
 import { checkDeclaredContexts } from "./doctor-declared-contexts.js";
 import { checkTraceabilityGate } from "./doctor-traceability-gate.js";
@@ -438,6 +439,7 @@ export async function runDoctor(
     await checkWorktreeWorkAtRisk(resolvedTarget),
     await checkStarterHealth(deps, options.offline === true),
     checkWiki(resolvedTarget),
+    checkReleaseSetting(resolvedTarget),
     ...(options.readiness === true
       ? [await checkRepositoryReadiness(resolvedTarget)]
       : []),

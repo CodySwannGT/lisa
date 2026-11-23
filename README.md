@@ -547,6 +547,27 @@ Lisa can watch a queue of ready work and dispatch each item through the lifecycl
 > **Prompt for your coding agent**
 > "Which commands let this Lisa scan a work queue, dispatch ready items, repair stuck ones, and report on scheduled-automation health? Show me how I'd point one at my queue and what it expects in configuration."
 
+### Keeping every branch promotable
+
+A piece of work should never block a deployment. Lisa holds agents to one rule: whatever is on a shared branch can be promoted to the next environment as it stands, so promoting staging to production is one step and never a job of picking out the changes that are ready.
+
+Most work meets the rule with no extra effort. A bug fix, a small tweak or a refactor is finished and proven when it merges. Only new behavior that merges before it is finished or verified is switched off, and the switch comes out once the feature is on. A change that turns out to be wrong after it merges is reverted straight away.
+
+Each ticket says which case it is, and Lisa checks that a switch is really gone from what is in production before it closes the ticket that removes it. Lisa does not ship a feature-flag tool: your project keeps whatever it already uses.
+
+Three settings in `.lisa.config.json` control this. All are optional:
+
+| Setting | What it means |
+| --- | --- |
+| `release.liveUsers` | Whether the project has live users. Leave it out, or set `true`, and the rule applies. Set `false` for a project that is not launched yet and the rule is off. Lisa reminds you of the setting whenever a production deployment happens while it is `false`. |
+| `release.switch.mechanism` | The name of what your project uses to switch work off, for example a hosted flag service or a config file. Left out, agents use a plain configuration value that defaults to off. |
+| `release.switch.guide` | Where your own instructions for adding and removing a switch live. |
+
+An agent turns a finished feature on in production by itself once its verification passes. To keep that step for a person, add `"feature-release"` to `humanGate.humanOnly`.
+
+> **Prompt for your coding agent**
+> "Show me how this project's always-promotable setting resolved: does Lisa treat the project as having live users, which switch mechanism will agents use, and who turns a finished feature on in production? Run the project's release-switch script, don't answer from memory."
+
 ### Running several agents on one machine
 
 Test runners size themselves to the machine, not to what else is running on it. Left alone, each run claims roughly one worker per core, so *k* agents working at once claim *k* × cores. That is not merely slow: past a certain point the machine starts terminating processes, and a gate that was killed looks exactly like a gate that failed — so an agent "fixes" a phantom, retries, and adds the load that kills the next run.

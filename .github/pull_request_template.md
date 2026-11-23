@@ -22,6 +22,22 @@ Format: owner/repo#123 (for example CodySwannGT/lisa#1978).
 
 Work-Item: CodySwannGT/lisa#0
 
+## How to undo
+
+<!-- The fastest safe way back if this misbehaves: revert this pull request, flip a named switch, or roll back a migration (and whether that loses data). -->
+
+## Safe to promote
+
+<!--
+One line, matching the work item's "Release Switch" section. Whatever is on
+main can be released as it stands, so say which of these this change is:
+
+  Live — complete and proven at merge
+  Switched off — <switch-name> (where it is set, and that it is off in production)
+
+Delete this section for a change with no runtime effect (docs, tests, tooling).
+-->
+
 ## Verification
 
 <!-- How you proved this works: commands run, output observed, tests added. -->

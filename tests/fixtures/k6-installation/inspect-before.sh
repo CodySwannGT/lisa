@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 set -eu
+# ShellCheck cannot follow the runner's /etc/os-release on a host without one,
+# so the hint names a stand-in declaring the fields read below. It changes
+# nothing at run time: this still sources the runner's own file.
+# shellcheck source=os-release.txt
 . /etc/os-release
 test "$ID" = ubuntu
 test "$VERSION_ID" = 26.04

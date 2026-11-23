@@ -108,7 +108,7 @@
       "children": []
     },
     "lib/completion-authorization.mjs": {
-      "sha256": "a9c3fa0ee9c3de9c610e009c6775088237c1e8ebd69ff4d9fd829de2db1c206a",
+      "sha256": "30f38c454a58a37997919e3e878c133887ec4f56733bc52128f195de04ef0233",
       "staticImports": [
         "lib/completion-proof-conformance.mjs",
         "lib/completion-proof-content.mjs",
@@ -116,15 +116,17 @@
         "lib/completion-proof-reader.mjs",
         "lib/completion-proof-shape.mjs",
         "lib/completion-proof-source.mjs",
+        "lib/release-switch.mjs",
         "lib/work-item-estimate-check.mjs"
       ],
       "dynamicImports": [],
       "children": []
     },
     "lib/completion-proof-adapters.mjs": {
-      "sha256": "10e812829458c9b02f6cb012dc1714ad8b03388ced71a103130517150036f832",
+      "sha256": "f1f39218e6a6b4c866162a6e50b902d793dee54a279693cb624276aa191fff3f",
       "staticImports": [
         "lib/completion-proof-shape.mjs",
+        "lib/release-switch.mjs",
         "lib/work-item-estimate-config.mjs"
       ],
       "dynamicImports": [],
@@ -173,7 +175,7 @@
       "children": []
     },
     "lib/completion-proof-markdown.mjs": {
-      "sha256": "8ff9efc772463c3fccf5d6e5a42c73df324babd2e02e66228f2d9a0b1896cbf4",
+      "sha256": "4237e79d9544bfe6e1eec95c0afa219a515d3b65e0061baaac744fa459efe653",
       "staticImports": [
         "lib/completion-proof-errors.mjs"
       ],
@@ -751,7 +753,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "f466c926c30087baddc8bce95ace6506f5808977e519a5c7a98329b4eca35045",
+      "sha256": "3630a999d1acf6f4d884256ada42425a7242d50a0cedc5a01e245a02a6a837d2",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -1423,6 +1425,17 @@
         "node:os",
         "node:path",
         "node:util"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/release-switch.mjs": {
+      "sha256": "75433164fb3f9c65f7cfb94db3b925ea01d466ef8537208c9e5e117bc02240b7",
+      "staticImports": [
+        "lib/completion-proof-markdown.mjs",
+        "node:child_process",
+        "node:fs",
+        "node:path"
       ],
       "dynamicImports": [],
       "children": []

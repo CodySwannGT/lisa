@@ -35,6 +35,7 @@ import {
 } from "./completion-proof-source.mjs";
 import { validateConformance } from "./completion-proof-conformance.mjs";
 import { checkEstimate } from "./work-item-estimate-check.mjs";
+import { removalObligation } from "./release-switch.mjs";
 
 const PENDING_PROOF = "pending-proof";
 
@@ -56,6 +57,49 @@ function validateEstimateTally(body, documents, context) {
   requireProof(
     result.verdict !== "FAIL",
     `The token estimate is not tallied for done. ${result.lines.join(" ")}`,
+    PENDING_PROOF
+  );
+}
+
+/** How many leftover references a refusal names before it counts the rest. */
+const NAMED_REFERENCES = 10;
+
+/**
+ * The switch-removal done gate (CodySwannGT/lisa#5188). Work that merges
+ * switched off is only finished once its switch is gone: a switch left behind
+ * is a second code path nobody owns. So the item that declares it removes a
+ * switch (`## Release Switch`: `Switched off — <name>; removed by this item`)
+ * cannot reach done while the production commit the accepted proof names still
+ * references that name.
+ *
+ * It is pending, not invalid: the proof is fine and the item is simply not
+ * finished yet. A project marked as having no live users has turned the rule
+ * off, and a hand-built context that carries no search has made no claim.
+ */
+function validateSwitchRemoved(body, context, snapshot) {
+  if (!context.switchReferences || context.release?.liveUsers === false) return;
+  const obligation = removalObligation(body, context.ref);
+  if (!obligation) return;
+  // A declaration that cannot be read is not evidence that the item removes
+  // nothing. Refusing here is what keeps a mangled section from switching the
+  // gate off.
+  requireProof(
+    !obligation.invalid,
+    `This item's ## Release Switch declaration cannot be read: ${(obligation.invalid ?? []).join(" ")} Correct it to one line (Live — complete and proven at merge, or Switched off — <switch-name>; removed by this item), then finish this item again.`,
+    PENDING_PROOF
+  );
+  const { files, searched } = context.switchReferences(
+    obligation.switchName,
+    snapshot
+  );
+  const named = files.slice(0, NAMED_REFERENCES).join(", ");
+  const more =
+    files.length > NAMED_REFERENCES
+      ? ` and ${files.length - NAMED_REFERENCES} more`
+      : "";
+  requireProof(
+    files.length === 0,
+    `This item removes release switch ${JSON.stringify(obligation.switchName)}, which is still referenced in ${files.length} tracked file(s) at ${searched}: ${named}${more}. Remove the switch, merge that change, then finish this item again.`,
     PENDING_PROOF
   );
 }
@@ -246,6 +290,16 @@ export function authorizeCompletion(context) {
       current && recordFingerprint(current) === recordFingerprint(chosen),
       "Completion proof changed while it was being verified; run canonical Verify/evidence again.",
       PENDING_PROOF
+    );
+    // The switch search reads the local repository, which takes time. It runs
+    // here, before the final native reads, so that a proof revoked while it
+    // ran is still caught by the locator-history comparison below. The
+    // requirement-digest check after that proves the declaration it judged is
+    // the one still on the item.
+    validateSwitchRemoved(
+      subject.body,
+      context,
+      chosen.record.source.production_snapshot_sha
     );
     // All slow source, delivery, asset and issuer reads precede these final
     // native reads. No provider read intervenes between local final checks and

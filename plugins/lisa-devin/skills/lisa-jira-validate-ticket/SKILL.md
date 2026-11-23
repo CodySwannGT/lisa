@@ -140,6 +140,7 @@ Per-type content requirements are defined once in the vendor-neutral `work-item-
 | S19 Branch Plan derivation | `technical` | false |
 | S20 Named-control reachability | `acceptance-criteria` | true |
 | S21 Token estimate (ready time) | `technical` | false |
+| S22 Release switch declaration | `technical` | false |
 | F1 Issue type valid in project | `structural` | false |
 | F2 Epic parent exists and is an Epic | `structural` | false |
 | F3 Linked tickets exist | `structural` | false |
@@ -416,6 +417,30 @@ Remediation: re-render the section with `node scripts/lisa-estimate.mjs render -
 
 `product_relevant: false` — the estimate is produced by agents, not by whoever wrote the item.
 
+#### S22 — Release switch declaration
+
+Enforces the always-promotable rule (`coding-philosophy`, "Always Promotable"): whatever is on a shared branch can be promoted to the next environment as it stands, so every ticket that changes runtime behavior says how it is safe to promote.
+
+**When the gate applies.** On a leaf whose `## Target Backend Environment` names an environment (`runtime_behavior_change = true`, derived from the stored declaration exactly as S8 derives it), in a project with live users (`release.liveUsers` absent or `true`). `N/A` when that declaration is a `None —` form (no runtime behavior change, or a container), and whenever the project sets `release.liveUsers: false`; then nothing about release switches blocks.
+
+**How to run it.** Write the body to a file and run `node scripts/lisa-release-switch.mjs check --body-file <file>` for a proposed spec, adding `--existing true` when the ticket already exists in the tracker. Report its verdict line and reasons verbatim: exit 0 is PASS or N/A, exit 1 is FAIL, exit 2 means the config or the call is broken, which fails the gate with the error.
+
+**What it checks.** The body carries a `## Release Switch` section whose entire content is one line, in one of these forms:
+
+```text
+Live — complete and proven at merge
+Switched off — <switch-name>; removed by this item
+Switched off — <switch-name>; removed by <work-item ref>
+```
+
+A **proposed spec** with no section FAILs: `lisa-jira-write-ticket` renders it before the write. A **live legacy ticket** with no section is `N/A` with a repair note routed to claim time, the same asymmetry S8 and S19 use, because failing every existing ticket would turn a legacy queue red for a section nobody had a way to add. A section that **is** present FAILs, on a proposed spec and on a live ticket alike, when it is neither form: no switch name, no work item that removes the switch, a second line, or free text.
+
+**Which form.** One question decides: if this were promoted to production right now, would a user see something unfinished or unproven? If no, the work is live. Bug fixes, small tweaks, copy changes, refactors and dependency updates almost always are, and this gate never asks for a switch on work that is complete and proven when it merges. If yes (a feature or a fix that lands across several merges, or new behavior that merges before its verification has passed), the work is switched off, and the declaration names the switch and the work item that removes it. The question decides, not the kind of work.
+
+Remediation: render the section with `node scripts/lisa-release-switch.mjs render --mode live --body-file <file>`, or `--mode off --switch <name> --removed-by "this item"` (or a work-item ref), and write the result back. Decide the form from the item; never ask a person for it.
+
+`product_relevant: false` — how work is made safe to promote is an engineering decision the agent makes, not a product question.
+
 ### Feasibility Gates (require JIRA lookups; skip in dry-run if requested)
 
 #### F1 — Issue type valid in project
@@ -506,6 +531,7 @@ Output is a single fenced text block. Callers parse it; do not add free-form pro
 - [PASS|FAIL|N/A] S19 Branch Plan derivation — <one-line reason>
 - [PASS|FAIL|N/A] S20 Named-control reachability — <one-line reason>
 - [PASS|FAIL|N/A] S21 Token estimate (ready time) — <one-line reason>
+- [PASS|FAIL|N/A] S22 Release switch declaration — <one-line reason>
 
 ### Feasibility Gates  (omit this section when --spec-only)
 - [PASS|FAIL|N/A] F1 Issue type valid in project — <one-line reason>
@@ -531,7 +557,7 @@ The verdict is `PASS` if and only if every applicable gate is `PASS`. Any `FAIL`
 
 ### Failure-detail fields
 
-- **gate**: the gate ID (`S1`–`S21`, `F1`–`F5`).
+- **gate**: the gate ID (`S1`–`S22`, `F1`–`F5`).
 - **category**: the gate's fixed category from the table above. Callers use this to label or filter comments — `product-clarity`, `acceptance-criteria`, `design-ux`, `scope`, `dependency`, `data`, `technical`, or `structural`.
 - **product_relevant**: matches the gate's table entry. `false` means the failure is an internal data-quality problem (e.g., the agent built a malformed spec, an issue type is invalid in the project) and the caller should fix it without bothering the product team. `true` means the PRD needs product input to resolve.
 - **what**: plain-language description of the issue. No gate IDs, no JIRA jargon, no engineering shorthand. A product owner reading this on a Notion comment should understand what is unclear and why.

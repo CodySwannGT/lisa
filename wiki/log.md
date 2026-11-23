@@ -1,5 +1,11 @@
 # Lisa Wiki Log
 
+## 2026-11-23 - Always promotable: the decision record
+
+- Added `wiki/decisions/2026-11-23-always-promotable.md` for `CodySwannGT/lisa#5188`: the statement, the six rulings, their consequences, what was deliberately not built, and where the rule, settings and checks live.
+- Added the source note `wiki/sources/repository/2026-11-23-always-promotable.md`, recording the scope read and the searches run before deciding.
+- `wiki/index.md` lists the decision first under Decisions. The user-facing description of the settings is in the root `README.md`, section "Keeping every branch promotable".
+
 ## 2026-11-19 - Control audit: the missing source note
 
 - Added `wiki/sources/repository/2026-11-17-control-audit-docs.md` for `CodySwannGT/lisa#5003`. The 2026-11-17 and 2026-11-18 control-audit ingestions wrote their pages without one, which the "Required Provenance" section of `wiki/schema/llm-wiki-contract.md` does not allow.
