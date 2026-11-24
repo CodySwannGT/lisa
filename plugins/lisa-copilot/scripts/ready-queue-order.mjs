@@ -177,6 +177,46 @@ export function adfText(node) {
 }
 
 /**
+ * Whether any text under a node carries Jira's inline-code mark.
+ * @param {unknown} node - Atlassian Document Format node
+ * @returns {boolean} True when some text is marked as code
+ */
+function adfHasCode(node) {
+  if (!node || typeof node !== "object") return false;
+  if (Array.isArray(node.marks) && node.marks.some(m => m?.type === "code"))
+    return true;
+  return Array.isArray(node.content) && node.content.some(adfHasCode);
+}
+
+/**
+ * A Jira comment as text, keeping one thing {@link adfText} throws away:
+ * whether a block is an ordinary paragraph.
+ *
+ * A hold release relayed by an automation account counts only as the first
+ * line of the comment, written plainly (CodySwannGT/lisa#5190). Flattened, a
+ * quoted line, a code block, a list item and a panel all look like that. So
+ * every line of a block that is not a plain paragraph (and of a paragraph
+ * that carries inline code) is written behind a quote mark. A person's
+ * release reads the same as before, because their comment is read generously
+ * and a quote mark never hid a marker from it; only a relay, held to the
+ * exact form, is refused the quoted copy.
+ * @param {unknown} node - Comment body: a document, or text some paths return
+ * @returns {string} The comment as text
+ */
+export function adfCommentText(node) {
+  if (!node || typeof node !== "object" || node.type !== "doc")
+    return adfText(node);
+  const blocks = Array.isArray(node.content) ? node.content : [];
+  return blocks
+    .map(block => {
+      const plain = block?.type === "paragraph" && !adfHasCode(block);
+      const lines = adfText(block).split("\n");
+      return (plain ? lines : lines.map(line => `> ${line}`)).join("\n");
+    })
+    .join("\n");
+}
+
+/**
  * How many blockers still hold a GitHub issue.
  *
  * When the fetch attached the blockers (`nativeBlockers`, `bodyBlockers`, as

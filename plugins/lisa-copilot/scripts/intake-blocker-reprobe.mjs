@@ -279,67 +279,51 @@ function relayedForOnLine(line, marker) {
   const at = line.indexOf(marker);
   if (at === -1) return "";
   const tail = line.slice(at + marker.length).split("-->")[0];
-  const reasonAt = tail.indexOf(REASON_KEY);
-  const head = reasonAt === -1 ? tail : tail.slice(0, reasonAt);
-  // The word right after the marker, whole: `not-relayed-for=1` and a
-  // `relayed-for=` later in the line name nobody.
-  const first = head.trim().split(/\s+/u)[0] ?? "";
-  return first.startsWith(RELAYED_FOR_KEY)
-    ? first.slice(RELAYED_FOR_KEY.length)
-    : "";
+  // Exact grammar: the person is the word right after the marker, and the
+  // only thing that may follow it is the reason. `not-relayed-for=1`, a
+  // `relayed-for=` later in the line, and a sentence after the person
+  // ("relayed-for=1 is the form a release takes") all name nobody.
+  const [first = "", second] = tail.trim().split(/\s+/u);
+  if (!first.startsWith(RELAYED_FOR_KEY)) return "";
+  if (second !== undefined && !second.startsWith(REASON_KEY)) return "";
+  return first.slice(RELAYED_FOR_KEY.length);
 }
 
 /** Longest indent a line may have before Markdown reads it as code. */
 const MAX_PROSE_INDENT = 3;
 
 /**
- * Whether a line is one a relay WROTE as a release, not one it repeated.
+ * The one line of a relay's comment that can be a release: its first.
  *
  * A person's comment is read generously: a marker behind a quote mark or a
- * list bullet still declares, because the person is the authority and nothing
- * they write in their own comment can be someone else's words. A relay is an
- * agent, and an agent quotes: it answers "should I post this line?" by
- * repeating the line. So a relayed release counts only in the exact shape
- * {@link formatHumanGateRelease} writes: the marker at the start of the line,
- * or the same inside an HTML comment, with at most three spaces before it. A
- * quoted (`>`), bulleted, or indented copy releases nothing.
- * @param {string} line - One line of the comment
- * @returns {boolean} Whether the line starts with the release marker
+ * list bullet, anywhere in the comment, still declares, because the person is
+ * the authority and nothing in their own comment can be someone else's words.
+ * A relay is an agent, and an agent quotes: it answers "should I post this
+ * line?" by repeating the line. Telling a quotation from a statement in
+ * Markdown is a long list (nested fences, code spans across lines, lazy
+ * blockquote lines, list continuations, raw HTML), and any list has a next
+ * entry. So there is no list. A relayed release counts only in the exact
+ * place and shape {@link formatHumanGateRelease} writes it: the first line of
+ * the comment, beginning with the marker (or with an HTML comment that begins
+ * with it), at most three spaces in, with no code mark on the line. A copy
+ * anywhere else, or dressed any other way, releases nothing.
+ * @param {unknown} body - The comment body
+ * @returns {string[]} That line when it is a release line, else nothing
  */
-function relayWroteLine(line) {
+function relayReleaseLines(body) {
+  const first =
+    String(body ?? "")
+      .split("\n")
+      .find(line => line.trim() !== "") ?? "";
+  if (first.includes("`")) return [];
+  const line = normalizeProviderMarkdown(first);
   const text = line.trimStart();
   const indent = line.slice(0, line.length - text.length);
-  if (indent.length > MAX_PROSE_INDENT || indent.includes("\t")) return false;
+  if (indent.length > MAX_PROSE_INDENT || indent.includes("\t")) return [];
   const inner = text.startsWith("<!--")
     ? text.slice("<!--".length).trimStart()
     : text;
-  return inner.startsWith(HUMAN_GATE_RELEASE_MARKER);
-}
-
-/**
- * The lines of a relay's comment that can be a release.
- *
- * Code is never a release. Fenced blocks are tracked line by line, so a fence
- * that is opened and never closed hides everything after it, as it does when
- * the comment is rendered; code spans are removed from the lines that remain.
- * @param {unknown} body - The comment body
- * @returns {string[]} Lines the relay wrote as releases
- */
-function relayReleaseLines(body) {
-  const outside = String(body ?? "")
-    .split("\n")
-    .reduce(
-      (state, line) => {
-        const text = line.trimStart();
-        if (text.startsWith("```") || text.startsWith("~~~"))
-          return { ...state, fenced: !state.fenced };
-        return state.fenced
-          ? state
-          : { ...state, lines: [...state.lines, line] };
-      },
-      { fenced: false, lines: [] }
-    ).lines;
-  return outside.map(line => declarativeText(line)).filter(relayWroteLine);
+  return inner.startsWith(HUMAN_GATE_RELEASE_MARKER) ? [line] : [];
 }
 
 /**
@@ -968,9 +952,9 @@ function isRelayComment(comment, relayIds) {
  * that account post the line can lift a hold. Nothing else relaxes: a relay
  * that names nobody, names someone who is not a trusted person, or names
  * itself or another relay (even one also listed as a person), releases
- * nothing; a line the relay only quotes releases nothing
- * ({@link relayWroteLine}); and an account the project did not name is never
- * a relay whatever its comment says.
+ * nothing; only the first line of the relay's comment is read
+ * ({@link relayReleaseLines}); and an account the project did not name is
+ * never a relay whatever its comment says.
  *
  * Comments must retain authenticated provider authorship: normalized authorId,
  * user.id, author.id or author.accountId. The caller supplies the list
@@ -995,21 +979,24 @@ export function humanGateReleases(comments, trustedHumanActorIds = []) {
       .map(entry => entry.slice(RELAY_ENTRY.length).trim())
       .filter(Boolean)
   );
+  // An account is a person or a relay, never both. Listing one both ways
+  // (directly, or through a login a tracker resolves to the relay's id) makes
+  // it a relay: it cannot release in its own name and cannot be relayed for.
+  const people = new Set([...trustedIds].filter(id => !relayIds.has(id)));
   const declaring = entry =>
     declarativeText(entry.body ?? "")
       .split("\n")
       .filter(line => declaresOnLine(line, HUMAN_GATE_RELEASE_MARKER));
   const keys = (Array.isArray(comments) ? comments : []).flatMap(entry => {
-    if (isTrustedHumanComment(entry, trustedIds))
+    if (isTrustedHumanComment(entry, people))
       return declaring(entry).map(line =>
         reasonOnLine(line, HUMAN_GATE_RELEASE_MARKER)
       );
     if (isRelayComment(entry, relayIds))
       return relayReleaseLines(entry.body ?? "")
-        .filter(line => {
-          const person = relayedForOnLine(line, HUMAN_GATE_RELEASE_MARKER);
-          return trustedIds.has(person) && !relayIds.has(person);
-        })
+        .filter(line =>
+          people.has(relayedForOnLine(line, HUMAN_GATE_RELEASE_MARKER))
+        )
         .map(line => reasonOnLine(line, HUMAN_GATE_RELEASE_MARKER));
     return [];
   });

@@ -276,7 +276,7 @@ export async function blockedPlan(ctx) {
     (ref ? (await readLedger(ctx.root)).items[ref]?.pendingQuestion : null);
   const project = loadProject(ctx.root);
   const trustedHumanActorIds = releaseComparableValues(
-    trustedReleaseEntries(project.config)
+    trustedReleaseEntries(project.config, project.global?.sessionManager)
   );
   const policy = resolveHumanGatePolicy(project.local, project.global);
   return {

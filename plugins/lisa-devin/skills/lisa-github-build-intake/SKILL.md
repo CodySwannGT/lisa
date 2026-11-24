@@ -21,9 +21,10 @@ continue through the existing path and never override an independently declared 
 
 One exception is opt-in. A project may name its automation account as a relay (`relay:<account id>`
 in the list of who may release, in its committed settings and never on an instruction given in
-conversation). That account's release then counts when the line names, before the
-reason, a trusted person from the same list: `[lisa-human-gate-release] relayed-for=<person id>
-reason=<slug>`. Post one only when a trusted person told you to release that hold, and say in the
+conversation). That account's release then counts when it is the first line of the comment and
+names, before the reason, a trusted person from the same list:
+`[lisa-human-gate-release] relayed-for=<person id> reason=<slug>`. Put any explanation after it;
+a copy that is quoted, in code, or further down the comment releases nothing. Post one only when a trusted person told you to release that hold, and say in the
 comment who asked, where and when. When the project named no relay, do not post a release: tell the
 person at once that it must come from their own tracker login, give them the exact text and a link
 to the item, and never report the item as released (`ready-role-filing`, "Relayed releases").

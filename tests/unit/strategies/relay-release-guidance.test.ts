@@ -31,7 +31,7 @@ const RESTATING_SKILLS = [
 ] as const;
 
 const RELEASE_LINE =
-  "[lisa-human-gate-release] relayed-for=<person id>\nreason=<slug>";
+  "`[lisa-human-gate-release] relayed-for=<person id> reason=<slug>`";
 
 /** Every shipped copy of the release rule. */
 const RULE_COPIES = [
@@ -51,6 +51,10 @@ describe.each(SKILL_ROOTS)("relay guidance under %s", root => {
       "in its committed settings and never on an instruction given in\nconversation"
     );
     expect(skill).toContain(RELEASE_LINE);
+    expect(skill).toContain("when it is the first line of the comment");
+    expect(skill).toContain(
+      "a copy that is quoted, in code, or further down the comment releases nothing"
+    );
     expect(skill).toContain(
       "Post one only when a trusted person told you to release that hold"
     );
@@ -67,6 +71,7 @@ describe.each(SKILL_ROOTS)("relay guidance under %s", root => {
     );
     expect(skill).toContain("relayed-for=<the operator's account id>");
     expect(skill).toContain("With none, post nothing");
+    expect(skill).toContain("as the first line of the comment");
   });
 });
 
@@ -81,10 +86,14 @@ describe("the release rule", () => {
     expect(rule).toContain("A relay\n  is not a person");
     expect(rule).toContain("That is why it is opt-in");
     expect(rule).toContain(
-      "A relay entry\n  counts only when it is in the project's committed settings."
+      "A relay entry\n  counts only when it is in the project's committed settings"
     );
     expect(rule).toContain("An account is a person or a relay, never both");
-    expect(rule).toContain("The line must be the relay's own");
+    expect(rule).toContain(
+      "The line must be the first line of the relay's comment and begin with the marker"
+    );
+    expect(rule).toContain("Only that line is read");
+    expect(rule).toContain("named only in `.lisa.config.local.json`");
     expect(rule).toContain("Never report the item as released.");
     // The strict default is still stated, word for word.
     expect(rule).toContain(
@@ -101,7 +110,7 @@ describe("the release rule", () => {
       "`relay:<stable account id>` names an automation account that may **relay**"
     );
     expect(rule).toContain(
-      "A relay is never taken from the `trustedAuthorIds` fallback."
+      "A relay is never taken from the `trustedAuthorIds` fallback, and counts only when the committed `.lisa.config.json` lists it"
     );
   });
 });

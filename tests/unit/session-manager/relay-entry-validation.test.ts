@@ -23,6 +23,7 @@ import {
   classifyIdEntry,
   validateSessionManager,
 } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs";
+import { trustedReleaseEntries } from "../../../plugins/src/base/skills/lisa-session-manager/scripts/config.mjs";
 import {
   makeSandbox,
   removeSandboxes,
@@ -125,6 +126,42 @@ describe("a relay written another way", () => {
     expect(
       planRelayed(keys, `${MARKER} relayed-for=${RELAY} reason=${REASON}`)
     ).toBe(SKIP);
+  });
+});
+
+describe("a relay named only in a developer's local settings", () => {
+  it("is not a relay: the entry has to be in the committed file", () => {
+    const sandbox = configure(makeSandbox(), {
+      trustedReleaseIds: [`id:${PERSON}`],
+    });
+    writeJson(path.join(sandbox.root, ".lisa.config.local.json"), {
+      sessionManager: { trustedReleaseIds: [`id:${PERSON}`, RELAY_ENTRY] },
+    });
+    const result = runCli(sandbox, [BLOCKED_PLAN], {
+      input: JSON.stringify({
+        labels: [],
+        body: HOLD,
+        comments: [{ authorId: RELAY, authorType: "Bot", body: RELAYED }],
+        edges: [],
+      }),
+    });
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.json.action).toBe(SKIP);
+  });
+
+  it("is read through the reader only when the committed block lists the same entry", () => {
+    const merged = { trustedReleaseIds: [`id:${PERSON}`, RELAY_ENTRY] };
+    expect(trustedReleaseEntries(merged, merged)).toEqual(
+      merged.trustedReleaseIds
+    );
+    expect(
+      trustedReleaseEntries(merged, { trustedReleaseIds: [`id:${PERSON}`] })
+    ).toEqual([`id:${PERSON}`]);
+    expect(
+      trustedReleaseEntries(merged, { trustedReleaseIds: "relay:9001" })
+    ).toEqual([`id:${PERSON}`]);
+    // A caller that passes no committed block gets no relay.
+    expect(trustedReleaseEntries(merged)).toEqual([`id:${PERSON}`]);
   });
 });
 
