@@ -298,6 +298,8 @@ its agent to carry the decision into the tracker opts in (owner ruling, CodySwan
   An account is a person or a relay, never both: one listed both ways is a relay, cannot be relayed
   for, and cannot release in its own name.
 - **The release line.** `[lisa-human-gate-release] relayed-for=<stable id of a trusted person> reason=<slug>`.
+  For a hold that names no reason, leave the reason out:
+  `[lisa-human-gate-release] relayed-for=<stable id of a trusted person>`.
   The person comes before the reason, because everything after `reason=` is read as the reason, and
   is named by the account id written in the list. Nothing but the reason may follow the person.
   The line must be the first line of the relay's comment and begin with the marker (or be one closed

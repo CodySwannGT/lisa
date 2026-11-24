@@ -195,6 +195,24 @@ function adfHasNotStatedMark(node) {
   return Array.isArray(node.content) && node.content.some(adfHasNotStatedMark);
 }
 
+/** Inline children that {@link adfText} renders in full. */
+const TEXT_INLINES = new Set(["text", "hardBreak"]);
+
+/**
+ * Whether a paragraph holds something visible that {@link adfText} renders as
+ * nothing: an inline card, a mention, an emoji, media. A paragraph holding
+ * only a card would otherwise become a blank line, and the release after it
+ * would read as the comment's first line.
+ * @param {unknown} node - Atlassian Document Format paragraph
+ * @returns {boolean} True when such a child is present
+ */
+function adfHasUnrenderedInline(node) {
+  return (
+    Array.isArray(node?.content) &&
+    node.content.some(child => !TEXT_INLINES.has(child?.type))
+  );
+}
+
 /**
  * A Jira comment as text, keeping one thing {@link adfText} throws away:
  * whether a block is an ordinary paragraph.
@@ -203,7 +221,8 @@ function adfHasNotStatedMark(node) {
  * line of the comment, written plainly (CodySwannGT/lisa#5190). Flattened, a
  * quoted line, a code block, a list item and a panel all look like that. So
  * every line of a block that is not a plain paragraph (and of a paragraph
- * that carries inline code or a strikethrough) is written behind a quote mark. A person's
+ * that carries inline code or a strikethrough, or holds a card, mention, emoji
+ * or media that has no text here) is written behind a quote mark. A person's
  * release reads the same as before, because their comment is read generously
  * and a quote mark never hid a marker from it; only a relay, held to the
  * exact form, is refused the quoted copy.
@@ -216,7 +235,10 @@ export function adfCommentText(node) {
   const blocks = Array.isArray(node.content) ? node.content : [];
   return blocks
     .map(block => {
-      const plain = block?.type === "paragraph" && !adfHasNotStatedMark(block);
+      const plain =
+        block?.type === "paragraph" &&
+        !adfHasNotStatedMark(block) &&
+        !adfHasUnrenderedInline(block);
       const lines = adfText(block).split("\n");
       return (plain ? lines : lines.map(line => `> ${line}`)).join("\n");
     })

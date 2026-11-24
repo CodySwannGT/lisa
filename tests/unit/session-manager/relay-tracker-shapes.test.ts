@@ -39,6 +39,7 @@ const HELD = "human-gated";
 const PARAGRAPH = "paragraph";
 const KEY = "DEMO-1";
 const SECOND_PARAGRAPH = "a second paragraph";
+const CARD_FIRST = "a paragraph holding only a link card, before it";
 const WITH_RELAY = { trustedReleaseIds: [`id:${PERSON}`, `relay:${RELAY}`] };
 
 /**
@@ -95,6 +96,28 @@ const QUOTED: readonly [string, unknown][] = [
     }),
   ],
   [SECOND_PARAGRAPH, doc(paragraph("The form is:"), paragraph(RELAYED))],
+  [
+    CARD_FIRST,
+    doc(
+      {
+        type: PARAGRAPH,
+        content: [
+          { type: "inlineCard", attrs: { url: "https://example.com" } },
+        ],
+      },
+      paragraph(RELAYED)
+    ),
+  ],
+  [
+    "a paragraph that starts with a mention",
+    doc({
+      type: PARAGRAPH,
+      content: [
+        { type: "mention", attrs: { id: "someone", text: "@someone" } },
+        textNode(RELAYED),
+      ],
+    }),
+  ],
 ];
 
 describe("queue on Jira", () => {
@@ -173,7 +196,9 @@ describe("queue on Jira", () => {
 describe("adfCommentText", () => {
   it("leaves plain paragraphs as they are and marks every other block as quoted", () => {
     expect(adfCommentText(PLAIN)).toBe(`${RELAYED}\nApproved in chat.`);
-    for (const [, body] of QUOTED.filter(([n]) => n !== SECOND_PARAGRAPH))
+    for (const [, body] of QUOTED.filter(
+      ([n]) => n !== SECOND_PARAGRAPH && n !== CARD_FIRST
+    ))
       expect(adfCommentText(body)).toBe(`> ${RELAYED}`);
   });
 
