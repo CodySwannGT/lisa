@@ -300,8 +300,8 @@ its agent to carry the decision into the tracker opts in (owner ruling, CodySwan
 - **The release line.** `[lisa-human-gate-release] relayed-for=<stable id of a trusted person> reason=<slug>`.
   The person comes before the reason, because everything after `reason=` is read as the reason, and
   is named by the account id written in the list. Nothing but the reason may follow the person.
-  The line must be the first line of the relay's comment and begin with the marker (or with an HTML
-  comment that begins with it), with no code mark on it. Only that line is read: a copy that is
+  The line must be the first line of the relay's comment and begin with the marker (or be one closed
+  HTML comment that begins with it), with no code mark on it and nothing after it on the line. Only that line is read: a copy that is
   quoted, bulleted, indented, in code, or anywhere further down the comment releases nothing, so an
   agent that repeats a line to discuss it does not post it. A person's own comment is still read
   anywhere and behind a quote mark, as before. `formatHumanGateRelease({ reason, relayedFor,

@@ -54,6 +54,18 @@ describe("a relay's release is the first line of its comment, written plainly", 
     ["after other words on the line", `Posting: ${RELAYED}`],
     ["after a line of explanation", `The operator approved this.\n${RELAYED}`],
     ["in an HTML comment after other words", `<!-- note ${RELAYED} -->`],
+    [
+      "followed by a closing comment mark and a question",
+      `${RELAYED} --> is this right?`,
+    ],
+    ["followed by a closing comment mark alone", `${RELAYED} -->`],
+    ["followed by an opening comment mark", `${RELAYED} <!-- note -->`],
+    ["in an HTML comment that is never closed", `<!-- ${RELAYED}`],
+    [
+      "in an HTML comment with text after it",
+      `<!-- ${RELAYED} --> is this right?`,
+    ],
+    ["in an HTML comment holding another one", `<!-- ${RELAYED} <!-- x -->`],
   ])("stays held when the line is %s", (_name, body) => {
     expectHeld(held({ body, author: BOT_RELAY }, WITH_RELAY));
   });
@@ -64,6 +76,7 @@ describe("a relay's release is the first line of its comment, written plainly", 
       `${RELAYED}\n\nThe operator approved this in chat.`,
     ],
     ["inside an HTML comment", `<!-- ${RELAYED} -->`],
+    ["inside an HTML comment with no spaces", `<!--${RELAYED}-->`],
     ["after blank lines", `\n\n${RELAYED}`],
     ["with up to three spaces before it", `   ${RELAYED}`],
     ["written with Windows line endings", `${RELAYED}\r\n\r\nApproved.`],
@@ -90,6 +103,29 @@ describe("a relay's release is the first line of its comment, written plainly", 
         WITH_RELAY
       )
     );
+  });
+
+  it("lifts no reasonless hold through a closing comment mark after the person", () => {
+    expect(
+      humanGateReleases(
+        [
+          {
+            body: `${MARKER} relayed-for=${PERSON} --> is the form`,
+            author: BOT_RELAY,
+          },
+        ],
+        WITH_RELAY
+      )
+    ).toEqual([]);
+  });
+
+  it("writes an account id from the list without its id: prefix", () => {
+    const body = formatHumanGateRelease({
+      reason: REASON,
+      relayedFor: `id:${PERSON}`,
+    });
+    expect(body.split("\n")[0]).toBe(RELAYED);
+    expectReleased(held({ body, author: BOT_RELAY }, WITH_RELAY));
   });
 
   it("still reads a person's own quoted, bulleted or later line as theirs", () => {

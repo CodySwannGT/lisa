@@ -320,10 +320,31 @@ function relayReleaseLines(body) {
   const text = line.trimStart();
   const indent = line.slice(0, line.length - text.length);
   if (indent.length > MAX_PROSE_INDENT || indent.includes("\t")) return [];
-  const inner = text.startsWith("<!--")
-    ? text.slice("<!--".length).trimStart()
-    : text;
-  return inner.startsWith(HUMAN_GATE_RELEASE_MARKER) ? [line] : [];
+  return relayStatement(text).startsWith(HUMAN_GATE_RELEASE_MARKER)
+    ? [line]
+    : [];
+}
+
+/**
+ * The release a relay's first line states, or "" when the line is not one.
+ *
+ * Two shapes, and nothing may come after either: the plain line, which must
+ * not contain an HTML comment mark at all (every reader cuts a line at the
+ * first `-->`, so `… reason=x --> is this right?` would otherwise count with
+ * a question after it), or the whole line as one closed HTML comment.
+ * @param {string} text - The first line, indent removed
+ * @returns {string} The statement inside, or the empty string
+ */
+function relayStatement(text) {
+  const plain = !text.includes("<!--") && !text.includes("-->");
+  if (plain) return text;
+  if (!text.startsWith("<!--")) return "";
+  const inner = text.slice("<!--".length);
+  const close = inner.indexOf("-->");
+  if (close === -1) return "";
+  if (inner.slice(close + "-->".length).trim() !== "") return "";
+  const statement = inner.slice(0, close);
+  return statement.includes("<!--") ? "" : statement.trim();
 }
 
 /**
@@ -1512,7 +1533,10 @@ export function planHumanGateRelease(input = {}) {
 export function formatHumanGateRelease(discharge = {}) {
   const oneLine = value => trimmedString(value).replace(/\s*[\r\n]+\s*/gu, " ");
   const reason = oneLine(discharge.reason);
-  const named = stableActorId(discharge.relayedFor);
+  // `id:4242` is how the list writes an account id, not how a release names
+  // one: every reader compares the bare id, so the prefix is dropped here.
+  const listed = stableActorId(discharge.relayedFor);
+  const named = listed.startsWith("id:") ? listed.slice("id:".length) : listed;
   const relayedFor = /\s/u.test(named) ? "" : named;
   const declaration = [
     HUMAN_GATE_RELEASE_MARKER,

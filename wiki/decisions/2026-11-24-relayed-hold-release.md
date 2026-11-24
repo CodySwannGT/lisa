@@ -32,7 +32,7 @@ In a project that names a relay, whatever makes that account post the line can l
 - A relayed line must name a person who is themselves a trusted releaser in the same list. It cannot name nobody, a stranger, or the relay itself.
 - The reason must match the hold, as for any release.
 - An account the project did not name is never a relay, whatever its comment says.
-- Only the first line of the relay's comment is read, and it must begin with the marker, with no code mark on it and nothing after the person but the reason. A copy that is quoted, bulleted, indented, in code, or further down the comment releases nothing. An agent repeats lines to discuss them, and telling a quotation from a statement in Markdown is a list with no end, so there is no list. A person's own comment is still read as generously as before.
+- Only the first line of the relay's comment is read, and it must begin with the marker (or be one closed HTML comment that does), with no code mark on it and nothing after the person but the reason. A copy that is quoted, bulleted, indented, in code, or further down the comment releases nothing. An agent repeats lines to discuss them, and telling a quotation from a statement in Markdown is a list with no end, so there is no list. A person's own comment is still read as generously as before.
 - On Jira, where a comment is a structured document, the session manager's queue keeps a quoted block, code, list item or panel from reading as a plain first line.
 - An account is a person or a relay, never both. One listed both ways is a relay: it cannot be relayed for and cannot release in its own name, and validation refuses the list where it can see it.
 - A relay is written exactly as `relay:<account id>`. The same value behind another prefix or a space is refused by validation and is never read as a relay.
@@ -45,7 +45,8 @@ In a project that names a relay, whatever makes that account post the line can l
 - A tracker's own `<tracker>.trustedHumanActorIds` list reads a `relay:` entry the same way, and no validation covers that list.
 - A relay is recognised by the user id the tracker records on its comment. A comment the tracker records with no user id cannot be matched to a relay and releases nothing.
 - The Jira protection above is in the session manager's queue. Where an agent assembles a Jira comment's text by hand (the blocked-item plan and the orphan sweep take their input that way), and in the npm updater's own reader, a relay whose comment begins with a quoted copy of the exact line can still read as a release. The rule tells agents to write such a block behind a quote mark.
-- A relayed line names a list entry as written. Where a project lists a person by a plain login instead of an account id, the line names that login.
+- A relayed line names a list entry by its value (`4242` for an `id:4242` entry). Where a project lists a person by a plain login instead of an account id, the line names that login.
+- The relay entry has to be committed, but the people it may relay for come from the merged settings, so a person added only in the local override can be relayed for. A local override could already add a person who releases directly, so this grants nothing new; it is recorded so nobody reads the committed-only rule as covering people.
 
 ## What agents do
 

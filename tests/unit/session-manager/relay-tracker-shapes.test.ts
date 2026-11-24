@@ -38,6 +38,7 @@ const DIRECT = `${MARKER} reason=${REASON}`;
 const HELD = "human-gated";
 const PARAGRAPH = "paragraph";
 const KEY = "DEMO-1";
+const SECOND_PARAGRAPH = "a second paragraph";
 const WITH_RELAY = { trustedReleaseIds: [`id:${PERSON}`, `relay:${RELAY}`] };
 
 /**
@@ -86,7 +87,14 @@ const QUOTED: readonly [string, unknown][] = [
     }),
   ],
   ["a panel", doc({ type: "panel", content: [paragraph(RELAYED)] })],
-  ["a second paragraph", doc(paragraph("The form is:"), paragraph(RELAYED))],
+  [
+    "struck-out text",
+    doc({
+      type: PARAGRAPH,
+      content: [{ ...textNode(RELAYED), marks: [{ type: "strike" }] }],
+    }),
+  ],
+  [SECOND_PARAGRAPH, doc(paragraph("The form is:"), paragraph(RELAYED))],
 ];
 
 describe("queue on Jira", () => {
@@ -152,7 +160,7 @@ describe("queue on Jira", () => {
     ["a plain paragraph", doc(paragraph(DIRECT))],
     ["a quote", doc({ type: "blockquote", content: [paragraph(DIRECT)] })],
     ["inline code", doc(paragraph(DIRECT, true))],
-    ["a second paragraph", doc(paragraph("Approved."), paragraph(DIRECT))],
+    [SECOND_PARAGRAPH, doc(paragraph("Approved."), paragraph(DIRECT))],
   ])("still reads a person's own release in %s", (_name, body) => {
     const result = queue(body, person);
     expect(result.status, result.stderr).toBe(0);
@@ -165,7 +173,7 @@ describe("queue on Jira", () => {
 describe("adfCommentText", () => {
   it("leaves plain paragraphs as they are and marks every other block as quoted", () => {
     expect(adfCommentText(PLAIN)).toBe(`${RELAYED}\nApproved in chat.`);
-    for (const [, body] of QUOTED.slice(0, 5))
+    for (const [, body] of QUOTED.filter(([n]) => n !== SECOND_PARAGRAPH))
       expect(adfCommentText(body)).toBe(`> ${RELAYED}`);
   });
 
