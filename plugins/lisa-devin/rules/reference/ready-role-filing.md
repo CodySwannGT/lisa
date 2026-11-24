@@ -271,8 +271,41 @@ allowlist, so no alternate path silently accepts weaker evidence.
 
 An absent/empty allowlist, missing or unreadable author identity, raw string comments, an actor
 outside the explicit allowlist, or a known bot cannot release a hold. A bot remains ineligible even
-if its ID appears in the list. A matching comment body, `authorized: true`, or an agent claiming to
-speak for a human confers no trust. Leave the item held and report the missing policy or identity;
-never ask automation to manufacture an approval comment to unblock itself. Unheld items remain
+if its ID appears in the list as a person. A matching comment body, `authorized: true`, or an agent
+claiming to speak for a human confers no trust, unless the project named that agent's account as a
+relay (below). Leave the item held and report the missing policy or identity;
+never ask automation to manufacture an approval comment to unblock itself.
+
+### Relayed releases
+
+A person often gives the decision where the agent asked for it: in chat. The agent can only post
+from the automation account, and by default that comment counts for nothing. A project that wants
+its agent to carry the decision into the tracker opts in (owner ruling, CodySwannGT/lisa#5190):
+
+- **Naming a relay.** In the list of who may release a hold, an entry `relay:<stable account id>`
+  names an automation account that may relay. For the session manager that list is
+  `sessionManager.trustedReleaseIds` (never the `trustedAuthorIds` fallback, and never
+  `operatorIds`); for a caller that passes `trustedHumanActorIds` directly, it is that list. A relay
+  is not a person: its ordinary comments never count as a release or as an answer.
+- **The release line.** `[lisa-human-gate-release] relayed-for=<stable id of a trusted person> reason=<slug>`.
+  The person comes before the reason, because everything after `reason=` is read as the reason.
+  `formatHumanGateRelease({ reason, relayedFor, decidedBy })` writes it.
+- **When it counts.** The comment's author is a configured relay (bot metadata does not
+  disqualify it); `relayed-for` names a person who is a trusted releaser in the same list; and the
+  reason matches the hold, as for any release. A relayed line that names nobody, names someone who
+  is not a trusted person, or names the relay itself releases nothing. An account the project did
+  not name is never a relay, whatever its comment says.
+- **What the project accepts.** In a project that names a relay, whatever makes that account post
+  the line can lift a hold, including a mistake by the agent. That is why it is opt-in, and why a
+  project that names none behaves exactly as described above.
+
+What an agent does when a trusted person tells it, in any channel, to release a hold:
+
+1. Check whether the project named the account it posts from as a relay.
+2. **If it did:** post the relayed release, and say in the same comment, in plain English, who gave
+   the instruction, where and when. Read the item back and confirm the hold reads as released.
+3. **If it did not:** do not post a release. Tell the person at once that the release has to come
+   from their own tracker login, give them the exact line to paste and a link to the item, and say
+   that the project can name a relay to avoid this next time. Never report the item as released. Unheld items remain
 unheld, and an authorized matching human release still permits the existing recovery path.
 Keep historical hold and release comments; do not rewrite the description to erase a hold.

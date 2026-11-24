@@ -19,6 +19,14 @@ cannot discharge a hold. Keep the item held and report the missing authorization
 replace these inputs with an empty history or an inferred allowlist. Authorized matching releases
 continue through the existing path and never override an independently declared caller hold.
 
+One exception is opt-in. A project may name its automation account as a relay (`relay:<account id>`
+in the list of who may release). That account's release then counts when the line names, before the
+reason, a trusted person from the same list: `[lisa-human-gate-release] relayed-for=<person id>
+reason=<slug>`. Post one only when a trusted person told you to release that hold, and say in the
+comment who asked, where and when. When the project named no relay, do not post a release: tell the
+person at once that it must come from their own tracker login, give them the exact text and a link
+to the item, and never report the item as released (`ready-role-filing`, "Relayed releases").
+
 
 `$ARGUMENTS` is one of:
 

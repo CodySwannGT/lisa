@@ -1,5 +1,11 @@
 # Lisa Wiki Log
 
+## 2026-11-24 - Relayed hold release: the decision record
+
+- Added `wiki/decisions/2026-11-24-relayed-hold-release.md` for `CodySwannGT/lisa#5190`: the opt-in relay, the two absolute sentences it replaces, the trade-off the owner accepted, and what agents do in each case.
+- Added the source note `wiki/sources/repository/2026-11-24-relayed-hold-release.md`.
+- `wiki/index.md` lists the decision first under Decisions.
+
 ## 2026-11-23 - Always promotable: the decision record
 
 - Added `wiki/decisions/2026-11-23-always-promotable.md` for `CodySwannGT/lisa#5188`: the statement, the six rulings, their consequences, what was deliberately not built, and where the rule, settings and checks live.

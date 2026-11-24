@@ -259,6 +259,38 @@ function reasonOnLine(line, marker) {
   return normalizeReason(tail.slice(key + REASON_KEY.length));
 }
 
+/** Key a relayed release uses to name the person it relays for. */
+const RELAYED_FOR_KEY = "relayed-for=";
+
+/**
+ * The person a declaring line says it relays for, or "" when it names nobody.
+ *
+ * It is read only from the part of the line BEFORE `reason=`. Everything after
+ * `reason=` is the reason (that is how every reader, old and new, parses it),
+ * so a `relayed-for=` written after the reason is part of a reason nobody
+ * declared and releases nothing. Writing the person first keeps one grammar:
+ * an older reader still finds the right reason, and then refuses the comment
+ * for its author, which is the safe answer.
+ * @param {string} line - A line already known to declare
+ * @param {string} marker - The declaration marker it carries
+ * @returns {string} The stable id named, or the empty string
+ */
+function relayedForOnLine(line, marker) {
+  const at = line.indexOf(marker);
+  if (at === -1) return "";
+  const tail = line.slice(at + marker.length).split("-->")[0];
+  const reasonAt = tail.indexOf(REASON_KEY);
+  const head = reasonAt === -1 ? tail : tail.slice(0, reasonAt);
+  const key = head.indexOf(RELAYED_FOR_KEY);
+  if (key === -1) return "";
+  return (
+    head
+      .slice(key + RELAYED_FOR_KEY.length)
+      .trim()
+      .split(/\s/u)[0] ?? ""
+  );
+}
+
 /**
  * The reason keys of every hold a body DECLARES, deduplicated.
  *
@@ -841,32 +873,92 @@ function isTrustedHumanComment(comment, trustedIds) {
   return id.length > 0 && trustedIds.has(id);
 }
 
+/** Prefix of a list entry that names a relay account instead of a person. */
+const RELAY_ENTRY = "relay:";
+
 /**
- * The reason keys released by explicitly trusted human authors, deduplicated.
+ * Whether a comment was written by an account the project named as a relay.
+ *
+ * Bot metadata does not disqualify it: a relay is named BECAUSE it is the
+ * automation account, and the project chose to let it carry a person's
+ * decision. What it may carry is decided per line, by {@link relayedForOnLine}.
+ * @param {unknown} comment - Structured provider comment
+ * @param {ReadonlySet<string>} relayIds - Account ids the project named as relays
+ * @returns {boolean} Whether a configured relay wrote the comment
+ */
+function isRelayComment(comment, relayIds) {
+  if (!comment || typeof comment !== "object" || Array.isArray(comment))
+    return false;
+  const id = stableActorId(
+    comment.authorId ??
+      comment.user?.id ??
+      comment.author?.id ??
+      comment.author?.accountId
+  );
+  return id.length > 0 && relayIds.has(id);
+}
+
+/**
+ * The reason keys released for this item, deduplicated.
+ *
+ * Two kinds of comment can release a hold:
+ *
+ * 1. One written by an explicitly trusted PERSON, from their own tracker
+ *    login. Known bots never qualify here, listed or not.
+ * 2. One written by an account the project named as a RELAY (a list entry of
+ *    the form `relay:<stable account id>`, CodySwannGT/lisa#5190), on a line
+ *    that names, before the reason, a person who is themselves on the list:
+ *    `[lisa-human-gate-release] relayed-for=<person id> reason=<slug>`.
+ *
+ * The second exists because the person often gives the decision where the
+ * agent asked for it, in chat, and the agent can only post from the automation
+ * account. It is opt-in by design: with no `relay:` entry, behavior is exactly
+ * the first rule. A project that names a relay accepts that whatever makes
+ * that account post the line can lift a hold. Nothing else relaxes: a relay
+ * that names nobody, names someone who is not a trusted person, or names
+ * itself, releases nothing, and an account the project did not name is never
+ * a relay whatever its comment says.
  *
  * Comments must retain authenticated provider authorship: normalized authorId,
- * user.id, author.id or author.accountId. The caller supplies trusted human IDs
- * independently of comment content. Raw strings, missing IDs, known bots and
- * an absent or empty allowlist fail closed and cannot discharge a hold.
+ * user.id, author.id or author.accountId. The caller supplies the list
+ * independently of comment content. Raw strings, missing IDs and an absent or
+ * empty list fail closed and cannot discharge a hold.
  * @param {unknown} comments - Structured comments, any order
- * @param {unknown} trustedHumanActorIds - Explicit trusted human provider IDs
+ * @param {unknown} trustedHumanActorIds - Explicit trusted person ids, and `relay:<id>` entries
  * @returns {string[]} One key per authorized recorded release
  */
 export function humanGateReleases(comments, trustedHumanActorIds = []) {
+  const entries = (
+    Array.isArray(trustedHumanActorIds) ? trustedHumanActorIds : []
+  )
+    .map(stableActorId)
+    .filter(Boolean);
   const trustedIds = new Set(
-    (Array.isArray(trustedHumanActorIds) ? trustedHumanActorIds : [])
-      .map(stableActorId)
+    entries.filter(entry => !entry.startsWith(RELAY_ENTRY))
+  );
+  const relayIds = new Set(
+    entries
+      .filter(entry => entry.startsWith(RELAY_ENTRY))
+      .map(entry => entry.slice(RELAY_ENTRY.length).trim())
       .filter(Boolean)
   );
-  const bodies = (Array.isArray(comments) ? comments : [])
-    .filter(entry => isTrustedHumanComment(entry, trustedIds))
-    .map(entry => entry.body ?? "");
-  const keys = bodies.flatMap(body =>
-    declarativeText(body)
+  const declaring = entry =>
+    declarativeText(entry.body ?? "")
       .split("\n")
-      .filter(line => declaresOnLine(line, HUMAN_GATE_RELEASE_MARKER))
-      .map(line => reasonOnLine(line, HUMAN_GATE_RELEASE_MARKER))
-  );
+      .filter(line => declaresOnLine(line, HUMAN_GATE_RELEASE_MARKER));
+  const keys = (Array.isArray(comments) ? comments : []).flatMap(entry => {
+    if (isTrustedHumanComment(entry, trustedIds))
+      return declaring(entry).map(line =>
+        reasonOnLine(line, HUMAN_GATE_RELEASE_MARKER)
+      );
+    if (isRelayComment(entry, relayIds))
+      return declaring(entry)
+        .filter(line =>
+          trustedIds.has(relayedForOnLine(line, HUMAN_GATE_RELEASE_MARKER))
+        )
+        .map(line => reasonOnLine(line, HUMAN_GATE_RELEASE_MARKER));
+    return [];
+  });
   return [...new Set(keys)];
 }
 
@@ -1362,15 +1454,22 @@ export function planHumanGateRelease(input = {}) {
  * its reason and a mistyped reason discharges nothing while looking like it
  * did. The reason is echoed verbatim from the hold, so the pairing is visible
  * to a reader as well as to the matcher.
- * @param {{ reason?: unknown, decidedBy?: unknown, decision?: unknown }} discharge - What was decided, and by whom
+ *
+ * `relayedFor` is for a release an automation account posts on a person's
+ * instruction: the stable tracker id of that person, written before the reason
+ * (see {@link humanGateReleases}). It counts only in a project that named the
+ * posting account as a relay.
+ * @param {{ reason?: unknown, decidedBy?: unknown, decision?: unknown, relayedFor?: unknown }} discharge - What was decided, and by whom
  * @returns {string} Comment body carrying the release marker
  */
 export function formatHumanGateRelease(discharge = {}) {
   const reason = trimmedString(discharge.reason);
-  const declaration =
-    reason.length > 0
-      ? `${HUMAN_GATE_RELEASE_MARKER} ${REASON_KEY}${reason}`
-      : HUMAN_GATE_RELEASE_MARKER;
+  const relayedFor = trimmedString(discharge.relayedFor);
+  const declaration = [
+    HUMAN_GATE_RELEASE_MARKER,
+    ...(relayedFor.length > 0 ? [`${RELAYED_FOR_KEY}${relayedFor}`] : []),
+    ...(reason.length > 0 ? [`${REASON_KEY}${reason}`] : []),
+  ].join(" ");
   const lines = [declaration, "", "**The hold on this item is lifted.**", ""];
   lines.push(
     `- What was being asked: ${reason.length > 0 ? reason : "(the hold named no reason)"}`

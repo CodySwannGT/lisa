@@ -47,6 +47,8 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 
 ## Decisions
 
+- [2026-11-24 — An automation account may relay a hold release when the project says so](decisions/2026-11-24-relayed-hold-release.md)
+  - Opt-in `relay:<id>` in the release list; a relayed release must name a trusted person; the default stays strict; the trade-off the owner accepted.
 - [2026-11-23 — Every shared branch is always promotable](decisions/2026-11-23-always-promotable.md)
   - A piece of work never blocks a deployment: most changes merge complete and proven, only unfinished or unverified new behavior is switched off, a failed live change is reverted, and a project without live users turns the rule off with `release.liveUsers`.
 - [2026-11-21 — Level 1 evidence for controls Lisa cannot yet exercise](decisions/2026-11-21-level-1-proof-reachability.md)

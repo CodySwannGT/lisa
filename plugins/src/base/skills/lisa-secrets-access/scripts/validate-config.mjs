@@ -822,7 +822,7 @@ function findCredentials(value, path, segments = []) {
 const ID_ENTRY_PREFIX = /^([A-Za-z]+):/;
 
 /** The kinds an id entry's prefix may name. */
-const ID_ENTRY_KINDS = new Set(["login", "id", "integration"]);
+const ID_ENTRY_KINDS = new Set(["login", "id", "integration", "relay"]);
 
 /**
  * The one list an `integration:` entry belongs in (CodySwannGT/lisa#4895): an
@@ -830,6 +830,13 @@ const ID_ENTRY_KINDS = new Set(["login", "id", "integration"]);
  * never be an operator or release a human hold.
  */
 const INTEGRATION_LIST_KEYS = new Set(["trustedAuthorIds"]);
+
+/**
+ * The one list a `relay:` entry belongs in (CodySwannGT/lisa#5190): an
+ * automation account that may relay a trusted person's hold release. It is not
+ * a person, so it can never be an operator or a trusted author.
+ */
+const RELAY_LIST_KEYS = new Set(["trustedReleaseIds"]);
 
 /** Letters-and-colon starts of real tracker ids (JSM customers' `qm:`). */
 const PLAIN_ID_STARTS = new Set(["qm"]);
@@ -847,7 +854,7 @@ const ALL_DIGIT_ENTRY = /^\d+$/;
  * (CodySwannGT/lisa#4895), and an entry with no letters-only prefix is plain (a Jira accountId such as
  * `557058:<uuid>` or `qm:<id>` included).
  * @param {string} entry One entry.
- * @returns {"login" | "id" | "integration" | "plain" | "unknown-prefix" | "empty-value"} Kind.
+ * @returns {"login" | "id" | "integration" | "relay" | "plain" | "unknown-prefix" | "empty-value"} Kind.
  */
 export function classifyIdEntry(entry) {
   const prefix = ID_ENTRY_PREFIX.exec(entry)?.[1];
@@ -924,7 +931,8 @@ function idEntryProblems(key, ids) {
         `${path} has an ` +
           `unknown prefix ${JSON.stringify(prefix)}. Use login:<GitHub ` +
           `login>, id:<numeric or tracker account id>, ` +
-          `integration:<service> (trustedAuthorIds only), or a plain id; ` +
+          `integration:<service> (trustedAuthorIds only), relay:<account id> ` +
+          `(trustedReleaseIds only), or a plain id; ` +
           `write a tracker id that itself starts with letters and a colon ` +
           `as id:<that id>.`,
       ];
@@ -935,6 +943,15 @@ function idEntryProblems(key, ids) {
           `sessionManager.trustedAuthorIds. An integration can author ` +
           `dispatched work but is not a person, so it can never be an ` +
           `operator, answer a question, or release a human hold.`,
+      ];
+    }
+    if (kind === "relay" && !RELAY_LIST_KEYS.has(key)) {
+      return [
+        `${path} is a relay: entry, which belongs only in ` +
+          `sessionManager.trustedReleaseIds. A relay is the automation ` +
+          `account allowed to post a hold release that a trusted person ` +
+          `asked for. It is not a person, so it can never be an operator, ` +
+          `author dispatched work, or answer a question.`,
       ];
     }
     return kind === "empty-value"
@@ -1038,7 +1055,34 @@ function validateTrustList(key, ids, emptyProblem) {
         `Linear user id), not logins or display names.`,
     ];
   }
-  return ids.length === 0 ? [emptyProblem] : idEntryProblems(key, ids);
+  if (ids.length === 0) return [emptyProblem];
+  return [
+    ...idEntryProblems(key, ids),
+    ...relayWithoutPersonProblems(key, ids),
+  ];
+}
+
+/**
+ * A release list that names a relay and no person releases nothing: a relayed
+ * release must name a trusted person from the same list, and there is none.
+ * Reported, because the project clearly meant to let its agent relay releases
+ * and nothing would tell it why none ever counts.
+ * @param {string} key The list's key.
+ * @param {readonly string[]} ids Entries, already known to be strings.
+ * @returns {string[]} Problems found.
+ */
+function relayWithoutPersonProblems(key, ids) {
+  const kinds = ids.map(classifyIdEntry);
+  const people = kinds.some(kind => kind === "plain" || kind === "id");
+  return RELAY_LIST_KEYS.has(key) && kinds.includes("relay") && !people
+    ? [
+        `sessionManager.${key} names a relay but no person by account id. A ` +
+          `relay can only post a release that a trusted person asked for, ` +
+          `and that person must be in this list too, as id:<account id> or ` +
+          `a plain id (a login: entry is not enough, because releases are ` +
+          `matched on account ids). Add the people who may release a hold.`,
+      ]
+    : [];
 }
 
 /**

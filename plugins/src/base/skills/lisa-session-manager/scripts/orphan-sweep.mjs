@@ -23,6 +23,7 @@
  */
 import {
   idComparableValues,
+  releaseComparableValues,
   parseIdEntries,
 } from "../../../scripts/operator-id-kinds.mjs";
 import { holdDigest, judgeHold } from "./orphan-holds.mjs";
@@ -100,7 +101,7 @@ function resolveOptions(opts = {}) {
       me: idOrNull(opts.me),
       operators: parseIdEntries(opts.operatorIds),
     },
-    trustedHumanActorIds: idComparableValues(opts.trustedAuthorIds),
+    trustedHumanActorIds: releaseComparableValues(opts.trustedAuthorIds),
     humanNeededLabel: opts.humanNeededLabel,
     humanOnly: opts.humanOnly,
     readyLabel: opts.readyLabel,

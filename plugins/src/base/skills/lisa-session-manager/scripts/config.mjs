@@ -17,6 +17,7 @@
  */
 
 import { isAbsolute, resolve, sep } from "node:path";
+import { parseIdEntry } from "../../../scripts/operator-id-kinds.mjs";
 
 import {
   mergeConfigLayers as mergeLayers,
@@ -164,7 +165,8 @@ export function resolveSessionManagerConfig(globalConfig, localConfig) {
  * `trustedAuthorIds`, so a project that never declared it behaves exactly as
  * before. Neither set means nobody, and a hold fails closed. A declared
  * value that is not a list (an explicit null) also means nobody: it never
- * falls back, so a malformed release list cannot widen who may release.
+ * falls back, so a malformed release list cannot widen who may release. A
+ * `relay:` entry never comes through the fallback.
  * @param {{ trustedAuthorIds?: string[] | null, trustedReleaseIds?: string[] | null } | null | undefined} config
  *   - Resolved block (only its two trust lists are read)
  * @returns {string[]} The configured release entries (unparsed)
@@ -173,7 +175,13 @@ export function trustedReleaseEntries(config) {
   const release = config?.trustedReleaseIds;
   if (release !== undefined) return Array.isArray(release) ? release : [];
   const authors = config?.trustedAuthorIds;
-  return Array.isArray(authors) ? authors : [];
+  // A `relay:` entry is opt-in to one thing, relaying a hold release, and it
+  // belongs only in `trustedReleaseIds` (CodySwannGT/lisa#5190). Carrying one
+  // over from the author list would let a list written for a different
+  // question grant it, so the fallback drops it; validation says where it goes.
+  return (Array.isArray(authors) ? authors : []).filter(
+    entry => parseIdEntry(entry)?.kind !== "relay"
+  );
 }
 
 /**
