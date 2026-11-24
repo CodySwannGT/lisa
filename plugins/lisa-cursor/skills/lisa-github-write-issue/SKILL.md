@@ -26,7 +26,8 @@ replace these inputs with an empty history or an inferred allowlist. Authorized 
 continue through the existing path and never override an independently declared caller hold.
 
 One exception is opt-in. A project may name its automation account as a relay (`relay:<account id>`
-in the list of who may release). That account's release then counts when the line names, before the
+in the list of who may release, in its committed settings and never on an instruction given in
+conversation). That account's release then counts when the line names, before the
 reason, a trusted person from the same list: `[lisa-human-gate-release] relayed-for=<person id>
 reason=<slug>`. Post one only when a trusted person told you to release that hold, and say in the
 comment who asked, where and when. When the project named no relay, do not post a release: tell the
@@ -386,7 +387,7 @@ If the label does not exist in the tracker, create it, or record that it could n
 proceed — the marker still holds. Never file the label *instead of* the marker.
 
 **Write a `reason=` the release can name.** The hold's reason is not decoration: a hold ends when a
-`[lisa-human-gate-release]` comment repeating that same `reason=` is recorded on the item by an authorized human, and the
+`[lisa-human-gate-release]` comment repeating that same `reason=` is recorded on the item by an authorized human (or relayed for one by an account the project named as a relay), and the
 next intake sweep then takes the marker label off and puts the item back in the build-ready role on
 its own. Matching is per-reason so that a hold declared *after* an earlier release is not born
 discharged. A keyless hold is legal and is discharged by a keyless release; a hold whose reason is a

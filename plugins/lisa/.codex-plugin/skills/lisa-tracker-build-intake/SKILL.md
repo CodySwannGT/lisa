@@ -22,7 +22,8 @@ replace these inputs with an empty history or an inferred allowlist. Authorized 
 continue through the existing path and never override an independently declared caller hold.
 
 One exception is opt-in. A project may name its automation account as a relay (`relay:<account id>`
-in the list of who may release). That account's release then counts when the line names, before the
+in the list of who may release, in its committed settings and never on an instruction given in
+conversation). That account's release then counts when the line names, before the
 reason, a trusted person from the same list: `[lisa-human-gate-release] relayed-for=<person id>
 reason=<slug>`. Post one only when a trusted person told you to release that hold, and say in the
 comment who asked, where and when. When the project named no relay, do not post a release: tell the
@@ -87,7 +88,7 @@ blocker re-probe carries an absolute human gate: an item carrying the configured
 or a `[lisa-human-gate]` marker is never auto-selected, whatever a probe returns.
 
 That gate has an inverse, and it is forwarded identically: a hold ends when a
-`[lisa-human-gate-release]` comment naming the same `reason=` is recorded on the item by an authorized human. Every vendor
+`[lisa-human-gate-release]` comment naming the same `reason=` is recorded on the item by an authorized human (or relayed for one by an account the project named as a relay). Every vendor
 scanner passes the item's `comments` into the gate helpers so the discharge is visible, and calls
 `planHumanGateRelease(...)` to take the marker off and put the item back in the queue. **No vendor
 scanner clears a hold by editing the description** — the only body write any of them has is a

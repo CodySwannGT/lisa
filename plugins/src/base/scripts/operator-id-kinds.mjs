@@ -158,7 +158,13 @@ export function idComparableValues(entries) {
  */
 export function releaseComparableValues(entries) {
   return [
-    ...idComparableValues(entries),
+    // The release check reads any value that starts `relay:` as a relay. Only
+    // an entry WRITTEN as `relay:<id>` may be one, so a person value that
+    // would read that way (`id:relay:9`, or ` relay:9` with a space in front)
+    // is dropped: it names nobody, and validation refuses it.
+    ...idComparableValues(entries).filter(
+      value => !value.trim().toLowerCase().startsWith("relay:")
+    ),
     ...parseIdEntries(entries)
       .filter(entry => entry.kind === "relay")
       .map(entry => `relay:${entry.value}`),

@@ -32,7 +32,17 @@ In a project that names a relay, whatever makes that account post the line can l
 - A relayed line must name a person who is themselves a trusted releaser in the same list. It cannot name nobody, a stranger, or the relay itself.
 - The reason must match the hold, as for any release.
 - An account the project did not name is never a relay, whatever its comment says.
+- The line must be the relay's own: the marker starts the line. A copy behind a quote mark, a list bullet or an indent, or inside a code block, releases nothing. An agent repeats lines to discuss them; a person's own comment is still read as generously as before.
+- An account is a person or a relay, never both. One listed both ways cannot be relayed for, and validation refuses the list.
+- A relay is written exactly as `relay:<account id>`. The same value behind another prefix or a space is refused by validation and is never read as a relay.
+- A relay entry counts only from the project's committed settings, never from an instruction given in conversation.
 - For the session manager, a relay is read only from `sessionManager.trustedReleaseIds`, never from the `trustedAuthorIds` fallback. Validation refuses it elsewhere, and reports a list that names a relay but no person.
+
+## Known limits
+
+- A person listed only by `login:` can be relayed for on the GitHub queue, which resolves logins to account ids, and not by the blocked-item plan or the orphan sweep, which compare account ids only. The same difference already exists for that person's direct release. List people who may release by account id.
+- A tracker's own `<tracker>.trustedHumanActorIds` list reads a `relay:` entry the same way, and no validation covers that list.
+- A relay is recognised by the user id the tracker records on its comment. A comment the tracker records with no user id cannot be matched to a relay and releases nothing.
 
 ## What agents do
 

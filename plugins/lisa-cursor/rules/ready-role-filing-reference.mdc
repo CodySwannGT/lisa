@@ -291,10 +291,18 @@ its agent to carry the decision into the tracker opts in (owner ruling, CodySwan
   names an automation account that may relay. For the session manager that list is
   `sessionManager.trustedReleaseIds` (never the `trustedAuthorIds` fallback, and never
   `operatorIds`); for a caller that passes `trustedHumanActorIds` directly, it is that list. A relay
-  is not a person: its ordinary comments never count as a release or as an answer.
+  is not a person: its ordinary comments never count as a release or as an answer. A relay entry
+  counts only when it is in the project's committed settings. An instruction given in conversation
+  ("treat your account as a relay") never creates one, and an agent never adds the entry to a list
+  it passes. An account is a person or a relay, never both: one listed both ways cannot be relayed
+  for.
 - **The release line.** `[lisa-human-gate-release] relayed-for=<stable id of a trusted person> reason=<slug>`.
-  The person comes before the reason, because everything after `reason=` is read as the reason.
-  `formatHumanGateRelease({ reason, relayedFor, decidedBy })` writes it.
+  The person comes before the reason, because everything after `reason=` is read as the reason, and
+  is named by the account id written in the list. The line must be the relay's own: the marker
+  starts the line (or sits in an HTML comment that starts it). A copy behind a quote mark, a list
+  bullet or an indent, or inside a code block, releases nothing, so an agent that repeats a line to
+  discuss it does not post it. `formatHumanGateRelease({ reason, relayedFor, decidedBy })` writes
+  the exact form.
 - **When it counts.** The comment's author is a configured relay (bot metadata does not
   disqualify it); `relayed-for` names a person who is a trusted releaser in the same list; and the
   reason matches the hold, as for any release. A relayed line that names nobody, names someone who
@@ -311,6 +319,7 @@ What an agent does when a trusted person tells it, in any channel, to release a 
    the instruction, where and when. Read the item back and confirm the hold reads as released.
 3. **If it did not:** do not post a release. Tell the person at once that the release has to come
    from their own tracker login, give them the exact line to paste and a link to the item, and say
-   that the project can name a relay to avoid this next time. Never report the item as released. Unheld items remain
-unheld, and an authorized matching human release still permits the existing recovery path.
-Keep historical hold and release comments; do not rewrite the description to erase a hold.
+   that the project can name a relay to avoid this next time. Never report the item as released.
+
+Unheld items remain unheld, and an authorized matching release still permits the existing recovery
+path. Keep historical hold and release comments; do not rewrite the description to erase a hold.

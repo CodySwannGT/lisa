@@ -838,6 +838,24 @@ const INTEGRATION_LIST_KEYS = new Set(["trustedAuthorIds"]);
  */
 const RELAY_LIST_KEYS = new Set(["trustedReleaseIds"]);
 
+/**
+ * Whether an entry that is not written as `relay:<id>` would still be read as
+ * one by the hold-release check, which trims a value and looks at how it
+ * starts: `id:relay:9`, ` relay:9`, `login: relay:9`. Refused wherever it
+ * appears, so a relay can only ever be named in the one list that allows it.
+ * @param {string} entry A configured entry.
+ * @returns {boolean} Whether the entry hides a relay.
+ */
+function hidesRelay(entry) {
+  const lower = entry.trim().toLowerCase();
+  const bare = ["id:", "login:", "integration:"].reduce(
+    (text, prefix) =>
+      text.startsWith(prefix) ? text.slice(prefix.length).trim() : text,
+    lower
+  );
+  return bare.startsWith("relay:") && !/^relay:\S/u.test(entry);
+}
+
 /** Letters-and-colon starts of real tracker ids (JSM customers' `qm:`). */
 const PLAIN_ID_STARTS = new Set(["qm"]);
 
@@ -943,6 +961,15 @@ function idEntryProblems(key, ids) {
           `sessionManager.trustedAuthorIds. An integration can author ` +
           `dispatched work but is not a person, so it can never be an ` +
           `operator, answer a question, or release a human hold.`,
+      ];
+    }
+    if (kind !== "relay" && kind !== "empty-value" && hidesRelay(entry)) {
+      return [
+        `${path} reads as a relay: entry written another way (behind ` +
+          `another prefix, or with a space in front). Write a relay exactly ` +
+          `as relay:<account id>, and only in ` +
+          `sessionManager.trustedReleaseIds; no person's account id starts ` +
+          `with "relay:".`,
       ];
     }
     if (kind === "relay" && !RELAY_LIST_KEYS.has(key)) {
@@ -1072,17 +1099,36 @@ function validateTrustList(key, ids, emptyProblem) {
  * @returns {string[]} Problems found.
  */
 function relayWithoutPersonProblems(key, ids) {
+  if (!RELAY_LIST_KEYS.has(key)) return [];
   const kinds = ids.map(classifyIdEntry);
-  const people = kinds.some(kind => kind === "plain" || kind === "id");
-  return RELAY_LIST_KEYS.has(key) && kinds.includes("relay") && !people
-    ? [
-        `sessionManager.${key} names a relay but no person by account id. A ` +
-          `relay can only post a release that a trusted person asked for, ` +
-          `and that person must be in this list too, as id:<account id> or ` +
-          `a plain id (a login: entry is not enough, because releases are ` +
-          `matched on account ids). Add the people who may release a hold.`,
-      ]
-    : [];
+  if (!kinds.includes("relay")) return [];
+  const valueAt = i => ids[i].slice(ids[i].indexOf(":") + 1).trim();
+  const relays = new Set(
+    kinds.flatMap((kind, i) => (kind === "relay" ? [valueAt(i)] : []))
+  );
+  const people = kinds.flatMap((kind, i) => {
+    if (kind === "plain") return [{ i, value: ids[i].trim() }];
+    return kind === "id" ? [{ i, value: valueAt(i) }] : [];
+  });
+  const both = people.filter(person => relays.has(person.value));
+  return [
+    ...(people.length === 0
+      ? [
+          `sessionManager.${key} names a relay but no person by account id. A ` +
+            `relay can only post a release that a trusted person asked for, ` +
+            `and that person must be in this list too, as id:<account id> or ` +
+            `a plain id (a login: entry is not enough, because releases are ` +
+            `matched on account ids). Add the people who may release a hold.`,
+        ]
+      : []),
+    ...both.map(
+      person =>
+        `sessionManager.${key}[${person.i}] names the same account as a ` +
+        `person and as a relay. An account is one or the other: a relay ` +
+        `carries a person's decision and can never be the person who made ` +
+        `it. Remove one of the two entries.`
+    ),
+  ];
 }
 
 /**

@@ -7,7 +7,8 @@
  * `sessionManager.trustedReleaseIds`, and all three must give the same answer
  * for a relayed release: yes when the list names the posting account as
  * `relay:<id>` and the line names a trusted person from the same list, no in
- * every other case. Config validation says where a relay entry belongs.
+ * every other case. How the entry is written and validated is covered in
+ * `relay-entry-validation.test.ts`.
  * @module tests/unit/session-manager/relay-hold-release
  */
 import { readFileSync } from "node:fs";
@@ -15,15 +16,7 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  idComparableValues,
-  parseIdEntry,
-  releaseComparableValues,
-} from "../../../plugins/src/base/scripts/operator-id-kinds.mjs";
-import {
-  classifyIdEntry,
-  validateSessionManager,
-} from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs";
+import { validateSessionManager } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs";
 import {
   makeSandbox,
   removeSandboxes,
@@ -48,6 +41,10 @@ const RELEASE = "release";
 const SKIP = "skip-human-gate";
 const WITH_RELAY = { trustedReleaseIds: [`id:${PERSON}`, RELAY_ENTRY] };
 const WITHOUT_RELAY = { trustedReleaseIds: [`id:${PERSON}`] };
+const HELD = "human-gated";
+const ORG = "example-org";
+const REPO = "demo-repo";
+const BOT = "Bot";
 
 /**
  * Merge keys into the sandbox's `sessionManager` block.
@@ -95,10 +92,7 @@ describe("blocked-plan", () => {
 
   it("releases on a relayed release from the configured relay, bot or not", () => {
     expect(
-      planWith(
-        { authorId: RELAY, authorType: "Bot", body: RELAYED },
-        WITH_RELAY
-      )
+      planWith({ authorId: RELAY, authorType: BOT, body: RELAYED }, WITH_RELAY)
     ).toBe(RELEASE);
     expect(
       planWith(
@@ -111,7 +105,7 @@ describe("blocked-plan", () => {
   it("keeps the hold when the project named no relay", () => {
     expect(
       planWith(
-        { authorId: RELAY, authorType: "Bot", body: RELAYED },
+        { authorId: RELAY, authorType: BOT, body: RELAYED },
         WITHOUT_RELAY
       )
     ).toBe(SKIP);
@@ -124,16 +118,13 @@ describe("blocked-plan", () => {
       `${MARKER} relayed-for=${RELAY} reason=${REASON}`,
     ])
       expect(
-        planWith({ authorId: RELAY, authorType: "Bot", body }, WITH_RELAY)
+        planWith({ authorId: RELAY, authorType: BOT, body }, WITH_RELAY)
       ).toBe(SKIP);
   });
 
   it("keeps the hold when another account posts the relayed form", () => {
     expect(
-      planWith(
-        { authorId: "5555", authorType: "Bot", body: RELAYED },
-        WITH_RELAY
-      )
+      planWith({ authorId: "5555", authorType: BOT, body: RELAYED }, WITH_RELAY)
     ).toBe(SKIP);
   });
 
@@ -152,7 +143,7 @@ describe("blocked-plan", () => {
     // belongs.
     expect(
       planWith(
-        { authorId: RELAY, authorType: "Bot", body: RELAYED },
+        { authorId: RELAY, authorType: BOT, body: RELAYED },
         { trustedAuthorIds: [PERSON, RELAY_ENTRY] }
       )
     ).toBe(SKIP);
@@ -191,7 +182,7 @@ describe("queue", () => {
       },
       extraConfig: {
         humanGate: { mode: "strict" },
-        github: { org: "example-org", repo: "demo-repo" },
+        github: { org: ORG, repo: REPO },
       },
     });
     const input = path.join(sandbox.root, "queue.json");
@@ -231,9 +222,74 @@ describe("queue", () => {
     );
     expect(result.status, result.stderr).toBe(0);
     expect(result.json.ordered).toEqual([]);
-    expect(result.json.excluded).toEqual([
-      { ref: LINEAR, reason: "human-gated" },
+    expect(result.json.excluded).toEqual([{ ref: LINEAR, reason: HELD }]);
+  });
+});
+
+describe("queue on GitHub", () => {
+  const ISSUES =
+    "repos/example-org/demo-repo/issues?state=open&labels=status%3Aready&per_page=100";
+  const COMMENTS = "repos/example-org/demo-repo/issues/1/comments?per_page=100";
+  const GITHUB_REF = "example-org/demo-repo#1";
+
+  /**
+   * Run the real queue CLI against a stubbed GitHub with one held issue
+   * carrying the relay's release. GitHub ids are numbers.
+   * @param keys - `sessionManager` keys
+   * @returns CLI result
+   */
+  function queue(keys: Record<string, unknown>) {
+    const sandbox = makeSandbox({
+      sessionManager: {
+        name: "relay-queue-github",
+        operatorIds: [PERSON],
+        trustedAuthorIds: ["123"],
+        ...keys,
+      },
+      extraConfig: {
+        humanGate: { mode: "strict" },
+        github: { org: ORG, repo: REPO },
+      },
+    });
+    const routes = path.join(sandbox.root, "gh-routes.json");
+    writeJson(routes, [
+      {
+        match: ISSUES,
+        body: [[{ number: 1, title: "Held", body: HOLD, user: { id: 123 } }]],
+      },
+      {
+        match: COMMENTS,
+        body: [
+          [
+            {
+              body: RELAYED,
+              user: { id: Number(RELAY), login: "agent[bot]", type: BOT },
+            },
+          ],
+        ],
+      },
     ]);
+    return runCli(
+      sandbox,
+      ["queue", "--tracker", "github", "--label", "status:ready"],
+      { env: { STUB_GH_ROUTES: routes } }
+    );
+  }
+
+  it("dispatches an issue released through the configured relay", () => {
+    const result = queue(WITH_RELAY);
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.json.ordered).toEqual([
+      expect.objectContaining({ ref: GITHUB_REF }),
+    ]);
+    expect(result.json.excluded).toEqual([]);
+  });
+
+  it("keeps the hold without the relay entry", () => {
+    const result = queue(WITHOUT_RELAY);
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.json.ordered).toEqual([]);
+    expect(result.json.excluded).toEqual([{ ref: GITHUB_REF, reason: HELD }]);
   });
 });
 
@@ -252,8 +308,8 @@ describe("orphan-plan", () => {
       makeSandbox({
         extraConfig: {
           github: {
-            org: "example-org",
-            repo: "demo-repo",
+            org: ORG,
+            repo: REPO,
             labels: {
               build: {
                 ready: READY,
@@ -278,7 +334,7 @@ describe("orphan-plan", () => {
             assignees: [],
             updatedAt: "2026-01-01T00:00:00Z",
             body: `<!-- [lisa-human-gate] reason=${REASON} -->`,
-            comments: [{ body: RELAYED, author: { id: RELAY, type: "Bot" } }],
+            comments: [{ body: RELAYED, author: { id: RELAY, type: BOT } }],
           },
         ],
       }),
@@ -294,57 +350,4 @@ describe("orphan-plan", () => {
   it("keeps the hold when the project named no relay", () => {
     expect(keptHolds(WITHOUT_RELAY)).toEqual([REF]);
   });
-});
-
-describe("relay entries", () => {
-  const minimal = {
-    name: "repo-a-manager",
-    notify: { provider: "none" },
-  };
-
-  it("parse as their own kind, in the parser and in the validator's copy", () => {
-    expect(parseIdEntry(RELAY_ENTRY)).toEqual({ kind: "relay", value: RELAY });
-    expect(classifyIdEntry(RELAY_ENTRY)).toBe("relay");
-    expect(parseIdEntry("relay:")).toMatchObject({ kind: "invalid" });
-    expect(classifyIdEntry("relay:")).toBe("empty-value");
-  });
-
-  it("are never a person: people readers drop them, the release reader keeps them marked", () => {
-    const entries = [`id:${PERSON}`, RELAY_ENTRY, "login:octocat"];
-    expect(idComparableValues(entries)).toEqual([PERSON]);
-    expect(releaseComparableValues(entries)).toEqual([PERSON, RELAY_ENTRY]);
-    expect(releaseComparableValues(undefined)).toEqual([]);
-  });
-
-  it("are accepted in trustedReleaseIds beside a person", () => {
-    expect(validateSessionManager({ ...minimal, ...WITH_RELAY })).toEqual([]);
-  });
-
-  it.each([
-    ["operatorIds", { operatorIds: [RELAY_ENTRY] }],
-    ["trustedAuthorIds", { trustedAuthorIds: [RELAY_ENTRY] }],
-  ])("are refused in %s, in words a reader can follow", (key, keys) => {
-    const problems = validateSessionManager({ ...minimal, ...keys });
-    expect(problems).toHaveLength(1);
-    expect(problems[0]).toContain(`sessionManager.${key}[0]`);
-    expect(problems[0]).toContain(
-      "belongs only in sessionManager.trustedReleaseIds"
-    );
-    expect(problems[0]).toContain("It is not a person");
-  });
-
-  it.each([
-    ["alone", [RELAY_ENTRY]],
-    ["beside only a login", [RELAY_ENTRY, "login:octocat"]],
-  ])(
-    "are reported when %s, because nobody can be relayed for",
-    (_name, list) => {
-      const problems = validateSessionManager({
-        ...minimal,
-        trustedReleaseIds: list,
-      });
-      expect(problems).toHaveLength(1);
-      expect(problems[0]).toContain("names a relay but no person");
-    }
-  );
 });

@@ -4,6 +4,7 @@
 
 - Added `wiki/decisions/2026-11-24-relayed-hold-release.md` for `CodySwannGT/lisa#5190`: the opt-in relay, the two absolute sentences it replaces, the trade-off the owner accepted, and what agents do in each case.
 - Added the source note `wiki/sources/repository/2026-11-24-relayed-hold-release.md`.
+- Updated the same day after independent review: the record now states that a relay's line must be its own (a quoted copy releases nothing), that an account is a person or a relay and never both, the one accepted spelling, and three known limits.
 - `wiki/index.md` lists the decision first under Decisions.
 
 ## 2026-11-23 - Always promotable: the decision record

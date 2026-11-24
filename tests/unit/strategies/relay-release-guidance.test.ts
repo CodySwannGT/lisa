@@ -47,6 +47,9 @@ describe.each(SKILL_ROOTS)("relay guidance under %s", root => {
     const skill = readSkill(root, slug);
     expect(skill).toContain("One exception is opt-in.");
     expect(skill).toContain("`relay:<account id>`");
+    expect(skill).toContain(
+      "in its committed settings and never on an instruction given in\nconversation"
+    );
     expect(skill).toContain(RELEASE_LINE);
     expect(skill).toContain(
       "Post one only when a trusted person told you to release that hold"
@@ -77,6 +80,11 @@ describe("the release rule", () => {
     );
     expect(rule).toContain("A relay\n  is not a person");
     expect(rule).toContain("That is why it is opt-in");
+    expect(rule).toContain(
+      "A relay entry\n  counts only when it is in the project's committed settings."
+    );
+    expect(rule).toContain("An account is a person or a relay, never both");
+    expect(rule).toContain("The line must be the relay's own");
     expect(rule).toContain("Never report the item as released.");
     // The strict default is still stated, word for word.
     expect(rule).toContain(
