@@ -176,6 +176,75 @@ export function adfText(node) {
   return children.map(adfText).join(joiner);
 }
 
+/** Jira text marks that make a line something other than a statement. */
+const NOT_STATED_MARKS = new Set(["code", "strike"]);
+
+/**
+ * Whether any text under a node is marked as code or struck out. A struck-out
+ * line is a retraction, not a statement.
+ * @param {unknown} node - Atlassian Document Format node
+ * @returns {boolean} True when some text carries such a mark
+ */
+function adfHasNotStatedMark(node) {
+  if (!node || typeof node !== "object") return false;
+  if (
+    Array.isArray(node.marks) &&
+    node.marks.some(mark => NOT_STATED_MARKS.has(mark?.type))
+  )
+    return true;
+  return Array.isArray(node.content) && node.content.some(adfHasNotStatedMark);
+}
+
+/** Inline children that {@link adfText} renders in full. */
+const TEXT_INLINES = new Set(["text", "hardBreak"]);
+
+/**
+ * Whether a paragraph holds something visible that {@link adfText} renders as
+ * nothing: an inline card, a mention, an emoji, media. A paragraph holding
+ * only a card would otherwise become a blank line, and the release after it
+ * would read as the comment's first line.
+ * @param {unknown} node - Atlassian Document Format paragraph
+ * @returns {boolean} True when such a child is present
+ */
+function adfHasUnrenderedInline(node) {
+  return (
+    Array.isArray(node?.content) &&
+    node.content.some(child => !TEXT_INLINES.has(child?.type))
+  );
+}
+
+/**
+ * A Jira comment as text, keeping one thing {@link adfText} throws away:
+ * whether a block is an ordinary paragraph.
+ *
+ * A hold release relayed by an automation account counts only as the first
+ * line of the comment, written plainly (CodySwannGT/lisa#5190). Flattened, a
+ * quoted line, a code block, a list item and a panel all look like that. So
+ * every line of a block that is not a plain paragraph (and of a paragraph
+ * that carries inline code or a strikethrough, or holds a card, mention, emoji
+ * or media that has no text here) is written behind a quote mark. A person's
+ * release reads the same as before, because their comment is read generously
+ * and a quote mark never hid a marker from it; only a relay, held to the
+ * exact form, is refused the quoted copy.
+ * @param {unknown} node - Comment body: a document, or text some paths return
+ * @returns {string} The comment as text
+ */
+export function adfCommentText(node) {
+  if (!node || typeof node !== "object" || node.type !== "doc")
+    return adfText(node);
+  const blocks = Array.isArray(node.content) ? node.content : [];
+  return blocks
+    .map(block => {
+      const plain =
+        block?.type === "paragraph" &&
+        !adfHasNotStatedMark(block) &&
+        !adfHasUnrenderedInline(block);
+      const lines = adfText(block).split("\n");
+      return (plain ? lines : lines.map(line => `> ${line}`)).join("\n");
+    })
+    .join("\n");
+}
+
 /**
  * How many blockers still hold a GitHub issue.
  *

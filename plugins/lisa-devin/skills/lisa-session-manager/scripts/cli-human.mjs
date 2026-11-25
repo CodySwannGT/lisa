@@ -159,7 +159,9 @@ function allowedAnswerers(config) {
   // it would tell the operator to reply on the item when no reply is read.
   return [...(config?.operatorIds ?? []), ...trustedReleaseEntries(config)]
     .map(String)
-    .filter(entry => parseIdEntry(entry)?.kind !== "integration");
+    .filter(
+      entry => !["integration", "relay"].includes(parseIdEntry(entry)?.kind)
+    );
 }
 
 /** Why nothing is read off the item when nobody may answer there. */

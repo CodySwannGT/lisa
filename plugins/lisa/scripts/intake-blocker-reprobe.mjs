@@ -259,6 +259,94 @@ function reasonOnLine(line, marker) {
   return normalizeReason(tail.slice(key + REASON_KEY.length));
 }
 
+/** Key a relayed release uses to name the person it relays for. */
+const RELAYED_FOR_KEY = "relayed-for=";
+
+/**
+ * The person a declaring line says it relays for, or "" when it names nobody.
+ *
+ * It is read only from the part of the line BEFORE `reason=`. Everything after
+ * `reason=` is the reason (that is how every reader, old and new, parses it),
+ * so a `relayed-for=` written after the reason is part of a reason nobody
+ * declared and releases nothing. Writing the person first keeps one grammar:
+ * an older reader still finds the right reason, and then refuses the comment
+ * for its author, which is the safe answer.
+ * @param {string} line - A line already known to declare
+ * @param {string} marker - The declaration marker it carries
+ * @returns {string} The stable id named, or the empty string
+ */
+function relayedForOnLine(line, marker) {
+  const at = line.indexOf(marker);
+  if (at === -1) return "";
+  const tail = line.slice(at + marker.length).split("-->")[0];
+  // Exact grammar: the person is the word right after the marker, and the
+  // only thing that may follow it is the reason. `not-relayed-for=1`, a
+  // `relayed-for=` later in the line, and a sentence after the person
+  // ("relayed-for=1 is the form a release takes") all name nobody.
+  const [first = "", second] = tail.trim().split(/\s+/u);
+  if (!first.startsWith(RELAYED_FOR_KEY)) return "";
+  if (second !== undefined && !second.startsWith(REASON_KEY)) return "";
+  return first.slice(RELAYED_FOR_KEY.length);
+}
+
+/** Longest indent a line may have before Markdown reads it as code. */
+const MAX_PROSE_INDENT = 3;
+
+/**
+ * The one line of a relay's comment that can be a release: its first.
+ *
+ * A person's comment is read generously: a marker behind a quote mark or a
+ * list bullet, anywhere in the comment, still declares, because the person is
+ * the authority and nothing in their own comment can be someone else's words.
+ * A relay is an agent, and an agent quotes: it answers "should I post this
+ * line?" by repeating the line. Telling a quotation from a statement in
+ * Markdown is a long list (nested fences, code spans across lines, lazy
+ * blockquote lines, list continuations, raw HTML), and any list has a next
+ * entry. So there is no list. A relayed release counts only in the exact
+ * place and shape {@link formatHumanGateRelease} writes it: the first line of
+ * the comment, beginning with the marker (or with an HTML comment that begins
+ * with it), at most three spaces in, with no code mark on the line. A copy
+ * anywhere else, or dressed any other way, releases nothing.
+ * @param {unknown} body - The comment body
+ * @returns {string[]} That line when it is a release line, else nothing
+ */
+function relayReleaseLines(body) {
+  const first =
+    String(body ?? "")
+      .split("\n")
+      .find(line => line.trim() !== "") ?? "";
+  if (first.includes("`")) return [];
+  const line = normalizeProviderMarkdown(first);
+  const text = line.trimStart();
+  const indent = line.slice(0, line.length - text.length);
+  if (indent.length > MAX_PROSE_INDENT || indent.includes("\t")) return [];
+  return relayStatement(text).startsWith(HUMAN_GATE_RELEASE_MARKER)
+    ? [line]
+    : [];
+}
+
+/**
+ * The release a relay's first line states, or "" when the line is not one.
+ *
+ * Two shapes, and nothing may come after either: the plain line, which must
+ * not contain an HTML comment mark at all (every reader cuts a line at the
+ * first `-->`, so `… reason=x --> is this right?` would otherwise count with
+ * a question after it), or the whole line as one closed HTML comment.
+ * @param {string} text - The first line, indent removed
+ * @returns {string} The statement inside, or the empty string
+ */
+function relayStatement(text) {
+  const plain = !text.includes("<!--") && !text.includes("-->");
+  if (plain) return text;
+  if (!text.startsWith("<!--")) return "";
+  const inner = text.slice("<!--".length);
+  const close = inner.indexOf("-->");
+  if (close === -1) return "";
+  if (inner.slice(close + "-->".length).trim() !== "") return "";
+  const statement = inner.slice(0, close);
+  return statement.includes("<!--") ? "" : statement.trim();
+}
+
 /**
  * The reason keys of every hold a body DECLARES, deduplicated.
  *
@@ -841,32 +929,98 @@ function isTrustedHumanComment(comment, trustedIds) {
   return id.length > 0 && trustedIds.has(id);
 }
 
+/** Prefix of a list entry that names a relay account instead of a person. */
+const RELAY_ENTRY = "relay:";
+
 /**
- * The reason keys released by explicitly trusted human authors, deduplicated.
+ * Whether a comment was written by an account the project named as a relay.
+ *
+ * Bot metadata does not disqualify it: a relay is named BECAUSE it is the
+ * automation account, and the project chose to let it carry a person's
+ * decision. What it may carry is decided per line, by {@link relayedForOnLine}.
+ * @param {unknown} comment - Structured provider comment
+ * @param {ReadonlySet<string>} relayIds - Account ids the project named as relays
+ * @returns {boolean} Whether a configured relay wrote the comment
+ */
+function isRelayComment(comment, relayIds) {
+  if (!comment || typeof comment !== "object" || Array.isArray(comment))
+    return false;
+  const id = stableActorId(
+    comment.authorId ??
+      comment.user?.id ??
+      comment.author?.id ??
+      comment.author?.accountId
+  );
+  return id.length > 0 && relayIds.has(id);
+}
+
+/**
+ * The reason keys released for this item, deduplicated.
+ *
+ * Two kinds of comment can release a hold:
+ *
+ * 1. One written by an explicitly trusted PERSON, from their own tracker
+ *    login. Known bots never qualify here, listed or not.
+ * 2. One written by an account the project named as a RELAY (a list entry of
+ *    the form `relay:<stable account id>`, CodySwannGT/lisa#5190), on a line
+ *    that names, before the reason, a person who is themselves on the list:
+ *    `[lisa-human-gate-release] relayed-for=<person id> reason=<slug>`.
+ *
+ * The second exists because the person often gives the decision where the
+ * agent asked for it, in chat, and the agent can only post from the automation
+ * account. It is opt-in by design: with no `relay:` entry, behavior is exactly
+ * the first rule. A project that names a relay accepts that whatever makes
+ * that account post the line can lift a hold. Nothing else relaxes: a relay
+ * that names nobody, names someone who is not a trusted person, or names
+ * itself or another relay (even one also listed as a person), releases
+ * nothing; only the first line of the relay's comment is read
+ * ({@link relayReleaseLines}); and an account the project did not name is
+ * never a relay whatever its comment says.
  *
  * Comments must retain authenticated provider authorship: normalized authorId,
- * user.id, author.id or author.accountId. The caller supplies trusted human IDs
- * independently of comment content. Raw strings, missing IDs, known bots and
- * an absent or empty allowlist fail closed and cannot discharge a hold.
+ * user.id, author.id or author.accountId. The caller supplies the list
+ * independently of comment content. Raw strings, missing IDs and an absent or
+ * empty list fail closed and cannot discharge a hold.
  * @param {unknown} comments - Structured comments, any order
- * @param {unknown} trustedHumanActorIds - Explicit trusted human provider IDs
+ * @param {unknown} trustedHumanActorIds - Explicit trusted person ids, and `relay:<id>` entries
  * @returns {string[]} One key per authorized recorded release
  */
 export function humanGateReleases(comments, trustedHumanActorIds = []) {
+  const entries = (
+    Array.isArray(trustedHumanActorIds) ? trustedHumanActorIds : []
+  )
+    .map(stableActorId)
+    .filter(Boolean);
   const trustedIds = new Set(
-    (Array.isArray(trustedHumanActorIds) ? trustedHumanActorIds : [])
-      .map(stableActorId)
+    entries.filter(entry => !entry.startsWith(RELAY_ENTRY))
+  );
+  const relayIds = new Set(
+    entries
+      .filter(entry => entry.startsWith(RELAY_ENTRY))
+      .map(entry => entry.slice(RELAY_ENTRY.length).trim())
       .filter(Boolean)
   );
-  const bodies = (Array.isArray(comments) ? comments : [])
-    .filter(entry => isTrustedHumanComment(entry, trustedIds))
-    .map(entry => entry.body ?? "");
-  const keys = bodies.flatMap(body =>
-    declarativeText(body)
+  // An account is a person or a relay, never both. Listing one both ways
+  // (directly, or through a login a tracker resolves to the relay's id) makes
+  // it a relay: it cannot release in its own name and cannot be relayed for.
+  const people = new Set([...trustedIds].filter(id => !relayIds.has(id)));
+  const declaring = entry =>
+    declarativeText(entry.body ?? "")
       .split("\n")
-      .filter(line => declaresOnLine(line, HUMAN_GATE_RELEASE_MARKER))
-      .map(line => reasonOnLine(line, HUMAN_GATE_RELEASE_MARKER))
-  );
+      .filter(line => declaresOnLine(line, HUMAN_GATE_RELEASE_MARKER));
+  const keys = (Array.isArray(comments) ? comments : []).flatMap(entry => {
+    if (isTrustedHumanComment(entry, people))
+      return declaring(entry).map(line =>
+        reasonOnLine(line, HUMAN_GATE_RELEASE_MARKER)
+      );
+    if (isRelayComment(entry, relayIds))
+      return relayReleaseLines(entry.body ?? "")
+        .filter(line =>
+          people.has(relayedForOnLine(line, HUMAN_GATE_RELEASE_MARKER))
+        )
+        .map(line => reasonOnLine(line, HUMAN_GATE_RELEASE_MARKER));
+    return [];
+  });
   return [...new Set(keys)];
 }
 
@@ -1362,22 +1516,40 @@ export function planHumanGateRelease(input = {}) {
  * its reason and a mistyped reason discharges nothing while looking like it
  * did. The reason is echoed verbatim from the hold, so the pairing is visible
  * to a reader as well as to the matcher.
- * @param {{ reason?: unknown, decidedBy?: unknown, decision?: unknown }} discharge - What was decided, and by whom
+ *
+ * `relayedFor` is for a release an automation account posts on a person's
+ * instruction: the stable tracker id of that person, written before the reason
+ * (see {@link humanGateReleases}). It counts only in a project that named the
+ * posting account as a relay. A numeric id is accepted (GitHub's are
+ * numbers); an id with a space in it is left out, so the line stays a direct
+ * release that a relay's account cannot use.
+ *
+ * Every field is written on one line. A line break inside "what was decided"
+ * would otherwise let text copied from a conversation start a second line with
+ * its own release marker, for a different hold.
+ * @param {{ reason?: unknown, decidedBy?: unknown, decision?: unknown, relayedFor?: unknown }} discharge - What was decided, and by whom
  * @returns {string} Comment body carrying the release marker
  */
 export function formatHumanGateRelease(discharge = {}) {
-  const reason = trimmedString(discharge.reason);
-  const declaration =
-    reason.length > 0
-      ? `${HUMAN_GATE_RELEASE_MARKER} ${REASON_KEY}${reason}`
-      : HUMAN_GATE_RELEASE_MARKER;
+  const oneLine = value => trimmedString(value).replace(/\s*[\r\n]+\s*/gu, " ");
+  const reason = oneLine(discharge.reason);
+  // `id:4242` is how the list writes an account id, not how a release names
+  // one: every reader compares the bare id, so the prefix is dropped here.
+  const listed = stableActorId(discharge.relayedFor);
+  const named = listed.startsWith("id:") ? listed.slice("id:".length) : listed;
+  const relayedFor = /\s/u.test(named) ? "" : named;
+  const declaration = [
+    HUMAN_GATE_RELEASE_MARKER,
+    ...(relayedFor.length > 0 ? [`${RELAYED_FOR_KEY}${relayedFor}`] : []),
+    ...(reason.length > 0 ? [`${REASON_KEY}${reason}`] : []),
+  ].join(" ");
   const lines = [declaration, "", "**The hold on this item is lifted.**", ""];
   lines.push(
     `- What was being asked: ${reason.length > 0 ? reason : "(the hold named no reason)"}`
   );
-  const decision = trimmedString(discharge.decision);
+  const decision = oneLine(discharge.decision);
   if (decision.length > 0) lines.push(`- What was decided: ${decision}`);
-  const decidedBy = trimmedString(discharge.decidedBy);
+  const decidedBy = oneLine(discharge.decidedBy);
   if (decidedBy.length > 0) lines.push(`- Decided by: ${decidedBy}`);
   lines.push(
     "- What happens next: this item goes back into the queue that agents build from."

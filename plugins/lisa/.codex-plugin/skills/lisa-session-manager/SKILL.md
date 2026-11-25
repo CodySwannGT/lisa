@@ -158,6 +158,17 @@ the manager.
   no hold is released.
   Removing `trustedAuthorIds` to dispatch integration-filed items would also remove every hold
   releaser; add `integration:<service>` instead.
+- **A release the operator gives you, not the item.** When the operator tells you (with `answer`,
+  on Telegram, or in the session) to release a held item, check `sessionManager.trustedReleaseIds`
+  for a `relay:<id>` entry naming the account you post from (in the committed `.lisa.config.json`;
+  one in the local override alone is ignored). With one, post
+  `[lisa-human-gate-release] relayed-for=<the operator's account id> reason=<the hold's slug>`
+  (leaving `reason=` out for a hold that names no reason) through `lisa-tracker-write` as the
+  first line of the comment, then a plain-English line saying
+  who asked, where and when; the operator must be in the same list by account id. With none, post nothing: tell the operator the
+  release has to come from their own tracker login, and give the exact line and a link to the item.
+  Never say an item was released until `queue` or `blocked-plan` reads it as released
+  (`ready-role-filing`, "Relayed releases").
 
 ## Questions and notifications
 

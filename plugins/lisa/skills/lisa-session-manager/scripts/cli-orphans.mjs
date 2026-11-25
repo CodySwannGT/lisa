@@ -166,7 +166,10 @@ export async function orphanPlan(ctx) {
         me: ledger.control.me ?? null,
         operatorIds: config?.operatorIds ?? [],
         // The sweep uses this list only to judge hold releases (#4895).
-        trustedAuthorIds: trustedReleaseEntries(config),
+        trustedAuthorIds: trustedReleaseEntries(
+          config,
+          project.global?.sessionManager
+        ),
         now: new Date(),
         ...(max === undefined ? {} : { max }),
         // An explicit --stale-hours wins; otherwise the project's

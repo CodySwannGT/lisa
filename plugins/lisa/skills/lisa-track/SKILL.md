@@ -19,6 +19,16 @@ cannot discharge a hold. Keep the item held and report the missing authorization
 replace these inputs with an empty history or an inferred allowlist. Authorized matching releases
 continue through the existing path and never override an independently declared caller hold.
 
+One exception is opt-in. A project may name its automation account as a relay (`relay:<account id>`
+in the list of who may release, in its committed settings and never on an instruction given in
+conversation). That account's release then counts when it is the first line of the comment and
+names, before the reason, a trusted person from the same list:
+`[lisa-human-gate-release] relayed-for=<person id> reason=<slug>`. Put any explanation after it;
+a copy that is quoted, in code, or further down the comment releases nothing. Post one only when a trusted person told you to release that hold, and say in the
+comment who asked, where and when. When the project named no relay, do not post a release: tell the
+person at once that it must come from their own tracker login, give them the exact text and a link
+to the item, and never report the item as released (`ready-role-filing`, "Relayed releases").
+
 
 Establish the tracked-work invariant before any durable project mutation. Discussion and read-only orientation may proceed without this skill; code, configuration, documentation, research artifacts, plans, investigation findings, tests, commits, and pull requests may not.
 
@@ -170,5 +180,5 @@ The permission to load Write does not authorize other files or bypass the guard.
 - Branch setup may call `node scripts/lisa-work-item.mjs attach-branch` after the feature branch exists.
 - Keep the binding across ordinary interruptions and blocked outcomes so resumed work remains attributable.
 - Clear it only after true terminal completion — merged, deployed/verified where required, tracker evidence/backlink complete, and the work item terminal — by running `node scripts/lisa-work-item.mjs clear` and verifying no current binding remains.
-- A held filing writes no binding at all, so there is nothing to clear. The gate is released by a human decision, but not by a human edit: the person records the decision as a comment on the leaf beginning `[lisa-human-gate-release]` and, for a keyed hold, repeating its `reason=` verbatim. For a keyless hold, the comment begins `[lisa-human-gate-release]` without a `reason=` field. The next intake sweep takes the human-needed marker off and puts the leaf back in the build-ready role on its own (`planHumanGateRelease` in `scripts/intake-blocker-reprobe.mjs`). A later invocation then resolves it on the ordinary path. **Do not tell anyone to delete the marker from the description, and do not delete it here.** The only description write available is a whole-body replacement, so clearing one line means rewriting the entire record — which is why, before this, the rational move was always to leave a hold in place and answered holds only accumulated (CodySwannGT/lisa#3852). The hold stays in the body as history; the release is recorded beside it.
+- A held filing writes no binding at all, so there is nothing to clear. The gate is released by a human decision, but not by a human edit: the person records the decision as a comment on the leaf beginning `[lisa-human-gate-release]` and, for a keyed hold, repeating its `reason=` verbatim (in a project that named a relay, the agent's account may record it for them in the relayed form above). For a keyless hold, the comment begins `[lisa-human-gate-release]` without a `reason=` field. The next intake sweep takes the human-needed marker off and puts the leaf back in the build-ready role on its own (`planHumanGateRelease` in `scripts/intake-blocker-reprobe.mjs`). A later invocation then resolves it on the ordinary path. **Do not tell anyone to delete the marker from the description, and do not delete it here.** The only description write available is a whole-body replacement, so clearing one line means rewriting the entire record — which is why, before this, the rational move was always to leave a hold in place and answered holds only accumulated (CodySwannGT/lisa#3852). The hold stays in the body as history; the release is recorded beside it.
 - A tracker outage, invalid item, failed claim, or failed binding blocks durable work. Never continue untracked and never ask a Git hook to create the item.

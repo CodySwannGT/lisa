@@ -822,7 +822,7 @@ function findCredentials(value, path, segments = []) {
 const ID_ENTRY_PREFIX = /^([A-Za-z]+):/;
 
 /** The kinds an id entry's prefix may name. */
-const ID_ENTRY_KINDS = new Set(["login", "id", "integration"]);
+const ID_ENTRY_KINDS = new Set(["login", "id", "integration", "relay"]);
 
 /**
  * The one list an `integration:` entry belongs in (CodySwannGT/lisa#4895): an
@@ -830,6 +830,31 @@ const ID_ENTRY_KINDS = new Set(["login", "id", "integration"]);
  * never be an operator or release a human hold.
  */
 const INTEGRATION_LIST_KEYS = new Set(["trustedAuthorIds"]);
+
+/**
+ * The one list a `relay:` entry belongs in (CodySwannGT/lisa#5190): an
+ * automation account that may relay a trusted person's hold release. It is not
+ * a person, so it can never be an operator or a trusted author.
+ */
+const RELAY_LIST_KEYS = new Set(["trustedReleaseIds"]);
+
+/**
+ * Whether an entry that is not written as `relay:<id>` would still be read as
+ * one by the hold-release check, which trims a value and looks at how it
+ * starts: `id:relay:9`, ` relay:9`, `login: relay:9`. Refused wherever it
+ * appears, so a relay can only ever be named in the one list that allows it.
+ * @param {string} entry A configured entry.
+ * @returns {boolean} Whether the entry hides a relay.
+ */
+function hidesRelay(entry) {
+  const lower = entry.trim().toLowerCase();
+  const bare = ["id:", "login:", "integration:"].reduce(
+    (text, prefix) =>
+      text.startsWith(prefix) ? text.slice(prefix.length).trim() : text,
+    lower
+  );
+  return bare.startsWith("relay:") && !/^relay:\S/u.test(entry);
+}
 
 /** Letters-and-colon starts of real tracker ids (JSM customers' `qm:`). */
 const PLAIN_ID_STARTS = new Set(["qm"]);
@@ -847,7 +872,7 @@ const ALL_DIGIT_ENTRY = /^\d+$/;
  * (CodySwannGT/lisa#4895), and an entry with no letters-only prefix is plain (a Jira accountId such as
  * `557058:<uuid>` or `qm:<id>` included).
  * @param {string} entry One entry.
- * @returns {"login" | "id" | "integration" | "plain" | "unknown-prefix" | "empty-value"} Kind.
+ * @returns {"login" | "id" | "integration" | "relay" | "plain" | "unknown-prefix" | "empty-value"} Kind.
  */
 export function classifyIdEntry(entry) {
   const prefix = ID_ENTRY_PREFIX.exec(entry)?.[1];
@@ -924,7 +949,8 @@ function idEntryProblems(key, ids) {
         `${path} has an ` +
           `unknown prefix ${JSON.stringify(prefix)}. Use login:<GitHub ` +
           `login>, id:<numeric or tracker account id>, ` +
-          `integration:<service> (trustedAuthorIds only), or a plain id; ` +
+          `integration:<service> (trustedAuthorIds only), relay:<account id> ` +
+          `(trustedReleaseIds only), or a plain id; ` +
           `write a tracker id that itself starts with letters and a colon ` +
           `as id:<that id>.`,
       ];
@@ -935,6 +961,24 @@ function idEntryProblems(key, ids) {
           `sessionManager.trustedAuthorIds. An integration can author ` +
           `dispatched work but is not a person, so it can never be an ` +
           `operator, answer a question, or release a human hold.`,
+      ];
+    }
+    if (kind !== "relay" && kind !== "empty-value" && hidesRelay(entry)) {
+      return [
+        `${path} reads as a relay: entry written another way (behind ` +
+          `another prefix, or with a space in front). Write a relay exactly ` +
+          `as relay:<account id>, and only in ` +
+          `sessionManager.trustedReleaseIds; no person's account id starts ` +
+          `with "relay:".`,
+      ];
+    }
+    if (kind === "relay" && !RELAY_LIST_KEYS.has(key)) {
+      return [
+        `${path} is a relay: entry, which belongs only in ` +
+          `sessionManager.trustedReleaseIds. A relay is the automation ` +
+          `account allowed to post a hold release that a trusted person ` +
+          `asked for. It is not a person, so it can never be an operator, ` +
+          `author dispatched work, or answer a question.`,
       ];
     }
     return kind === "empty-value"
@@ -1038,7 +1082,53 @@ function validateTrustList(key, ids, emptyProblem) {
         `Linear user id), not logins or display names.`,
     ];
   }
-  return ids.length === 0 ? [emptyProblem] : idEntryProblems(key, ids);
+  if (ids.length === 0) return [emptyProblem];
+  return [
+    ...idEntryProblems(key, ids),
+    ...relayWithoutPersonProblems(key, ids),
+  ];
+}
+
+/**
+ * A release list that names a relay and no person releases nothing: a relayed
+ * release must name a trusted person from the same list, and there is none.
+ * Reported, because the project clearly meant to let its agent relay releases
+ * and nothing would tell it why none ever counts.
+ * @param {string} key The list's key.
+ * @param {readonly string[]} ids Entries, already known to be strings.
+ * @returns {string[]} Problems found.
+ */
+function relayWithoutPersonProblems(key, ids) {
+  if (!RELAY_LIST_KEYS.has(key)) return [];
+  const kinds = ids.map(classifyIdEntry);
+  if (!kinds.includes("relay")) return [];
+  const valueAt = i => ids[i].slice(ids[i].indexOf(":") + 1).trim();
+  const relays = new Set(
+    kinds.flatMap((kind, i) => (kind === "relay" ? [valueAt(i)] : []))
+  );
+  const people = kinds.flatMap((kind, i) => {
+    if (kind === "plain") return [{ i, value: ids[i].trim() }];
+    return kind === "id" ? [{ i, value: valueAt(i) }] : [];
+  });
+  const both = people.filter(person => relays.has(person.value));
+  return [
+    ...(people.length === 0
+      ? [
+          `sessionManager.${key} names a relay but no person by account id. A ` +
+            `relay can only post a release that a trusted person asked for, ` +
+            `and that person must be in this list too, as id:<account id> or ` +
+            `a plain id (a login: entry is not enough, because releases are ` +
+            `matched on account ids). Add the people who may release a hold.`,
+        ]
+      : []),
+    ...both.map(
+      person =>
+        `sessionManager.${key}[${person.i}] names the same account as a ` +
+        `person and as a relay. An account is one or the other: a relay ` +
+        `carries a person's decision and can never be the person who made ` +
+        `it. Remove one of the two entries.`
+    ),
+  ];
 }
 
 /**

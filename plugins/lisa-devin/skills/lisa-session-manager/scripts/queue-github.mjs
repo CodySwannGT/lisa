@@ -12,6 +12,7 @@ import {
 } from "../../../scripts/ready-queue-order.mjs";
 import {
   idComparableValues,
+  releaseComparableValues,
   parseIdEntries,
 } from "../../../scripts/operator-id-kinds.mjs";
 import { resolveRole } from "../../../scripts/resolve-lifecycle-role.mjs";
@@ -45,7 +46,9 @@ export function githubReleaserIds(ctx, entries) {
       )
       .map(entry => entry.value.toLowerCase())
   );
-  const ids = idComparableValues(entries);
+  // Relay accounts are named by account id only (`relay:<id>`), so they need
+  // no login lookup and pass straight through to the release check.
+  const ids = releaseComparableValues(entries);
   const env = scrubWorkerEnv(ctx.env);
   for (const login of logins) {
     const endpoint = `users/${login}`;

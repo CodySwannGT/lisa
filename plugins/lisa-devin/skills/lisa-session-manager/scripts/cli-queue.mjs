@@ -30,7 +30,7 @@
  * @module session-manager/cli-queue
  */
 import {
-  adfText,
+  adfCommentText,
   assertPagedToCompletion,
   normalizeJiraIssue,
   normalizeLinearIssue,
@@ -45,7 +45,7 @@ import {
   validOrAbsent,
 } from "./cli-runtime.mjs";
 import { resolveHumanGatePolicy } from "../../../scripts/human-gate-act.mjs";
-import { idComparableValues } from "../../../scripts/operator-id-kinds.mjs";
+import { releaseComparableValues } from "../../../scripts/operator-id-kinds.mjs";
 import { commentsOf } from "../../../scripts/stale-blocker-comment.mjs";
 import {
   landedDoneRoles,
@@ -264,7 +264,10 @@ export async function queue(ctx) {
   // Resolved local-then-global like `human-gate-act.mjs policy`, so a hold
   // the project's mode keeps is never dispatched as Ready work (#4687).
   const gatePolicy = resolveHumanGatePolicy(project.local, project.global);
-  const releasers = trustedReleaseEntries(config);
+  const releasers = trustedReleaseEntries(
+    config,
+    project.global?.sessionManager
+  );
   const policy = {
     me,
     operators,
@@ -272,13 +275,13 @@ export async function queue(ctx) {
     trustedHumanActorIds:
       tracker === "github"
         ? githubReleaserIds(ctx, releasers)
-        : idComparableValues(releasers),
+        : releaseComparableValues(releasers),
     commentsFor:
       tracker === "github"
         ? ref => readIssueComments(ctx, ref)
         : ref =>
             commentsOf(rawByRef?.get(ref) ?? backlog?.rawByRef?.get(ref)).map(
-              comment => ({ ...comment, body: adfText(comment.body) })
+              comment => ({ ...comment, body: adfCommentText(comment.body) })
             ),
     humanNeededLabel: humanNeededLabel(project, tracker),
     humanOnly: gatePolicy.humanOnly,

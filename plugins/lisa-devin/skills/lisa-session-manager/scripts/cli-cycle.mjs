@@ -12,7 +12,7 @@ import {
   recordAutomationRun,
 } from "../../../scripts/automation-run-record.mjs";
 import { resolveHumanGatePolicy } from "../../../scripts/human-gate-act.mjs";
-import { idComparableValues } from "../../../scripts/operator-id-kinds.mjs";
+import { releaseComparableValues } from "../../../scripts/operator-id-kinds.mjs";
 import {
   CliError,
   EXIT,
@@ -275,8 +275,8 @@ export async function blockedPlan(ctx) {
     input.pendingQuestion ??
     (ref ? (await readLedger(ctx.root)).items[ref]?.pendingQuestion : null);
   const project = loadProject(ctx.root);
-  const trustedHumanActorIds = idComparableValues(
-    trustedReleaseEntries(project.config)
+  const trustedHumanActorIds = releaseComparableValues(
+    trustedReleaseEntries(project.config, project.global?.sessionManager)
   );
   const policy = resolveHumanGatePolicy(project.local, project.global);
   return {

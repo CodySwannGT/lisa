@@ -27,6 +27,13 @@
  *   person, so it cannot answer a question or release a human hold: those
  *   readers drop it (`idComparableValues`, the answer matcher), and the
  *   validator refuses it in `operatorIds` and `trustedReleaseIds`.
+ * - `relay:<account id>` names an automation account that may RELAY a trusted
+ *   person's hold release (CodySwannGT/lisa#5190), and is meaningful only in
+ *   `trustedReleaseIds`. It is not a person. It matches nobody in any
+ *   people-matching reader (there is no `relay` field to match), so it can
+ *   never be an operator, author dispatched work, or answer a question. Only
+ *   the hold-release check reads it, through {@link releaseComparableValues},
+ *   and there it counts only for a release line that names a trusted person.
  * - A plain entry (no prefix) keeps exactly the meaning each reader gave it
  *   before kind-keyed entries existed. Changing that is a later, breaking
  *   change.
@@ -49,7 +56,12 @@
  */
 
 /** The kinds a prefixed entry may name. */
-export const ID_ENTRY_KINDS = Object.freeze(["login", "id", "integration"]);
+export const ID_ENTRY_KINDS = Object.freeze([
+  "login",
+  "id",
+  "integration",
+  "relay",
+]);
 
 /** A letters-only prefix at the start of an entry. */
 const PREFIX = /^([A-Za-z]+):/;
@@ -61,7 +73,7 @@ const PREFIX = /^([A-Za-z]+):/;
 const PLAIN_ID_STARTS = new Set(["qm"]);
 
 /**
- * @typedef {{ kind: "login" | "id" | "integration" | "plain", value: string }
+ * @typedef {{ kind: "login" | "id" | "integration" | "relay" | "plain", value: string }
  *   | { kind: "invalid", problem: "unknown-prefix" | "empty-value", prefix: string }} IdEntry
  */
 
@@ -130,4 +142,31 @@ export function idComparableValues(entries) {
   return parseIdEntries(entries)
     .filter(entry => entry.kind === "plain" || entry.kind === "id")
     .map(entry => entry.value);
+}
+
+/**
+ * What the hold-release check compares: the people an id-only comparator may
+ * hold ({@link idComparableValues}), then each relay account written back as
+ * `relay:<id>`. The release check in `intake-blocker-reprobe.mjs` reads a
+ * `relay:` entry as an account that may post a release for one of the people
+ * in the same list, and never as a person. Only release readers call this:
+ * passing its output to a reader that matches people would be harmless (no
+ * account id starts with `relay:`), and passing {@link idComparableValues} to
+ * a release reader silently drops every configured relay.
+ * @param {unknown} entries - The configured release list
+ * @returns {string[]} Person ids, then `relay:<id>` entries
+ */
+export function releaseComparableValues(entries) {
+  return [
+    // The release check reads any value that starts `relay:` as a relay. Only
+    // an entry WRITTEN as `relay:<id>` may be one, so a person value that
+    // would read that way (`id:relay:9`, or ` relay:9` with a space in front)
+    // is dropped: it names nobody, and validation refuses it.
+    ...idComparableValues(entries).filter(
+      value => !value.trim().toLowerCase().startsWith("relay:")
+    ),
+    ...parseIdEntries(entries)
+      .filter(entry => entry.kind === "relay")
+      .map(entry => `relay:${entry.value}`),
+  ];
 }
