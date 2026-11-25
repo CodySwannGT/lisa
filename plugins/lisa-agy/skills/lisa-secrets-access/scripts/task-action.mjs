@@ -9,6 +9,7 @@ import { readTaskRequirements } from "./task-requirements.mjs";
 import { lifecycleEvents, resetNativeEvent } from "./task-native-lifecycle.mjs";
 import { intakeRead } from "./task-intake.mjs";
 import { nativeContext } from "./task-native-context.mjs";
+import { unboundRefusal, unboundWrite } from "./task-unbound.mjs";
 import {
   linearIntakeRead,
   observeLinearIntake,
@@ -177,7 +178,8 @@ export function runTaskAction(argv = process.argv) {
       result = failure("requirements-stale");
     else if (hook && result.code === "no-active-task") {
       if (cfg.provenance?.status === "absent") return;
-      result = failure("requirements-stale");
+      if (unboundWrite(input, cfg)) return;
+      result = unboundRefusal(cfg);
     } else if (hook && result.outcome === "NATIVE_OWNER_REQUIRED") {
       const decision = nativeAction(cfg, header, result, input);
       if (decision.allowed) result = { allowed: true, code: decision.code };

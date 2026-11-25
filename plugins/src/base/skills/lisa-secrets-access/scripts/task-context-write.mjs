@@ -90,19 +90,29 @@ export function writeRequirementsContext(
     if (error.code !== "ENOENT") fail();
     initial = true;
   }
+  const freshBody =
+    typeof input.context_body === "string" &&
+    !input.context_body.startsWith(marker);
+  // Re-binding the checkout to another item leaves the previous item's
+  // context behind. With the binding already naming `ref`, that context
+  // belongs to no current work: a fresh body for `ref` replaces it, so the
+  // prepare step that follows a re-bind does not dead-end the session.
+  let replacing = false;
   if (initial) {
-    if (
-      typeof input.context_body !== "string" ||
-      input.context_body.startsWith(marker)
-    )
-      fail();
+    if (!freshBody) fail();
   } else {
     try {
-      if (realpathSync(path) !== path || input.context_body !== undefined)
-        fail();
+      if (realpathSync(path) !== path) fail();
     } catch {
       fail();
     }
+    const previous = previousItem(readFileSync(path, "utf8"), marker);
+    replacing =
+      freshBody &&
+      binding?.ref === ref &&
+      previous !== null &&
+      previous !== ref;
+    if (input.context_body !== undefined && !replacing) fail();
   }
   const eas = join(cfg.projectRoot, ".easignore");
   if (
@@ -113,7 +123,8 @@ export function writeRequirementsContext(
   )
     fail();
   ensureIgnored(cfg.projectRoot);
-  let body = initial ? input.context_body : readFileSync(path, "utf8");
+  let body =
+    initial || replacing ? input.context_body : readFileSync(path, "utf8");
   if (body.startsWith(marker)) {
     const end = body.indexOf("\n-->\n");
     if (end < 0) fail();
@@ -154,5 +165,25 @@ export function writeRequirementsContext(
   } finally {
     rmSync(staging, { recursive: true, force: true });
   }
-  return { code: "requirements-prepared", body_preserved: true };
+  return { code: "requirements-prepared", body_preserved: !replacing };
+}
+
+/**
+ * The work item a prepared context names, or null when it names none.
+ * @param {string} current The context file's text.
+ * @param {string} marker The requirements header's opening line.
+ * @returns {string|null} The previous work item reference.
+ */
+function previousItem(current, marker) {
+  if (!current.startsWith(marker)) return null;
+  const end = current.indexOf("\n-->\n");
+  if (end < 0) return null;
+  try {
+    const header = JSON.parse(current.slice(marker.length, end));
+    return typeof header?.work_item_ref === "string"
+      ? header.work_item_ref
+      : null;
+  } catch {
+    return null;
+  }
 }
