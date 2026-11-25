@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [8.10.0](https://github.com/CodySwannGT/lisa/compare/v8.9.0...v8.10.0) (2026-11-25)
+
+
+### Features
+
+* **human-gate:** let a project name an account that relays a release ([d5a741f](https://github.com/CodySwannGT/lisa/commit/d5a741fab267a98062707745ed231b9e0c75850b)), closes [CodySwannGT/lisa#5190](https://github.com/CodySwannGT/lisa/issues/5190) [CodySwannGT/lisa#5190](https://github.com/CodySwannGT/lisa/issues/5190)
+
+
+### Bug Fixes
+
+* **human-gate:** address review of the relayed release ([654ec40](https://github.com/CodySwannGT/lisa/commit/654ec408ce94941169f4b99089cb623b33fcd803)), closes [CodySwannGT/lisa#5190](https://github.com/CodySwannGT/lisa/issues/5190) [CodySwannGT/lisa#5190](https://github.com/CodySwannGT/lisa/issues/5190)
+* **human-gate:** hold a relayed release to its exact form ([9e1a749](https://github.com/CodySwannGT/lisa/commit/9e1a74905c6fa3ada636560977c1d6469569eec5)), closes [CodySwannGT/lisa#5190](https://github.com/CodySwannGT/lisa/issues/5190) [CodySwannGT/lisa#5190](https://github.com/CodySwannGT/lisa/issues/5190)
+* **human-gate:** let nothing follow a relayed release on its line ([7ae6e73](https://github.com/CodySwannGT/lisa/commit/7ae6e739ff71751a262f0f6d21260467f3bf77e4)), closes [CodySwannGT/lisa#5190](https://github.com/CodySwannGT/lisa/issues/5190) [CodySwannGT/lisa#5190](https://github.com/CodySwannGT/lisa/issues/5190)
+* **human-gate:** read only the first line of a relay's comment ([73e256c](https://github.com/CodySwannGT/lisa/commit/73e256c14fdedde7c94b19062a1ff9e8b01f3a14)), closes [CodySwannGT/lisa#5190](https://github.com/CodySwannGT/lisa/issues/5190) [CodySwannGT/lisa#5190](https://github.com/CodySwannGT/lisa/issues/5190)
+
 ## [8.9.0](https://github.com/CodySwannGT/lisa/compare/v8.8.0...v8.9.0) (2026-11-23)
 
 
