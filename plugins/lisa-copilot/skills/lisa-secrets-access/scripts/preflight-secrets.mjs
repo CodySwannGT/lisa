@@ -365,6 +365,19 @@ function main() {
     runIntakeRead();
     return;
   }
+  if (process.argv.includes("--tracker-create")) {
+    // Loaded on demand: it reaches into sibling skills and the plugin's
+    // scripts, and a missing file there must never break this module's hooks.
+    import("./task-tracker-create.mjs").then(
+      module => module.runTrackerCreate(),
+      () => {
+        const result = failure("tool-missing");
+        console.error(`${result.code}: ${result.action}`);
+        process.exitCode = 2;
+      }
+    );
+    return;
+  }
   if (process.argv.includes("--prepare")) {
     const cfg = readTaskConfig();
     const index = process.argv.indexOf("--ref");

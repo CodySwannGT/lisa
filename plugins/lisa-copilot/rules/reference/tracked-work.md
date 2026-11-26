@@ -10,7 +10,8 @@ In a project with `.lisa.config.json`, the task-readiness guard enforces this. W
 
 - the Read, Grep and Glob tools;
 - the fixed ticket read commands. The refusal names the exact one for that installation: `preflight-secrets.mjs --tracker-intake-read --ref <KEY> --read issue|comments` for Linear and Jira, `gh issue view <n> --repo <org>/<repo> --json …` for GitHub;
-- a write that lands in no git repository, such as a scratch or memory file.
+- a write that lands in no git repository, such as a scratch or memory file;
+- filing the ticket the work needs: `preflight-secrets.mjs --tracker-create --input-file <absolute path>`, which files into the configured tracker only and refuses a filing with no readiness declaration (see `tool-access-gate`).
 
 Answering a question about a ticket needs none of this. Never bind a ticket just to read one.
 

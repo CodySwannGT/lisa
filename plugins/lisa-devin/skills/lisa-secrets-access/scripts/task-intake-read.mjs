@@ -93,7 +93,7 @@ function requireThreadRepository(value, repo) {
     throw new AccessFailure("identity-mismatch");
 }
 /** Probe native first; only genuine unavailability may select the supported fallback. */
-function selectedAccess(cfg, repo) {
+export function selectedAccess(cfg, repo) {
   const requirement = { operation: "repository-read", resource: repo };
   const native = githubAccess(cfg, requirement, undefined, { intake: true });
   if (native.code === "identity-mismatch" || native.code === "tool-missing")

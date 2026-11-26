@@ -235,6 +235,42 @@ function response(raw) {
   }
 }
 
+/**
+ * One GraphQL request through the Linear owner's adapter, identity-matched to
+ * the configured workspace and team. The key never enters this process's argv.
+ * @param {object} cfg Task configuration.
+ * @param {string} query GraphQL document.
+ * @param {object} variables GraphQL variables.
+ * @returns {object} The parsed response body.
+ */
+export function linearRequest(cfg, query, variables) {
+  const { workspace, teamKey } = cfg.effective.linear ?? {};
+  if (
+    typeof workspace !== "string" ||
+    !/^[A-Za-z0-9-]+$/u.test(workspace) ||
+    typeof teamKey !== "string" ||
+    !/^[A-Z][A-Z0-9]*$/u.test(teamKey)
+  )
+    throw new AccessFailure("config-invalid");
+  const raw = transportFor(cfg)(
+    "bash",
+    [
+      linearAdapter,
+      "--workspace",
+      workspace,
+      "--team-key",
+      teamKey,
+      "--query-file",
+      "-",
+      "--variables",
+      JSON.stringify(variables),
+    ],
+    query,
+    { 3: "credential-missing", 4: "identity-mismatch" }
+  );
+  return response(raw);
+}
+
 function readLinear(cfg, { ref, project, operation }) {
   const workspace = cfg.effective.linear.workspace;
   if (typeof workspace !== "string" || !/^[A-Za-z0-9-]+$/u.test(workspace))
@@ -282,18 +318,21 @@ function readLinear(cfg, { ref, project, operation }) {
   throw new AccessFailure("capability-unreachable");
 }
 
-function readJira(cfg, request) {
-  const { ref, project, operation } = request;
-  const { cloudId, email, site } = cfg.effective.atlassian ?? {};
+/**
+ * The configured Jira REST client, identity-matched against `/myself`.
+ * @param {object} cfg Task configuration.
+ * @returns {{call: Function} | {unavailable: string}} A client, or why the
+ *   API token path is unavailable (`config-invalid` or a credential code).
+ */
+export function jiraApi(cfg) {
+  const { cloudId, email } = cfg.effective.atlassian ?? {};
   if (
     typeof cloudId !== "string" ||
     !/^[A-Za-z0-9-]+$/u.test(cloudId) ||
     typeof email !== "string" ||
     !/^[^\s:@]+@[^\s:@]+$/u.test(email)
-  ) {
-    if (site) return readJiraWithAcli(cfg, request);
-    throw new AccessFailure("config-invalid");
-  }
+  )
+    return { unavailable: "config-invalid" };
   const key = `ATLASSIAN_API_TOKEN_${email.toLowerCase().replaceAll(/[.@]/gu, "_")}`;
   const env = process.env.ATLASSIAN_API_TOKEN?.trim()
     ? process.env
@@ -302,16 +341,14 @@ function readJira(cfg, request) {
         ATLASSIAN_API_TOKEN: process.env[key],
       };
   const credential = jiraCredential(cfg, env);
-  if (!credential.available) {
-    if (!site) throw new AccessFailure(credential.code);
-    return readJiraWithAcli(cfg, request);
-  }
+  if (!credential.available) return { unavailable: credential.code };
   const encoded = Buffer.from(`${email}:${credential.value}`).toString(
     "base64"
   );
   const base = `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3`;
   const transport = transportFor(cfg);
-  const get = endpoint => {
+  // A payload is not secret, so it travels in argv; the credential never does.
+  const call = (endpoint, method = "GET", payload) => {
     const raw = transport(
       "curl",
       [
@@ -325,16 +362,37 @@ function readJira(cfg, request) {
         "@-",
         "--header",
         "Accept: application/json",
+        ...(method === "GET"
+          ? []
+          : [
+              "--request",
+              method,
+              "--header",
+              "Content-Type: application/json",
+              "--data-binary",
+              JSON.stringify(payload),
+            ]),
         `${base}${endpoint}`,
       ],
       `Authorization: Basic ${encoded}\n`
     );
     if (raw.includes(credential.value) || raw.includes(encoded))
       throw new AccessFailure("capability-unreachable");
-    return response(raw);
+    return raw.trim() === "" ? null : response(raw);
   };
-  if (get("/myself")?.emailAddress?.toLowerCase() !== email.toLowerCase())
+  if (call("/myself")?.emailAddress?.toLowerCase() !== email.toLowerCase())
     throw new AccessFailure("identity-mismatch");
+  return { call };
+}
+
+function readJira(cfg, request) {
+  const { ref, project, operation } = request;
+  const api = jiraApi(cfg);
+  if (api.unavailable) {
+    if (cfg.effective.atlassian?.site) return readJiraWithAcli(cfg, request);
+    throw new AccessFailure(api.unavailable);
+  }
+  const get = api.call;
   const endpoint = `/issue/${ref}`;
   const issue = get(`${endpoint}?fields=*all`);
   if (issue?.key !== ref || issue.fields?.project?.key !== project)

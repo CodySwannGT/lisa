@@ -46,6 +46,13 @@ export function readinessOwnerInvocation(command, root = process.cwd()) {
   for (const runtime of ["node", process.execPath, quote(process.execPath)])
     for (const script of [owner, quote(owner)]) {
       if (command === `${runtime} ${script} --task`) return true;
+      // Filing the ticket the work needs is tracker bookkeeping; the owner
+      // files only into the configured tracker and enforces readiness itself.
+      const create = `${runtime} ${script} --tracker-create --input-file `;
+      if (command.startsWith(create)) {
+        const file = command.slice(create.length);
+        return plainPath.test(file) && outsideEveryRepository(file, root);
+      }
       for (const mode of ["task", "prepare"]) {
         const prefix = `${runtime} ${script} --${mode} --ref `;
         if (!command.startsWith(prefix)) continue;
