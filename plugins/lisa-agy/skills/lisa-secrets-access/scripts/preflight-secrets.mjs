@@ -42,6 +42,7 @@ import { failure } from "./task-readiness.mjs";
 import { runTaskAction } from "./task-action.mjs";
 import { AccessFailure } from "./config-layers.mjs";
 import { prepareRequirements } from "./task-requirements.mjs";
+import { outsideEveryRepository } from "./task-unbound.mjs";
 import { runIntakeRead } from "./task-intake-read.mjs";
 import { runTrackerIntakeRead } from "./task-tracker-intake.mjs";
 export { taskReadiness, credentialAvailability } from "./task-readiness.mjs";
@@ -367,7 +368,13 @@ function main() {
   if (process.argv.includes("--prepare")) {
     const cfg = readTaskConfig();
     const index = process.argv.indexOf("--ref");
-    const input = JSON.parse(readFileSync(0, "utf8"));
+    const fileIndex = process.argv.indexOf("--input-file");
+    // An agent's shell tool has no stdin. It writes the JSON to a file outside
+    // every repository (admitted while unbound) and names it here instead.
+    const file = fileIndex >= 0 ? process.argv[fileIndex + 1] : undefined;
+    if (fileIndex >= 0 && !outsideEveryRepository(file, cfg.projectRoot))
+      throw new AccessFailure("requirements-stale");
+    const input = JSON.parse(readFileSync(fileIndex >= 0 ? file : 0, "utf8"));
     console.log(
       JSON.stringify(
         prepareRequirements(

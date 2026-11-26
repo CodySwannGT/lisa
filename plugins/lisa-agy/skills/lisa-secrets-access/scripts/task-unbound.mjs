@@ -151,15 +151,23 @@ export function unboundWrite(input, cfg) {
 }
 
 /**
+ * This installation's prepare/read owner script as one shell word.
+ * @returns {string} The path, quoted only when it needs to be.
+ */
+function ownerWord() {
+  return /^[\w./@+-]+$/.test(owner)
+    ? owner
+    : `'${owner.replaceAll("'", "'\\''")}'`;
+}
+
+/**
  * The exact read command this installation admits with no work item bound.
  * @param {Record<string, any>} cfg Task configuration.
  * @returns {string|null} Command text with a placeholder ticket, or null.
  */
 function readCommand(cfg) {
   const c = cfg.effective ?? {};
-  const script = /^[\w./@+-]+$/.test(owner)
-    ? owner
-    : `'${owner.replaceAll("'", "'\\''")}'`;
+  const script = ownerWord();
   if (c.tracker === "linear" && c.linear?.teamKey)
     return `node ${script} --tracker-intake-read --ref ${c.linear.teamKey}-<number> --read issue`;
   if (c.tracker === "jira" && c.jira?.project)
@@ -192,6 +200,7 @@ export function unboundRefusal(cfg) {
         : "",
       "A file written outside every git repository, such as a scratch or memory file, is allowed.",
       "To change anything in this project, bind its ticket first with lisa-track.",
+      `Its prepare step needs no shell input: write the prepare JSON to a file outside every repository, then run exactly: node ${ownerWord()} --prepare --ref <ticket> --input-file <absolute path of that file>.`,
     ]
       .filter(Boolean)
       .join(" "),

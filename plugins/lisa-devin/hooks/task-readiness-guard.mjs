@@ -76,7 +76,7 @@ try {
       } else if (result.status !== 0) {
         // Only the fixed owner result is published. Environment errors never echo.
         const safe =
-          /^(?:credential-missing|provider-unreachable|capability-unreachable|bootstrap-missing|tool-missing|config-invalid|config-unreadable|config-undiscovered|config-unknown|identity-mismatch|adapter-unsupported|requirements-stale|requirements-prepared|native-proof-needed|native-response-unrepresented): [^\n]*\n?$/.test(
+          /^(?:credential-missing|provider-unreachable|capability-unreachable|bootstrap-missing|tool-missing|config-invalid|config-unreadable|config-undiscovered|config-unknown|identity-mismatch|adapter-unsupported|requirements-stale|work-item-unbound|requirements-prepared|native-proof-needed|native-response-unrepresented): [^\n]*\n?$/.test(
             result.stderr ?? ""
           );
         console.error(

@@ -1199,7 +1199,7 @@
     "plugins/src/base/hooks/sonar-secrets.sh":
       "554fb65766d617c8b57411b0d53906b7358c219dd2031708370ffc91e97f7381",
     "plugins/src/base/hooks/task-readiness-guard.mjs":
-      "261bd61b17cdfec25cfb1fcac93509ff514f0e452c2d4a0c69b3c8bd93a57275",
+      "3ea609b4617532b63807d322a0caae13556ea1f65c3781d6000a32ba188912d9",
     "plugins/src/base/hooks/task-readiness-guard.sh":
       "46254d444580947df927293a7b65d49f865022089bb0ff33403dca5189cbd056",
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
@@ -1363,9 +1363,9 @@
     "plugins/src/base/rules/reference/stale-state-claims.md":
       "ea788d884c297ef8c8b573625172cdb123bb80690907cea0efa789b8dd60e466",
     "plugins/src/base/rules/reference/tool-access-gate.md":
-      "057743e865bbfaa96f753a69046d3c1b554aba2b9d015790fb6f8c8d6c6b7fa7",
+      "de4d30265540f843d7766cf0d6a05aadb2fb557d535ba0b235b8d44249bfc387",
     "plugins/src/base/rules/reference/tracked-work.md":
-      "057883675900eb72af52741d0b5ae730383b6d8b78bb85e80cefa0fc5cc29c86",
+      "827ca631b863961f9f3fe7e590ec5f30422202620a254b46cae25018e17a0ab8",
     "plugins/src/base/rules/reference/upstream-to-lisa.md":
       "6b82577bf182fa1ed05e8dc3e1f68d9f76eb1eb7497de75031595db488c396de",
     "plugins/src/base/rules/reference/usage-accounting.md":
@@ -1783,7 +1783,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/owner.mjs":
       "576b146e3f60306967b15e382105fe8a27644965b9fbb2870f701b042952461a",
     "plugins/src/base/skills/lisa-secrets-access/scripts/preflight-secrets.mjs":
-      "698d87f288c0339d2e53e6d12c0a82f7f1b4ecad379ec53d8ed155a569dbad21",
+      "59100d0ad6977abba87cf2d2e643d2808a06cdb910cd075558957330a571a59e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
@@ -1807,7 +1807,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-access.mjs":
       "ee88c5f1d39e11c2d7233df255bdbb2246be808baa7825173111edaa8517a490",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-action.mjs":
-      "8bbc8f7d8c30823a87574b90bfec6abc877a59b159764d6577132133216a145b",
+      "8281a33d0fdef8399065ac439cb0f3085f6730e114e0faaaddea33e51acf8548",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs":
       "b9231c667bb62d3d30edf1a45d632696fc3c1d81ae8b32652e5e37a9635cb2f4",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-context-data.mjs":
@@ -1837,7 +1837,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-tracker-intake.mjs":
       "775b202a5611f3f6aeaec15eb7abb1659604fa687d62f41e40e7701dfa137895",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-unbound.mjs":
-      "3068bb94f31bcdceaef4d2c1c4959aed63567b76df9c129e9be5fb7d45d78b29",
+      "da933678f8d0c225bd6c46b65351c398446fc22175ce5d5d0b883f626c53ffb2",
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "6ab78776157345992224c5f74f1e6b82867d003961499faf2e51f1473c78dbb8",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
@@ -14950,6 +14950,7 @@
     "tests/unit/secrets/task-readiness-postlaunch.test.ts": true,
     "tests/unit/secrets/task-readiness-qualification.test.ts": true,
     "tests/unit/secrets/task-readiness-scope.test.ts": true,
+    "tests/unit/secrets/task-readiness-unbound-prepare.test.ts": true,
     "tests/unit/secrets/task-readiness-unbound.test.ts": true,
     "tests/unit/secrets/task-readiness.test.ts": true,
     "tests/unit/secrets/task-requirements.test.ts": true,

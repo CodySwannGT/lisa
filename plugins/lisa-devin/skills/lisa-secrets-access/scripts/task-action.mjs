@@ -9,7 +9,11 @@ import { readTaskRequirements } from "./task-requirements.mjs";
 import { lifecycleEvents, resetNativeEvent } from "./task-native-lifecycle.mjs";
 import { intakeRead } from "./task-intake.mjs";
 import { nativeContext } from "./task-native-context.mjs";
-import { unboundRefusal, unboundWrite } from "./task-unbound.mjs";
+import {
+  outsideEveryRepository,
+  unboundRefusal,
+  unboundWrite,
+} from "./task-unbound.mjs";
 import {
   linearIntakeRead,
   observeLinearIntake,
@@ -26,17 +30,35 @@ const owner = join(
 const refs = /^(?:[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+#\d+|[A-Z][A-Z0-9]+-\d+)$/;
 const quote = path => `'${path.replaceAll("'", "'\\''")}'`;
 
-/** Exact canonical recovery command. JSON uses structured child/terminal stdin, not redirects. */
-export function readinessOwnerInvocation(command) {
+/** A file path that a shell reads as exactly one plain word. */
+const plainPath = /^\/[A-Za-z0-9_./@+-]+$/;
+
+/**
+ * Exact canonical recovery command. JSON uses structured child/terminal
+ * stdin, or a file outside every repository that an agent's shell tool can
+ * name, since it has no stdin to supply.
+ * @param {unknown} command Shell command text.
+ * @param {string} [root] Project root, for the input file's location check.
+ * @returns {boolean} True for an exact recovery command.
+ */
+export function readinessOwnerInvocation(command, root = process.cwd()) {
   if (typeof command !== "string") return false;
   for (const runtime of ["node", process.execPath, quote(process.execPath)])
     for (const script of [owner, quote(owner)]) {
       if (command === `${runtime} ${script} --task`) return true;
       for (const mode of ["task", "prepare"]) {
         const prefix = `${runtime} ${script} --${mode} --ref `;
+        if (!command.startsWith(prefix)) continue;
+        const rest = command.slice(prefix.length);
+        if (refs.test(rest)) return true;
+        const [ref, flag, file, ...extra] = rest.split(" ");
         if (
-          command.startsWith(prefix) &&
-          refs.test(command.slice(prefix.length))
+          mode === "prepare" &&
+          refs.test(ref) &&
+          flag === "--input-file" &&
+          extra.length === 0 &&
+          plainPath.test(file ?? "") &&
+          outsideEveryRepository(file, root)
         )
           return true;
       }
@@ -52,7 +74,7 @@ function orientation(input) {
     return true;
   if (input?.tool_name !== "Bash") return false;
   return (
-    readinessOwnerInvocation(input.tool_input?.command) ||
+    readinessOwnerInvocation(input.tool_input?.command, input.cwd) ||
     [
       "pwd",
       "ls -la",
