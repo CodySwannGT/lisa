@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.10.1](https://github.com/CodySwannGT/lisa/compare/v8.10.0...v8.10.1) (2026-11-26)
+
+
+### Bug Fixes
+
+* **readiness:** tell an unbound session what it can do ([5f566cf](https://github.com/CodySwannGT/lisa/commit/5f566cfd5ed74a068d1c03f43076abd7568e1077)), closes [CodySwannGT/lisa#5192](https://github.com/CodySwannGT/lisa/issues/5192) [CodySwannGT/lisa#5192](https://github.com/CodySwannGT/lisa/issues/5192)
+
 ## [8.10.0](https://github.com/CodySwannGT/lisa/compare/v8.9.0...v8.10.0) (2026-11-25)
 
 
