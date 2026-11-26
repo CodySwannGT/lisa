@@ -25,6 +25,9 @@ const OWNER = "skills/lisa-secrets-access/scripts/preflight-secrets.mjs";
 export const CREATE_FLAG = "--tracker-create";
 export const INPUT_FLAG = "--input-file";
 export const INPUT_FILE = "ticket.json";
+/** The fixture's configured repository, and the issue its `gh` reports filing. */
+const FIXTURE_REPO = "fixture/project";
+export const FILED_URL = `https://github.com/${FIXTURE_REPO}/issues/42`;
 
 /** One recorded transport call. */
 export interface Call {
@@ -126,7 +129,7 @@ function install(
   standIn(
     path.join(bin, "gh"),
     journal,
-    `if(a[0]==="issue"&&a[1]==="create"){console.log("https://github.com/fixture/project/issues/42");}else{const r=require("node:child_process").spawnSync(${JSON.stringify(original)},a,{input:stdin,encoding:"utf8"});process.stdout.write(r.stdout);process.stderr.write(r.stderr);process.exitCode=r.status;}`
+    `if(a[0]==="issue"&&a[1]==="create"){console.log(${JSON.stringify(FILED_URL)});}else{const r=require("node:child_process").spawnSync(${JSON.stringify(original)},a,{input:stdin,encoding:"utf8"});process.stdout.write(r.stdout);process.stderr.write(r.stderr);process.exitCode=r.status;}`
   );
 }
 

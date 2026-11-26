@@ -16,6 +16,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   CREATE_FLAG,
+  FILED_URL,
   INPUT_FILE,
   INPUT_FLAG,
   trackerCreateFixture,
@@ -95,7 +96,7 @@ describe("filing on GitHub", () => {
     expect(JSON.parse(result.stdout)).toEqual({
       code: "tracker-created",
       ref: "fixture/project#42",
-      url: "https://github.com/fixture/project/issues/42",
+      url: FILED_URL,
     });
     expect(filed()).toEqual([
       {
