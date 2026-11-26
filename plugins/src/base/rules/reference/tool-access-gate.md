@@ -23,7 +23,11 @@ the resolver or read its inputs.
 
 Supply a complete values-free `required_access` array and
 `requirements_complete: true` as JSON on stdin to the owner's
-`--prepare --ref <canonical-ref>` mode. For the first context, include the complete
+`--prepare --ref <canonical-ref>` mode. An agent's shell tool has no stdin:
+write the same JSON to a file outside every git repository (such a write is
+admitted with no ticket bound) and run exactly
+`node <owner>/preflight-secrets.mjs --prepare --ref <canonical-ref> --input-file <absolute path>`.
+The path is one plain word; nothing may follow it. For the first context, include the complete
 unedited `context_body` on that same stdin; it creates
 only the fixed ignored0600 context after Git-ignore and EAS checks. Existing
 context cannot be replaced through `context_body`. This is the bounded initial
@@ -92,7 +96,8 @@ reflect requirement identifiers/resources/paths, parse errors or provider output
 Do not block unrelated tasks or require optional integrations universally.
 
 The exact readiness owner command (`node <owner>/preflight-secrets.mjs --task
---ref <canonical-ref>`, or `--prepare` with that ref and JSON on terminal stdin)
+--ref <canonical-ref>`, or `--prepare` with that ref and JSON on terminal stdin
+or in an `--input-file` outside every repository)
 remains available during refusal. It grants no work: task mode still reports its
 real verdict, and preparation only refreshes the ignored requirements metadata.
 Only the exact native context Write/Add File forms above carry private metadata.
