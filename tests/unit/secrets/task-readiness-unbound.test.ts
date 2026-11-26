@@ -157,23 +157,43 @@ describe("writes with no work item bound", () => {
     mkdirSync(path.join(other, ".git"));
     const outside = scratch("lisa-unbound-link-");
     createSymlink(f.root, path.join(outside, "project"), "dir");
+    // A link to a file that does not exist yet, inside the project.
+    createSymlink(path.join(f.root, "new.md"), path.join(outside, "dangling"));
+    // A bare repository has no `.git` folder, only git's own layout.
+    const bare = scratch("lisa-unbound-bare-");
+    writeFileSync(path.join(bare, "HEAD"), "ref: refs/heads/main\n");
+    mkdirSync(path.join(bare, "objects"));
+    mkdirSync(path.join(bare, "refs"));
     for (const file of [
       path.join(f.root, NOTE),
       path.join(f.root, "src/new.ts"),
       path.join(other, NOTE),
       path.join(other, ".git/hooks/pre-commit"),
       path.join(outside, "project", NOTE),
+      path.join(outside, "dangling"),
+      path.join(bare, "config"),
+      path.join(bare, "hooks/pre-receive"),
       NOTE,
     ]) {
       const result = write(file);
       expect(result.status, file).toBe(2);
       expect(result.stderr, file).toContain(UNBOUND);
     }
-    expect(
-      drive("apply_patch", {
-        command: `*** Begin Patch\n*** Add File: ${path.join(outside, "a.md")}\n+a\n*** Add File: ${path.join(f.root, "b.md")}\n+b\n*** End Patch`,
-      }).status
-    ).toBe(2);
+    const scratchHunk = `*** Add File: ${path.join(outside, "a.md")}\n+a\n`;
+    const projectFile = path.join(f.root, "b.md");
+    // The patch tool trims each header, so an indented or CRLF header for a
+    // project file is still applied and must still be seen.
+    for (const header of [
+      `*** Add File: ${projectFile}`,
+      `   *** Add File: ${projectFile}`,
+      `*** Add File: ${projectFile}\r`,
+    ])
+      expect(
+        drive("apply_patch", {
+          command: `*** Begin Patch\n${scratchHunk}${header}\n+b\n*** End Patch`,
+        }).status,
+        JSON.stringify(header)
+      ).toBe(2);
     expect(drive("Write", { content: "x" }).status).toBe(2);
   });
 });

@@ -8,7 +8,7 @@
  * an agent's scratch or memory file. The refusal names the read command for
  * this installation, because an agent cannot guess an absolute plugin path.
  */
-import { existsSync, realpathSync, statSync } from "node:fs";
+import { existsSync, lstatSync, realpathSync, statSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -33,6 +33,14 @@ const PATCH_TARGET =
 function realLocation(target) {
   let existing = target;
   while (!existsSync(existing)) {
+    // A link whose target is missing exists as an entry: writing through it
+    // creates the target, wherever that is. It is never a new file.
+    try {
+      lstatSync(existing);
+      return null;
+    } catch (error) {
+      if (error.code !== "ENOENT") return null;
+    }
     const parent = dirname(existing);
     if (parent === existing) return null;
     existing = parent;
@@ -45,7 +53,26 @@ function realLocation(target) {
 }
 
 /**
- * Whether any directory from `location` up to the root holds `.git`.
+ * Whether `dir` is itself a git directory: a bare repository, or the inside
+ * of a `.git` folder. Git recognises one by `HEAD`, `objects` and `refs`.
+ * @param {string} dir Directory to inspect.
+ * @returns {boolean} True when it has that layout.
+ */
+function gitDirectory(dir) {
+  try {
+    return (
+      statSync(join(dir, "HEAD")).isFile() &&
+      statSync(join(dir, "objects")).isDirectory() &&
+      statSync(join(dir, "refs")).isDirectory()
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether any directory from `location` up to the root holds `.git` or is
+ * itself a git directory.
  * @param {string} location Resolved absolute path.
  * @returns {boolean} True when the path is inside a git repository.
  */
@@ -57,6 +84,7 @@ function insideRepository(location) {
     } catch (error) {
       if (!["ENOENT", "ENOTDIR"].includes(error.code)) return true;
     }
+    if (gitDirectory(dir)) return true;
     if (dirname(dir) === dir) return false;
   }
 }
@@ -99,7 +127,9 @@ function writeTargets(input) {
   if (input.tool_name === "apply_patch" && typeof args.command === "string") {
     const targets = args.command
       .split("\n")
-      .map(line => PATCH_TARGET.exec(line)?.[1])
+      // The patch tool trims each header before acting on it, so the check
+      // must too, or an indented header is applied without being seen.
+      .map(line => PATCH_TARGET.exec(line.trim())?.[1])
       .filter(Boolean);
     return targets.length ? targets : null;
   }
