@@ -11,6 +11,14 @@ Apply `do-it-now` before creating work from incidental findings. Declining an ob
 
 The project tracker is the durable operator-facing record for project work. Every session that will produce a durable project outcome must establish exactly one live configured-tracker leaf before the first durable mutation. Durable outcomes include code, tests, configuration, documentation, committed research or plans, investigation findings, commits, and pull requests. Read-only questions, discussion, and repository orientation are exempt until they turn into durable work.
 
+In a project with `.lisa.config.json`, the task-readiness guard enforces this. With no ticket bound, it refuses shell commands and project writes with `work-item-unbound`, and admits only:
+
+- the Read, Grep and Glob tools;
+- the fixed ticket read commands. The refusal names the exact one for that installation: `preflight-secrets.mjs --tracker-intake-read --ref <KEY> --read issue|comments` for Linear and Jira, `gh issue view <n> --repo <org>/<repo> --json …` for GitHub;
+- a write that lands in no git repository, such as a scratch or memory file.
+
+Answering a question about a ticket needs none of this. Never bind a ticket just to read one.
+
 ## Resolve, claim, bind
 
 Use `lisa-track` as the single entry point:
