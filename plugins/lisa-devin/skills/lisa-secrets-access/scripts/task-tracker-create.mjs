@@ -284,6 +284,11 @@ function createJira(cfg, request) {
   checkDeclaration(request);
   if (request.labels.some(label => /\s/u.test(label)))
     refuse("Jira labels cannot contain spaces.");
+  // Jira's default type is a leaf, so a container must name its own (an Epic).
+  if (request.readiness === "container" && !request.issueType)
+    refuse(
+      `a Jira container needs "issue_type", such as "Epic"; the default, Task, is a leaf type.`
+    );
   const ready =
     request.readiness === "build-ready" ? readyState(cfg, "jira") : null;
   const api = jiraApi(cfg);
@@ -311,8 +316,26 @@ function createJira(cfg, request) {
   return filed;
 }
 
-/** Jira sets no status at creation, so a build-ready ticket is moved after. */
+/**
+ * Jira sets no status at creation, so a build-ready ticket is moved after.
+ * Any failure from here on still reports the ticket that now exists, so a
+ * retry never files it twice.
+ */
 function moveJira(api, filed, ready) {
+  try {
+    transitionJira(api, filed, ready);
+  } catch (error) {
+    if (error instanceof CreateRefusal) throw error;
+    throw Object.assign(
+      new CreateRefusal(
+        `${filed.ref} was created, but moving it into the ready state "${ready}" failed (${error instanceof AccessFailure ? error.code : "unexpected error"}), so it is not in the ready lane yet. Do not file it again; move it to "${ready}" through lisa-atlassian-access.`
+      ),
+      { filed }
+    );
+  }
+}
+
+function transitionJira(api, filed, ready) {
   const endpoint = `/issue/${filed.ref}`;
   if (api.call(`${endpoint}?fields=status`)?.fields?.status?.name === ready)
     return;

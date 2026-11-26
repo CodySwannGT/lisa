@@ -24,6 +24,8 @@ import {
 const cleanup: string[] = [];
 const BODY = "## Context\n\nThe full ticket body.\n";
 const READY = "build-ready";
+const JIRA_JOURNAL = "jira.jsonl";
+const JIRA_TITLE = "Jira ticket";
 
 afterEach(() => {
   for (const dir of cleanup.splice(0))
@@ -106,10 +108,10 @@ describe("filing on Jira", () => {
 
   it("creates the issue, then moves it into the ready state", () => {
     const { f, bin, create } = unbound(jira);
-    const journal = path.join(f.root, "jira.jsonl");
+    const journal = path.join(f.root, JIRA_JOURNAL);
     standIn(path.join(bin, "curl"), journal, replies);
     const result = create({
-      title: "Jira ticket",
+      title: JIRA_TITLE,
       body: BODY,
       readiness: READY,
       issue_type: "Bug",
@@ -131,10 +133,46 @@ describe("filing on Jira", () => {
     ]);
     expect(payload(posts[0]).fields).toMatchObject({
       project: { key: "FIX" },
-      summary: "Jira ticket",
+      summary: JIRA_TITLE,
       issuetype: { name: "Bug" },
     });
     expect(payload(posts[1])).toEqual({ transition: { id: "11" } });
     expect(readFileSync(journal, "utf8")).not.toContain("synthetic-token");
+  });
+
+  it("still reports the created ticket when moving it fails", () => {
+    const { f, bin, create } = unbound(jira);
+    const journal = path.join(f.root, JIRA_JOURNAL);
+    const failMove =
+      'if(a.includes("POST")&&a.at(-1).endsWith("/transitions")){process.exitCode=22;return;}';
+    standIn(
+      path.join(bin, "curl"),
+      journal,
+      `(()=>{${failMove}${replies}})();`
+    );
+    const result = create({
+      title: JIRA_TITLE,
+      body: BODY,
+      readiness: READY,
+    });
+    expect(result.status).toBe(2);
+    expect(JSON.parse(result.stdout)).toMatchObject({ ref: "FIX-3" });
+    expect(result.stderr).toMatch(
+      /^tracker-create-refused: FIX-3 was created, .*Do not file it again/u
+    );
+  });
+
+  it("refuses a container with no issue type before creating anything", () => {
+    const { f, bin, create } = unbound(jira);
+    const journal = path.join(f.root, JIRA_JOURNAL);
+    standIn(path.join(bin, "curl"), journal, replies);
+    const result = create({
+      title: "Jira epic",
+      body: "## Target Backend Environment\n\nNone — container: state rolls up from children\n",
+      readiness: "container",
+    });
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('needs "issue_type"');
+    expect(journalCalls(journal)).toEqual([]);
   });
 });
