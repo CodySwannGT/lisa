@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.10.2](https://github.com/CodySwannGT/lisa/compare/v8.10.1...v8.10.2) (2026-11-26)
+
+
+### Bug Fixes
+
+* **readiness:** address review of the unbound write check ([7b28766](https://github.com/CodySwannGT/lisa/commit/7b2876626225cb520017b3d14cfd5397fba4b488)), closes [CodySwannGT/lisa#5192](https://github.com/CodySwannGT/lisa/issues/5192) [CodySwannGT/lisa#5192](https://github.com/CodySwannGT/lisa/issues/5192)
+
 ### [8.10.1](https://github.com/CodySwannGT/lisa/compare/v8.10.0...v8.10.1) (2026-11-26)
 
 
