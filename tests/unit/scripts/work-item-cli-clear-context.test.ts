@@ -8,7 +8,7 @@
  * can see which assertion covers which line.
  * @module tests/unit/scripts/work-item-cli-clear-context
  */
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterAll, afterEach, describe, expect, it } from "vitest";
@@ -101,6 +101,21 @@ describe("clear and the work-item context", () => {
       expect(cli(fixture, ["clear"]).stdout, text).toBe(REMOVED);
       expect(existsSync(file), text).toBe(false);
     }
+  });
+
+  it("keeps the binding when the context cannot be removed, so a retry still knows whose it is", () => {
+    const { fixture, file } = withContext(naming(REF));
+    chmodSync(path.dirname(file), 0o500);
+    try {
+      const refused = cli(fixture, ["clear"]);
+      expect(refused.exitCode).not.toBeUndefined();
+      expect(existsSync(stateFile(fixture))).toBe(true);
+      expect(existsSync(file)).toBe(true);
+    } finally {
+      chmodSync(path.dirname(file), 0o700);
+    }
+    expect(cli(fixture, ["clear"]).stdout).toBe(`${REMOVED} (${REF})`);
+    expect(existsSync(stateFile(fixture))).toBe(false);
   });
 
   it("says only that the binding is cleared when there is no context", () => {

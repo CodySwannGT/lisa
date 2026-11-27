@@ -1214,13 +1214,18 @@ function clearBinding() {
   } catch {
     bound = undefined;
   }
-  rmSync(statePath(), { force: true });
   const file = join(projectRoot(), CONTEXT_FILE);
-  if (!existsSync(file)) return "work-item binding cleared";
-  const named = contextItem(readFileSync(file, "utf8"));
-  if (named !== null && named !== bound)
+  const named = existsSync(file)
+    ? contextItem(readFileSync(file, "utf8"))
+    : undefined;
+  const keep = typeof named === "string" && named !== bound;
+  // The context goes first: if removing it fails, the binding survives, so
+  // a retry still knows whose context it is.
+  if (named !== undefined && !keep) rmSync(file, { force: true });
+  rmSync(statePath(), { force: true });
+  if (named === undefined) return "work-item binding cleared";
+  if (keep)
     return `work-item binding cleared; kept ${CONTEXT_FILE}, which holds the context of ${named}, not of ${bound ?? "a bound ticket"}`;
-  rmSync(file, { force: true });
   return `work-item binding cleared; removed ${CONTEXT_FILE}${named ? ` (${named})` : ""}`;
 }
 

@@ -48,7 +48,7 @@ function project() {
     });
   const workItem = (...args: string[]) =>
     run(`work-item ${args[0]}`, [WORK_ITEM, ...args]);
-  const prepare = (ref: string) => {
+  const prepare = (ref: string, withBody = true) => {
     const file = path.join(f.root, "..", `prepare-${path.basename(f.root)}`);
     cleanup.push(file);
     writeFileSync(
@@ -56,7 +56,7 @@ function project() {
       JSON.stringify({
         requirements_complete: true,
         required_access: [],
-        context_body: `# ${ref}\nIts full body.\n`,
+        ...(withBody ? { context_body: `# ${ref}\nIts full body.\n` } : {}),
       })
     );
     return run("prepare", [
@@ -124,6 +124,27 @@ describe("a prepare that cannot replace the context", () => {
     );
     expect(refused.stderr).toContain(`link ${TICKET_B}`);
     expect(readFileSync(context(), "utf8")).toBe(before);
+  });
+
+  it("names the leftover file and its ticket when no new body is given", () => {
+    const { prepare, context } = project();
+    const before = readFileSync(context(), "utf8");
+    const refused = prepare(TICKET_B, false);
+    expect(refused.status).toBe(2);
+    expect(refused.stderr).toContain(
+      `${CONTEXT} holds the context of ${TICKET_A}, not ${TICKET_B}`
+    );
+    expect(readFileSync(context(), "utf8")).toBe(before);
+  });
+
+  it("asks for a fresh body when this ticket is bound over another's context", () => {
+    const { workItem, prepare } = project();
+    expect(workItem("link", TICKET_B).status).toBe(0);
+    const refused = prepare(TICKET_B, false);
+    expect(refused.status).toBe(2);
+    expect(refused.stderr).toContain(
+      `holds the context of ${TICKET_A}, not ${TICKET_B}. Run this prepare again with this ticket's full text as "context_body"`
+    );
   });
 
   it("names the bound ticket when another one is bound", () => {

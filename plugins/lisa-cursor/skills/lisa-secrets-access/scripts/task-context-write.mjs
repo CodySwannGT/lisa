@@ -130,14 +130,11 @@ export function writeRequirementsContext(
       previous !== ref;
     // Unbound, another ticket's context may be prepared but not yet linked,
     // so it is kept; the refusal says whose it is and how to move on (#5199).
-    if (
-      input.context_body !== undefined &&
-      !replacing &&
-      previous !== null &&
-      previous !== ref
-    )
+    if (!replacing && previous !== null && previous !== ref)
       failWith(
-        `.lisa/work-item-context.md holds the context of ${shown(previous)}, not ${shown(ref)}, and it is kept because no binding names ${shown(ref)}. If ${shown(previous)} is finished, bind this ticket with \`node scripts/lisa-work-item.mjs link ${shown(ref)}\` and run this prepare again: it then replaces the old context.`
+        binding?.ref === ref
+          ? `.lisa/work-item-context.md holds the context of ${shown(previous)}, not ${shown(ref)}. Run this prepare again with this ticket's full text as "context_body": it then replaces the old context.`
+          : `.lisa/work-item-context.md holds the context of ${shown(previous)}, not ${shown(ref)}, and it is kept because no binding names ${shown(ref)}. If ${shown(previous)} is finished, bind this ticket with \`node scripts/lisa-work-item.mjs link ${shown(ref)}\` and run this prepare again: it then replaces the old context.`
       );
     if (input.context_body !== undefined && !replacing) fail();
   }
