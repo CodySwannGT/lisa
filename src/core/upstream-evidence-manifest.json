@@ -423,7 +423,7 @@
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "ddca51ff886326ba2bcaef21afa3f4d8fa418d52d997159579e4c0b3a8b30144",
+      "587ab36da61b141731f037f7a53de2f0812d0a5c98d2e6a366dbad160f1dafe2",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
@@ -433,7 +433,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "5794232302a9261c036a90b8e22abc285e6f5721742f41d692b00c66e4dea2bd",
+      "c23846654944698eba5f882fe1fdc7e0a79dcb3b0d2a5b549dd82fbd18a89fe5",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1365,7 +1365,7 @@
     "plugins/src/base/rules/reference/tool-access-gate.md":
       "aad1678a046d84d742e416aba0a783584ba281a2a7de3bd12cd66b1a1ea8bd04",
     "plugins/src/base/rules/reference/tracked-work.md":
-      "0ee43d1940c60a63b8cf18ca48abdc3b662a80f396c010fd3f401a44b5aaea7a",
+      "c81363721c0ec113eaa76ceacfa33ed48fbbd49036b51c913507ff5d13404c65",
     "plugins/src/base/rules/reference/upstream-to-lisa.md":
       "6b82577bf182fa1ed05e8dc3e1f68d9f76eb1eb7497de75031595db488c396de",
     "plugins/src/base/rules/reference/usage-accounting.md":
@@ -1591,7 +1591,7 @@
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "2274045e6f2e12ed5244a686b817bd3712d016729a00f2b660b775d7d208a4c1",
+      "789201d600d99df7f401395e7cf38aa2cf5a7ef8d869dabffccd9bec85378b6a",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -1783,7 +1783,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/owner.mjs":
       "576b146e3f60306967b15e382105fe8a27644965b9fbb2870f701b042952461a",
     "plugins/src/base/skills/lisa-secrets-access/scripts/preflight-secrets.mjs":
-      "32fe66971a263b7bc595479d8e33aacfae0939a4f1e5750d0775bb6a7111e9ec",
+      "015bc1edee0cf494e25df3a7e23a34d87d36ea861e555c68cf66c12fef55cfc0",
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
@@ -1813,7 +1813,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-context-data.mjs":
       "14a1a873e92e45cc4e1f50ca6bf93484ad78315249e39c62772c6e4d2d305eed",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-context-write.mjs":
-      "db365b7f05eef81eb4505e883eb124e4bbb2a24db7dc8c7848b12215d57d628d",
+      "ed0beb0fdf8443e6cf3ac551fde582fc40b0ffd44b9050ec781f35dec1e837c9",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-github.mjs":
       "0bf7565d018b08650a66a94ad147a5fc201ce1c1ca9fc2289ddf72a445217a3e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-intake-read.mjs":
@@ -14809,6 +14809,7 @@
     "tests/unit/scripts/work-item-backlink-exactness.test.ts": true,
     "tests/unit/scripts/work-item-cli-acli-isolation.test.ts": true,
     "tests/unit/scripts/work-item-cli-binding.test.ts": true,
+    "tests/unit/scripts/work-item-cli-clear-context.test.ts": true,
     "tests/unit/scripts/work-item-cli-commit.test.ts": true,
     "tests/unit/scripts/work-item-cli-lane.test.ts": true,
     "tests/unit/scripts/work-item-cli-pull-request.test.ts": true,
@@ -14981,6 +14982,7 @@
     "tests/unit/secrets/validate-config-operator-id-kinds.test.ts": true,
     "tests/unit/secrets/validate-config-session-manager.test.ts": true,
     "tests/unit/secrets/validate-config.test.ts": true,
+    "tests/unit/secrets/work-item-clear-context.test.ts": true,
     "tests/unit/session-manager/answer-record-requeue.test.ts": true,
     "tests/unit/session-manager/answer-record.test.ts": true,
     "tests/unit/session-manager/capacity-stats.test.ts": true,

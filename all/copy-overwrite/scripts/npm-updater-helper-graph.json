@@ -1719,7 +1719,7 @@
       "children": []
     },
     "lisa-work-item.mjs": {
-      "sha256": "ddca51ff886326ba2bcaef21afa3f4d8fa418d52d997159579e4c0b3a8b30144",
+      "sha256": "587ab36da61b141731f037f7a53de2f0812d0a5c98d2e6a366dbad160f1dafe2",
       "staticImports": [
         "lib/completion-authorization.mjs",
         "lib/completion-proof-adapters.mjs",
