@@ -14809,6 +14809,7 @@
     "tests/unit/scripts/work-item-backlink-exactness.test.ts": true,
     "tests/unit/scripts/work-item-cli-acli-isolation.test.ts": true,
     "tests/unit/scripts/work-item-cli-binding.test.ts": true,
+    "tests/unit/scripts/work-item-cli-clear-context.test.ts": true,
     "tests/unit/scripts/work-item-cli-commit.test.ts": true,
     "tests/unit/scripts/work-item-cli-lane.test.ts": true,
     "tests/unit/scripts/work-item-cli-pull-request.test.ts": true,
