@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.10.5](https://github.com/CodySwannGT/lisa/compare/v8.10.4...v8.10.5) (2026-11-27)
+
+
+### Bug Fixes
+
+* **work-item:** clear a finished ticket's context, and name a leftover one ([3516b1e](https://github.com/CodySwannGT/lisa/commit/3516b1ea76a42bbc93051d81e8ec7f75c544f1b0)), closes [CodySwannGT/lisa#5199](https://github.com/CodySwannGT/lisa/issues/5199) [CodySwannGT/lisa#5199](https://github.com/CodySwannGT/lisa/issues/5199)
+* **work-item:** keep the binding until the context is gone; name a leftover context always ([f57a852](https://github.com/CodySwannGT/lisa/commit/f57a852986572c44bd82251e9e704fc808d16ac7)), closes [#5202](https://github.com/CodySwannGT/lisa/issues/5202) [CodySwannGT/lisa#5199](https://github.com/CodySwannGT/lisa/issues/5199) [CodySwannGT/lisa#5199](https://github.com/CodySwannGT/lisa/issues/5199)
+
 ### [8.10.4](https://github.com/CodySwannGT/lisa/compare/v8.10.3...v8.10.4) (2026-11-27)
 
 
