@@ -32,6 +32,20 @@ unedited `context_body` on that same stdin; it creates
 only the fixed ignored0600 context after Git-ignore and EAS checks. Existing
 context cannot be replaced through `context_body`. This is the bounded initial
 resolver metadata transaction, not a general Write or shell exception.
+
+With no ticket bound, the same owner files the ticket the work needs. Write
+`{"title", "body", "labels", "readiness", "issue_type"}` (labels and
+issue_type optional) to a file outside every git repository and run exactly
+`node <owner>/preflight-secrets.mjs --tracker-create --input-file <absolute path>`.
+`readiness` is `build-ready`, `human-gate` or `container`, and the body must
+agree with it: a `human-gate` body declares the `[lisa-human-gate]` hold, and a
+`container` body carries `None — container: state rolls up from children` and
+no leaf type. Anything else is refused with `tracker-create-refused` and nothing
+is filed. The owner files only into the configured repository, team or project;
+for `build-ready` it applies the configured ready label or state itself. It
+prints `{"code":"tracker-created","ref","url"}`. It is the transport only: the
+writer's validation gates still run before it, and every other tracker write
+stays refused until a ticket is bound.
 For the native Claude `Write` tool, pass the complete canonical context as
 `{file_path: "<absolute project root>/.lisa/work-item-context.md", content: "<leading requirements header plus full body>"}`.
 Use the header schema above with current root/ref/config/surface/body/requirements

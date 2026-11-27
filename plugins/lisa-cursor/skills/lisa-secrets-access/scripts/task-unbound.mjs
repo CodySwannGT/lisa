@@ -201,6 +201,7 @@ export function unboundRefusal(cfg) {
       "A file written outside every git repository, such as a scratch or memory file, is allowed.",
       "To change anything in this project, bind its ticket first with lisa-track.",
       `Its prepare step needs no shell input: write the prepare JSON to a file outside every repository, then run exactly: node ${ownerWord()} --prepare --ref <ticket> --input-file <absolute path of that file>.`,
+      `If the work has no ticket yet, file one the same way: write {"title", "body", "labels", "readiness"} to a file outside every repository, then run exactly: node ${ownerWord()} --tracker-create --input-file <absolute path of that file>.`,
     ]
       .filter(Boolean)
       .join(" "),

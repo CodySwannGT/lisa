@@ -5,6 +5,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -154,7 +155,11 @@ export function taskFixture(
   failing = true,
   overrides: Record<string, string> = {}
 ) {
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-task-readiness-"));
+  // Resolved, because the guard names and admits the owner's real path: under
+  // a symlinked temporary directory (macOS `/var`) every spelled path differed.
+  const root = realpathSync(
+    mkdtempSync(path.join(tmpdir(), "lisa-task-readiness-"))
+  );
   const locations = install(root);
   const { plugin } = locations;
   const env = fixtureEnvironment(locations, failing, overrides);

@@ -41,6 +41,8 @@ See the `config-resolution` rule for the full configuration schema and skill-map
    - **3b (github):** Invoke `lisa-github-write-issue` via the Skill tool, passing `$ARGUMENTS` verbatim.
    - **3c (linear):** Invoke `lisa-linear-write-issue` via the Skill tool, passing `$ARGUMENTS` verbatim.
 
+   **No ticket bound yet.** In a project with `.lisa.config.json`, the readiness guard refuses every tracker write until a ticket is bound, so the vendor writer cannot run its own create command. For a CREATE in that state, the vendor writer still drafts and validates the item, then files it through the one admitted command instead: write `{"title", "body", "labels", "readiness"}` (`readiness`: `build-ready`, `human-gate` or `container`; Jira also takes `issue_type`) to a file outside every git repository and run exactly `node <owner>/preflight-secrets.mjs --tracker-create --input-file <absolute path>`, where `<owner>` is the path the guard's `work-item-unbound` refusal names. It prints `{"code":"tracker-created","ref","url"}`; continue with that ref (verify, claim, prepare and bind). See `tool-access-gate`.
+
 4. **Surface the vendor skill's output unchanged.** Do not paraphrase; downstream callers parse the structured response.
 
 ## Rules
