@@ -57,6 +57,6 @@ Linkage is unconditional for an Implement flow because its input gate always est
 
 ## Binding lifetime
 
-Binding state is local machine state and must remain untracked. Keep it through interruptions and blocked outcomes. Run `node scripts/lisa-work-item.mjs clear` only after true terminal completion: required merge/deploy/verification is complete, evidence and two-way PR linkage are recorded, and the tracker item is in its terminal state. Verify that no current binding remains before ending the completed flow.
+Binding state is local machine state and must remain untracked. Keep it through interruptions and blocked outcomes. Run `node scripts/lisa-work-item.mjs clear` only after true terminal completion: required merge/deploy/verification is complete, evidence and two-way PR linkage are recorded, and the tracker item is in its terminal state. `clear` also removes that ticket's `.lisa/work-item-context.md`; it keeps a context that names a different ticket and says so. Verify that no current binding remains before ending the completed flow.
 
 Git hooks and CI enforce this contract but never create work items. Their recovery message directs the operator to mention the related ticket or run `/lisa:track <description>` to create and bind one.

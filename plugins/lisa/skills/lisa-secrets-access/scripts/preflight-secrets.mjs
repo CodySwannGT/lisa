@@ -444,7 +444,13 @@ if (invokedAsScript(import.meta.url)) {
     const result = failure(
       error instanceof AccessFailure ? error.code : "config-invalid"
     );
-    console.error(`${result.code}: ${result.action}`);
+    // A prepare refusal whose cause is known says it, instead of the generic
+    // resolver text that names neither the file nor the ticket (#5199).
+    const detail =
+      error instanceof AccessFailure && typeof error.detail === "string"
+        ? error.detail
+        : result.action;
+    console.error(`${result.code}: ${detail}`);
     process.exitCode = process.argv.includes("--prepare") ? 2 : 1;
   }
 }

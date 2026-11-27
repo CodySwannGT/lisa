@@ -1175,6 +1175,55 @@ function canonicalizeRef(raw, contract = trackerContract()) {
   return `${match[1]}-${match[2]}`;
 }
 
+/** The work-item context a prepared ticket leaves in its worktree. */
+const CONTEXT_FILE = ".lisa/work-item-context.md";
+/** The requirements header's opening line; it names the ticket. */
+const CONTEXT_HEADER = "<!-- lisa-required-access:v1\n";
+
+/**
+ * The ticket a context's requirements header names.
+ * @param {string} text The context file's text.
+ * @returns {string|null} The ref, or null when no header names one.
+ */
+function contextItem(text) {
+  const end = text.indexOf("\n-->\n");
+  if (!text.startsWith(CONTEXT_HEADER) || end < 0) return null;
+  try {
+    const ref = JSON.parse(
+      text.slice(CONTEXT_HEADER.length, end)
+    )?.work_item_ref;
+    return typeof ref === "string" ? ref : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Clear the binding, and the context of the ticket it named.
+ *
+ * `clear` runs only after terminal completion, so that ticket's context is
+ * finished too. Left behind, it blocked the next ticket's prepare step until
+ * someone deleted it by hand (CodySwannGT/lisa#5199). A context naming a
+ * different ticket is kept: nothing here says that work is finished.
+ * @returns {string} What was cleared.
+ */
+function clearBinding() {
+  let bound;
+  try {
+    bound = readState(true)?.ref;
+  } catch {
+    bound = undefined;
+  }
+  rmSync(statePath(), { force: true });
+  const file = join(projectRoot(), CONTEXT_FILE);
+  if (!existsSync(file)) return "work-item binding cleared";
+  const named = contextItem(readFileSync(file, "utf8"));
+  if (named !== null && named !== bound)
+    return `work-item binding cleared; kept ${CONTEXT_FILE}, which holds the context of ${named}, not of ${bound ?? "a bound ticket"}`;
+  rmSync(file, { force: true });
+  return `work-item binding cleared; removed ${CONTEXT_FILE}${named ? ` (${named})` : ""}`;
+}
+
 function readState(optional = true) {
   const file = statePath();
   if (!existsSync(file)) {
@@ -7185,10 +7234,7 @@ function main() {
     );
     return commitPendingLisaUpdate(ref, contract);
   }
-  if (command === "clear") {
-    rmSync(statePath(), { force: true });
-    return console.log("work-item binding cleared");
-  }
+  if (command === "clear") return console.log(clearBinding());
   if (command === "backlink") return backlink(args);
   // `finish` and `complete` are one operation under two names, for the same
   // reason as `link` and `bind` above (#4683). `complete` is a bash builtin

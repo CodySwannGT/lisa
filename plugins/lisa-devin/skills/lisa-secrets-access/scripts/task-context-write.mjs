@@ -20,6 +20,18 @@ const fail = () => {
   throw new AccessFailure("requirements-stale");
 };
 
+/** A refusal whose cause can be said exactly; the code is unchanged. */
+const failWith = detail => {
+  throw Object.assign(new AccessFailure("requirements-stale"), { detail });
+};
+
+/** A ticket reference safe to print, or a neutral stand-in. */
+const shown = ref =>
+  typeof ref === "string" &&
+  /^(?:[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+#\d+|[A-Z][A-Z0-9]+-\d+)$/u.test(ref)
+    ? ref
+    : "another ticket";
+
 /** The existing resolver contract permits only this one Git-private exclusion. */
 function ensureIgnored(root) {
   const ignored = () => {
@@ -81,7 +93,11 @@ export function writeRequirementsContext(
     input.requirements_complete !== true
   )
     fail();
-  if (!configuredRef(cfg, ref) || (binding && binding.ref !== ref)) fail();
+  if (!configuredRef(cfg, ref)) fail();
+  if (binding && binding.ref !== ref)
+    failWith(
+      `this checkout is bound to ${shown(binding.ref)}, and prepare runs only for the bound ticket. When ${shown(binding.ref)} is finished, run \`node scripts/lisa-work-item.mjs clear\`, which also removes its .lisa/work-item-context.md; or bind this ticket with \`node scripts/lisa-work-item.mjs link ${shown(ref)}\` first.`
+    );
   const path = join(cfg.projectRoot, ".lisa/work-item-context.md");
   let initial = false;
   try {
@@ -112,6 +128,17 @@ export function writeRequirementsContext(
       binding?.ref === ref &&
       previous !== null &&
       previous !== ref;
+    // Unbound, another ticket's context may be prepared but not yet linked,
+    // so it is kept; the refusal says whose it is and how to move on (#5199).
+    if (
+      input.context_body !== undefined &&
+      !replacing &&
+      previous !== null &&
+      previous !== ref
+    )
+      failWith(
+        `.lisa/work-item-context.md holds the context of ${shown(previous)}, not ${shown(ref)}, and it is kept because no binding names ${shown(ref)}. If ${shown(previous)} is finished, bind this ticket with \`node scripts/lisa-work-item.mjs link ${shown(ref)}\` and run this prepare again: it then replaces the old context.`
+      );
     if (input.context_body !== undefined && !replacing) fail();
   }
   const eas = join(cfg.projectRoot, ".easignore");
