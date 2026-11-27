@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.10.4](https://github.com/CodySwannGT/lisa/compare/v8.10.3...v8.10.4) (2026-11-27)
+
+
+### Bug Fixes
+
+* **readiness:** keep a created Jira ticket visible when its move fails ([1b4b2c8](https://github.com/CodySwannGT/lisa/commit/1b4b2c8bae80bc0f48977bb9d7322c86461b9d2a)), closes [#5200](https://github.com/CodySwannGT/lisa/issues/5200) [CodySwannGT/lisa#5198](https://github.com/CodySwannGT/lisa/issues/5198) [CodySwannGT/lisa#5198](https://github.com/CodySwannGT/lisa/issues/5198)
+* **readiness:** let an unbound session file the ticket for its work ([b3319b1](https://github.com/CodySwannGT/lisa/commit/b3319b141ef3ea8109f6e874bb3fcf4d52611f0b)), closes [CodySwannGT/lisa#5198](https://github.com/CodySwannGT/lisa/issues/5198) [CodySwannGT/lisa#5198](https://github.com/CodySwannGT/lisa/issues/5198)
+
 ### [8.10.3](https://github.com/CodySwannGT/lisa/compare/v8.10.2...v8.10.3) (2026-11-26)
 
 
