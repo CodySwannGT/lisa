@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.10.6](https://github.com/CodySwannGT/lisa/compare/v8.10.5...v8.10.6) (2026-11-28)
+
+
+### Bug Fixes
+
+* **readiness:** keep the ways out when a bound ticket's requirements go stale ([59e863e](https://github.com/CodySwannGT/lisa/commit/59e863e1f35791b376a008093b5d0780cf0ed2b8)), closes [CodySwannGT/lisa#5203](https://github.com/CodySwannGT/lisa/issues/5203) [CodySwannGT/lisa#5203](https://github.com/CodySwannGT/lisa/issues/5203)
+* **readiness:** rotate the epoch on a stale decision, and clear only the stale checkout ([4b8f63b](https://github.com/CodySwannGT/lisa/commit/4b8f63b56b9ecd21310e351b1205b363552c4f84)), closes [#5208](https://github.com/CodySwannGT/lisa/issues/5208) [CodySwannGT/lisa#5203](https://github.com/CodySwannGT/lisa/issues/5203) [CodySwannGT/lisa#5203](https://github.com/CodySwannGT/lisa/issues/5203)
+
 ### [8.10.5](https://github.com/CodySwannGT/lisa/compare/v8.10.4...v8.10.5) (2026-11-27)
 
 
