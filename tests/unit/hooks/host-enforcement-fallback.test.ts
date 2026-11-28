@@ -242,14 +242,14 @@ describe("enforcement in a host layout", () => {
     expect(runInHost(hostProject(), BYPASS)).toBe(BLOCKED);
   });
 
-  it("withholds an action in a configured host whose readiness owner is missing", () => {
+  it("lets an action through in a configured host: no readiness gate runs (#5213)", () => {
     const root = hostProject();
     writeFileSync(
       path.join(root, ".lisa.config.json"),
       '{"tracker":"github"}\n'
     );
 
-    expect(runInHost(root, "touch new-file.txt")).toBe(BLOCKED);
+    expect(runInHost(root, "touch new-file.txt")).toBe(0);
   });
 
   it("leaves the retired safety net inactive", () => {

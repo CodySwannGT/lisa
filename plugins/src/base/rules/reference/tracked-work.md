@@ -6,18 +6,7 @@ Apply `do-it-now` before creating work from incidental findings. Declining an ob
 
 The project tracker is the durable operator-facing record for project work. Every session that will produce a durable project outcome must establish exactly one live configured-tracker leaf before the first durable mutation. Durable outcomes include code, tests, configuration, documentation, committed research or plans, investigation findings, commits, and pull requests. Read-only questions, discussion, and repository orientation are exempt until they turn into durable work.
 
-In a project with `.lisa.config.json`, the task-readiness guard enforces this. With no ticket bound, it refuses shell commands and project writes with `work-item-unbound`, and admits only:
-
-- the Read, Grep and Glob tools;
-- the fixed ticket read commands. The refusal names the exact one for that installation: `preflight-secrets.mjs --tracker-intake-read --ref <KEY> --read issue|comments` for Linear and Jira, `gh issue view <n> --repo <org>/<repo> --json …` for GitHub;
-- a write that lands in no git repository, such as a scratch or memory file;
-- filing the ticket the work needs: `preflight-secrets.mjs --tracker-create --input-file <absolute path>`, which files into the configured tracker only and refuses a filing with no readiness declaration (see `tool-access-gate`).
-
-Answering a question about a ticket needs none of this. Never bind a ticket just to read one.
-
-To start work on an existing ticket from an unbound session, prepare it first, then bind it. Write the prepare JSON to a file outside every repository, then run the admitted `preflight-secrets.mjs --prepare --ref <ticket> --input-file <absolute path>` (see `tool-access-gate`). Once the ticket is prepared, the guard decides by that ticket's readiness, and `lisa-work-item.mjs link`, the claim and the work run normally.
-
-A bound ticket's requirements go stale when its `.lisa/work-item-context.md` is removed, or when the project configuration changes after it was prepared (a pull can do that). The guard then refuses project work with `requirements-stale`, naming the cause, and still admits the two ways out: a write outside every repository, for the prepare input, and the exact `node scripts/lisa-work-item.mjs clear` from the project root. Refresh a ticket still in progress with the admitted prepare command; clear a finished one.
+In a project with `.lisa.config.json`, the commit hook enforces this: every commit must carry a `Work-Item:` trailer naming the bound ticket, and the push hook validates it. No hook refuses tool calls before that (the per-tool-call readiness gate was removed in CodySwannGT/lisa#5213), so reading, investigating and filing a ticket need no binding. Never bind a ticket just to read one.
 
 ## Resolve, claim, bind
 

@@ -152,10 +152,13 @@ function nativeMcp(
   );
   return boundedSpawnSync({
     label: "native tracker intake read",
-    command: "/bin/bash",
+    command: process.execPath,
     args: [
-      path.join(f.plugin, "hooks/secrets-preflight.sh"),
-      observe ? "--observe-native" : "--task-hook",
+      path.join(
+        f.plugin,
+        "skills/lisa-secrets-access/scripts/preflight-secrets.mjs"
+      ),
+      observe ? "--observe-native" : "--hook",
     ],
     cwd: f.root,
     env: f.env,

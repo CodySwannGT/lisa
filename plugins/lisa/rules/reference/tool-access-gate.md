@@ -4,6 +4,11 @@
 
 ## Task readiness
 
+No hook enforces this section any more: the per-tool-call readiness gate was
+removed (CodySwannGT/lisa#5213), and tickets are enforced by the commit and
+push hooks. The owner commands below still work and stay useful for proving
+access before a claim; nothing refuses a tool call for skipping them.
+
 The secrets access owner's `preflight-secrets.mjs` is the shared decision entry
 point. Before claim, the bounded resolver reads the complete live body/comments,
 acceptance, proof and delivery needs; enumerates credential availability separately

@@ -136,10 +136,13 @@ export function nativeFixture(extraPending = false) {
     const before = input.hook_event_name === "PreToolUse";
     const r = boundedSpawnSync({
       label: "actual native readiness envelope",
-      command: "/bin/bash",
+      command: process.execPath,
       args: [
-        path.join(f.plugin, "hooks/secrets-preflight.sh"),
-        before ? "--task-hook" : "--observe-native",
+        path.join(
+          f.plugin,
+          "skills/lisa-secrets-access/scripts/preflight-secrets.mjs"
+        ),
+        before ? "--hook" : "--observe-native",
       ],
       cwd: f.root,
       env: f.env,

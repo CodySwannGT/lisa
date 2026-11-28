@@ -13,7 +13,6 @@ GUARDS = [
     'block-managed-file-edits',
     'block-blind-automerge',
     'worktree-binding-guard',
-    'task-readiness-guard',
 ]
 TRACE = ['strace', '-f', '-ttt', '-T', '-yy', '-s', '256', '-e', 'trace=%process,%signal,%desc,setitimer', '-e', 'signal=SIGALRM,SIGCHLD,SIGKILL']
 

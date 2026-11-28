@@ -87,8 +87,14 @@ function commandHook(
 ) {
   return boundedSpawnSync({
     label: "canonical readiness recovery envelope",
-    command: "/bin/bash",
-    args: [path.join(f.plugin, "hooks/secrets-preflight.sh")],
+    command: process.execPath,
+    args: [
+      path.join(
+        f.plugin,
+        "skills/lisa-secrets-access/scripts/preflight-secrets.mjs"
+      ),
+      "--hook",
+    ],
     cwd: f.root,
     env: f.env,
     input: JSON.stringify({

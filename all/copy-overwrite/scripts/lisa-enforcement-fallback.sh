@@ -574,7 +574,7 @@ plugin_tree_used=0
 
 for guard in block-no-verify block-shell-json-parsing \
   block-instruction-file-edits block-direct-issue-create \
-  block-managed-file-edits block-blind-automerge worktree-binding-guard task-readiness-guard; do
+  block-managed-file-edits block-blind-automerge worktree-binding-guard; do
   if [ -f "$host_tree/$guard.sh" ]; then
     guard_names+=("$guard")
     guard_scripts+=("$host_tree/$guard.sh")

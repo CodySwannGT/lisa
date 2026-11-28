@@ -80,12 +80,7 @@ function install(root: string) {
       path.join(plugin, "skills", skill),
       { recursive: true }
     );
-  for (const name of [
-    "secrets-preflight.sh",
-    "task-readiness-guard.sh",
-    "task-readiness-guard.mjs",
-    "secrets-preflight.agy.sh",
-  ])
+  for (const name of ["secrets-preflight.sh"])
     cpSync(path.join(BASE, "hooks", name), path.join(plugin, "hooks", name));
   writeFileSync(
     path.join(

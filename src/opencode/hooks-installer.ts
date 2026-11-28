@@ -115,8 +115,6 @@ const NO_VERIFY_DENY_PATTERNS: Readonly<Record<string, "deny">> = {
  * in a source checkout and is missing from every installed copy.
  */
 const PLUGIN_SUPPORT_FILES = [
-  "task-readiness-guard.sh",
-  "task-readiness-guard.mjs",
   "block-host-name-leak.sh",
   "block-host-name-leak.mjs",
   "host-name-command-context.mjs",
