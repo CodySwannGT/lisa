@@ -22,6 +22,8 @@ Answering a question about a ticket needs none of this. Never bind a ticket just
 
 To start work on an existing ticket from an unbound session, prepare it first, then bind it. Write the prepare JSON to a file outside every repository, then run the admitted `preflight-secrets.mjs --prepare --ref <ticket> --input-file <absolute path>` (see `tool-access-gate`). Once the ticket is prepared, the guard decides by that ticket's readiness, and `lisa-work-item.mjs link`, the claim and the work run normally.
 
+A bound ticket's requirements go stale when its `.lisa/work-item-context.md` is removed, or when the project configuration changes after it was prepared (a pull can do that). The guard then refuses project work with `requirements-stale`, naming the cause, and still admits the two ways out: a write outside every repository, for the prepare input, and the exact `node scripts/lisa-work-item.mjs clear` from the project root. Refresh a ticket still in progress with the admitted prepare command; clear a finished one.
+
 ## Resolve, claim, bind
 
 Use `lisa-track` as the single entry point:
