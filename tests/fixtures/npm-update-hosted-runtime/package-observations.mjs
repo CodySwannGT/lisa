@@ -3,7 +3,22 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { required } from "../../../all/copy-overwrite/scripts/lib/npm-update-contract.mjs";
 import { publicFailure } from "../../../all/copy-overwrite/scripts/lib/npm-update-invariants.mjs";
+import { SUPPORTED_RAILS_BROWSER } from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-tool-identity.mjs";
+import { aptDiagnosis } from "./apt-diagnosis.mjs";
 import { digest, failureMetadata } from "./observations.mjs";
+
+/**
+ * Packages whose installed version is read before normalization: the two the
+ * browser needs preinstalled, then every package the pinned install names, so
+ * a new runner image that ships a different version is visible (#5204).
+ */
+export const PRESTATE_PACKAGES = Object.freeze([
+  "libx11-6",
+  "libx11-xcb1",
+  "libmariadb-dev",
+  "libmariadb-dev-compat",
+  ...SUPPORTED_RAILS_BROWSER.map(pin => pin.split("=")[0]),
+]);
 
 /**
  * The authenticated installer owns execution; capture its original refusal without a replacement callback.
@@ -36,6 +51,8 @@ export function recordPackageFailure(captures, records, stage, error) {
       ])
     ),
     failure: failureMetadata(error),
+    // Only the refusal kind and validated archive names and versions (#5204).
+    apt: aptDiagnosis(streams.stdout, streams.stderr),
   };
   records.push(record);
   try {
@@ -57,7 +74,7 @@ export function recordPackageFailure(captures, records, stage, error) {
  * @returns {object} Closed presence/read status and a validated observed version.
  */
 export function packageVersionObservation(name, result) {
-  if (!["libx11-6", "libx11-xcb1"].includes(name))
+  if (!PRESTATE_PACKAGES.includes(name))
     required(false, "unknown pre-state package");
   const bytes = Buffer.isBuffer(result?.stdout)
     ? result.stdout
@@ -71,7 +88,7 @@ export function packageVersionObservation(name, result) {
   const match =
     bytes.length <= 256 &&
     new RegExp(
-      `^${name}(?::amd64)?\\t([0-9][A-Za-z0-9.+:~\\-]{0,127})\\n$`
+      `^${name.replaceAll(".", "\\.").replaceAll("+", "\\+")}(?::amd64)?\\t([0-9][A-Za-z0-9.+:~\\-]{0,127})\\n$`
     ).exec(bytes.toString("utf8"));
   return result?.code === 0 && match
     ? { name, status: "installed", version: match[1] }
@@ -87,7 +104,7 @@ export function packageVersionObservation(name, result) {
  */
 export async function observePackagePrestate(native, source, env) {
   const result = [];
-  for (const name of ["libx11-6", "libx11-xcb1"]) {
+  for (const name of PRESTATE_PACKAGES) {
     const observed = await native(
       "package-prestate",
       source,
