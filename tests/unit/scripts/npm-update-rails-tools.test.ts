@@ -72,7 +72,7 @@ describe("closed native Rails tool qualification", () => {
         const entry = join(root, "apt-transport.mjs");
         writeFileSync(
           entry,
-          'const args = process.argv.slice(2); if (args[0] !== "-n" || args[1] !== "/usr/bin/apt-get" || !args.includes("--snapshot=20261013T000000Z")) process.exit(17); process.stdout.write(JSON.stringify(args));\n',
+          'const args = process.argv.slice(2); if (args[0] !== "-n" || args[1] !== "/usr/bin/apt-get" || !args.includes("--snapshot=20261123T000000Z")) process.exit(17); process.stdout.write(JSON.stringify(args));\n',
           { flag: "wx", mode: 0o600 }
         );
         const calls: string[][] = [];

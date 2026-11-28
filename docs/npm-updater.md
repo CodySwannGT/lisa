@@ -155,19 +155,29 @@ the sandbox or alter AppArmor policy. Docker fixture opt-in installs fixed
 Compose/Buildx plugins in a private config containing no inherited credentials.
 Every step and owned cleanup consumes the original absolute gate deadline.
 The fixed Ubuntu package versions come from the signed
-`20261013T000000Z` Ubuntu snapshot for both index update and installation, so
-moving archive updates cannot remove a required pinned version. The unchanged
+`20261123T000000Z` Ubuntu snapshot for both index update and installation, so
+moving archive updates cannot remove a required pinned version. The
 21-package roster pins `libx11-xcb1` to `2:1.8.7-1ubuntu0.1`, matching Ubuntu's
 security-patched `libx11-6`; production installation never permits a downgrade.
+The snapshot and pins track what GitHub's `ubuntu-24.04` image ships: when an
+image update moves a pinned package ahead (image 20261122 moved `libgbm1`,
+`libglib2.0-0t64` and `libnss3`), the pins move to the image's versions and the
+snapshot to a date that carries them, so a host on the current image needs no
+downgrade (CodySwannGT/lisa#5204).
 After verifying its native Ubuntu identity and clean source, the separate
 disposable CI component qualifier first normalizes that same fixed roster from
 the signed snapshot, explicitly permitting downgrades of newer runner packages.
 It then runs the unchanged strict production installer and tool qualification.
 This prerequisite setup grants no consumer downgrade permission or provider proof.
-The component qualifier records bounded pre-install versions for those two package
-names and, on a package refusal, its fixed `apt-update` or `apt-install` phase,
-native outcome and stream fingerprints. Original output remains in private
-captures; mirror URLs, command content and arbitrary stderr are not published.
+The component qualifier records bounded pre-install versions for `libx11-6`
+and every package the pinned install names. On a package refusal it records
+the fixed `apt-update` or `apt-install` phase, native outcome and stream
+fingerprints, and a sanitized `apt` reading: the refusal class (for example
+`held-broken-packages` or `version-not-found`), the package, relation, target,
+constraint and candidate on each of apt's unmet-dependency lines, and any pin
+the snapshot no longer carries. Every published token must match the Debian
+package-name or version grammar. Original output remains in private captures;
+mirror URLs, command content and arbitrary stderr are not published.
 Its before/after census must preserve every prior container, network, volume
 and image ID before the component result can succeed. Administrator
 readiness uses TCP to `127.0.0.1`; the image's temporary initialization server

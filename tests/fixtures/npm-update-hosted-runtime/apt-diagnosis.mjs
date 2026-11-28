@@ -115,9 +115,17 @@ export function aptDiagnosis(stdout, stderr) {
     },
     { pkg: null, found: [] }
   ).found;
+  // A pin the snapshot no longer carries: "E: Version 'V' for 'P' was not found".
+  const missing = [
+    ...err.matchAll(/^E: Version '([^']+)' for '([^']+)' was not found$/gmu),
+  ]
+    .filter(([, version, name]) => VERSION.test(version) && NAME.test(name))
+    .map(([, version, name]) => ({ package: name, version }))
+    .slice(0, MAX_UNMET);
   return {
     class: found ? found[0] : "other",
     unmet: entries.slice(0, MAX_UNMET),
     unmetTruncated: entries.length > MAX_UNMET,
+    versionsNotFound: missing,
   };
 }

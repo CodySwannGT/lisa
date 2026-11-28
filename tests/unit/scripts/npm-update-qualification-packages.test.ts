@@ -10,11 +10,15 @@ import {
   railsPackageFailurePhase,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs";
 import { runProcess } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
+import { SUPPORTED_RAILS_BROWSER } from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-tool-identity.mjs";
 
 useIoLatencyBudget();
 
-const NEWER = "2.80.0-6ubuntu3.10";
-const PINNED = "2.80.0-6ubuntu3.9";
+// The pinned glib version, and a newer one a runner image might ship.
+const PINNED = String(
+  SUPPORTED_RAILS_BROWSER.find(pin => pin.startsWith("libglib2.0-0t64="))
+).split("=")[1];
+const NEWER = `${PINNED}+runner1`;
 const CHILD = `
 import { readFileSync, writeFileSync } from "node:fs";
 const [statePath, refusal, ...args] = process.argv.slice(1);

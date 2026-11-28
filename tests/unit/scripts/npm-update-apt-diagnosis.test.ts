@@ -52,6 +52,21 @@ describe("aptDiagnosis", () => {
         },
       ],
       unmetTruncated: false,
+      versionsNotFound: [],
+    });
+  });
+
+  it("names a pin the snapshot no longer carries, and only valid ones", () => {
+    const stderr = [
+      "E: Version '2.4.7-1.2ubuntu7.14' for 'libcups2t64' was not found",
+      "E: Version 'private' for 'https://mirror/token' was not found",
+      "",
+    ].join("\n");
+    expect(aptDiagnosis("", stderr)).toMatchObject({
+      class: "version-not-found",
+      versionsNotFound: [
+        { package: "libcups2t64", version: "2.4.7-1.2ubuntu7.14" },
+      ],
     });
   });
 

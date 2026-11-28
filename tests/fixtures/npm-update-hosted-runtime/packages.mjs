@@ -7,7 +7,7 @@ import {
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-tool-identity.mjs";
 import { isDeepStrictEqual } from "node:util";
 
-const PREFIX = ["-n", "/usr/bin/apt-get", "--snapshot=20261013T000000Z"];
+const PREFIX = ["-n", "/usr/bin/apt-get", "--snapshot=20261123T000000Z"];
 const UPDATE = [...PREFIX, "update"];
 const INSTALL = [
   ...PREFIX,

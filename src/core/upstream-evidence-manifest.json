@@ -229,9 +229,9 @@
     "all/copy-overwrite/scripts/lib/npm-update-rails-tool-downloads.mjs":
       "7b0a01a1198b2aa92ff9297ecf0d06c61de1a786303cec000fdb4c9134c5c194",
     "all/copy-overwrite/scripts/lib/npm-update-rails-tool-identity.mjs":
-      "d940a4eb4c97bad4cc788620dc5c3de42c9d92e21c49527aa671b1d180002186",
+      "dec2980f9406454097fcb99141f61a65033e90ae898a99fe7c316d8ac73bf89a",
     "all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs":
-      "c6670b72d0d9bfdb93f96cbb499d0361669e0367ab90e276cf24eb141dfc4a57",
+      "77a2bda319b136326deca9734185322ffda1465a70f340eb9e4e2fea90e53684",
     "all/copy-overwrite/scripts/lib/npm-update-recovery.mjs":
       "01ead8e889e390fa3791f1fc8d493802153f3ac7a3c0696bfdc924b3657e5750",
     "all/copy-overwrite/scripts/lib/npm-update-runtime-archive.mjs":
@@ -433,7 +433,7 @@
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "c23846654944698eba5f882fe1fdc7e0a79dcb3b0d2a5b549dd82fbd18a89fe5",
+      "51be6756d46831f1ebcc2ed9a991a4fc981192098c34507d30831d5be396b699",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "61720cafcbab2d0193cb5fb377264008a765f338e12415b7adf30322342f634c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":

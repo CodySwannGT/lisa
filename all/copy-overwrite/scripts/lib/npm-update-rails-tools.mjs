@@ -41,7 +41,7 @@ export { assertDockerQualified, runtimeTime, toolIdentity };
 const CLIENT = SUPPORTED_RAILS_CLIENT;
 const BROWSER = "154.0.8037.92";
 const SUDO = "/usr/bin/sudo";
-const SNAPSHOT = "--snapshot=20261013T000000Z";
+const SNAPSHOT = "--snapshot=20261123T000000Z";
 const PACKAGE_FAILURE_PHASES = new WeakMap();
 
 /** Return only a source-observed package phase, without changing the original native exception. */
