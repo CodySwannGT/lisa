@@ -12,30 +12,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh --reset-native"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
           }
         ]
       }
     ],
     "postToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh --observe-native"
-          }
-        ]
-      },
       {
         "matcher": "Bash",
         "hooks": [
@@ -101,15 +83,6 @@
       }
     ],
     "preToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh --task-hook"
-          }
-        ]
-      },
       {
         "matcher": "Bash",
         "hooks": [
@@ -291,27 +264,7 @@
         ]
       }
     ],
-    "PostToolUseFailure": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh --observe-native"
-          }
-        ]
-      }
-    ],
     "sessionEnd": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh --reset-native"
-          }
-        ]
-      },
       {
         "matcher": "",
         "hooks": [

@@ -24,8 +24,14 @@ export function nativeWrite(
   };
   const guard = boundedSpawnSync({
     label: "one native Write metadata request",
-    command: "/bin/bash",
-    args: [path.join(f.plugin, "hooks/secrets-preflight.sh"), "--task-hook"],
+    command: process.execPath,
+    args: [
+      path.join(
+        f.plugin,
+        "skills/lisa-secrets-access/scripts/preflight-secrets.mjs"
+      ),
+      "--hook",
+    ],
     cwd: f.root,
     env: f.env,
     input: JSON.stringify(request),

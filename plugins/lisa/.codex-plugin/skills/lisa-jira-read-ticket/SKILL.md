@@ -21,7 +21,7 @@ node /absolute/lisa-secrets-access/scripts/preflight-secrets.mjs --tracker-intak
 node /absolute/lisa-secrets-access/scripts/preflight-secrets.mjs --tracker-intake-read --ref PROJ-123 --read comments
 ```
 
-The same two commands are the read for a session with no ticket bound, for example a question about an issue: the task-readiness guard admits them, and its `work-item-unbound` refusal names them with the installed path. Do not bind a ticket just to read one.
+The same two commands are the read for a session with no ticket bound, for example a question about an issue. Do not bind a ticket just to read one.
 
 The token route returns the full issue and remote links, and the comments command reads all pages in order. If the token is unavailable, the command can read the issue through an already authenticated `acli` session on the configured site. That route reports `remoteLinks: null` and returns comments only when the embedded page is complete. Use the Atlassian access owner's native Jira issue and remote-link reads against the configured cloud and issue key to fill missing data. Check the embedded comment total before treating native context as complete.
 

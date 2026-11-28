@@ -15,12 +15,7 @@ const HOST_HOOKS = "all/copy-overwrite/scripts/lisa-hooks";
 const RAW_HOOKS = "plugins/src/base/hooks";
 const GENERATED_HOOKS = "plugins/lisa/hooks";
 const STAGING_SCRIPT = "scripts/copy-opencode-plugin-templates.mjs";
-const TASK_ADAPTER = "task-readiness-guard.mjs";
-const shippedDirectory = (filename: string): string =>
-  filename === TASK_ADAPTER ? GENERATED_HOOKS : HOST_HOOKS;
 const SUPPORT_FILES = [
-  "task-readiness-guard.sh",
-  TASK_ADAPTER,
   "discharge-work-item-gates.sh",
   "block-managed-file-edits.sh",
   "block-no-verify.sh",
@@ -49,9 +44,7 @@ describe("OpenCode installed support-file parity", () => {
         path.join(temporary, ".opencode/plugin", filename)
       );
       expect(installed, filename).toEqual(
-        await fs.readFile(
-          path.join(REPO_ROOT, shippedDirectory(filename), filename)
-        )
+        await fs.readFile(path.join(REPO_ROOT, HOST_HOOKS, filename))
       );
     }
   });

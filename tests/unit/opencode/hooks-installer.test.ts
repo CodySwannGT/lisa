@@ -32,18 +32,9 @@ const ISSUE = "lisa-block-direct-issue-create.ts";
 const NO_VERIFY = "lisa-block-no-verify.ts";
 const HOST_NAME = "lisa-block-host-name-leak.ts";
 const DISCHARGE = "lisa-discharge-work-item-gates.ts";
-const TASK_READINESS = "lisa-task-readiness.ts";
 
 /** Guards every project gets, in the order the installer lists them. */
-const UNIVERSAL = [
-  ISSUE,
-  INSTR,
-  MANAGED,
-  NO_VERIFY,
-  HOST_NAME,
-  DISCHARGE,
-  TASK_READINESS,
-];
+const UNIVERSAL = [ISSUE, INSTR, MANAGED, NO_VERIFY, HOST_NAME, DISCHARGE];
 /** The tail every roster shares. */
 const TAIL = [SESS, SGSCAN];
 const byName = (a: string, b: string): number => a.localeCompare(b);
@@ -278,11 +269,8 @@ describe("opencode/hooks-installer", () => {
       const result = await installHooks(lisaDir, destDir, ["typescript"], []);
       const files = await listInstalledPluginFiles(destDir);
       expect(result.pluginCount).toBe(files.length);
-      expect(result.managedFiles).toEqual(
-        expect.arrayContaining([
-          `${OPENCODE_PLUGIN_SUBDIR}/task-readiness-guard.sh`,
-          `${OPENCODE_PLUGIN_SUBDIR}/task-readiness-guard.mjs`,
-        ])
+      expect(result.managedFiles).not.toContain(
+        `${OPENCODE_PLUGIN_SUBDIR}/task-readiness-guard.sh`
       );
     });
   });

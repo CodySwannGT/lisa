@@ -25,7 +25,7 @@ node /absolute/lisa-secrets-access/scripts/preflight-secrets.mjs --tracker-intak
 node /absolute/lisa-secrets-access/scripts/preflight-secrets.mjs --tracker-intake-read --ref ENG-123 --read comments
 ```
 
-The same two commands are the read for a session with no ticket bound, for example a question about an issue: the task-readiness guard admits them, and its `work-item-unbound` refusal names them with the installed path. Do not bind a ticket just to read one.
+The same two commands are the read for a session with no ticket bound, for example a question about an issue. Do not bind a ticket just to read one.
 
 The issue response includes the primary body, team, and related graph fields. The comments command returns the entire paginated comment list or fails. Fetch related issues in the configured team with the same command and their issue keys. If a graph field reports another page, record the context as incomplete until those related records can be read through the access owner.
 

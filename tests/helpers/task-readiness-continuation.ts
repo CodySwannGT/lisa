@@ -95,8 +95,14 @@ export function driveTask(
   const preparatoryJournal = takeJournal(calls);
   const result = boundedSpawnSync({
     label: "task readiness real continuation",
-    command: "/bin/bash",
-    args: [path.join(plugin, "hooks/secrets-preflight.sh")],
+    command: process.execPath,
+    args: [
+      path.join(
+        plugin,
+        "skills/lisa-secrets-access/scripts/preflight-secrets.mjs"
+      ),
+      "--hook",
+    ],
     cwd,
     env,
     input: JSON.stringify({

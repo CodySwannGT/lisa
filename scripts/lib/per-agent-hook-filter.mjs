@@ -136,7 +136,7 @@ const SCRIPT_RULES = {
     claude: true,
     codex: true,
     cursor: true,
-    agy: true, // PreToolUse run_command adapter; agy still has no SessionStart.
+    agy: false, // no SessionStart event on agy, and the per-tool gate was removed (#5213)
     copilot: true,
     devin: true,
   },

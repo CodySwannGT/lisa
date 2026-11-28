@@ -40,8 +40,14 @@ export function startNativeHook(
   const started = performance.now();
   const effects = path.join(f.root, `effects-${event.agent_id ?? "A"}.json`);
   const child = spawn(
-    "/bin/bash",
-    [path.join(f.plugin, "hooks/secrets-preflight.sh"), "--task-hook"],
+    process.execPath,
+    [
+      path.join(
+        f.plugin,
+        "skills/lisa-secrets-access/scripts/preflight-secrets.mjs"
+      ),
+      "--hook",
+    ],
     {
       cwd: f.root,
       env,

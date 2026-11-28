@@ -101,10 +101,17 @@ describe("native private context metadata boundary", () => {
     const r = boundedSpawnSync({
       label: "actual portable guard with apply_patch payload",
       command: process.execPath,
-      args: [path.join(f.plugin, "hooks/task-readiness-guard.mjs")],
+      args: [
+        path.join(
+          f.plugin,
+          "skills/lisa-secrets-access/scripts/preflight-secrets.mjs"
+        ),
+        "--hook",
+      ],
       cwd: f.root,
       env: f.env,
       input: JSON.stringify({
+        hook_event_name: "PreToolUse",
         cwd: f.root,
         session_id: "codex-metadata",
         tool_name: "apply_patch",
@@ -138,8 +145,14 @@ describe("native private context metadata boundary", () => {
     };
     const r = boundedSpawnSync({
       label: "single native Write metadata request",
-      command: "/bin/bash",
-      args: [path.join(f.plugin, "hooks/secrets-preflight.sh"), "--task-hook"],
+      command: process.execPath,
+      args: [
+        path.join(
+          f.plugin,
+          "skills/lisa-secrets-access/scripts/preflight-secrets.mjs"
+        ),
+        "--hook",
+      ],
       cwd: f.root,
       env: f.env,
       input: JSON.stringify(request),

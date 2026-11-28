@@ -54,12 +54,15 @@ function scratch(prefix: string): string {
  */
 function unbound() {
   const f = taskFixture(true);
-  const hook = path.join(f.plugin, "hooks/secrets-preflight.sh");
+  const hook = path.join(
+    f.plugin,
+    "skills/lisa-secrets-access/scripts/preflight-secrets.mjs"
+  );
   const drive = (tool: string, input: Record<string, unknown>) =>
     boundedSpawnSync({
       label: "unbound readiness hook",
-      command: "/bin/bash",
-      args: [hook, "--task-hook"],
+      command: process.execPath,
+      args: [hook, "--hook"],
       cwd: f.root,
       env: f.env,
       input: JSON.stringify({
@@ -206,11 +209,14 @@ describe("a bound task is unchanged", () => {
     // so a bound write is refused for that reason, wherever it lands.
     expect(f.run().status).toBe(2);
     const outside = scratch("lisa-bound-outside-");
-    const hook = path.join(f.plugin, "hooks/secrets-preflight.sh");
+    const hook = path.join(
+      f.plugin,
+      "skills/lisa-secrets-access/scripts/preflight-secrets.mjs"
+    );
     const result = boundedSpawnSync({
       label: "bound readiness hook",
-      command: "/bin/bash",
-      args: [hook, "--task-hook"],
+      command: process.execPath,
+      args: [hook, "--hook"],
       cwd: f.root,
       env: f.env,
       input: JSON.stringify({

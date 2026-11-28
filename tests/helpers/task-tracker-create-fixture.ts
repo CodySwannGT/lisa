@@ -147,8 +147,14 @@ export function trackerCreateFixture(config: Record<string, unknown> = {}) {
   const guard = (tool: string, input: Record<string, unknown>) =>
     boundedSpawnSync({
       label: "host readiness wrapper",
-      command: "/bin/bash",
-      args: [path.join(f.plugin, "hooks/task-readiness-guard.sh")],
+      command: process.execPath,
+      args: [
+        path.join(
+          f.plugin,
+          "skills/lisa-secrets-access/scripts/preflight-secrets.mjs"
+        ),
+        "--hook",
+      ],
       cwd: f.root,
       env: f.env,
       input: JSON.stringify({

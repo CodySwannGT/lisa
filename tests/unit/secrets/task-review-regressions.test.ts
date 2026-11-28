@@ -17,6 +17,7 @@ const roots: string[] = [];
 const zero = { claim: 0, branch: 0, code: 0, external: 0 };
 const context = ".lisa/work-item-context.md";
 const CLOUD = "fixture-cloud";
+const OWNER = "skills/lisa-secrets-access/scripts/preflight-secrets.mjs";
 /** Register an isolated actual-hook project.
  * @returns Actual hook fixture.
  */
@@ -41,15 +42,7 @@ function cli(
   return boundedSpawnSync({
     label: "review actual readiness owner",
     command: process.execPath,
-    args: [
-      path.join(
-        f.plugin,
-        "skills/lisa-secrets-access/scripts/preflight-secrets.mjs"
-      ),
-      mode,
-      "--ref",
-      ref,
-    ],
+    args: [path.join(f.plugin, OWNER), mode, "--ref", ref],
     cwd: f.root,
     env: f.env,
     ...(input ? { input: JSON.stringify(input) } : {}),
@@ -85,14 +78,11 @@ describe("combined review real entrypoints", () => {
     rmSync(path.join(f.root, ".gitignore"));
     const body =
       "# Entire synthetic vendor body\n\nComment: retain every byte.\n";
-    const owner = path.join(
-      f.plugin,
-      "skills/lisa-secrets-access/scripts/preflight-secrets.mjs"
-    );
+    const owner = path.join(f.plugin, OWNER);
     const admission = boundedSpawnSync({
       label: "fresh resolver canonical writer admission",
-      command: "/bin/bash",
-      args: [path.join(f.plugin, "hooks/secrets-preflight.sh"), "--task-hook"],
+      command: process.execPath,
+      args: [path.join(f.plugin, OWNER), "--hook"],
       cwd: f.root,
       env: f.env,
       input: JSON.stringify({

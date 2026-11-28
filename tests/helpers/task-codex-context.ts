@@ -26,6 +26,7 @@ export function codexContext(
   command: string
 ) {
   const request = {
+    hook_event_name: "PreToolUse",
     cwd: f.root,
     session_id: "codex-context",
     tool_use_id: "patch-call",
@@ -35,7 +36,13 @@ export function codexContext(
   const result = boundedSpawnSync({
     label: "documented Codex before command envelope",
     command: process.execPath,
-    args: [path.join(f.plugin, "hooks/task-readiness-guard.mjs")],
+    args: [
+      path.join(
+        f.plugin,
+        "skills/lisa-secrets-access/scripts/preflight-secrets.mjs"
+      ),
+      "--hook",
+    ],
     cwd: f.root,
     env: f.env,
     input: JSON.stringify(request),

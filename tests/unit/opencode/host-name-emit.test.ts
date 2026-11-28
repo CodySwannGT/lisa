@@ -36,9 +36,10 @@ describe("OpenCode host-name guard distribution (#4540)", () => {
     const files = await listInstalledPluginFiles(project);
     expect(result.pluginCount).toBe(files.length);
     // Four existing support files, the three Rails engine modules, and the
-    // host-name wrapper/classifier/context helper and two task-readiness
-    // adapters are managed alongside plugins.
-    // The unused heredoc parser left the list in CodySwannGT/lisa#4810.
-    expect(result.managedFiles).toHaveLength(files.length + 12);
+    // host-name wrapper/classifier/context helper are managed alongside
+    // plugins. The unused heredoc parser left the list in
+    // CodySwannGT/lisa#4810, and the two task-readiness adapters in
+    // CodySwannGT/lisa#5213.
+    expect(result.managedFiles).toHaveLength(files.length + 10);
   });
 });

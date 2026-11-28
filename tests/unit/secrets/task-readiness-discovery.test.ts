@@ -116,12 +116,15 @@ describe("readiness root, binding and registered recovery", () => {
   });
   it("admits fixed documented probes and recovery through the registered wrapper, not chained work", () => {
     const f = fixture();
-    const hook = path.join(f.plugin, "hooks/secrets-preflight.sh");
+    const hook = path.join(
+      f.plugin,
+      "skills/lisa-secrets-access/scripts/preflight-secrets.mjs"
+    );
     const probe = (command: string) =>
       boundedSpawnSync({
         label: "registered before-tool read probe",
-        command: "/bin/bash",
-        args: [hook, "--task-hook"],
+        command: process.execPath,
+        args: [hook, "--hook"],
         cwd: f.root,
         env: f.env,
         input: JSON.stringify({
