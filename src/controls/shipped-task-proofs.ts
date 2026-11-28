@@ -12,13 +12,27 @@ const STAGED_LINT_TASK = {
   task: "lint:staged",
   script: "lint-staged --config .lintstagedrc.json",
 } as const;
-const UNIT_VITEST_TASK = {
+const VITEST_RUN = /\s--adapter\s+vitest\s+--\s+vitest\s+run(?:\s|$)/u;
+const EXPO_JEST_RUN =
+  /\s--profile\s+expo\s+--adapter\s+direct\s+--\s+jest(?:\s|$)/u;
+const UNIT_TEST_TASK = {
   moment: "push",
   task: "test:cov:unit",
   script: "$npm_execpath run test:cov:unit:lisa",
-  vitestScript: "test:cov:unit:lisa",
 } as const;
-const VITEST_RUN = /\s--adapter\s+vitest\s+--\s+vitest\s+run(?:\s|$)/u;
+const INTEGRATION_TEST_TASK = {
+  moment: "push",
+  task: "test:integration",
+  script: "$npm_execpath run test:integration:lisa",
+} as const;
+const UNIT_VITEST_TASK = {
+  ...UNIT_TEST_TASK,
+  runner: { task: "test:cov:unit:lisa", command: VITEST_RUN },
+} as const;
+const UNIT_EXPO_TASK = {
+  ...UNIT_TEST_TASK,
+  runner: { task: "test:cov:unit:lisa", command: EXPO_JEST_RUN },
+} as const;
 
 /** Task inputs and failure text from the TypeScript template. */
 const TYPESCRIPT_PROOFS = [
@@ -82,10 +96,8 @@ const TYPESCRIPT_PROOFS = [
   },
   {
     gate: "test-integration",
-    moment: "push",
-    task: "test:integration",
-    script: "$npm_execpath run test:integration:lisa",
-    vitestScript: "test:integration:lisa",
+    ...INTEGRATION_TEST_TASK,
+    runner: { task: "test:integration:lisa", command: VITEST_RUN },
     inputs: ["tests/integration/lisa-proof.integration.test.ts"],
     failure: "AssertionError: expected",
   },
@@ -121,6 +133,45 @@ const TYPESCRIPT_PROOFS = [
   },
 ] as const;
 
+/** The Expo template uses Jest for both task aliases. */
+const EXPO_PROOFS = [
+  {
+    gate: "coverage-adequacy",
+    ...UNIT_EXPO_TASK,
+    inputs: [
+      "src/lib/lisa-proof-expo-coverage.ts",
+      "src/lib/lisa-proof-expo-coverage.test.ts",
+    ],
+    failure: 'does not meet "global" threshold',
+    // The managed Jest configuration uses the src/ coverage globs only here.
+    applicable: (projectDir: string) =>
+      existsSync(path.join(projectDir, "src", "app")),
+  },
+  {
+    gate: "test-correctness",
+    ...UNIT_EXPO_TASK,
+    inputs: ["tests/lisa-proof-expo-unit.test.ts"],
+    failure: 'Expected: "lisa-unit-expected"',
+  },
+  {
+    gate: "test-integration",
+    ...INTEGRATION_TEST_TASK,
+    runner: { task: "test:integration:lisa", command: EXPO_JEST_RUN },
+    inputs: ["tests/lisa-proof-expo-integration.integration.test.ts"],
+    failure: 'Expected: "lisa-integration-expected"',
+  },
+] as const;
+
+const SHIPPED_PROOF_SETS = [
+  { stack: "typescript", definitions: TYPESCRIPT_PROOFS },
+  { stack: "expo", definitions: EXPO_PROOFS },
+] as const;
+/**
+ *
+ */
+type ProofDefinition =
+  (typeof SHIPPED_PROOF_SETS)[number]["definitions"][number];
+
 /** A proof bound to the task that declares it. */
 export interface ShippedTaskProof {
   readonly gate: string;
@@ -139,17 +190,19 @@ export interface ShippedTaskProof {
 /** Check whether an installed patch is an unchanged copy of the template.
  * @param projectDir - The installed host.
  * @param lisaDir - The Lisa package root.
+ * @param stack - The stack that owns the patch.
  * @param patch - The relative patch path.
  * @returns True when the patch is present, regular and byte-identical.
  */
 async function matchesShippedPatch(
   projectDir: string,
   lisaDir: string,
+  stack: string,
   patch: string
 ): Promise<boolean> {
   try {
     const template = await readFile(
-      path.join(lisaDir, "typescript", "create-only", patch)
+      path.join(lisaDir, stack, "create-only", patch)
     );
     const installed = path.join(projectDir, patch);
     const info = await lstat(installed);
@@ -164,19 +217,19 @@ async function matchesShippedPatch(
   }
 }
 
-/** Vitest fixture imports must reach the Vitest command behind the task alias.
+/** Test patches require the same runner behind the installed task alias.
  * @param definition - The shipped proof and its expected task.
  * @param scripts - The effective scripts on this installation.
  * @returns True when the task and any required test runner match.
  */
 function matchesTask(
-  definition: (typeof TYPESCRIPT_PROOFS)[number],
+  definition: ProofDefinition,
   scripts: Readonly<Record<string, string>>
 ): boolean {
   if (scripts[definition.task] !== definition.script) return false;
   return (
-    !("vitestScript" in definition) ||
-    VITEST_RUN.test(scripts[definition.vitestScript] ?? "")
+    !("runner" in definition) ||
+    definition.runner.command.test(scripts[definition.runner.task] ?? "")
   );
 }
 
@@ -194,9 +247,13 @@ export async function installedShippedTaskProofs(
   scripts: Readonly<Record<string, string>>,
   lisaDir = fileURLToPath(new URL("../../", import.meta.url))
 ): Promise<readonly ShippedTaskProof[]> {
-  if (!projectTypes.includes("typescript")) return [];
+  const candidates = SHIPPED_PROOF_SETS.filter(({ stack }) =>
+    projectTypes.includes(stack)
+  ).flatMap(({ stack, definitions }) =>
+    definitions.map(definition => ({ stack, definition }))
+  );
   const proofs = await Promise.all(
-    TYPESCRIPT_PROOFS.map(async definition => {
+    candidates.map(async ({ stack, definition }) => {
       const { gate, moment, task, inputs, failure } = definition;
       if (
         !matchesTask(definition, scripts) ||
@@ -205,11 +262,11 @@ export async function installedShippedTaskProofs(
       ) {
         return undefined;
       }
-      const base = `${PROOF_DIRECTORY}/lisa-typescript-${gate}`;
+      const base = `${PROOF_DIRECTORY}/lisa-${stack}-${gate}`;
       const violation = `${base}.violation.patch`;
       const clean = `${base}.clean.patch`;
       for (const patch of [violation, clean]) {
-        if (!(await matchesShippedPatch(projectDir, lisaDir, patch)))
+        if (!(await matchesShippedPatch(projectDir, lisaDir, stack, patch)))
           return undefined;
       }
       return {

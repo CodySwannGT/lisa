@@ -1,0 +1,70 @@
+diff --git a/src/lib/lisa-proof-expo-coverage.ts b/src/lib/lisa-proof-expo-coverage.ts
+new file mode 100644
+--- /dev/null
++++ b/src/lib/lisa-proof-expo-coverage.ts
+@@ -0,0 +1,52 @@
++export function lisaProofExpoCoverage(flags: readonly boolean[]): number {
++  return (
++    (flags[0] ? 1 : 0) +
++    (flags[1] ? 1 : 0) +
++    (flags[2] ? 1 : 0) +
++    (flags[3] ? 1 : 0) +
++    (flags[4] ? 1 : 0) +
++    (flags[5] ? 1 : 0) +
++    (flags[6] ? 1 : 0) +
++    (flags[7] ? 1 : 0) +
++    (flags[8] ? 1 : 0) +
++    (flags[9] ? 1 : 0) +
++    (flags[10] ? 1 : 0) +
++    (flags[11] ? 1 : 0) +
++    (flags[12] ? 1 : 0) +
++    (flags[13] ? 1 : 0) +
++    (flags[14] ? 1 : 0) +
++    (flags[15] ? 1 : 0) +
++    (flags[16] ? 1 : 0) +
++    (flags[17] ? 1 : 0) +
++    (flags[18] ? 1 : 0) +
++    (flags[19] ? 1 : 0) +
++    (flags[20] ? 1 : 0) +
++    (flags[21] ? 1 : 0) +
++    (flags[22] ? 1 : 0) +
++    (flags[23] ? 1 : 0) +
++    (flags[24] ? 1 : 0) +
++    (flags[25] ? 1 : 0) +
++    (flags[26] ? 1 : 0) +
++    (flags[27] ? 1 : 0) +
++    (flags[28] ? 1 : 0) +
++    (flags[29] ? 1 : 0) +
++    (flags[30] ? 1 : 0) +
++    (flags[31] ? 1 : 0) +
++    (flags[32] ? 1 : 0) +
++    (flags[33] ? 1 : 0) +
++    (flags[34] ? 1 : 0) +
++    (flags[35] ? 1 : 0) +
++    (flags[36] ? 1 : 0) +
++    (flags[37] ? 1 : 0) +
++    (flags[38] ? 1 : 0) +
++    (flags[39] ? 1 : 0) +
++    (flags[40] ? 1 : 0) +
++    (flags[41] ? 1 : 0) +
++    (flags[42] ? 1 : 0) +
++    (flags[43] ? 1 : 0) +
++    (flags[44] ? 1 : 0) +
++    (flags[45] ? 1 : 0) +
++    (flags[46] ? 1 : 0) +
++    (flags[47] ? 1 : 0)
++  );
++}
+diff --git a/src/lib/lisa-proof-expo-coverage.test.ts b/src/lib/lisa-proof-expo-coverage.test.ts
+new file mode 100644
+--- /dev/null
++++ b/src/lib/lisa-proof-expo-coverage.test.ts
+@@ -0,0 +1,8 @@
++import { lisaProofExpoCoverage } from "./lisa-proof-expo-coverage";
++
++describe("Expo coverage fixture", () => {
++  it("executes both sides of every branch", () => {
++    expect(lisaProofExpoCoverage(Array<boolean>(48).fill(false))).toBe(0);
++    expect(lisaProofExpoCoverage(Array<boolean>(48).fill(true))).toBe(48);
++  });
++});
