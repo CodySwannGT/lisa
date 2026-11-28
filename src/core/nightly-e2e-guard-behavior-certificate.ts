@@ -32,9 +32,9 @@ export const NIGHTLY_E2E_GUARD_BEHAVIOR_CERTIFICATES = Object.freeze({
   "4679c1e7cc92f960bad81854b9ce68a14aa0e404f2264cca0c2d6186008a17eb":
     Object.freeze({
       contractVersion: "1.9.0",
-      packageVersions: Object.freeze(["8.10.6"]),
+      packageVersions: Object.freeze(["8.10.7"]),
       provenances: Object.freeze([
-        "workspace package @codyswann/lisa@8.10.6 (typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs)",
+        "workspace package @codyswann/lisa@8.10.7 (typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs)",
       ]),
     }),
   "898ee0247806c7aa6e98328662d80bcff22ff067999298865462a58daef8bb22":

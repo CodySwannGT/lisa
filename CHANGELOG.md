@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [8.10.7](https://github.com/CodySwannGT/lisa/compare/v8.10.6...v8.10.7) (2026-11-28)
+
+
+### Bug Fixes
+
+* **readiness:** let the session manager run with no ticket bound ([d5f3245](https://github.com/CodySwannGT/lisa/commit/d5f32450c9cc6ec9cea2443c04fdb7323a566995)), closes [CodySwannGT/lisa#5211](https://github.com/CodySwannGT/lisa/issues/5211) [CodySwannGT/lisa#5211](https://github.com/CodySwannGT/lisa/issues/5211)
+
 ### [8.10.6](https://github.com/CodySwannGT/lisa/compare/v8.10.5...v8.10.6) (2026-11-28)
 
 
