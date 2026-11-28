@@ -13,6 +13,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -31,7 +32,8 @@ const CONTEXT = ".lisa/work-item-context.md";
 const REF = "fixture/project#1";
 const CLEAR = "node scripts/lisa-work-item.mjs clear";
 const STALE = "requirements-stale";
-const WORK_ITEM = path.resolve("scripts/lisa-work-item.mjs");
+const SCRIPT = "scripts/lisa-work-item.mjs";
+const WORK_ITEM = path.resolve(SCRIPT);
 
 afterEach(() => {
   for (const dir of cleanup.splice(0))
@@ -49,7 +51,8 @@ function bound() {
   const guard = (
     tool: string,
     toolInput: Record<string, unknown>,
-    cwd = f.root
+    cwd = f.root,
+    extra: Record<string, unknown> = {}
   ) =>
     boundedSpawnSync({
       label: "host readiness wrapper",
@@ -62,6 +65,7 @@ function bound() {
         cwd,
         tool_name: tool,
         tool_input: toolInput,
+        ...extra,
       }),
     });
   const shell = (command: string, cwd = f.root) =>
@@ -81,7 +85,7 @@ function bound() {
     `${JSON.stringify({ branch: null, provider: "github", ref: REF, version: 1 })}\n`
   );
   cleanup.push(f.root, outside);
-  return { f, outside, state, shell, write, staleConfig };
+  return { f, outside, state, guard, shell, write, staleConfig };
 }
 
 describe("a binding whose requirements are current", () => {
@@ -94,16 +98,51 @@ describe("a binding whose requirements are current", () => {
 });
 
 describe("a binding whose configuration changed after it was prepared", () => {
-  it("admits the exact clear, from the root or by absolute path", () => {
+  it("admits the exact clear from the root, relative, absolute or quoted", () => {
     const { f, shell, staleConfig } = bound();
     staleConfig();
-    expect(shell(CLEAR).status).toBe(0);
-    expect(
-      shell(
-        `node ${path.join(f.root, "scripts/lisa-work-item.mjs")} clear`,
-        "/"
-      ).status
-    ).toBe(0);
+    const script = path.join(f.root, SCRIPT);
+    for (const command of [
+      CLEAR,
+      `node ${script} clear`,
+      `node '${script}' clear`,
+    ])
+      expect(shell(command).status, command).toBe(0);
+  });
+
+  it("refuses the absolute clear from outside the stale checkout, which it would not clear", () => {
+    const { f, outside, shell, staleConfig } = bound();
+    staleConfig();
+    const script = path.join(f.root, SCRIPT);
+    for (const cwd of ["/", outside]) {
+      const result = shell(`node ${script} clear`, cwd);
+      expect(result.status, cwd).toBe(2);
+      expect(result.stderr, cwd).toContain(STALE);
+    }
+  });
+
+  it("rotates the native readiness epoch on every stale decision, admitted or refused", () => {
+    const { f, outside, guard, staleConfig } = bound();
+    staleConfig();
+    const gate = path.join(f.root, "lisa-verification-gate");
+    const epochs = () =>
+      existsSync(gate)
+        ? readdirSync(gate)
+            .filter(name => name.startsWith("readiness-epoch-"))
+            .map(name => readFileSync(path.join(gate, name), "utf8"))
+            .join()
+        : "";
+    const session = { session_id: "stale-session" };
+    const seen = [epochs()];
+    for (const file of [
+      path.join(f.root, "x.md"),
+      path.join(outside, "y.json"),
+    ]) {
+      guard("Write", { file_path: file, content: "x" }, f.root, session);
+      seen.push(epochs());
+    }
+    expect(seen[1]).not.toBe("");
+    expect(new Set(seen).size).toBe(3);
   });
 
   it("admits a write outside every repository", () => {

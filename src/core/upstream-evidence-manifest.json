@@ -1807,7 +1807,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-access.mjs":
       "ee88c5f1d39e11c2d7233df255bdbb2246be808baa7825173111edaa8517a490",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-action.mjs":
-      "670bb7e4f01fbe371f1446ab38b46b2a3b2e4e74ab58a19bc1635b470fc508af",
+      "8edc0db40888c0f0cc4f71d02d29c6bbdc3adaa49bc4ae907cd84daff4bc7359",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs":
       "b9231c667bb62d3d30edf1a45d632696fc3c1d81ae8b32652e5e37a9635cb2f4",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-context-data.mjs":
@@ -1835,7 +1835,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs":
       "e184ed7fb4eacb448553cca5a1c440707449066ef9edddb81f6eeba8b79e879d",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-stale.mjs":
-      "318563988b5acba18f7ad4e8e8e49683d666d2891d26c54baf8274a9ce3c0070",
+      "0254a65f42bf0d596c1d5a998b7340530265a0d54b0fde2b0690f1ee71b8eb5c",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-tracker-create.mjs":
       "7d8c3a37cf2806a872835af340c4f8171fcfc760002ebf97a5d6155dbbaa32b8",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-tracker-intake.mjs":

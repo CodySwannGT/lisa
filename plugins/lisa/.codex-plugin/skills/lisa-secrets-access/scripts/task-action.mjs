@@ -192,6 +192,9 @@ export function runTaskAction(argv = process.argv) {
           ? staleBinding(input, cfg)
           : null;
       if (!stale) throw error;
+      // Rotate the native epoch as the stale refusal always did, so no
+      // earlier ready state outlives the stale read.
+      resetNativeEvent(input);
       if (stale.allowed) return;
       console.error(`${stale.code}: ${stale.action}`);
       process.exitCode = 2;

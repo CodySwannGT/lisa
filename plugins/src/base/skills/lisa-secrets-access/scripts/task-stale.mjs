@@ -53,18 +53,29 @@ function real(dir) {
 
 /**
  * Whether a shell command is exactly the work-item `clear` of this project.
+ *
+ * `clear` acts on the checkout it runs in, not the one its script lives in,
+ * so it is admitted only when run from the stale checkout's root. From
+ * anywhere else it would clear some other checkout's binding.
  * @param {Record<string, any>} input Hook event.
  * @param {string} root Project root.
- * @returns {boolean} True for the exact relative form run from the root, or
- *   the exact absolute form run from anywhere.
+ * @returns {boolean} True for the exact relative form, the exact absolute
+ *   form, or the absolute form shell-quoted, each run from the root.
  */
 function clearCommand(input, root) {
   if (input?.tool_name !== "Bash") return false;
   const command = input.tool_input?.command;
   const projectRoot = real(root);
   if (typeof command !== "string" || !projectRoot) return false;
-  if (command === `node ${join(projectRoot, CLEAR)}`) return true;
-  return command === `node ${CLEAR}` && real(input.cwd) === projectRoot;
+  if (real(input.cwd) !== projectRoot) return false;
+  const [script, verb] = CLEAR.split(" ");
+  const absolute = join(projectRoot, script);
+  return [
+    `node ${CLEAR}`,
+    // Unquoted only when the shell reads the path as one word.
+    ...(/^[\w./@+-]+$/u.test(absolute) ? [`node ${absolute} ${verb}`] : []),
+    `node '${absolute.replaceAll("'", "'\\''")}' ${verb}`,
+  ].includes(command);
 }
 
 /**
