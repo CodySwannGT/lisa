@@ -30,7 +30,6 @@ export const SELECTED_GUARDS = [
   "block-managed-file-edits",
   "block-blind-automerge",
   "worktree-binding-guard",
-  "task-readiness-guard",
 ] as const;
 
 export const INSTALLED_VERSION = "4.72.7";
