@@ -164,6 +164,11 @@ export function buildManagerLaunch({
     ...(telegram ? ["-e", `TELEGRAM_STATE_DIR=${stateDir}`] : []),
     "-e",
     `SM_SCRIPTS_DIR=${scriptsDir}`,
+    // Marks this session as the manager, which binds no ticket: the readiness
+    // gate lets it do operational work (#5211). A Bash export cannot set it,
+    // and scrubWorkerEnv keeps it from every worker.
+    "-e",
+    `LISA_SESSION_MANAGER=${name}`,
     "claude",
     "-n",
     name,

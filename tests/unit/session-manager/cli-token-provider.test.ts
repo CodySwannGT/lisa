@@ -165,7 +165,12 @@ describe("start with a secrets provider", () => {
     expect(launch?.envKeys).not.toContain("TELEGRAM_BOT_TOKEN");
     expect(launch?.extra).toMatchObject({
       sourced: NEW_SESSION,
-      envNames: ["TELEGRAM_STATE_DIR", "SM_SCRIPTS_DIR", "TELEGRAM_BOT_TOKEN"],
+      envNames: [
+        "TELEGRAM_STATE_DIR",
+        "SM_SCRIPTS_DIR",
+        "LISA_SESSION_MANAGER",
+        "TELEGRAM_BOT_TOKEN",
+      ],
       tokenSha256: createHash("sha256").update(SENTINEL).digest("hex"),
     });
     expect(launch?.extra?.command).toContain("--channels");

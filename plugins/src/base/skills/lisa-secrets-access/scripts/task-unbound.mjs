@@ -30,7 +30,7 @@ const PATCH_TARGET =
  * @param {string} target Absolute path.
  * @returns {string|null} Resolved location, or null when unresolvable.
  */
-function realLocation(target) {
+export function realLocation(target) {
   let existing = target;
   while (!existsSync(existing)) {
     // A link whose target is missing exists as an entry: writing through it
@@ -115,7 +115,7 @@ export function outsideEveryRepository(target, projectRoot) {
  * @param {Record<string, any>} input Hook event.
  * @returns {string[]|null} Target paths.
  */
-function writeTargets(input) {
+export function writeTargets(input) {
   const args = input?.tool_input;
   if (!args || typeof args !== "object") return null;
   if (FILE_TOOLS.has(input.tool_name)) {

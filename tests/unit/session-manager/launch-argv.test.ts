@@ -76,6 +76,8 @@ describe("buildManagerLaunch", () => {
       "TELEGRAM_STATE_DIR=/home/op/.claude/channels/telegram-demo",
       "-e",
       "SM_SCRIPTS_DIR=/opt/lisa/skills/lisa-session-manager/scripts",
+      "-e",
+      `LISA_SESSION_MANAGER=${NAME}`,
       "claude",
       "-n",
       NAME,
@@ -138,6 +140,8 @@ describe("buildManagerLaunch with no notification channel", () => {
       ROOT,
       "-e",
       "SM_SCRIPTS_DIR=/opt/lisa/skills/lisa-session-manager/scripts",
+      "-e",
+      `LISA_SESSION_MANAGER=${NAME}`,
       "claude",
       "-n",
       NAME,
@@ -166,6 +170,7 @@ describe("buildManagerLaunch with no notification channel", () => {
     expect(buildForegroundCommand(argv)).toBe(
       "cd '/work/demo' && " +
         "SM_SCRIPTS_DIR='/opt/lisa/skills/lisa-session-manager/scripts' " +
+        `LISA_SESSION_MANAGER='${NAME}' ` +
         `claude -n ${NAME} --dangerously-skip-permissions ` +
         `--settings '{"crossSessionInbound":"accept"}' ` +
         `-- '${LOOP_PROMPT}'`
@@ -179,6 +184,7 @@ describe("buildForegroundCommand", () => {
     expect(buildForegroundCommand(argv)).toBe(
       "cd '/work/demo' && TELEGRAM_STATE_DIR='/home/op/it'\\''s' " +
         "SM_SCRIPTS_DIR='/opt/lisa/skills/lisa-session-manager/scripts' " +
+        `LISA_SESSION_MANAGER='${NAME}' ` +
         `claude -n ${NAME} --dangerously-skip-permissions ` +
         `--settings '${SETTINGS_JSON}' ` +
         "--channels plugin:telegram@claude-plugins-official " +
