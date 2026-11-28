@@ -16,6 +16,11 @@ import {
 } from "./task-unbound.mjs";
 import { staleBinding } from "./task-stale.mjs";
 import {
+  managerSession,
+  operatorCommand,
+  operatorHint,
+} from "./task-manager-session.mjs";
+import {
   linearIntakeRead,
   observeLinearIntake,
 } from "./task-tracker-intake.mjs";
@@ -230,7 +235,12 @@ export function runTaskAction(argv = process.argv) {
     else if (hook && result.code === "no-active-task") {
       if (cfg.provenance?.status === "absent") return;
       if (unboundWrite(input, cfg)) return;
+      // The session manager binds no ticket; its own session and the
+      // operator's start/stop/status/validate stay possible (#5211).
+      if (managerSession(input, cfg) || operatorCommand(input, cfg)) return;
       result = unboundRefusal(cfg);
+      const hint = operatorHint(cfg);
+      if (hint) result.action += ` ${hint}`;
     } else if (hook && result.outcome === "NATIVE_OWNER_REQUIRED") {
       const decision = nativeAction(cfg, header, result, input);
       if (decision.allowed) result = { allowed: true, code: decision.code };

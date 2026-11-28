@@ -34,6 +34,8 @@ import {
   REPO_A_DIR,
 } from "./workers-fixtures.js";
 
+const MANAGER_NAME = "demo-manager";
+
 describe("sanitizeRefToken", () => {
   it.each([
     ["owner/repo#12", "repo-12"],
@@ -183,6 +185,26 @@ describe("scrubWorkerEnv", () => {
     expect(scrubbed).not.toHaveProperty("TELEGRAM_STATE_DIR");
     expect(scrubbed).not.toHaveProperty("TELEGRAM_BOT_TOKEN");
     expect(env).toHaveProperty("TELEGRAM_BOT_TOKEN");
+  });
+
+  it("removes the manager mark, so a worker stays gated (#5211)", () => {
+    const scrubbed = scrubWorkerEnv({
+      PATH: "/bin",
+      LISA_SESSION_MANAGER: MANAGER_NAME,
+      LISA_SESSION_MANAGER_X: "kept",
+    });
+    expect(scrubbed).toEqual({ PATH: "/bin", LISA_SESSION_MANAGER_X: "kept" });
+  });
+
+  it("gives a spawned worker no manager mark", () => {
+    const spawn = buildWorkerSpawn({
+      ref: "TEAM-12",
+      name: NEW_WORKER,
+      manager: MANAGER_NAME,
+      repoDir: REPO_A_DIR,
+      env: { PATH: "/bin", LISA_SESSION_MANAGER: MANAGER_NAME },
+    });
+    expect(spawn.env).not.toHaveProperty("LISA_SESSION_MANAGER");
   });
 });
 

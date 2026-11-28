@@ -1807,7 +1807,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-access.mjs":
       "ee88c5f1d39e11c2d7233df255bdbb2246be808baa7825173111edaa8517a490",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-action.mjs":
-      "8edc0db40888c0f0cc4f71d02d29c6bbdc3adaa49bc4ae907cd84daff4bc7359",
+      "b77d48740dcac2ec26e52010f88aa1061a10aaaac9fa8b143f66c1ded0e52c35",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs":
       "b9231c667bb62d3d30edf1a45d632696fc3c1d81ae8b32652e5e37a9635cb2f4",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-context-data.mjs":
@@ -1820,6 +1820,8 @@
       "8ee26ae5c3ae4591618a1938795d1a6d90da6e52f5fbdd138e63654c3232e5dd",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-intake.mjs":
       "fff789e59bd91ede71eefaffe38cc166c821e5a9291efb401fc81710cf8f6118",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-manager-session.mjs":
+      "82904236fdf5944b72efd2dc5482f2cc90fdc1015e59a0e0f827c19ae81ec609",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-context.mjs":
       "0d91e2d565cab388e25b5d0dfa64443ee6f29b28bdf429e6c86ac1e57734a61c",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-contract.mjs":
@@ -1841,7 +1843,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-tracker-intake.mjs":
       "35be572aa5596a44e31aff71440ab274afd5147d3e38c785747bf3f458821c74",
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-unbound.mjs":
-      "73153219153097f3ab451f9e93b1d50075c0554be26aff565b5b0d5b1c3e8c72",
+      "edd1d9811b99d7aad2c47a49e27acbb629bf790b8faa465815b3ca0375223f2d",
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "6ab78776157345992224c5f74f1e6b82867d003961499faf2e51f1473c78dbb8",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
@@ -1855,7 +1857,7 @@
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "2dbbccc62a0d20d691e947a2612fd5a6ac5b10bbfa8ccae59c148a1262795655",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "6d480a8a05756437fa69dcb374eb9290834f02c97c1891a818c0b0bb55fec17f",
+      "404446068ad164b4c8b1cae56fcb4cab35db55310c39910051e76d2608253171",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "7e59e966dca77962bb67a836a6e86f8a2ec20875de2c8ab06a649c18ffb84533",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1913,7 +1915,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/launch-shell.mjs":
       "59a91712fc529dc2e63cd00f2b680fc6b24200bc83bee41b2a5266e020c92aeb",
     "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs":
-      "5bdea8147595c5d663cf334226c74311efc1a1af456ec40b2474581c28edd12f",
+      "87dbd1928e5d017a03d4747176deebdbbcb1d67448ce7ad2920e82559fc20722",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-lock-fs.mjs":
       "0e80de773c25d547c9980ba47c718dd9d3213434681e69754ad0254cf8b0a85a",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-lock-reclaim.mjs":
@@ -1965,7 +1967,7 @@
     "plugins/src/base/skills/lisa-session-manager/scripts/worker-launch.mjs":
       "8ed59488a20688a973ccd46a4764d4fe163403be61cf1f2e6e72280499a3804d",
     "plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs":
-      "955e1602e3f7f7686ad8a01af34ce5a017d4da43a8f3f8153fbf7e85fd4094fd",
+      "7b0eaa5a6db704db962edd8ea4bae78df4a0159cda61fdc76bd5a74bc55865c3",
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md":
       "dd0a57102b19765887c8cf2ebc04291c360cfc4120a828c3cdbe46175895463b",
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md":
@@ -5373,6 +5375,7 @@
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-github.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-manager-session.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
@@ -5973,6 +5976,7 @@
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-github.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-manager-session.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
@@ -6557,6 +6561,7 @@
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-github.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-manager-session.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
@@ -7070,6 +7075,7 @@
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-github.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-manager-session.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
@@ -9319,6 +9325,7 @@
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-github.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-manager-session.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
@@ -10088,6 +10095,7 @@
     "plugins/lisa/skills/lisa-secrets-access/scripts/task-github.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-manager-session.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
@@ -10732,6 +10740,7 @@
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-github.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-manager-session.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
@@ -14970,6 +14979,7 @@
     "tests/unit/secrets/task-readiness-postlaunch.test.ts": true,
     "tests/unit/secrets/task-readiness-qualification.test.ts": true,
     "tests/unit/secrets/task-readiness-scope.test.ts": true,
+    "tests/unit/secrets/task-readiness-session-manager.test.ts": true,
     "tests/unit/secrets/task-readiness-stale-binding.test.ts": true,
     "tests/unit/secrets/task-readiness-unbound-prepare.test.ts": true,
     "tests/unit/secrets/task-readiness-unbound.test.ts": true,

@@ -60,6 +60,11 @@ the manager.
 - **Project root.** `$ROOT` is the absolute directory the manager was started in, the one whose
   `.lisa.config.json` holds `sessionManager`. Pass `--project-root "$ROOT"` on **every** CLI call, so
   a stray `cd` can never send a ledger write into a child repo.
+- **No ticket.** The manager binds no ticket; workers do. The readiness gate admits this session
+  because `start` launched it with `LISA_SESSION_MANAGER` set to its name, which workers never
+  inherit. It still may not edit project files outside `.lisa/`. From a session with no ticket
+  bound, an operator runs `start`, `stop`, `status` and `validate` by the exact absolute command
+  the gate's `work-item-unbound` refusal names (CodySwannGT/lisa#5211).
 - **Lifecycle roles.** Never hard-code a state or label name. Resolve each role you touch (`ready`,
   `claimed`, `blocked`) from config:
   `node "$SM/../../../scripts/resolve-lifecycle-role.mjs" --role <role> --vendor <tracker> --intent <read|write>`.

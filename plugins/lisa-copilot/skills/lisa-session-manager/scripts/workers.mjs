@@ -268,7 +268,11 @@ export function findLiveWorker(agents, ref) {
  */
 export function scrubWorkerEnv(env) {
   return Object.fromEntries(
-    Object.entries(env).filter(([key]) => !key.startsWith("TELEGRAM_"))
+    Object.entries(env).filter(
+      // The manager mark (#5211) admits operational work with no ticket bound;
+      // a worker binds its own ticket and must stay gated.
+      ([key]) => !key.startsWith("TELEGRAM_") && key !== "LISA_SESSION_MANAGER"
+    )
   );
 }
 
