@@ -14,6 +14,7 @@ import {
   unboundRefusal,
   unboundWrite,
 } from "./task-unbound.mjs";
+import { staleBinding } from "./task-stale.mjs";
 import {
   linearIntakeRead,
   observeLinearIntake,
@@ -177,7 +178,28 @@ export function runTaskAction(argv = process.argv) {
     }
     const refIndex = argv.indexOf("--ref"),
       ref = refIndex >= 0 ? argv[refIndex + 1] : undefined;
-    const header = readTaskRequirements(cfg, { ref });
+    let header;
+    try {
+      header = readTaskRequirements(cfg, { ref });
+    } catch (error) {
+      // A stale binding keeps its ways out instead of locking the session
+      // (#5203): a scratch input file for prepare, and `clear`.
+      const stale =
+        hook &&
+        input?.hook_event_name === "PreToolUse" &&
+        error instanceof AccessFailure &&
+        error.code === "requirements-stale"
+          ? staleBinding(input, cfg)
+          : null;
+      if (!stale) throw error;
+      // Rotate the native epoch as the stale refusal always did, so no
+      // earlier ready state outlives the stale read.
+      resetNativeEvent(input);
+      if (stale.allowed) return;
+      console.error(`${stale.code}: ${stale.action}`);
+      process.exitCode = 2;
+      return;
+    }
     if (
       hook &&
       !header &&
